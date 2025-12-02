@@ -49,6 +49,22 @@ import { SharedModule } from '../shared/shared.module';
 export class MyFeatureModule { }
 ```
 
+### Navbar Component
+
+```html
+<!-- Add to app.component.html (already configured) -->
+<app-navbar></app-navbar>
+<router-outlet></router-outlet>
+```
+
+Features:
+- Sticky navigation bar
+- Responsive mobile menu with hamburger icon
+- Active route highlighting
+- User authentication display
+- Smooth animations and transitions
+- Modern gradient design
+
 ### Loading Spinner Component
 
 ```html

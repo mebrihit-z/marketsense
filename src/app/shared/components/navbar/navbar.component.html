@@ -1,0 +1,50 @@
+<nav class="navbar">
+  <div class="navbar-container">
+    <!-- Logo -->
+    <div class="navbar-brand">
+      <a routerLink="/" class="brand-link">
+        <span class="brand-icon">📈</span>
+        <span class="brand-name">MarketSense</span>
+      </a>
+    </div>
+
+    <!-- Desktop Navigation -->
+    <div class="navbar-menu" [class.is-active]="isMenuOpen">
+      <div class="navbar-links">
+        <a 
+          *ngFor="let link of navLinks"
+          [routerLink]="link.path" 
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: true}"
+          class="nav-link"
+          (click)="closeMenu()">
+          <span class="nav-icon">{{ link.icon }}</span>
+          <span>{{ link.label }}</span>
+        </a>
+      </div>
+
+      <!-- Auth Section -->
+      <div class="navbar-actions">
+        <ng-container >
+          <div class="user-menu">
+            <span class="user-name">user</span>
+            <button class="btn btn-outline" (click)="logout()">Logout</button>
+          </div>
+        </ng-container>
+        <ng-template #notLoggedIn>
+          <button class="btn btn-primary" routerLink="/login" (click)="closeMenu()">
+            Sign In
+          </button>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="navbar-toggle" (click)="toggleMenu()" [class.is-active]="isMenuOpen">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+  </div>
+</nav>
+

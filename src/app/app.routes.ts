@@ -5,13 +5,9 @@ import { AboutComponent } from './pages/about/about.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent },
-  { 
-    path: 'dashboard', 
-    component: DashboardComponent,
-    // Uncomment to protect this route with authentication
-    // canActivate: [authGuard]
+  { path: '', component: DashboardComponent,
   },
+  { path: 'home', component: HomeComponent },
   { path: 'about', component: AboutComponent },
   { path: '**', redirectTo: '', pathMatch: 'full' }
 ];
