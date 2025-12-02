@@ -1,3 +1,17 @@
 import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
+import { DashboardComponent } from './pages/dashboard/dashboard.component';
+import { AboutComponent } from './pages/about/about.component';
+import { authGuard } from './core/guards/auth.guard';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { 
+    path: 'dashboard', 
+    component: DashboardComponent,
+    // Uncomment to protect this route with authentication
+    // canActivate: [authGuard]
+  },
+  { path: 'about', component: AboutComponent },
+  { path: '**', redirectTo: '', pathMatch: 'full' }
+];

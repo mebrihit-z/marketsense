@@ -1,0 +1,66 @@
+<div class="about-container">
+  <section class="about-hero">
+    <h1>About MarketSense</h1>
+    <p class="lead">Empowering businesses with intelligent market insights</p>
+  </section>
+
+  <section class="mission-section">
+    <div class="content-wrapper">
+      <h2>Our Mission</h2>
+      <p>
+        At MarketSense, we believe that every business deserves access to powerful market intelligence.
+        Our mission is to democratize market analysis by providing cutting-edge tools that are both
+        powerful and easy to use.
+      </p>
+      <p>
+        We combine advanced analytics, artificial intelligence, and intuitive design to help businesses
+        of all sizes make data-driven decisions with confidence.
+      </p>
+    </div>
+  </section>
+
+  <section class="team-section">
+    <div class="content-wrapper">
+      <h2>Meet Our Team</h2>
+      <div class="team-grid">
+        <div class="team-card" *ngFor="let member of teamMembers">
+          <div class="member-avatar">
+            {{ member.name.charAt(0) }}
+          </div>
+          <h3>{{ member.name }}</h3>
+          <p class="role">{{ member.role }}</p>
+          <p class="bio">{{ member.bio }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="values-section">
+    <div class="content-wrapper">
+      <h2>Our Values</h2>
+      <div class="values-grid">
+        <div class="value-item">
+          <div class="value-icon">🎯</div>
+          <h3>Accuracy</h3>
+          <p>We ensure every insight is based on reliable, verified data.</p>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">⚡</div>
+          <h3>Innovation</h3>
+          <p>We continuously push the boundaries of what's possible.</p>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">🤝</div>
+          <h3>Partnership</h3>
+          <p>Your success is our success. We're in this together.</p>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">🔒</div>
+          <h3>Security</h3>
+          <p>Your data is protected with enterprise-grade security.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
