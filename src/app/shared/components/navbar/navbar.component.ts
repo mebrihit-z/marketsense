@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class NavbarComponent {
   isMenuOpen = false;
 //   currentUser$ = this.authService.currentUser$;
+  imageLoaded = true;
 
   navLinks = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -24,6 +25,11 @@ export class NavbarComponent {
     // private authService: AuthService,
     private router: Router
   ) {}
+
+  onImageError(event: Event): void {
+    this.imageLoaded = false;
+    console.error('Logo image failed to load. Using fallback text logo.');
+  }
 
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;

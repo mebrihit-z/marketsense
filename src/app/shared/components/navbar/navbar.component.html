@@ -3,48 +3,20 @@
     <!-- Logo -->
     <div class="navbar-brand">
       <a routerLink="/" class="brand-link">
-        <span class="brand-icon">📈</span>
-        <span class="brand-name">MarketSense</span>
+        <img src="assets/images/job-solutions-logo.svg" alt="MarketSense Logo" class="brand-logo">
       </a>
     </div>
-
-    <!-- Desktop Navigation -->
-    <div class="navbar-menu" [class.is-active]="isMenuOpen">
-      <div class="navbar-links">
-        <a 
-          *ngFor="let link of navLinks"
-          [routerLink]="link.path" 
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{exact: true}"
-          class="nav-link"
-          (click)="closeMenu()">
-          <span class="nav-icon">{{ link.icon }}</span>
-          <span>{{ link.label }}</span>
-        </a>
+    <!-- user and settings section -->
+    <div class="navbar-user-settings-date">
+      <div class="user-menu">
+        <span class="user-name">settings</span>
+        <span class="user-name">user</span>
       </div>
-
-      <!-- Auth Section -->
-      <div class="navbar-actions">
-        <ng-container >
-          <div class="user-menu">
-            <span class="user-name">user</span>
-            <button class="btn btn-outline" (click)="logout()">Logout</button>
-          </div>
-        </ng-container>
-        <ng-template #notLoggedIn>
-          <button class="btn btn-primary" routerLink="/login" (click)="closeMenu()">
-            Sign In
-          </button>
-        </ng-template>
+      <div class="date-updated">
+        <span class="user-name">settings</span>
+        <span class="user-name">Last updated: Nov 11, 2025</span>
       </div>
     </div>
-
-    <!-- Mobile Menu Toggle -->
-    <button class="navbar-toggle" (click)="toggleMenu()" [class.is-active]="isMenuOpen">
-      <span class="hamburger-line"></span>
-      <span class="hamburger-line"></span>
-      <span class="hamburger-line"></span>
-    </button>
   </div>
 </nav>
 
