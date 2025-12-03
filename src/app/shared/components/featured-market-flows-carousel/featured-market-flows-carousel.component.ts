@@ -20,14 +20,18 @@ export class FeaturedMarketFlowsCarouselComponent {
   currentSlideIndex: number = 0;
   
   timeHorizons = ['+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
+  cardsPerSlide = 3;
   
   get totalSlides(): number {
-    return Math.ceil(this.cards.length / 3);
+    return this.cards.length;
   }
   
   get visibleCards(): MarketFlowCard[] {
-    const startIndex = this.currentSlideIndex * 3;
-    return this.cards.slice(startIndex, startIndex + 3);
+    // Calculate the starting index to keep the selected card visible
+    // If we're at card 7 out of 9, we want to show cards 7, 8, 9
+    const maxStartIndex = Math.max(0, this.cards.length - this.cardsPerSlide);
+    const startIndex = Math.min(this.currentSlideIndex, maxStartIndex);
+    return this.cards.slice(startIndex, startIndex + this.cardsPerSlide);
   }
   
   setDataType(type: 'historical' | 'forecasted'): void {
@@ -45,7 +49,8 @@ export class FeaturedMarketFlowsCarouselComponent {
   }
   
   nextSlide(): void {
-    if (this.currentSlideIndex < this.totalSlides - 1) {
+    const maxIndex = this.cards.length - 1;
+    if (this.currentSlideIndex < maxIndex) {
       this.currentSlideIndex++;
     }
   }

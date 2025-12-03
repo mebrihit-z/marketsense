@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
-import { FeaturedMarketFlowsCarouselComponent, MarketFlowCard } from '../../shared/components/featured-market-flows-carousel/featured-market-flows-carousel.component';
+import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/featured-market-flows-carousel/featured-market-flows-carousel.component';
+import { MarketFlowCard } from '../../shared/components/featured-market-flows-carousel/market-flow-card/market-flow-card.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -89,7 +90,7 @@ export class DashboardComponent implements OnInit {
       description: 'Growing interest in emerging market debt and equities as valuations become more attractive relative to developed markets.',
       chartColor: 'green',
       borderColor: '#00bc7d'
-    }
+    },
   ];
 
   ngOnInit(): void {

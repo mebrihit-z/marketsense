@@ -62,7 +62,7 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
 
   it('should calculate total slides correctly', () => {
     component.cards = new Array(7).fill({});
-    expect(component.totalSlides).toBe(3); // 7 cards / 3 per slide = 3 slides
+    expect(component.totalSlides).toBe(7); // One dot per card = 7 dots
   });
 
   it('should return visible cards for current slide', () => {
@@ -80,11 +80,18 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
       borderColor: '#00bc7d'
     }));
 
+    // Initially shows first 3 cards
     expect(component.visibleCards.length).toBe(3);
     expect(component.visibleCards[0].id).toBe('card-0');
     
+    // Navigate to card 1, should show cards 1, 2, 3
     component.nextSlide();
-    expect(component.visibleCards[0].id).toBe('card-3');
+    expect(component.visibleCards[0].id).toBe('card-1');
+    
+    // Navigate to card 7 (index 7), should show cards 7, 8 (last possible set)
+    component.goToSlide(7);
+    expect(component.visibleCards.length).toBe(2); // Only 2 cards left
+    expect(component.visibleCards[0].id).toBe('card-7');
   });
 });
 
