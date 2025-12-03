@@ -28,5 +28,11 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('Dashboard component initialized');
   }
+
+  onFiltersChanged(filters: any): void {
+    console.log('Filters changed:', filters);
+    // Handle filter changes here
+    // You can update your data, make API calls, etc.
+  }
 }
 

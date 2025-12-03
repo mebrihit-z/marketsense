@@ -1,0 +1,28 @@
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #eef2ff;
+    color: #1e3a8a;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .label { white-space: nowrap; }
+  .close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: #1e40af;
+    color: #fff;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .close:focus { outline: 2px solid rgba(30,64,175,0.25); }

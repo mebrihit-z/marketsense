@@ -1,140 +1,16 @@
 .dashboard-container {
-  min-height: calc(100vh - 70px); // Account for navbar height
-  background-color: #fff;
-  padding: 2rem;
-}
-
-.dashboard-header {
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2.5rem;
-    color: #1f2937;
-    margin-bottom: 0.5rem;
-  }
-
-  .subtitle {
-    color: #6b7280;
-    font-size: 1.125rem;
-  }
+    min-height: calc(100vh - 70px); // Account for navbar height
+    background-color: #f8f9fa;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
 }
 
 .dashboard-content {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-
-  .stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .stat-icon {
-      font-size: 2.5rem;
-      width: 60px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f3f4f6;
-      border-radius: 12px;
-    }
-
-    .stat-info {
-      h3 {
-        font-size: 1.875rem;
-        font-weight: 700;
-        color: #1f2937;
-        margin: 0 0 0.25rem 0;
-      }
-
-      p {
-        color: #6b7280;
-        font-size: 0.875rem;
-        margin: 0;
-      }
-    }
-  }
+    flex-direction: column;
+    gap: 1.5rem;
+    
+    // Add styles for your dashboard content here
 }
-
-.activities-section {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-  h2 {
-    font-size: 1.5rem;
-    color: #1f2937;
-    margin-bottom: 1.5rem;
-  }
-
-  .activities-list {
-    .activity-item {
-      display: flex;
-      align-items: flex-start;
-      padding: 1rem 0;
-      border-bottom: 1px solid #e5e7eb;
-
-      &:last-child {
-        border-bottom: none;
-      }
-
-      .activity-dot {
-        width: 12px;
-        height: 12px;
-        background-color: #3b82f6;
-        border-radius: 50%;
-        margin-top: 0.25rem;
-        margin-right: 1rem;
-        flex-shrink: 0;
-      }
-
-      .activity-content {
-        flex: 1;
-
-        .activity-action {
-          color: #1f2937;
-          font-weight: 500;
-          margin: 0 0 0.25rem 0;
-        }
-
-        .activity-time {
-          color: #9ca3af;
-          font-size: 0.875rem;
-        }
-      }
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-
-  .dashboard-header h1 {
-    font-size: 2rem;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
