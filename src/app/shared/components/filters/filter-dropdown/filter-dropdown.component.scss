@@ -1,15 +1,14 @@
 :host { position: relative; display: inline-block; }
 .btn {
     display:flex;
-    justify-content:space-between; 
     align-items:center;
-    width: 220px;
+    gap: 15px;
     padding: 8px 13px;
     cursor: pointer;
-
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.10);
     background: #FFF;
+    font-size: 14px;
 }
 .right { display:flex; gap:8px; align-items:center; }
 .count {

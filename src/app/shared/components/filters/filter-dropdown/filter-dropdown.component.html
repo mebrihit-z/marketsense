@@ -1,10 +1,8 @@
 <div class="filter-root" (clickOutside)="closeIfClickedOutside($event)">
     <button type="button" class="btn" (click)="toggle($event)">
       <span class="title">{{ title }}</span>
-      <div class="right">
-        <span class="count">{{ selected?.length || 0 }}</span>
-        <span class="caret">▾</span>
-      </div>
+      <span class="count">{{ selected.length || 0 }}</span>
+      <span class="caret">▾</span>
     </button>
 
     <div class="panel" *ngIf="open" (click)="$event.stopPropagation()">

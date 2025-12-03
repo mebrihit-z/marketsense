@@ -1,22 +1,24 @@
 .chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: #eef2ff;
-    color: #1e3a8a;
+    gap: 12px;
     padding: 6px 10px;
-    border-radius: 999px;
+    border-radius: 120px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 400;
+    border: 1px solid #0B41AD;
   }
-  .label { white-space: nowrap; }
+  .label { 
+    font-family: Inter;
+    white-space: nowrap; 
+  }
   .close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    background: #1e40af;
+    width: 20px;
+    height: 20px;
+    background: #0B41AD;;
     color: #fff;
     border-radius: 50%;
     border: none;
@@ -24,5 +26,8 @@
     padding: 0;
     font-size: 12px;
     line-height: 1;
+    font-weight: 500;
   }
-  .close:focus { outline: 2px solid rgba(30,64,175,0.25); }
+  .close:focus { 
+    outline: 2px solid rgba(30,64,175,0.25); 
+  }
