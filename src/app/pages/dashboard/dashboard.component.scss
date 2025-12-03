@@ -4,7 +4,7 @@
     padding: 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .dashboard-content {
@@ -13,4 +13,9 @@
     gap: 1.5rem;
     
     // Add styles for your dashboard content here
+}
+
+.carousel-section {
+    width: 100%;
+    padding: 1rem 0;
 }

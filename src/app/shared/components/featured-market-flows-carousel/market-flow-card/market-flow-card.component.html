@@ -1,0 +1,62 @@
+<div class="card">
+  <!-- Card Header -->
+  <div class="card-header">
+    <h3 class="card-title">{{ card.title }}</h3>
+    <div class="card-actions">
+      <button class="icon-btn" (click)="onDownload()" aria-label="Download">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 10v2.667A1.333 1.333 0 0 1 12.667 14H3.333A1.333 1.333 0 0 1 2 12.667V10M4.667 6.667 8 10m0 0 3.333-3.333M8 10V2" stroke="currentColor" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="icon-btn" (click)="onMoreOptions()" aria-label="More options">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="3" r="1" fill="currentColor"/>
+          <circle cx="8" cy="8" r="1" fill="currentColor"/>
+          <circle cx="8" cy="13" r="1" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chart Section -->
+  <div class="chart-container" [style.border-left-color]="card.borderColor">
+    <!-- Background Chart (placeholder) -->
+    <div class="chart-background"></div>
+    
+    <!-- Metric Display -->
+    <div class="metric-display">
+      <div class="value-container">
+        <svg class="arrow-icon" width="32" height="32" viewBox="0 0 32 32" [attr.fill]="card.valueColor === 'green' ? '#009966' : '#e7000b'">
+          <path *ngIf="card.valueColor === 'green'" d="M16 10L16 22M16 10L11 15M16 10L21 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path *ngIf="card.valueColor === 'red'" d="M16 22L16 10M16 22L11 17M16 22L21 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
+          {{ card.value }}
+        </span>
+      </div>
+      <div class="badge" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
+        {{ card.percentageChange }}
+      </div>
+      <div class="metric-label">{{ card.metricLabel }}</div>
+    </div>
+  </div>
+
+  <!-- Card Footer -->
+  <div class="card-footer">
+    <div class="footer-header">
+      <div class="confidence-indicator">
+        <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
+        <span class="confidence-text">AI Confidence</span>
+      </div>
+      <button class="ask-btn" (click)="onAskMarketSense()">
+        <svg class="sparkle-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1L9.5 6.5L15 8L9.5 9.5L8 15L6.5 9.5L1 8L6.5 6.5L8 1Z" stroke="#0b41ad" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="ask-text">Ask MarketSense</span>
+      </button>
+    </div>
+    <div class="divider"></div>
+    <p class="description">{{ card.description }}</p>
+  </div>
+</div>
+
