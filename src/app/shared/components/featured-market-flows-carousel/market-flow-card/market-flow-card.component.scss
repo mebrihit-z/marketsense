@@ -12,6 +12,7 @@
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
+  
 }
 
 // Card Header
@@ -72,6 +73,61 @@
   box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   background-color: white;
+  
+  // Apply color based on border color (determined by card type)
+  // Green cards - Pastel green with subtle gradient and top band
+  &[style*="border-left-color: rgb(0, 188, 125)"],
+  &[style*="border-left-color: #00bc7d"] {
+    .chart-background {
+      // Base pastel green with gradient from lighter to darker
+      background: linear-gradient(180deg, 
+        rgba(5, 150, 105, 0.15) 0%, 
+        rgba(5, 150, 105, 0.20) 15%, 
+        rgba(5, 150, 105, 0.18) 100%
+      );
+      
+      // Add subtle top band effect
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20%;
+        background: linear-gradient(180deg, 
+          rgba(5, 150, 105, 0.08) 0%, 
+          transparent 100%
+        );
+      }
+    }
+  }
+  
+  // Red cards - Pastel red with subtle gradient and top band
+  &[style*="border-left-color: rgb(251, 44, 54)"],
+  &[style*="border-left-color: #fb2c36"] {
+    .chart-background {
+      // Base pastel red with gradient from lighter to darker
+      background: linear-gradient(180deg, 
+        rgba(251, 44, 54, 0.15) 0%, 
+        rgba(251, 44, 54, 0.20) 15%, 
+        rgba(251, 44, 54, 0.18) 100%
+      );
+      
+      // Add subtle top band effect
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20%;
+        background: linear-gradient(180deg, 
+          rgba(251, 44, 54, 0.08) 0%, 
+          transparent 100%
+        );
+      }
+    }
+  }
 }
 
 .chart-background {
@@ -80,8 +136,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.2;
-  background: linear-gradient(135deg, rgba(11, 65, 173, 0.1) 0%, rgba(11, 65, 173, 0.05) 100%);
+  border-radius: 10px;
 }
 
 .metric-display {
