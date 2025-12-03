@@ -5,9 +5,41 @@
     border: 1px solid #e5e7eb;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
-.top-row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-.left { display:flex; gap:10px; align-items:center; }
-.label { color:#6b7280; font-weight:600; margin-right:6px; }
-.right { display:flex; gap:12px; align-items:center; }
-.include-toggle { display:flex; gap:8px; align-items:center; font-size:13px; color:#374151; }
-.clear-all { background:none; border:none; color:#6b7280; cursor:pointer; }
+.top-row { display:flex; 
+    justify-content:space-between; 
+    align-items:center; 
+    gap:12px; 
+    flex-wrap:wrap; 
+}
+.left { 
+    display:flex; 
+    flex-direction: column;
+    gap:10px; 
+    
+}
+.label { color:#6b7280; 
+    font-weight:600; 
+    margin-right:6px; 
+}
+.right { 
+    display:flex; 
+    gap:12px; 
+    align-items:center; 
+}
+.include-toggle { 
+    display:flex; 
+    gap:8px; align-items:center; 
+    font-size:13px; 
+    color:#374151; 
+}
+.clear-all { 
+    background:none; border:none; 
+    color:#6b7280; 
+    cursor:pointer; 
+}
+.horizontal-divider { 
+    height: 1px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.10);
+     
+}

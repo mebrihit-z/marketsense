@@ -6,6 +6,7 @@ import { SelectedFiltersListComponent, ChipItem } from '../selected-filters-list
 
 @Component({
   selector: 'app-filters-bar',
+  standalone: true,
   imports: [CommonModule, FormsModule, FilterDropdownComponent, SelectedFiltersListComponent],
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss'

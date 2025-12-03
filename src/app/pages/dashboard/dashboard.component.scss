@@ -1,10 +1,10 @@
 .dashboard-container {
     min-height: calc(100vh - 70px); // Account for navbar height
-    background-color: #f8f9fa;
+    background-color: #fff;
     padding: 2rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 .dashboard-content {

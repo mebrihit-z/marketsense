@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 @Component({
   selector: 'app-selected-filter-chip',
+  standalone: true,
   imports: [],
   templateUrl: './selected-filter-chip.component.html',
   styleUrl: './selected-filter-chip.component.scss'

@@ -1,54 +1,55 @@
 <div class="filters-root">
     <div class="top-row">
       <div class="left">
-        <span class="label">Filters:</span>
+        <div class="filters-list">
+          <span class="label">Filters:</span>
 
-        <app-filter-dropdown
-          title="Investor Region"
-          [options]="investorRegionOptions"
-          [selected]="state.investorRegion"
-          (selectedChange)="onChange('investorRegion', $event)"
-        ></app-filter-dropdown>
+          <app-filter-dropdown
+            title="Investor Region"
+            [options]="investorRegionOptions"
+            [selected]="state.investorRegion"
+            (selectedChange)="onChange('investorRegion', $event)"
+          ></app-filter-dropdown>
 
-        <app-filter-dropdown
-          title="Investor Type"
-          [options]="investorTypeOptions"
-          [selected]="state.investorType"
-          (selectedChange)="onChange('investorType', $event)"
-        ></app-filter-dropdown>
+          <app-filter-dropdown
+            title="Investor Type"
+            [options]="investorTypeOptions"
+            [selected]="state.investorType"
+            (selectedChange)="onChange('investorType', $event)"
+          ></app-filter-dropdown>
 
-        <app-filter-dropdown
-          title="Product Region"
-          [options]="productRegionOptions"
-          [selected]="state.productRegion"
-          (selectedChange)="onChange('productRegion', $event)"
-        ></app-filter-dropdown>
+          <app-filter-dropdown
+            title="Product Region"
+            [options]="productRegionOptions"
+            [selected]="state.productRegion"
+            (selectedChange)="onChange('productRegion', $event)"
+          ></app-filter-dropdown>
 
-        <app-filter-dropdown
-          title="Product Type"
-          [options]="productTypeOptions"
-          [selected]="state.productType"
-          (selectedChange)="onChange('productType', $event)"
-        ></app-filter-dropdown>
+          <app-filter-dropdown
+            title="Product Type"
+            [options]="productTypeOptions"
+            [selected]="state.productType"
+            (selectedChange)="onChange('productType', $event)"
+          ></app-filter-dropdown>
 
-        <app-filter-dropdown
-          title="Product Sub-Type"
-          [options]="productSubTypeOptions"
-          [selected]="state.productSubType"
-          (selectedChange)="onChange('productSubType', $event)"
-        ></app-filter-dropdown>
+          <app-filter-dropdown
+            title="Product Sub-Type"
+            [options]="productSubTypeOptions"
+            [selected]="state.productSubType"
+            (selectedChange)="onChange('productSubType', $event)"
+          ></app-filter-dropdown>
+        </div>
+        <div class="include-toggle">
+          <input type="checkbox" [(ngModel)]="includeMediumConfidence" />
+          <span>Include Medium AI Confidence</span>
+        </div>
       </div>
 
       <div class="right">
-        <label class="include-toggle">
-          <input type="checkbox" [(ngModel)]="includeMediumConfidence" />
-          <span>Include Medium AI Confidence</span>
-        </label>
-
         <button class="clear-all" (click)="clearAll()">Clear All Filters</button>
       </div>
     </div>
-
+    <div class="horizontal-divider"></div>
     <app-selected-filters-list
       [chips]="chips"
       (remove)="removeChip($event)"

@@ -9,7 +9,8 @@ export interface FilterOption {
 
 @Component({
   selector: 'app-filter-dropdown',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './filter-dropdown.component.html',
   styleUrl: './filter-dropdown.component.scss'
 })
