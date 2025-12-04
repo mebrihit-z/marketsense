@@ -30,12 +30,15 @@
       <!-- Regular Options -->
       <div class="options" *ngIf="!isGrouped">
         <label class="option" *ngFor="let opt of options">
-          <input type="checkbox" [(ngModel)]="map[opt.value]" (change)="onChange()" />
+          <div class="checkbox-wrapper">
+            <input type="checkbox" [(ngModel)]="map[opt.value]" (change)="onChange()" />
+            <span class="checkmark"></span>
+          </div>
           <span class="opt-label">{{ opt.label || opt.value }}</span>
         </label>
       </div>
 
-      <hr />
+      <div class="horizontal-divider"></div>
 
       <div class="panel-footer">
         <button class="clear" (click)="clear($event)">Clear</button>

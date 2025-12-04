@@ -18,3 +18,10 @@ app-root {
   display: block;
   min-height: 100vh;
 }
+.horizontal-divider { 
+  height: 1px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.10);
+  margin: 12px 0;
+   
+}
