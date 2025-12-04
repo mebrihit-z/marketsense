@@ -6,12 +6,7 @@
       <div class="title-row">
         <h2 class="title">Asset Allocation</h2>
         <button class="view-mode-btn" (click)="onPackingCirclesClick()">
-          <svg class="circles-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="5" cy="5" r="3" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
-            <circle cx="11" cy="5" r="2.5" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
-            <circle cx="5" cy="11" r="2.5" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
-            <circle cx="11" cy="11" r="2" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
-          </svg>
+          <img src="assets/icons/gravity-ui-circles-5-random.svg" alt="Packing Circles" class="circles-icon">
           <span>Packing Circles</span>
         </button>
       </div>
@@ -36,11 +31,7 @@
 
       <!-- More Options Button -->
       <button class="more-options-btn" aria-label="More options">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="8" cy="3" r="1.5" fill="#717182"/>
-          <circle cx="8" cy="8" r="1.5" fill="#717182"/>
-          <circle cx="8" cy="13" r="1.5" fill="#717182"/>
-        </svg>
+        <img src="assets/icons/more-options-icon.svg" alt="More options">
       </button>
     </div>
   </div>
@@ -55,14 +46,7 @@
           *ngFor="let dimension of flowDimensions" 
           class="dimension-chip"
           [class.active]="dimension.active">
-          <svg class="drag-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="5" cy="4" r="1.5" fill="currentColor"/>
-            <circle cx="11" cy="4" r="1.5" fill="currentColor"/>
-            <circle cx="5" cy="8" r="1.5" fill="currentColor"/>
-            <circle cx="11" cy="8" r="1.5" fill="currentColor"/>
-            <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="11" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <img src="assets/icons/nimbus-drag-dots.svg" alt="Drag" class="drag-icon">
           <span class="chip-text">
             {{ dimension.label }} 
             <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>

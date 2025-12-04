@@ -6,9 +6,7 @@
       <div class="title-row">
         <h2 class="title">Asset Flows</h2>
         <button class="streamgraph-btn" (click)="onStreamgraphClick()">
-          <svg class="graph-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 8C2 8 3 6 5 6C7 6 7 8 9 8C11 8 11 6 13 6C15 6 16 8 16 8M2 12C2 12 3 10 5 10C7 10 7 12 9 12C11 12 11 10 13 10C15 10 16 12 16 12" stroke="#0b41ad" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
+          <img src="assets/icons/streamgraph-icon.svg" alt="Streamgraph">
           <span>Streamgraph</span>
         </button>
       </div>
@@ -52,11 +50,7 @@
 
       <!-- More Options Button -->
       <button class="more-options-btn" aria-label="More options">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="8" cy="3" r="1.5" fill="#717182"/>
-          <circle cx="8" cy="8" r="1.5" fill="#717182"/>
-          <circle cx="8" cy="13" r="1.5" fill="#717182"/>
-        </svg>
+        <img src="assets/icons/more-options-icon.svg" alt="More options">
       </button>
     </div>
   </div>
@@ -71,14 +65,7 @@
           *ngFor="let dimension of flowDimensions" 
           class="dimension-chip"
           [class.active]="dimension.active">
-          <svg class="drag-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="5" cy="4" r="1.5" fill="currentColor"/>
-            <circle cx="11" cy="4" r="1.5" fill="currentColor"/>
-            <circle cx="5" cy="8" r="1.5" fill="currentColor"/>
-            <circle cx="11" cy="8" r="1.5" fill="currentColor"/>
-            <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="11" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <img src="assets/icons/nimbus-drag-dots.svg" alt="Drag" class="drag-icon">
           <span class="chip-text">
             {{ dimension.label }} 
             <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>

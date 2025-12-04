@@ -184,7 +184,6 @@
 .dimension-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
   padding: 4px 4px 4px 8px;
   background-color: #0b41ad;
   border-radius: 120px;
@@ -200,6 +199,7 @@
     width: 16px;
     height: 16px;
     color: #ffffff;
+    margin-right: -4px;
   }
 
   .chip-text {
