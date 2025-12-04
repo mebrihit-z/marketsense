@@ -11,14 +11,22 @@
     gap:12px; 
     flex-wrap:wrap; 
 }
+.filter-icon-container {
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    color: #717182;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px; /* 142.857% */
+    letter-spacing: -0.15px;
+}
 .filters-list { 
     display:flex;
     gap:12px; 
     
-}
-.filters-label { 
-    color:#6b7280; 
-    font-weight:600; 
 }
 .clear-all-container { 
     margin-left: auto;
