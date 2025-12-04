@@ -18,11 +18,16 @@ export class FeaturedMarketFlowsCarouselComponent {
   @Input() showViewMoreCard: boolean = true;
   
   dataType: 'historical' | 'forecasted' = 'historical';
-  selectedTimeHorizon: string = '+9 mo';
+  selectedTimeHorizon: string = '-9 mo';
   currentSlideIndex: number = 0;
   
-  timeHorizons = ['+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   cardsPerSlide = 3;
+  
+  get timeHorizons(): string[] {
+    return this.dataType === 'historical' 
+      ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo']
+      : ['+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
+  }
   
   get totalSlides(): number {
     return this.showViewMoreCard ? this.cards.length + 1 : this.cards.length;
@@ -51,6 +56,10 @@ export class FeaturedMarketFlowsCarouselComponent {
   
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
+    // Update the time horizon sign when switching data type
+    const currentValue = this.selectedTimeHorizon.replace(/[+-]/g, '');
+    const newSign = type === 'historical' ? '-' : '+';
+    this.selectedTimeHorizon = `${newSign}${currentValue}`;
   }
   
   setTimeHorizon(horizon: string): void {
