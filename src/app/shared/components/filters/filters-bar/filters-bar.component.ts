@@ -21,15 +21,20 @@ export class FiltersBarComponent {
   ];
 
   investorTypeOptions: FilterOption[] = [
-    { value: 'Retail' }, { value: 'Institutional' }, { value: 'Family Office' }
+    { value: 'Institutional' }, { value: 'Corporate' }, { value: 'Pension Funds' },
+    { value: 'Sovereign Wealth' }, { value: 'Family Office' },
+    { value: 'Endowments' }
   ];
 
   productRegionOptions: FilterOption[] = [
-    { value: 'United States' }, { value: 'Europe' }, { value: 'Asia' }
+    { value: 'United States' }, { value: 'Europe' }, { value: 'Asia Pacific' },
+    { value: 'United Kingdom' }, { value: 'Middle East & Africa' }
   ];
 
   productTypeOptions: FilterOption[] = [
-    { value: 'Equity' }, { value: 'Fixed Income' }, { value: 'Alternatives' }
+    { value: 'Equity' }, { value: 'Fixed Income' }, { value: 'Alternatives' },
+    { value: 'Cash' }, { value: 'Private Markets' }, { value: 'Other/Specialized' }, 
+    { value: 'Multi-Asset' }
   ];
 
   productSubTypeOptions: FilterOption[] = [
