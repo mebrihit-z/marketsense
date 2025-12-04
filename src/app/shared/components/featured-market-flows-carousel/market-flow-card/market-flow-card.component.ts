@@ -13,6 +13,8 @@ export interface MarketFlowCard {
   description: string;
   chartColor: 'red' | 'green';
   borderColor: string;
+  timeHorizon: string;
+  dataType: 'historical' | 'forecasted';
 }
 
 @Component({
