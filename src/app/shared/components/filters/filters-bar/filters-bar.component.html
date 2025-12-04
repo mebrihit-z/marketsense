@@ -35,7 +35,7 @@
 
         <app-filter-dropdown
           title="Product Sub-Type"
-          [options]="productSubTypeOptions"
+          [groupedOptions]="productSubTypeOptions"
           [selected]="state.productSubType"
           (selectedChange)="onChange('productSubType', $event)"
         ></app-filter-dropdown>

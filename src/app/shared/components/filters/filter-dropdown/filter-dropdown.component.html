@@ -9,11 +9,26 @@
       <div class="panel-header">
         <div class="panel-title">Select {{ title | lowercase }}</div>
         <button class="select-all" (click)="toggleSelectAll($event)">
-          {{ allSelected() ? 'Unselect All' : 'Select All' }}
+          {{ allSelected() ? 'Deselect All' : 'Select All' }}
         </button>
       </div>
 
-      <div class="options">
+      <!-- Grouped Options -->
+      <div class="options" *ngIf="isGrouped">
+        <div *ngFor="let group of groupedOptions" class="option-group">
+          <div class="group-label">{{ group.category }}</div>
+          <label class="option grouped-option" *ngFor="let opt of group.options">
+            <div class="checkbox-wrapper">
+              <input type="checkbox" [(ngModel)]="map[opt.value]" (change)="onChange()" />
+              <span class="checkmark"></span>
+            </div>
+            <span class="opt-label">{{ opt.label || opt.value }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Regular Options -->
+      <div class="options" *ngIf="!isGrouped">
         <label class="option" *ngFor="let opt of options">
           <input type="checkbox" [(ngModel)]="map[opt.value]" (change)="onChange()" />
           <span class="opt-label">{{ opt.label || opt.value }}</span>

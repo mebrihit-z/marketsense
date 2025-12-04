@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FilterDropdownComponent, FilterOption } from '../filter-dropdown/filter-dropdown.component';
+import { FilterDropdownComponent, FilterOption, GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
 import { SelectedFiltersListComponent, ChipItem } from '../selected-filters-list/selected-filters-list.component';
 
 @Component({
@@ -11,8 +11,15 @@ import { SelectedFiltersListComponent, ChipItem } from '../selected-filters-list
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss'
 })
-export class FiltersBarComponent {
+export class FiltersBarComponent implements OnInit {
   includeMediumConfidence = false;
+
+  ngOnInit() {
+    // Initialize product sub-types with all options selected by default
+    this.state.productSubType = this.productSubTypeOptions.flatMap(group => 
+      group.options.map(opt => opt.value)
+    );
+  }
 
   // --- sample options (replace with your real data) ---
   investorRegionOptions: FilterOption[] = [
@@ -37,8 +44,42 @@ export class FiltersBarComponent {
     { value: 'Multi-Asset' }
   ];
 
-  productSubTypeOptions: FilterOption[] = [
-    { value: 'Sub A' }, { value: 'Sub B' }, { value: 'Sub C' }
+  productSubTypeOptions: GroupedFilterOption[] = [
+    {
+      category: 'Equity',
+      options: [
+        { value: 'US Equity Small Cap' },
+        { value: 'US Equity Large Cap' },
+        { value: 'Global Equity' },
+        { value: 'Emerging Markets' }
+      ]
+    },
+    {
+      category: 'Fixed Income',
+      options: [
+        { value: 'US Fixed Income' },
+        { value: 'Municipal Bond' },
+        { value: 'Global Bonds' },
+        { value: 'Short Duration' }
+      ]
+    },
+    {
+      category: 'Alternatives',
+      options: [
+        { value: 'Hedge Funds' },
+        { value: 'Crypto' },
+        { value: 'Commodities' }
+      ]
+    },
+    {
+      category: 'Cash',
+      options: [
+        { value: 'Money Market Funds' },
+        { value: 'Treasury Bills' },
+        { value: 'Bank Deposits/CDs' },
+        { value: 'Foreign Currency/FFX' }
+      ]
+    }
   ];
   // --------------------------------------------------
    // centralized state (Option A)
@@ -63,7 +104,8 @@ export class FiltersBarComponent {
     add('investorType', this.state.investorType);
     add('productRegion', this.state.productRegion);
     add('productType', this.state.productType);
-    add('productSubType', this.state.productSubType);
+    // Exclude productSubType from chips as there are too many (15 items)
+    // add('productSubType', this.state.productSubType);
     return res;
   }
 

@@ -7,6 +7,11 @@ export interface FilterOption {
   label?: string;
 }
 
+export interface GroupedFilterOption {
+  category: string;
+  options: FilterOption[];
+}
+
 @Component({
   selector: 'app-filter-dropdown',
   standalone: true,
@@ -17,11 +22,23 @@ export interface FilterOption {
 export class FilterDropdownComponent {
   @Input() title = 'Filter';
   @Input() options: FilterOption[] = [];
+  @Input() groupedOptions: GroupedFilterOption[] = []; // For categorized options
   @Input() selected: string[] = []; // parent's array reference
   @Output() selectedChange = new EventEmitter<string[]>();
 
   open = false;
   map: Record<string, boolean> = {};
+  
+  get isGrouped(): boolean {
+    return this.groupedOptions && this.groupedOptions.length > 0;
+  }
+  
+  get flatOptions(): FilterOption[] {
+    if (this.isGrouped) {
+      return this.groupedOptions.flatMap(group => group.options);
+    }
+    return this.options;
+  }
 
   ngOnInit() {
     this.rebuildMap();
@@ -31,7 +48,8 @@ export class FilterDropdownComponent {
 
   rebuildMap() {
     this.map = {};
-    for (const o of this.options) this.map[o.value] = this.selected?.includes(o.value) || false;
+    const opts = this.flatOptions;
+    for (const o of opts) this.map[o.value] = this.selected?.includes(o.value) || false;
   }
 
   toggle(ev?: Event) {
@@ -46,16 +64,25 @@ export class FilterDropdownComponent {
     this.selectedChange.emit(arr);
   }
 
-  allSelected() { return this.options.length > 0 && this.options.every(o => !!this.map[o.value]); }
+  allSelected() { 
+    const opts = this.flatOptions;
+    return opts.length > 0 && opts.every(o => !!this.map[o.value]); 
+  }
 
   toggleSelectAll(ev: Event) {
     ev.stopPropagation();
     const set = !this.allSelected();
-    this.options.forEach(o => this.map[o.value] = set);
+    const opts = this.flatOptions;
+    opts.forEach(o => this.map[o.value] = set);
     this.emitSelected();
   }
 
-  clear(ev?: Event) { ev?.stopPropagation(); this.options.forEach(o => this.map[o.value] = false); this.emitSelected(); }
+  clear(ev?: Event) { 
+    ev?.stopPropagation(); 
+    const opts = this.flatOptions;
+    opts.forEach(o => this.map[o.value] = false); 
+    this.emitSelected(); 
+  }
 
   done(ev?: Event) { ev?.stopPropagation(); this.open = false; }
 
