@@ -116,7 +116,6 @@
             [attr.y]="(region.y + 2.4) + '%'"
             class="region-label"
             fill="#1f2937"
-            font-family="Inter, sans-serif"
             font-weight="700"
             font-size="12.92">
             {{ region.name }}
@@ -144,7 +143,6 @@
               class="node-label"
               text-anchor="middle"
               fill="#1f2937"
-              font-family="Inter, sans-serif"
               font-weight="700"
               font-size="11.843">
               {{ node.label }}
@@ -157,7 +155,6 @@
               class="node-value"
               text-anchor="middle"
               fill="#1f2937"
-              font-family="Inter, sans-serif"
               font-weight="400"
               font-size="10.767">
               {{ formatCurrency(node.value) }}
@@ -170,7 +167,6 @@
               class="node-percentage"
               text-anchor="middle"
               [attr.fill]="node.percentage > 0 ? '#10b981' : '#ef4444'"
-              font-family="Inter, sans-serif"
               font-weight="400"
               font-size="9.69">
               {{ formatPercentage(node.percentage) }}
