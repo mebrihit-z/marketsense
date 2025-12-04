@@ -1,0 +1,95 @@
+<div class="asset-card">
+  <!-- Card Header -->
+  <div class="card-header">
+    <div class="asset-info">
+      <h3 class="asset-name">{{ card.assetName }}</h3>
+      <span class="asset-type">{{ card.assetType }}</span>
+    </div>
+    <div class="card-actions">
+      <button class="icon-btn" (click)="onDownload()" aria-label="Download">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 10v2.667A1.333 1.333 0 0 1 12.667 14H3.333A1.333 1.333 0 0 1 2 12.667V10M4.667 6.667 8 10m0 0 3.333-3.333M8 10V2" stroke="currentColor" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="icon-btn" (click)="onMoreOptions()" aria-label="More options">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="3" r="1" fill="currentColor"/>
+          <circle cx="8" cy="8" r="1" fill="currentColor"/>
+          <circle cx="8" cy="13" r="1" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Flow Visualization -->
+  <div class="flow-container" [style.border-left-color]="card.borderColor">
+    <div class="flow-background">
+      <div class="flow-curve"></div>
+    </div>
+    
+    <!-- Flow Metrics -->
+    <div class="flow-metrics">
+      <div class="flow-direction-indicator">
+        <svg *ngIf="card.flowDirection === 'inflow'" class="flow-arrow" width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M16 22V10M16 10L11 15M16 10L21 15" stroke="#00bc7d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg *ngIf="card.flowDirection === 'outflow'" class="flow-arrow" width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M16 10V22M16 22L11 17M16 22L21 17" stroke="#fb2c36" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      
+      <div class="flow-value" [class.inflow]="card.flowDirection === 'inflow'" [class.outflow]="card.flowDirection === 'outflow'">
+        {{ card.flowValue }}
+      </div>
+      
+      <div class="flow-badge" [class.positive]="card.trend === 'up'" [class.negative]="card.trend === 'down'" [class.stable]="card.trend === 'stable'">
+        {{ card.percentageChange }}
+      </div>
+      
+      <div class="flow-label">
+        {{ card.flowDirection === 'inflow' ? 'Net Inflow' : 'Net Outflow' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Details -->
+  <div class="card-details">
+    <div class="details-row">
+      <div class="detail-item">
+        <span class="detail-label">Volume</span>
+        <span class="detail-value">{{ card.volume }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Timeframe</span>
+        <span class="detail-value">{{ card.timeframe }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Footer -->
+  <div class="card-footer">
+    <div class="footer-header">
+      <div class="confidence-indicator">
+        <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.confidenceLevel)"></span>
+        <span class="confidence-text">AI Confidence</span>
+      </div>
+      <button class="view-details-btn" (click)="onViewDetails()">
+        <svg class="eye-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="#0b41ad" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="8" cy="8" r="2" stroke="#0b41ad" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="view-text">View Details</span>
+      </button>
+    </div>
+    <div class="divider"></div>
+    <div class="ai-insight">
+      <div class="insight-label">
+        <svg class="sparkle-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1L9.5 6.5L15 8L9.5 9.5L8 15L6.5 9.5L1 8L6.5 6.5L8 1Z" fill="#fe9a00"/>
+        </svg>
+        <span>AI Insight:</span>
+      </div>
+      <p class="insight-text">{{ card.aiInsight }}</p>
+    </div>
+  </div>
+</div>
