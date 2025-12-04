@@ -1,0 +1,200 @@
+<div class="asset-allocation-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <!-- Left: Title and Button -->
+    <div class="title-container">
+      <div class="title-row">
+        <h2 class="title">Asset Allocation</h2>
+        <button class="view-mode-btn" (click)="onPackingCirclesClick()">
+          <svg class="circles-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="5" cy="5" r="3" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
+            <circle cx="11" cy="5" r="2.5" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
+            <circle cx="5" cy="11" r="2.5" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
+            <circle cx="11" cy="11" r="2" stroke="#0b41ad" stroke-width="1.5" fill="none"/>
+          </svg>
+          <span>Packing Circles</span>
+        </button>
+      </div>
+      <p class="subtitle">Two-level drill-down view across selected categories</p>
+    </div>
+
+    <!-- Right: Controls -->
+    <div class="controls-section">
+      <!-- Time Horizon Selector -->
+      <div class="control-group">
+        <label class="control-label">Time Horizon:</label>
+        <div class="time-horizon-group">
+          <button 
+            *ngFor="let horizon of timeHorizons"
+            class="horizon-btn"
+            [class.active]="selectedTimeHorizon === horizon"
+            (click)="setTimeHorizon(horizon)">
+            {{ horizon }}
+          </button>
+        </div>
+      </div>
+
+      <!-- More Options Button -->
+      <button class="more-options-btn" aria-label="More options">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="3" r="1.5" fill="#717182"/>
+          <circle cx="8" cy="8" r="1.5" fill="#717182"/>
+          <circle cx="8" cy="13" r="1.5" fill="#717182"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Flow Dimensions & Toggle Section -->
+  <div class="dimensions-section">
+    <!-- Flow Dimensions -->
+    <div class="dimensions-container">
+      <p class="dimensions-label">Flow Dimensions (Drag to reorder)</p>
+      <div class="dimensions-chips">
+        <div 
+          *ngFor="let dimension of flowDimensions" 
+          class="dimension-chip"
+          [class.active]="dimension.active">
+          <svg class="drag-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="5" cy="4" r="1.5" fill="currentColor"/>
+            <circle cx="11" cy="4" r="1.5" fill="currentColor"/>
+            <circle cx="5" cy="8" r="1.5" fill="currentColor"/>
+            <circle cx="11" cy="8" r="1.5" fill="currentColor"/>
+            <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="11" cy="12" r="1.5" fill="currentColor"/>
+          </svg>
+          <span class="chip-text">
+            {{ dimension.label }} 
+            <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>
+            <ng-container *ngIf="dimension.count === 0">(All Types)</ng-container>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Sub-Types Toggle -->
+    <div class="toggle-container">
+      <div class="switch-wrapper">
+        <label class="switch">
+          <input type="checkbox" [checked]="showProductSubTypes" (change)="toggleProductSubTypes()">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Show Product Sub-Types</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Treemap Visualization -->
+  <div class="treemap-container">
+    <div class="treemap-wrapper">
+      <!-- SVG Container for Treemap -->
+      <svg class="treemap-svg" viewBox="0 0 1294 538" preserveAspectRatio="xMidYMid meet">
+        <!-- Define patterns and gradients -->
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.1"/>
+          </filter>
+        </defs>
+
+        <!-- Render each region -->
+        <g *ngFor="let region of treemapRegions" class="region-group">
+          <!-- Region Background -->
+          <rect 
+            [attr.x]="region.x + '%'" 
+            [attr.y]="region.y + '%'" 
+            [attr.width]="region.width + '%'" 
+            [attr.height]="region.height + '%'"
+            class="region-bg"
+            fill="white"
+            stroke="rgba(0,0,0,0.1)"
+            stroke-width="1"
+            rx="4"/>
+          
+          <!-- Region Label -->
+          <text 
+            [attr.x]="(region.x + 1) + '%'" 
+            [attr.y]="(region.y + 2.4) + '%'"
+            class="region-label"
+            fill="#1f2937"
+            font-family="Inter, sans-serif"
+            font-weight="700"
+            font-size="12.92">
+            {{ region.name }}
+          </text>
+
+          <!-- Child Nodes (Asset Classes) -->
+          <g *ngFor="let node of region.children" class="node-group" (click)="onNodeClick(node)">
+            <!-- Node Rectangle -->
+            <rect 
+              [attr.x]="node.x + '%'" 
+              [attr.y]="node.y + '%'" 
+              [attr.width]="node.width + '%'" 
+              [attr.height]="node.height + '%'"
+              [attr.fill]="getNodeColor(node.color)"
+              [attr.stroke]="getNodeBorderColor(node.color)"
+              stroke-width="2"
+              rx="4"
+              class="node-rect"
+              filter="url(#shadow)"/>
+            
+            <!-- Node Label -->
+            <text 
+              [attr.x]="(node.x + node.width/2) + '%'" 
+              [attr.y]="(node.y + node.height/2 - 2) + '%'"
+              class="node-label"
+              text-anchor="middle"
+              fill="#1f2937"
+              font-family="Inter, sans-serif"
+              font-weight="700"
+              font-size="11.843">
+              {{ node.label }}
+            </text>
+            
+            <!-- Node Value -->
+            <text 
+              [attr.x]="(node.x + node.width/2) + '%'" 
+              [attr.y]="(node.y + node.height/2 + 2) + '%'"
+              class="node-value"
+              text-anchor="middle"
+              fill="#1f2937"
+              font-family="Inter, sans-serif"
+              font-weight="400"
+              font-size="10.767">
+              {{ formatCurrency(node.value) }}
+            </text>
+            
+            <!-- Node Percentage -->
+            <text 
+              [attr.x]="(node.x + node.width/2) + '%'" 
+              [attr.y]="(node.y + node.height/2 + 5) + '%'"
+              class="node-percentage"
+              text-anchor="middle"
+              [attr.fill]="node.percentage > 0 ? '#10b981' : '#ef4444'"
+              font-family="Inter, sans-serif"
+              font-weight="400"
+              font-size="9.69">
+              {{ formatPercentage(node.percentage) }}
+            </text>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color inflow"></div>
+        <span class="legend-text">Inflow</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color neutral"></div>
+        <span class="legend-text">Neutral</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color outflow"></div>
+        <span class="legend-text">Outflow</span>
+      </div>
+    </div>
+  </div>
+</div>
+
