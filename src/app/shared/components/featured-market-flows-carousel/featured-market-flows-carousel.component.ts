@@ -23,6 +23,12 @@ export class FeaturedMarketFlowsCarouselComponent {
   
   cardsPerSlide = 3;
   
+  get headerTitle(): string {
+    return this.dataType === 'historical' 
+      ? 'Past Market Flows' 
+      : 'Featured Market Flows';
+  }
+  
   get timeHorizons(): string[] {
     return this.dataType === 'historical' 
       ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo']
