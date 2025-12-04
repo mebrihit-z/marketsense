@@ -106,8 +106,8 @@
         left: 0;
         width: 100%;
         height: 40px;
-        clip-path: polygon(-40% 0%, 100% 0%, -40% 90%);
-        background: rgba(255,255,255,0.2);
+        clip-path: polygon(-40% 0%, 130% 0%, 0% 90%);
+        background: rgba(255,255,255,0.5);
       }
   }
   
@@ -142,7 +142,7 @@
         width: 100%;
         height: 40px;
         clip-path: polygon(-40% 0%, 100% 0, 100% 90%);
-        background: rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.5);
       }
     }
   }
