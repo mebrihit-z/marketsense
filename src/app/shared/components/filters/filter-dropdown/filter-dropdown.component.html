@@ -2,7 +2,7 @@
     <button type="button" class="btn" (click)="toggle($event)">
       <span class="title">{{ title }}</span>
       <span class="count">{{ selected.length || 0 }}</span>
-      <span class="caret">▾</span>
+      <img src="assets/icons/caret-down-icon.svg" alt="Caret Down" class="caret-down-icon">
     </button>
 
     <div class="panel" *ngIf="open" (click)="$event.stopPropagation()">
