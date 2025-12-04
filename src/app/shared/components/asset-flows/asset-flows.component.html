@@ -1,0 +1,188 @@
+<div class="asset-flows-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <!-- Left: Title and Button -->
+    <div class="title-container">
+      <div class="title-row">
+        <h2 class="title">Asset Flows</h2>
+        <button class="streamgraph-btn" (click)="onStreamgraphClick()">
+          <svg class="graph-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 8C2 8 3 6 5 6C7 6 7 8 9 8C11 8 11 6 13 6C15 6 16 8 16 8M2 12C2 12 3 10 5 10C7 10 7 12 9 12C11 12 11 10 13 10C15 10 16 12 16 12" stroke="#0b41ad" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>Streamgraph</span>
+        </button>
+      </div>
+      <p class="subtitle">Aggregated asset flows across selected categories</p>
+    </div>
+
+    <!-- Right: Controls -->
+    <div class="controls-section">
+      <!-- Data View Toggle -->
+      <div class="control-group">
+        <label class="control-label">Data View:</label>
+        <div class="toggle-group">
+          <button 
+            class="toggle-btn"
+            [class.active]="dataView === 'cumulative'"
+            (click)="setDataView('cumulative')">
+            Cumulative
+          </button>
+          <button 
+            class="toggle-btn"
+            [class.active]="dataView === 'pointInTime'"
+            (click)="setDataView('pointInTime')">
+            Point in Time
+          </button>
+        </div>
+      </div>
+
+      <!-- Time Horizon Selector -->
+      <div class="control-group">
+        <label class="control-label">Time Horizon:</label>
+        <div class="time-horizon-group">
+          <button 
+            *ngFor="let horizon of timeHorizons"
+            class="horizon-btn"
+            [class.active]="selectedTimeHorizon === horizon"
+            (click)="setTimeHorizon(horizon)">
+            {{ horizon }}
+          </button>
+        </div>
+      </div>
+
+      <!-- More Options Button -->
+      <button class="more-options-btn" aria-label="More options">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="3" r="1.5" fill="#717182"/>
+          <circle cx="8" cy="8" r="1.5" fill="#717182"/>
+          <circle cx="8" cy="13" r="1.5" fill="#717182"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Flow Dimensions & Toggle Section -->
+  <div class="dimensions-section">
+    <!-- Flow Dimensions -->
+    <div class="dimensions-container">
+      <p class="dimensions-label">Flow Dimensions (Drag to reorder)</p>
+      <div class="dimensions-chips">
+        <div 
+          *ngFor="let dimension of flowDimensions" 
+          class="dimension-chip"
+          [class.active]="dimension.active">
+          <svg class="drag-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="5" cy="4" r="1.5" fill="currentColor"/>
+            <circle cx="11" cy="4" r="1.5" fill="currentColor"/>
+            <circle cx="5" cy="8" r="1.5" fill="currentColor"/>
+            <circle cx="11" cy="8" r="1.5" fill="currentColor"/>
+            <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="11" cy="12" r="1.5" fill="currentColor"/>
+          </svg>
+          <span class="chip-text">
+            {{ dimension.label }} 
+            <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>
+            <ng-container *ngIf="dimension.count === 0">(All Types)</ng-container>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Sub-Types Toggle -->
+    <div class="toggle-container">
+      <div class="switch-wrapper">
+        <label class="switch">
+          <input type="checkbox" [checked]="showProductSubTypes" (change)="toggleProductSubTypes()">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Show Product Sub-Types</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sankey Diagram Visualization -->
+  <div class="visualization-container">
+    <!-- Sankey Diagram Placeholder -->
+    <div class="sankey-diagram">
+      <!-- Left Column: Inflows -->
+      <div class="flow-column left-column">
+        <div 
+          *ngFor="let inflow of flowData.inflows" 
+          class="flow-bar inflow-bar"
+          [style.height.%]="(inflow.value / getTotalInflow()) * 100">
+          <div class="bar-content">
+            <span class="bar-label">{{ inflow.name }}</span>
+            <span class="bar-value">{{ formatCurrency(inflow.value) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Column: Aggregation -->
+      <div class="flow-column center-column">
+        <div class="aggregation-bar">
+          <div class="aggregation-content">
+            <span class="agg-label">Positive Flows</span>
+            <span class="agg-value">{{ formatCurrency(flowData.positiveFlows.value) }}</span>
+            <span class="agg-percentage positive">{{ formatPercentage(flowData.positiveFlows.percentage) }}</span>
+          </div>
+        </div>
+        
+        <!-- Flow visualization connectors -->
+        <svg class="flow-connections" viewBox="0 0 300 400" preserveAspectRatio="none">
+          <!-- Placeholder for Sankey flow paths -->
+          <defs>
+            <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#86efac;stop-opacity:0.6" />
+              <stop offset="100%" style="stop-color:#4ade80;stop-opacity:0.8" />
+            </linearGradient>
+            <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#fca5a5;stop-opacity:0.6" />
+              <stop offset="100%" style="stop-color:#f87171;stop-opacity:0.8" />
+            </linearGradient>
+          </defs>
+          <!-- Green inflow paths (simplified) -->
+          <path d="M 0 50 C 150 50, 150 100, 300 100" fill="url(#greenGradient)" opacity="0.7"/>
+          <path d="M 0 150 C 150 150, 150 180, 300 180" fill="url(#greenGradient)" opacity="0.7"/>
+          <path d="M 0 250 C 150 250, 150 260, 300 260" fill="url(#greenGradient)" opacity="0.7"/>
+          <!-- Red outflow paths (simplified) -->
+          <path d="M 0 100 C 150 100, 150 50, 300 50" fill="url(#redGradient)" opacity="0.7"/>
+          <path d="M 0 200 C 150 200, 150 200, 300 200" fill="url(#redGradient)" opacity="0.7"/>
+        </svg>
+      </div>
+
+      <!-- Right Column: Outflows & Net Position -->
+      <div class="flow-column right-column">
+        <div 
+          *ngFor="let outflow of flowData.outflows" 
+          class="flow-bar outflow-bar"
+          [style.height.%]="(outflow.value / getTotalOutflow()) * 100">
+          <div class="bar-content">
+            <span class="bar-label">{{ outflow.name }}</span>
+            <span class="bar-value">{{ formatCurrency(outflow.value) }}</span>
+          </div>
+        </div>
+        
+        <!-- Net Position Bar -->
+        <div class="net-position-bar">
+          <div class="net-content">
+            <span class="net-label">Net Position</span>
+            <span class="net-value">{{ formatCurrency(flowData.netPosition.value) }}</span>
+            <span class="net-percentage positive">{{ formatPercentage(flowData.netPosition.percentage) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color inflow"></div>
+        <span class="legend-text">Inflow</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color outflow"></div>
+        <span class="legend-text">Outflow</span>
+      </div>
+    </div>
+  </div>
+</div>

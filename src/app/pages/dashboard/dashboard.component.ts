@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/featured-market-flows-carousel/featured-market-flows-carousel.component';
 import { MarketFlowCard } from '../../shared/components/featured-market-flows-carousel/market-flow-card/market-flow-card.component';
+import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent],
+  imports: [CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
