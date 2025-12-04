@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
+import { ViewMoreCardComponent } from './view-more-card/view-more-card.component';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
@@ -8,12 +9,13 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 @Component({
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
-  imports: [CommonModule, MarketFlowCardComponent],
+  imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent],
   templateUrl: './featured-market-flows-carousel.component.html',
   styleUrl: './featured-market-flows-carousel.component.scss'
 })
 export class FeaturedMarketFlowsCarouselComponent {
   @Input() cards: MarketFlowCard[] = [];
+  @Input() showViewMoreCard: boolean = true;
   
   dataType: 'historical' | 'forecasted' = 'historical';
   selectedTimeHorizon: string = '+9 mo';
@@ -23,15 +25,28 @@ export class FeaturedMarketFlowsCarouselComponent {
   cardsPerSlide = 3;
   
   get totalSlides(): number {
-    return this.cards.length;
+    return this.showViewMoreCard ? this.cards.length + 1 : this.cards.length;
   }
   
   get visibleCards(): MarketFlowCard[] {
     // Calculate the starting index to keep the selected card visible
     // If we're at card 7 out of 9, we want to show cards 7, 8, 9
-    const maxStartIndex = Math.max(0, this.cards.length - this.cardsPerSlide);
+    const maxStartIndex = Math.max(0, this.totalSlides - this.cardsPerSlide);
     const startIndex = Math.min(this.currentSlideIndex, maxStartIndex);
     return this.cards.slice(startIndex, startIndex + this.cardsPerSlide);
+  }
+  
+  get showViewMoreInCurrentView(): boolean {
+    if (!this.showViewMoreCard) return false;
+    
+    // Show the view more card if we're on the last slide
+    // or if the current view includes the position where view more should be
+    const viewMorePosition = this.cards.length; // Position after all cards
+    const maxStartIndex = Math.max(0, this.totalSlides - this.cardsPerSlide);
+    const startIndex = Math.min(this.currentSlideIndex, maxStartIndex);
+    const endIndex = startIndex + this.cardsPerSlide;
+    
+    return viewMorePosition >= startIndex && viewMorePosition < endIndex;
   }
   
   setDataType(type: 'historical' | 'forecasted'): void {
@@ -62,6 +77,11 @@ export class FeaturedMarketFlowsCarouselComponent {
   onViewAll(): void {
     // Handle view all action
     console.log('View all clicked');
+  }
+  
+  onViewMore(): void {
+    // Handle view more action
+    console.log('View more clicked');
   }
   
   onAskMarketSense(cardId: string): void {

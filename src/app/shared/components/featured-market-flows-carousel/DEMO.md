@@ -69,6 +69,14 @@ Based on the Figma design, the component includes:
 - **Label**: Net Flow
 - **Confidence**: Medium (orange dot)
 
+### 4. View More Card (Call-to-Action)
+- **Design**: Clean white card with centered content
+- **Icon**: Large circular plus button in primary blue (`#0b41ad`)
+- **Title**: "View More Market Flows" (primary blue)
+- **Subtitle**: "Explore additional market flows" (gray)
+- **Behavior**: Clickable card that navigates to full market flows page
+- **Position**: Displays at the end of the carousel
+
 ## Interactive Features
 
 ### Toggle Controls
@@ -85,10 +93,15 @@ Based on the Figma design, the component includes:
    - +18 months
 
 ### Card Actions
-Each card has:
+Each market flow card has:
 - **Download Icon**: Export data
 - **More Options (⋮)**: Additional actions menu
 - **Ask MarketSense Button**: AI-powered insights
+
+The **View More Card** has:
+- **Click Action**: Navigate to full market flows page
+- **Hover Effect**: Slight lift and shadow enhancement
+- **Icon Animation**: Plus icon scales up on hover
 
 ### Navigation
 - **Pagination Dots**: Click to jump to any slide
@@ -115,6 +128,12 @@ const marketFlowCards: MarketFlowCard[] = [
   }
   // ... more cards
 ];
+
+// Component usage with View More card
+<app-featured-market-flows-carousel 
+  [cards]="marketFlowCards"
+  [showViewMoreCard]="true">
+</app-featured-market-flows-carousel>
 ```
 
 ## Responsive Breakpoints
@@ -164,6 +183,7 @@ const marketFlowCards: MarketFlowCard[] = [
    - Click download button
    - Click more options
    - Click "Ask MarketSense"
+   - Click "View More" card
    - Verify console logs
 
 4. **Responsive Test**

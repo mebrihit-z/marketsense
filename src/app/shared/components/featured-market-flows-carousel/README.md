@@ -9,6 +9,7 @@ This component displays market flow cards in a responsive carousel layout, featu
 - Time horizon selection (+3mo, +6mo, +9mo, +12mo, +18mo)
 - Interactive carousel with navigation arrows and pagination dots
 - Detailed market flow cards with metrics, trends, and AI confidence indicators
+- Optional "View More" card for navigating to full market flows page
 - Responsive grid layout (3 columns on desktop, 2 on tablet, 1 on mobile)
 
 ## Usage
@@ -22,7 +23,12 @@ import { FeaturedMarketFlowsCarouselComponent, MarketFlowCard } from './shared/c
   selector: 'app-your-component',
   standalone: true,
   imports: [FeaturedMarketFlowsCarouselComponent],
-  template: `<app-featured-market-flows-carousel [cards]="marketFlowCards"></app-featured-market-flows-carousel>`
+  template: `
+    <app-featured-market-flows-carousel 
+      [cards]="marketFlowCards"
+      [showViewMoreCard]="true">
+    </app-featured-market-flows-carousel>
+  `
 })
 export class YourComponent {
   marketFlowCards: MarketFlowCard[] = [
@@ -51,6 +57,7 @@ export class YourComponent {
 | Input | Type | Required | Description |
 |-------|------|----------|-------------|
 | `cards` | `MarketFlowCard[]` | Yes | Array of market flow card data |
+| `showViewMoreCard` | `boolean` | No | Whether to show the "View More" card at the end (default: `true`) |
 
 ### MarketFlowCard Interface
 
@@ -105,6 +112,15 @@ Each card displays:
   - Download button
   - More options menu
 
+### 5. View More Card
+An optional call-to-action card that displays at the end of the carousel:
+- **Design**: Clean white card with centered content
+- **Icon**: Large circular plus button in primary blue
+- **Title**: "View More Market Flows"
+- **Subtitle**: "Explore additional market flows"
+- **Behavior**: Clickable card that triggers navigation to full market flows page
+- **Hover Effects**: Subtle lift animation and icon scale
+
 ## Styling
 
 The component uses SCSS with custom variables for colors and spacing. Key color variables:
@@ -149,7 +165,12 @@ You can override these methods to add custom behavior:
 
 ```typescript
 onViewAll(): void {
-  // Handle "View All" click
+  // Handle "View All" button click in header
+}
+
+onViewMore(): void {
+  // Handle "View More" card click
+  // Navigate to full market flows page
 }
 
 onAskMarketSense(cardId: string): void {
