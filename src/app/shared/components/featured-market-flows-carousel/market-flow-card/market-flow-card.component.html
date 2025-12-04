@@ -21,10 +21,8 @@
     <!-- Metric Display -->
     <div class="metric-display">
       <div class="value-container">
-        <svg class="arrow-icon" width="32" height="32" viewBox="0 0 32 32" [attr.fill]="card.valueColor === 'green' ? '#009966' : '#e7000b'">
-          <path *ngIf="card.valueColor === 'green'" d="M16 10L16 22M16 10L11 15M16 10L21 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path *ngIf="card.valueColor === 'red'" d="M16 22L16 10M16 22L11 17M16 22L21 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <img *ngIf="card.valueColor === 'green'" src="assets/icons/up-curved-arrow-icon.svg" alt="Arrow" class="arrow-icon">
+        <img *ngIf="card.valueColor === 'red'" src="assets/icons/down-curved-arrow-icon.svg" alt="Arrow" class="arrow-icon">
         <span class="value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
           {{ card.value }}
         </span>
