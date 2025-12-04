@@ -100,6 +100,15 @@
         );
       }
     }
+    .curve {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 40px;
+        clip-path: polygon(100% 90%, 100% 0, -40% 0%);
+        background: rgba(255,255,255,0.2);
+      }
   }
   
   // Red cards - Pastel red with subtle gradient and top band
@@ -126,8 +135,18 @@
           transparent 100%
         );
       }
+      .curve {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 40px;
+        clip-path: polygon(-40% 0%, 100% 0, 100% 90%);
+        background: rgba(255,255,255,0.2);
+      }
     }
   }
+
 }
 
 .chart-background {
