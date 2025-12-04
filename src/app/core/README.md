@@ -64,3 +64,4 @@ export class AppModule { }
 3. **No Components**: Keep UI components in shared or feature modules
 4. **Guard Against Reimport**: Core module throws an error if imported more than once
 
+
