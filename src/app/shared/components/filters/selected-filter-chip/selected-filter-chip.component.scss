@@ -5,11 +5,22 @@
     padding: 6px 10px;
     border-radius: 120px;
     font-size: 13px;
-    font-weight: 400;
     border: 1px solid #0B41AD;
+    background: white;
   }
-  .label { 
-    white-space: nowrap; 
+  .label-text {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    color: #333333;
+  }
+  .label-name {
+    font-weight: 700;
+    color: #333333;
+  }
+  .label-value {
+    font-weight: 400;
+    color: #333333;
   }
   .close {
     display: inline-flex;
@@ -17,7 +28,7 @@
     justify-content: center;
     width: 20px;
     height: 20px;
-    background: #0B41AD;;
+    background: #0B41AD;
     color: #fff;
     border-radius: 50%;
     border: none;
