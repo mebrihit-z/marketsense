@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SankeyDiagramComponent } from '../charts/sankey-diagram/sankey-diagram.component';
 
 export interface FlowDimension {
   id: string;
@@ -31,7 +32,7 @@ export interface AssetFlowData {
 @Component({
   selector: 'app-asset-flows',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SankeyDiagramComponent],
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })

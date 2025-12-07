@@ -89,77 +89,7 @@
 
   <!-- Sankey Diagram Visualization -->
   <div class="visualization-container">
-    <!-- Sankey Diagram Placeholder -->
-    <div class="sankey-diagram">
-      <!-- Left Column: Inflows -->
-      <div class="flow-column left-column">
-        <div 
-          *ngFor="let inflow of flowData.inflows" 
-          class="flow-bar inflow-bar"
-          [style.height.%]="(inflow.value / getTotalInflow()) * 100">
-          <div class="bar-content">
-            <span class="bar-label">{{ inflow.name }}</span>
-            <span class="bar-value">{{ formatCurrency(inflow.value) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Center Column: Aggregation -->
-      <div class="flow-column center-column">
-        <div class="aggregation-bar">
-          <div class="aggregation-content">
-            <span class="agg-label">Positive Flows</span>
-            <span class="agg-value">{{ formatCurrency(flowData.positiveFlows.value) }}</span>
-            <span class="agg-percentage positive">{{ formatPercentage(flowData.positiveFlows.percentage) }}</span>
-          </div>
-        </div>
-        
-        <!-- Flow visualization connectors -->
-        <svg class="flow-connections" viewBox="0 0 300 400" preserveAspectRatio="none">
-          <!-- Placeholder for Sankey flow paths -->
-          <defs>
-            <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#86efac;stop-opacity:0.6" />
-              <stop offset="100%" style="stop-color:#4ade80;stop-opacity:0.8" />
-            </linearGradient>
-            <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#fca5a5;stop-opacity:0.6" />
-              <stop offset="100%" style="stop-color:#f87171;stop-opacity:0.8" />
-            </linearGradient>
-          </defs>
-          <!-- Green inflow paths (simplified) -->
-          <path d="M 0 50 C 150 50, 150 100, 300 100" fill="url(#greenGradient)" opacity="0.7"/>
-          <path d="M 0 150 C 150 150, 150 180, 300 180" fill="url(#greenGradient)" opacity="0.7"/>
-          <path d="M 0 250 C 150 250, 150 260, 300 260" fill="url(#greenGradient)" opacity="0.7"/>
-          <!-- Red outflow paths (simplified) -->
-          <path d="M 0 100 C 150 100, 150 50, 300 50" fill="url(#redGradient)" opacity="0.7"/>
-          <path d="M 0 200 C 150 200, 150 200, 300 200" fill="url(#redGradient)" opacity="0.7"/>
-        </svg>
-      </div>
-
-      <!-- Right Column: Outflows & Net Position -->
-      <div class="flow-column right-column">
-        <div 
-          *ngFor="let outflow of flowData.outflows" 
-          class="flow-bar outflow-bar"
-          [style.height.%]="(outflow.value / getTotalOutflow()) * 100">
-          <div class="bar-content">
-            <span class="bar-label">{{ outflow.name }}</span>
-            <span class="bar-value">{{ formatCurrency(outflow.value) }}</span>
-          </div>
-        </div>
-        
-        <!-- Net Position Bar -->
-        <div class="net-position-bar">
-          <div class="net-content">
-            <span class="net-label">Net Position</span>
-            <span class="net-value">{{ formatCurrency(flowData.netPosition.value) }}</span>
-            <span class="net-percentage positive">{{ formatPercentage(flowData.netPosition.percentage) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <app-sankey-diagram></app-sankey-diagram>
     <!-- Legend -->
     <div class="legend">
       <div class="legend-item">
