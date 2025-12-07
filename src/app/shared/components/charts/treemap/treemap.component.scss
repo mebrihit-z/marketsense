@@ -1,0 +1,33 @@
+.treemap-container {
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  min-height: 600px;
+  position: relative;
+
+  svg {
+    overflow: visible;
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .treemap-tooltip {
+    font-family: inherit;
+  }
+
+  .region-label {
+    font-family: inherit;
+  }
+
+  .cell-label-name,
+  .cell-label-value,
+  .cell-label-percentage {
+    font-family: inherit;
+    pointer-events: none;
+  }
+
+  .legend {
+    font-family: inherit;
+  }
+}
