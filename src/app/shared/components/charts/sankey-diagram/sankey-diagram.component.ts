@@ -50,7 +50,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
   // -----------------------------------------
   private createSankey() {
     const element = this.el.nativeElement.querySelector('.sankey');
-    const width = 1100;
+    const width = 1600;
     const height = 800;
 
     // -----------------------------------------
@@ -131,7 +131,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: labelToIndex[lbl],
         target: poolIndex,
         value: Math.abs(value),
-        color: "rgba(200,0,0,0.7)" // red
+        color: "rgba(0,150,0,0.7)" // green
       });
     });
 
@@ -148,7 +148,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: poolIndex,
         target: targetIndex,
         value: rebalFlow,
-        color: "rgba(0,150,0,0.7)" // green
+        color: "rgba(200,0,0,0.7)" // red
       });
 
       // New Capital → Target
@@ -228,5 +228,82 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('alignment-baseline', 'middle')
       .style('font-size', '12px')
       .text(d => d.name);
+
+    // -----------------------------------------
+    // 9. Link Values (on the links)
+    // -----------------------------------------
+    svg.append('g')
+      .selectAll('text')
+      .data(graph.links)
+      .enter()
+      .append('text')
+      .attr('x', d => {
+        const sourceX = (d.source as SankeyNodeExtra).x1!;
+        const targetX = (d.target as SankeyNodeExtra).x0!;
+        return (sourceX + targetX) / 2;
+      })
+      .attr('y', d => {
+        const sourceY = ((d.source as SankeyNodeExtra).y0! + (d.source as SankeyNodeExtra).y1!) / 2;
+        const targetY = ((d.target as SankeyNodeExtra).y0! + (d.target as SankeyNodeExtra).y1!) / 2;
+        return (sourceY + targetY) / 2;
+      })
+      .attr('text-anchor', 'middle')
+      .attr('alignment-baseline', 'middle')
+      .style('font-size', '10px')
+      .style('fill', '#333')
+      .style('font-weight', '500')
+      .style('pointer-events', 'none')
+      .text(d => {
+        const value = (d as SankeyLinkExtra).value;
+        return value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+      });
+
+    // -----------------------------------------
+    // 10. Node Values (total flow through each node)
+    // -----------------------------------------
+    // Calculate node values (max of incoming/outgoing flows to avoid double-counting)
+    const nodeIncoming = new Map<SankeyNodeExtra, number>();
+    const nodeOutgoing = new Map<SankeyNodeExtra, number>();
+    
+    graph.nodes.forEach(node => {
+      nodeIncoming.set(node, 0);
+      nodeOutgoing.set(node, 0);
+    });
+    
+    graph.links.forEach(link => {
+      const source = link.source as SankeyNodeExtra;
+      const target = link.target as SankeyNodeExtra;
+      const value = (link as SankeyLinkExtra).value;
+      
+      // Add to source outgoing
+      nodeOutgoing.set(source, nodeOutgoing.get(source)! + value);
+      // Add to target incoming
+      nodeIncoming.set(target, nodeIncoming.get(target)! + value);
+    });
+    
+    // Use max of incoming/outgoing to represent node size
+    const nodeValues = new Map<SankeyNodeExtra, number>();
+    graph.nodes.forEach(node => {
+      const incoming = nodeIncoming.get(node) || 0;
+      const outgoing = nodeOutgoing.get(node) || 0;
+      nodeValues.set(node, Math.max(incoming, outgoing));
+    });
+
+    svg.append('g')
+      .selectAll('text')
+      .data(graph.nodes)
+      .enter()
+      .append('text')
+      .attr('x', d => d.x0! - 6)
+      .attr('y', d => (d.y0! + d.y1!) / 2 + 15)
+      .attr('text-anchor', 'end')
+      .attr('alignment-baseline', 'middle')
+      .style('font-size', '10px')
+      .style('fill', '#666')
+      .style('font-weight', '600')
+      .text(d => {
+        const value = nodeValues.get(d) || 0;
+        return value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+      });
   }
 }
