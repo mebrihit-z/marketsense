@@ -1,9 +1,14 @@
 .sankey {
-    width: auto;
+    width: 100%;
     height: auto;
-    overflow: visible;
+    overflow: hidden;
+    min-height: 900px;
+    position: relative;
     
     svg {
       overflow: visible;
+      display: block;
+      max-width: 100%;
+      height: auto;
     }
   }

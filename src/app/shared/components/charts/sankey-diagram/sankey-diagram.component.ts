@@ -50,7 +50,9 @@ export class SankeyDiagramComponent implements AfterViewInit {
   // -----------------------------------------
   private createSankey() {
     const element = this.el.nativeElement.querySelector('.sankey');
-    const width = 1600;
+    // Get the container width dynamically, with a minimum width
+    const containerWidth = element.clientWidth || element.offsetWidth || 1600;
+    const width = Math.max(containerWidth, 800);
     const height = 800;
 
     // Create tooltip
@@ -145,7 +147,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: labelToIndex[lbl],
         target: poolIndex,
         value: Math.abs(value),
-        color: "rgba(0,150,0,0.7)" // green
+        color: "#6EE7B7" // green
       });
     });
 
@@ -162,7 +164,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: poolIndex,
         target: targetIndex,
         value: rebalFlow,
-        color: "rgba(200,0,0,0.7)" // red
+        color: "#FCA5A5" // red
       });
 
       // New Capital → Target
@@ -189,13 +191,21 @@ export class SankeyDiagramComponent implements AfterViewInit {
     // -----------------------------------------
     const svg = d3.select(element)
       .append('svg')
-      .attr('width', width)
-      .attr('height', height);
+      .attr('width', '100%')
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
 
+    // Calculate left margin for labels (adjust based on longest label)
+    const leftMargin = 250;
+    const rightMargin = 10;
+    const topMargin = 10;
+    const bottomMargin = 50;
+    
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(25)
       .nodePadding(15)
-      .extent([[250, 10], [width - 10, height - 10]]);
+      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
 
     const graph = sankeyGen(data);
 
