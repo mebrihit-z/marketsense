@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FeaturedMarketFlowsCarouselComponent } from './featured-market-flows-carousel.component';
+import { FeaturedMarketFlowsCarouselComponent } from './market-flows-carousel.component';
 
 describe('FeaturedMarketFlowsCarouselComponent', () => {
   let component: FeaturedMarketFlowsCarouselComponent;
@@ -22,7 +22,7 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
 
   it('should initialize with default values', () => {
     expect(component.dataType).toBe('historical');
-    expect(component.selectedTimeHorizon).toBe('+9 mo');
+    expect(component.selectedTimeHorizon).toBe('-9 mo');
     expect(component.currentSlideIndex).toBe(0);
   });
 
@@ -48,7 +48,9 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
       aiConfidence: 'high' as const,
       description: 'Test description',
       chartColor: 'green' as const,
-      borderColor: '#00bc7d'
+      borderColor: '#00bc7d',
+      timeHorizon: '-9 mo',
+      dataType: 'historical' as const
     }));
 
     expect(component.currentSlideIndex).toBe(0);
@@ -61,8 +63,22 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
   });
 
   it('should calculate total slides correctly', () => {
-    component.cards = new Array(7).fill({});
-    expect(component.totalSlides).toBe(7); // One dot per card = 7 dots
+    component.cards = new Array(7).fill({}).map((_, i) => ({
+      id: `card-${i}`,
+      title: `Card ${i}`,
+      value: '$100B',
+      valueColor: 'green' as const,
+      percentageChange: '+10%',
+      percentageColor: 'green' as const,
+      metricLabel: 'AUM',
+      aiConfidence: 'high' as const,
+      description: 'Test description',
+      chartColor: 'green' as const,
+      borderColor: '#00bc7d',
+      timeHorizon: '-9 mo',
+      dataType: 'historical' as const
+    }));
+    expect(component.totalSlides).toBe(8); // 7 filtered cards + 1 view more card
   });
 
   it('should return visible cards for current slide', () => {
@@ -77,7 +93,9 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
       aiConfidence: 'high' as const,
       description: 'Test description',
       chartColor: 'green' as const,
-      borderColor: '#00bc7d'
+      borderColor: '#00bc7d',
+      timeHorizon: '-9 mo',
+      dataType: 'historical' as const
     }));
 
     // Initially shows first 3 cards

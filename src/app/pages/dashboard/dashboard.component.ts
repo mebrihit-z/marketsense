@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
-import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/featured-market-flows-carousel/featured-market-flows-carousel.component';
-import { MarketFlowCard } from '../../shared/components/featured-market-flows-carousel/market-flow-card/market-flow-card.component';
+import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
+import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
 

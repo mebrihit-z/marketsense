@@ -10,8 +10,8 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
   imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent],
-  templateUrl: './featured-market-flows-carousel.component.html',
-  styleUrl: './featured-market-flows-carousel.component.scss'
+  templateUrl: './market-flows-carousel.component.html',
+  styleUrl: './market-flows-carousel.component.scss'
 })
 export class FeaturedMarketFlowsCarouselComponent {
   @Input() cards: MarketFlowCard[] = [];
