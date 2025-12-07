@@ -53,6 +53,20 @@ export class SankeyDiagramComponent implements AfterViewInit {
     const width = 1600;
     const height = 800;
 
+    // Create tooltip
+    const tooltip = d3.select(element)
+      .append('div')
+      .style('position', 'absolute')
+      .style('background-color', 'rgba(0, 0, 0, 0.85)')
+      .style('color', 'white')
+      .style('padding', '8px 12px')
+      .style('border-radius', '4px')
+      .style('font-size', '12px')
+      .style('pointer-events', 'none')
+      .style('opacity', 0)
+      .style('z-index', 1000)
+      .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)');
+
     // -----------------------------------------
     // 1. RAW DATA (converted from Python rows)
     // -----------------------------------------
@@ -197,11 +211,65 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('stroke', d => d.color || '#999')
       .attr('stroke-width', d => Math.max(1, d.width || 1))
       .attr('fill', 'none')
-      .attr('opacity', 0.45);
+      .attr('opacity', 0.45)
+      .on('mouseover', function(event, d) {
+        const link = d as SankeyLinkExtra;
+        const source = link.source as SankeyNodeExtra;
+        const target = link.target as SankeyNodeExtra;
+        const value = link.value;
+        const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+        
+        tooltip
+          .style('opacity', 1)
+          .html(`
+            <div><strong>${source.name}</strong> → <strong>${target.name}</strong></div>
+            <div style="margin-top: 4px;">Value: ${formattedValue}</div>
+          `);
+        
+        d3.select(this)
+          .attr('opacity', 0.8)
+          .attr('stroke-width', (d: any) => Math.max(2, ((d as SankeyLinkExtra).width || 1) + 2));
+      })
+      .on('mousemove', function(event) {
+        tooltip
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px');
+      })
+      .on('mouseout', function() {
+        tooltip.style('opacity', 0);
+        d3.select(this)
+          .attr('opacity', 0.45)
+          .attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
+      });
 
     // -----------------------------------------
     // 7. Draw Nodes
     // -----------------------------------------
+    // Calculate node values first (needed for tooltip)
+    const nodeIncoming = new Map<SankeyNodeExtra, number>();
+    const nodeOutgoing = new Map<SankeyNodeExtra, number>();
+    
+    graph.nodes.forEach(node => {
+      nodeIncoming.set(node, 0);
+      nodeOutgoing.set(node, 0);
+    });
+    
+    graph.links.forEach(link => {
+      const source = link.source as SankeyNodeExtra;
+      const target = link.target as SankeyNodeExtra;
+      const value = (link as SankeyLinkExtra).value;
+      
+      nodeOutgoing.set(source, nodeOutgoing.get(source)! + value);
+      nodeIncoming.set(target, nodeIncoming.get(target)! + value);
+    });
+    
+    const nodeValues = new Map<SankeyNodeExtra, number>();
+    graph.nodes.forEach(node => {
+      const incoming = nodeIncoming.get(node) || 0;
+      const outgoing = nodeOutgoing.get(node) || 0;
+      nodeValues.set(node, Math.max(incoming, outgoing));
+    });
+
     svg.append('g')
       .selectAll('rect')
       .data(graph.nodes)
@@ -212,7 +280,41 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('height', d => d.y1! - d.y0!)
       .attr('width', d => d.x1! - d.x0!)
       .attr('fill', '#4f46e5')
-      .attr('stroke', '#312e81');
+      .attr('stroke', '#312e81')
+      .style('cursor', 'pointer')
+      .on('mouseover', function(event, d) {
+        const node = d as SankeyNodeExtra;
+        const value = nodeValues.get(node) || 0;
+        const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+        const incoming = nodeIncoming.get(node) || 0;
+        const outgoing = nodeOutgoing.get(node) || 0;
+        
+        tooltip
+          .style('opacity', 1)
+          .html(`
+            <div><strong>${node.name}</strong></div>
+            <div style="margin-top: 4px;">Total Value: ${formattedValue}</div>
+            <div style="margin-top: 2px; font-size: 11px; opacity: 0.9;">Incoming: ${incoming.toFixed(2)}</div>
+            <div style="font-size: 11px; opacity: 0.9;">Outgoing: ${outgoing.toFixed(2)}</div>
+          `);
+        
+        d3.select(this)
+          .attr('fill', '#6366f1')
+          .attr('stroke', '#4338ca')
+          .attr('stroke-width', 2);
+      })
+      .on('mousemove', function(event) {
+        tooltip
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px');
+      })
+      .on('mouseout', function() {
+        tooltip.style('opacity', 0);
+        d3.select(this)
+          .attr('fill', '#4f46e5')
+          .attr('stroke', '#312e81')
+          .attr('stroke-width', 1);
+      });
 
     // -----------------------------------------
     // 8. Node Labels
@@ -261,33 +363,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
     // -----------------------------------------
     // 10. Node Values (total flow through each node)
     // -----------------------------------------
-    // Calculate node values (max of incoming/outgoing flows to avoid double-counting)
-    const nodeIncoming = new Map<SankeyNodeExtra, number>();
-    const nodeOutgoing = new Map<SankeyNodeExtra, number>();
-    
-    graph.nodes.forEach(node => {
-      nodeIncoming.set(node, 0);
-      nodeOutgoing.set(node, 0);
-    });
-    
-    graph.links.forEach(link => {
-      const source = link.source as SankeyNodeExtra;
-      const target = link.target as SankeyNodeExtra;
-      const value = (link as SankeyLinkExtra).value;
-      
-      // Add to source outgoing
-      nodeOutgoing.set(source, nodeOutgoing.get(source)! + value);
-      // Add to target incoming
-      nodeIncoming.set(target, nodeIncoming.get(target)! + value);
-    });
-    
-    // Use max of incoming/outgoing to represent node size
-    const nodeValues = new Map<SankeyNodeExtra, number>();
-    graph.nodes.forEach(node => {
-      const incoming = nodeIncoming.get(node) || 0;
-      const outgoing = nodeOutgoing.get(node) || 0;
-      nodeValues.set(node, Math.max(incoming, outgoing));
-    });
+    // Note: nodeValues already calculated in step 7
 
     svg.append('g')
       .selectAll('text')
