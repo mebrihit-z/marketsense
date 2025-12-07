@@ -41,8 +41,10 @@ export class SankeyDiagramComponent implements AfterViewInit {
       nodes: [
         { name: 'Source A' },
         { name: 'Source B' },
+        { name: 'Source C' },
         { name: 'Target X' },
-        { name: 'Target Y' }
+        { name: 'Target Y' },
+        { name: 'Target Z' }
       ],
       links: [
         { source: 0, target: 2, value: 10 },
@@ -50,6 +52,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         { source: 1, target: 3, value: 15 }
       ]
     };
+    
 
     // SVG
     const svg = d3.select(element)
