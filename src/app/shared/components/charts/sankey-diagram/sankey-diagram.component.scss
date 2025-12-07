@@ -1,4 +1,9 @@
 .sankey {
-    width: 800px;
-    height:auto;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    
+    svg {
+      overflow: visible;
+    }
   }

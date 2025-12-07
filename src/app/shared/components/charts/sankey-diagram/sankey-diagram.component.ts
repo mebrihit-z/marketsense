@@ -181,7 +181,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(25)
       .nodePadding(15)
-      .extent([[10, 10], [width - 10, height - 10]]);
+      .extent([[250, 10], [width - 10, height - 10]]);
 
     const graph = sankeyGen(data);
 
