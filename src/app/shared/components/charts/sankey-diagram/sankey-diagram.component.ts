@@ -280,6 +280,42 @@ export class SankeyDiagramComponent implements AfterViewInit {
       nodeValues.set(node, Math.max(incoming, outgoing));
     });
 
+    // -----------------------------------------
+    // Color mapping function for nodes
+    // -----------------------------------------
+    const getNodeColor = (nodeName: string): { fill: string; stroke: string; hoverFill: string; hoverStroke: string } => {
+      // Special nodes
+      if (nodeName === 'Reallocation Pool') {
+        return { fill: '#f59e0b', stroke: '#d97706', hoverFill: '#fbbf24', hoverStroke: '#f59e0b' };
+      }
+      if (nodeName === 'Net New Capital') {
+        return { fill: '#10b981', stroke: '#059669', hoverFill: '#34d399', hoverStroke: '#10b981' };
+      }
+      
+      // Categorize by prefix
+      if (nodeName.startsWith('Equity:')) {
+        return { fill: '#3b82f6', stroke: '#2563eb', hoverFill: '#60a5fa', hoverStroke: '#3b82f6' };
+      }
+      if (nodeName.startsWith('Fixed Income:')) {
+        return { fill: '#8b5cf6', stroke: '#7c3aed', hoverFill: '#a78bfa', hoverStroke: '#8b5cf6' };
+      }
+      if (nodeName.startsWith('Cash:')) {
+        return { fill: '#06b6d4', stroke: '#0891b2', hoverFill: '#22d3ee', hoverStroke: '#06b6d4' };
+      }
+      if (nodeName.startsWith('Private Markets:')) {
+        return { fill: '#ec4899', stroke: '#db2777', hoverFill: '#f472b6', hoverStroke: '#ec4899' };
+      }
+      if (nodeName.startsWith('Other / Specialized:')) {
+        return { fill: '#f97316', stroke: '#ea580c', hoverFill: '#fb923c', hoverStroke: '#f97316' };
+      }
+      if (nodeName.startsWith('Multi-Asset:')) {
+        return { fill: '#14b8a6', stroke: '#0d9488', hoverFill: '#5eead4', hoverStroke: '#14b8a6' };
+      }
+      
+      // Default color
+      return { fill: '#6b7280', stroke: '#4b5563', hoverFill: '#9ca3af', hoverStroke: '#6b7280' };
+    };
+
     svg.append('g')
       .selectAll('rect')
       .data(graph.nodes)
@@ -289,8 +325,22 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('y', d => d.y0!)
       .attr('height', d => d.y1! - d.y0!)
       .attr('width', d => d.x1! - d.x0!)
-      .attr('fill', '#4f46e5')
-      .attr('stroke', '#312e81')
+      .attr('fill', d => {
+        const colors = getNodeColor(d.name);
+        return colors.fill;
+      })
+      .attr('stroke', d => {
+        const colors = getNodeColor(d.name);
+        return colors.stroke;
+      })
+      .attr('data-original-fill', d => {
+        const colors = getNodeColor(d.name);
+        return colors.fill;
+      })
+      .attr('data-original-stroke', d => {
+        const colors = getNodeColor(d.name);
+        return colors.stroke;
+      })
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
@@ -298,6 +348,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
         const incoming = nodeIncoming.get(node) || 0;
         const outgoing = nodeOutgoing.get(node) || 0;
+        const colors = getNodeColor(node.name);
         
         tooltip
           .style('opacity', 1)
@@ -309,8 +360,8 @@ export class SankeyDiagramComponent implements AfterViewInit {
           `);
         
         d3.select(this)
-          .attr('fill', '#6366f1')
-          .attr('stroke', '#4338ca')
+          .attr('fill', colors.hoverFill)
+          .attr('stroke', colors.hoverStroke)
           .attr('stroke-width', 2);
       })
       .on('mousemove', function(event) {
@@ -320,9 +371,11 @@ export class SankeyDiagramComponent implements AfterViewInit {
       })
       .on('mouseout', function() {
         tooltip.style('opacity', 0);
+        const originalFill = d3.select(this).attr('data-original-fill');
+        const originalStroke = d3.select(this).attr('data-original-stroke');
         d3.select(this)
-          .attr('fill', '#4f46e5')
-          .attr('stroke', '#312e81')
+          .attr('fill', originalFill)
+          .attr('stroke', originalStroke)
           .attr('stroke-width', 1);
       });
 
