@@ -1,0 +1,98 @@
+// ============================================
+// COLOR VARIABLES
+// ============================================
+
+// Primary Colors
+$primary-blue: #0b41ad;
+$primary-blue-hover: rgba(11, 65, 173, 0.1);
+$primary-blue-light: rgba(11, 65, 173, 0.05);
+
+// Text Colors
+$text-primary: #030213;
+$text-secondary: #717182;
+$text-dark: #333333;
+$text-medium: #666666;
+$text-light: rgba(0, 0, 0, 0.85);
+
+// Background Colors
+$bg-white: #ffffff;
+$bg-light: #ececf0;
+$bg-light-opacity: rgba(236, 236, 240, 0.3);
+$bg-gray-light: #f9fafb;
+$bg-gray-medium: #e5e7eb;
+$bg-gray-dark: #6b7280;
+$bg-gray-darker: #4b5563;
+
+// Border Colors
+$border-light: rgba(0, 0, 0, 0.1);
+$border-medium: rgba(0, 0, 0, 0.12);
+$border-gray: #b3b3b3;
+$border-gray-light: #c4c4c4;
+$border-gray-medium: #d1d5dc;
+$border-gray-dark: #e5e7eb;
+
+// Green Colors (Positive/Inflow)
+$green-light: #86efac;
+$green: #4ade80;
+$green-dark: #10b981;
+$green-darker: #059669;
+$green-hover: #34d399;
+$green-link: #6EE7B7;
+
+// Red Colors (Negative/Outflow)
+$red-light: #fca5a5;
+$red: #f87171;
+$red-dark: #ef4444;
+$red-link: #FCA5A5;
+
+// Blue Colors (Links/Accents)
+$blue-link: rgba(0, 100, 200, 0.7);
+$blue-primary: #3b82f6;
+$blue-primary-dark: #2563eb;
+$blue-primary-hover: #60a5fa;
+
+// Orange Colors
+$orange-primary: #f59e0b;
+$orange-primary-dark: #d97706;
+$orange-primary-hover: #fbbf24;
+$orange-secondary: #f97316;
+$orange-secondary-dark: #ea580c;
+$orange-secondary-hover: #fb923c;
+
+// Purple Colors
+$purple-primary: #8b5cf6;
+$purple-primary-dark: #7c3aed;
+$purple-primary-hover: #a78bfa;
+
+// Cyan Colors
+$cyan-primary: #06b6d4;
+$cyan-primary-dark: #0891b2;
+$cyan-primary-hover: #22d3ee;
+
+// Pink Colors
+$pink-primary: #ec4899;
+$pink-primary-dark: #db2777;
+$pink-primary-hover: #f472b6;
+
+// Teal Colors
+$teal-primary: #14b8a6;
+$teal-primary-dark: #0d9488;
+$teal-primary-hover: #5eead4;
+
+// Gray Shades
+$gray-light: #9ca3af;
+$gray-medium: #6b7280;
+$gray-dark: #4b5563;
+$gray-darker: #374151;
+
+// Opacity Overlays
+$overlay-light: rgba(0, 0, 0, 0.05);
+$overlay-medium: rgba(0, 0, 0, 0.1);
+$overlay-dark: rgba(0, 0, 0, 0.12);
+$overlay-darker: rgba(0, 0, 0, 0.85);
+$overlay-gray: rgba(86, 86, 86, 0.1);
+$overlay-gray-light: rgba(86, 86, 86, 0.05);
+
+// Default/Misc
+$default-gray: #999999;
+

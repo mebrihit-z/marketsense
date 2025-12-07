@@ -1,5 +1,48 @@
 /* You can add global styles to this file, and also import other style files */
 
+@import '_variables';
+
+// CSS Custom Properties (for TypeScript access)
+:root {
+  --primary-blue: #{$primary-blue};
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-medium: #{$text-medium};
+  --bg-white: #{$bg-white};
+  --green-link: #{$green-link};
+  --red-link: #{$red-link};
+  --blue-link: #{$blue-link};
+  --default-gray: #{$default-gray};
+  --orange-primary: #{$orange-primary};
+  --orange-primary-dark: #{$orange-primary-dark};
+  --orange-primary-hover: #{$orange-primary-hover};
+  --green-dark: #{$green-dark};
+  --green-darker: #{$green-darker};
+  --green-hover: #{$green-hover};
+  --blue-primary: #{$blue-primary};
+  --blue-primary-dark: #{$blue-primary-dark};
+  --blue-primary-hover: #{$blue-primary-hover};
+  --purple-primary: #{$purple-primary};
+  --purple-primary-dark: #{$purple-primary-dark};
+  --purple-primary-hover: #{$purple-primary-hover};
+  --cyan-primary: #{$cyan-primary};
+  --cyan-primary-dark: #{$cyan-primary-dark};
+  --cyan-primary-hover: #{$cyan-primary-hover};
+  --pink-primary: #{$pink-primary};
+  --pink-primary-dark: #{$pink-primary-dark};
+  --pink-primary-hover: #{$pink-primary-hover};
+  --orange-secondary: #{$orange-secondary};
+  --orange-secondary-dark: #{$orange-secondary-dark};
+  --orange-secondary-hover: #{$orange-secondary-hover};
+  --teal-primary: #{$teal-primary};
+  --teal-primary-dark: #{$teal-primary-dark};
+  --teal-primary-hover: #{$teal-primary-hover};
+  --gray-medium: #{$gray-medium};
+  --gray-dark: #{$gray-dark};
+  --gray-light: #{$gray-light};
+  --overlay-darker: #{$overlay-darker};
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,7 +53,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: Inter;
-  background-color: #fff;
+  background-color: $bg-white;
 }
 
 // Ensure main content doesn't overlap with sticky navbar
@@ -21,7 +64,7 @@ app-root {
 .horizontal-divider { 
   height: 1px;
   width: 100%;
-  background: rgba(0, 0, 0, 0.10);
+  background: $border-light;
   margin: 12px 0;
    
 }

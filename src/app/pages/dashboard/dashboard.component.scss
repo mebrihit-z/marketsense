@@ -1,6 +1,8 @@
+@import '../../../_variables';
+
 .dashboard-container {
     min-height: calc(100vh - 70px); // Account for navbar height
-    background-color: #fff;
+    background-color: $bg-white;
     padding: 2rem;
     display: flex;
     flex-direction: column;

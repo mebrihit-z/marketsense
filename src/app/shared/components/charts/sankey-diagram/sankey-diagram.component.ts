@@ -45,6 +45,13 @@ export class SankeyDiagramComponent implements AfterViewInit {
     this.createSankey();
   }
 
+  // Helper function to get CSS variable value
+  private getCssVariable(name: string): string {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+  }
+
   // -----------------------------------------
   // MAIN FUNCTION
   // -----------------------------------------
@@ -55,12 +62,16 @@ export class SankeyDiagramComponent implements AfterViewInit {
     const width = Math.max(containerWidth, 800);
     const height = 800;
 
+    // Get CSS variable values
+    const overlayDarker = this.getCssVariable('--overlay-darker');
+    const bgWhite = this.getCssVariable('--bg-white');
+
     // Create tooltip
     const tooltip = d3.select(element)
       .append('div')
       .style('position', 'absolute')
-      .style('background-color', 'rgba(0, 0, 0, 0.85)')
-      .style('color', 'white')
+      .style('background-color', overlayDarker || 'rgba(0, 0, 0, 0.85)')
+      .style('color', bgWhite || 'white')
       .style('padding', '8px 12px')
       .style('border-radius', '4px')
       .style('font-size', '12px')
@@ -140,6 +151,11 @@ export class SankeyDiagramComponent implements AfterViewInit {
     // -----------------------------------------
     const links: SankeyLinkExtra[] = [];
 
+    // Get CSS variable values for links
+    const greenLink = this.getCssVariable('--green-link');
+    const redLink = this.getCssVariable('--red-link');
+    const blueLink = this.getCssVariable('--blue-link');
+
     // Selling flows → Pool
     negRows.forEach(([parent, child, value]) => {
       const lbl = makeLabel(parent, child);
@@ -147,7 +163,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: labelToIndex[lbl],
         target: poolIndex,
         value: Math.abs(value),
-        color: "#6EE7B7" // green
+        color: greenLink || "#6EE7B7" // green
       });
     });
 
@@ -164,7 +180,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: poolIndex,
         target: targetIndex,
         value: rebalFlow,
-        color: "#FCA5A5" // red
+        color: redLink || "#FCA5A5" // red
       });
 
       // New Capital → Target
@@ -173,7 +189,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
           source: newCapIndex,
           target: targetIndex,
           value: newCapFlow,
-          color: "rgba(0,100,200,0.7)" // blue
+          color: blueLink || "rgba(0,100,200,0.7)" // blue
         });
       }
     });
@@ -218,7 +234,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .enter()
       .append('path')
       .attr('d', sankeyLinkHorizontal())
-      .attr('stroke', d => d.color || '#999')
+      .attr('stroke', d => d.color || this.getCssVariable('--default-gray') || '#999')
       .attr('stroke-width', d => Math.max(1, d.width || 1))
       .attr('fill', 'none')
       .attr('opacity', 0.45)
@@ -283,37 +299,89 @@ export class SankeyDiagramComponent implements AfterViewInit {
     // -----------------------------------------
     // Color mapping function for nodes
     // -----------------------------------------
+    // Capture the helper function to access CSS variables
+    const getCssVar = (name: string, fallback: string) => {
+      const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return value || fallback;
+    };
+    
     const getNodeColor = (nodeName: string): { fill: string; stroke: string; hoverFill: string; hoverStroke: string } => {
+      
       // Special nodes
       if (nodeName === 'Reallocation Pool') {
-        return { fill: '#f59e0b', stroke: '#d97706', hoverFill: '#fbbf24', hoverStroke: '#f59e0b' };
+        return {
+          fill: getCssVar('--orange-primary', '#f59e0b'),
+          stroke: getCssVar('--orange-primary-dark', '#d97706'),
+          hoverFill: getCssVar('--orange-primary-hover', '#fbbf24'),
+          hoverStroke: getCssVar('--orange-primary', '#f59e0b')
+        };
       }
       if (nodeName === 'Net New Capital') {
-        return { fill: '#10b981', stroke: '#059669', hoverFill: '#34d399', hoverStroke: '#10b981' };
+        return {
+          fill: getCssVar('--green-dark', '#10b981'),
+          stroke: getCssVar('--green-darker', '#059669'),
+          hoverFill: getCssVar('--green-hover', '#34d399'),
+          hoverStroke: getCssVar('--green-dark', '#10b981')
+        };
       }
       
       // Categorize by prefix
       if (nodeName.startsWith('Equity:')) {
-        return { fill: '#3b82f6', stroke: '#2563eb', hoverFill: '#60a5fa', hoverStroke: '#3b82f6' };
+        return {
+          fill: getCssVar('--blue-primary', '#3b82f6'),
+          stroke: getCssVar('--blue-primary-dark', '#2563eb'),
+          hoverFill: getCssVar('--blue-primary-hover', '#60a5fa'),
+          hoverStroke: getCssVar('--blue-primary', '#3b82f6')
+        };
       }
       if (nodeName.startsWith('Fixed Income:')) {
-        return { fill: '#8b5cf6', stroke: '#7c3aed', hoverFill: '#a78bfa', hoverStroke: '#8b5cf6' };
+        return {
+          fill: getCssVar('--purple-primary', '#8b5cf6'),
+          stroke: getCssVar('--purple-primary-dark', '#7c3aed'),
+          hoverFill: getCssVar('--purple-primary-hover', '#a78bfa'),
+          hoverStroke: getCssVar('--purple-primary', '#8b5cf6')
+        };
       }
       if (nodeName.startsWith('Cash:')) {
-        return { fill: '#06b6d4', stroke: '#0891b2', hoverFill: '#22d3ee', hoverStroke: '#06b6d4' };
+        return {
+          fill: getCssVar('--cyan-primary', '#06b6d4'),
+          stroke: getCssVar('--cyan-primary-dark', '#0891b2'),
+          hoverFill: getCssVar('--cyan-primary-hover', '#22d3ee'),
+          hoverStroke: getCssVar('--cyan-primary', '#06b6d4')
+        };
       }
       if (nodeName.startsWith('Private Markets:')) {
-        return { fill: '#ec4899', stroke: '#db2777', hoverFill: '#f472b6', hoverStroke: '#ec4899' };
+        return {
+          fill: getCssVar('--pink-primary', '#ec4899'),
+          stroke: getCssVar('--pink-primary-dark', '#db2777'),
+          hoverFill: getCssVar('--pink-primary-hover', '#f472b6'),
+          hoverStroke: getCssVar('--pink-primary', '#ec4899')
+        };
       }
       if (nodeName.startsWith('Other / Specialized:')) {
-        return { fill: '#f97316', stroke: '#ea580c', hoverFill: '#fb923c', hoverStroke: '#f97316' };
+        return {
+          fill: getCssVar('--orange-secondary', '#f97316'),
+          stroke: getCssVar('--orange-secondary-dark', '#ea580c'),
+          hoverFill: getCssVar('--orange-secondary-hover', '#fb923c'),
+          hoverStroke: getCssVar('--orange-secondary', '#f97316')
+        };
       }
       if (nodeName.startsWith('Multi-Asset:')) {
-        return { fill: '#14b8a6', stroke: '#0d9488', hoverFill: '#5eead4', hoverStroke: '#14b8a6' };
+        return {
+          fill: getCssVar('--teal-primary', '#14b8a6'),
+          stroke: getCssVar('--teal-primary-dark', '#0d9488'),
+          hoverFill: getCssVar('--teal-primary-hover', '#5eead4'),
+          hoverStroke: getCssVar('--teal-primary', '#14b8a6')
+        };
       }
       
       // Default color
-      return { fill: '#6b7280', stroke: '#4b5563', hoverFill: '#9ca3af', hoverStroke: '#6b7280' };
+      return {
+        fill: getCssVar('--gray-medium', '#6b7280'),
+        stroke: getCssVar('--gray-dark', '#4b5563'),
+        hoverFill: getCssVar('--gray-light', '#9ca3af'),
+        hoverStroke: getCssVar('--gray-medium', '#6b7280')
+      };
     };
 
     svg.append('g')
@@ -415,7 +483,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('text-anchor', 'middle')
       .attr('alignment-baseline', 'middle')
       .style('font-size', '10px')
-      .style('fill', '#333')
+      .style('fill', this.getCssVariable('--text-primary') || '#333')
       .style('font-weight', '500')
       .style('pointer-events', 'none')
       .text(d => {
@@ -438,7 +506,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('text-anchor', 'end')
       .attr('alignment-baseline', 'middle')
       .style('font-size', '10px')
-      .style('fill', '#666')
+      .style('fill', this.getCssVariable('--text-medium') || '#666')
       .style('font-weight', '600')
       .text(d => {
         const value = nodeValues.get(d) || 0;
