@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TreemapComponent } from '../charts/treemap/treemap.component';
 
 export interface TreemapNode {
   id: string;
@@ -33,7 +34,7 @@ export interface FlowDimension {
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TreemapComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })

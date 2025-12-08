@@ -67,113 +67,23 @@
       </div>
     </div>
   </div>
-
   <!-- Treemap Visualization -->
-  <div class="treemap-container">
-    <div class="treemap-wrapper">
-      <!-- SVG Container for Treemap -->
-      <svg class="treemap-svg" viewBox="0 0 1294 538" preserveAspectRatio="xMidYMid meet">
-        <!-- Define patterns and gradients -->
-        <defs>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.1"/>
-          </filter>
-        </defs>
-
-        <!-- Render each region -->
-        <g *ngFor="let region of treemapRegions" class="region-group">
-          <!-- Region Background -->
-          <rect 
-            [attr.x]="region.x + '%'" 
-            [attr.y]="region.y + '%'" 
-            [attr.width]="region.width + '%'" 
-            [attr.height]="region.height + '%'"
-            class="region-bg"
-            fill="white"
-            stroke="rgba(0,0,0,0.1)"
-            stroke-width="1"
-            rx="4"/>
-          
-          <!-- Region Label -->
-          <text 
-            [attr.x]="(region.x + 1) + '%'" 
-            [attr.y]="(region.y + 2.4) + '%'"
-            class="region-label"
-            fill="#1f2937"
-            font-weight="700"
-            font-size="12.92">
-            {{ region.name }}
-          </text>
-
-          <!-- Child Nodes (Asset Classes) -->
-          <g *ngFor="let node of region.children" class="node-group" (click)="onNodeClick(node)">
-            <!-- Node Rectangle -->
-            <rect 
-              [attr.x]="node.x + '%'" 
-              [attr.y]="node.y + '%'" 
-              [attr.width]="node.width + '%'" 
-              [attr.height]="node.height + '%'"
-              [attr.fill]="getNodeColor(node.color)"
-              [attr.stroke]="getNodeBorderColor(node.color)"
-              stroke-width="2"
-              rx="4"
-              class="node-rect"
-              filter="url(#shadow)"/>
-            
-            <!-- Node Label -->
-            <text 
-              [attr.x]="(node.x + node.width/2) + '%'" 
-              [attr.y]="(node.y + node.height/2 - 2) + '%'"
-              class="node-label"
-              text-anchor="middle"
-              fill="#1f2937"
-              font-weight="700"
-              font-size="11.843">
-              {{ node.label }}
-            </text>
-            
-            <!-- Node Value -->
-            <text 
-              [attr.x]="(node.x + node.width/2) + '%'" 
-              [attr.y]="(node.y + node.height/2 + 2) + '%'"
-              class="node-value"
-              text-anchor="middle"
-              fill="#1f2937"
-              font-weight="400"
-              font-size="10.767">
-              {{ formatCurrency(node.value) }}
-            </text>
-            
-            <!-- Node Percentage -->
-            <text 
-              [attr.x]="(node.x + node.width/2) + '%'" 
-              [attr.y]="(node.y + node.height/2 + 5) + '%'"
-              class="node-percentage"
-              text-anchor="middle"
-              [attr.fill]="node.percentage > 0 ? '#10b981' : '#ef4444'"
-              font-weight="400"
-              font-size="9.69">
-              {{ formatPercentage(node.percentage) }}
-            </text>
-          </g>
-        </g>
-      </svg>
+  <div class="treemap-section">
+    <app-treemap></app-treemap>
+  </div>
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color inflow"></div>
+      <span class="legend-text">Inflow</span>
     </div>
-
-    <!-- Legend -->
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-color inflow"></div>
-        <span class="legend-text">Inflow</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color neutral"></div>
-        <span class="legend-text">Neutral</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color outflow"></div>
-        <span class="legend-text">Outflow</span>
-      </div>
+    <div class="legend-item">
+      <div class="legend-color neutral"></div>
+      <span class="legend-text">Neutral</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color outflow"></div>
+      <span class="legend-text">Outflow</span>
     </div>
   </div>
 </div>
