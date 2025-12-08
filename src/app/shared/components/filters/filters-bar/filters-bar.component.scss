@@ -36,14 +36,25 @@
     display:flex; 
     gap:8px; 
     align-items:center; 
-    font-size:13px; 
-    color:#374151; 
     margin-left: 60px;
     margin-top:4px;
+
+    color: #0A0A0A;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 14px; 
+    letter-spacing: -0.15px;
 }
 .clear-all { 
-    background:none; border:none; 
-    color:#6b7280; 
+    background:none; 
+    border:none;  
     cursor:pointer; 
+    font-family: Inter;
+    color: #717182;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 20px; /* 142.857% */
+    letter-spacing: -0.15px;
 }
 

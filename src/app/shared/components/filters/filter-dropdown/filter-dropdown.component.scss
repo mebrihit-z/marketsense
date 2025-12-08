@@ -1,4 +1,7 @@
-:host { position: relative; display: inline-block; }
+:host { 
+  position: relative; 
+  display: inline-block;
+}
 .btn {
     display:flex;
     align-items:center;
@@ -8,11 +11,31 @@
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.10);
     background: #FFF;
+
+    color: #0A0A0A;
     font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px; /* 142.857% */
+    letter-spacing: -0.15px;
 }
-.right { display:flex; gap:8px; align-items:center; }
+.right { 
+  display:flex; 
+  gap:8px; 
+  align-items:center; 
+}
 .count {
-    background:#e5e7eb; padding:2px 8px; border-radius:999px; font-size:12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background:#ECEEF2; 
+    padding:2px 8px; 
+    border-radius:8px; 
+    font-size:12px;
+    color: #030213;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
 }
 .panel {
     position: absolute;
@@ -23,7 +46,12 @@
     border-radius: 12px; padding: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     z-index: 50;
 }
-.panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.panel-header { 
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  margin-bottom:10px; 
+}
 .panel-title { 
   color: #717182;
   font-size: 14px;
@@ -34,11 +62,13 @@
 .select-all {
   background: none;
   border: none;
-  color: #030213;
   cursor: pointer;
+
+  color: #0A0A0A;
+  font-family: Inter;
   font-size: 12px;
   font-weight: 500;
-  padding: 0;
+  line-height: 16px; /* 133.333% */
   
   &:hover {
     text-decoration: underline;
@@ -70,6 +100,9 @@
   gap:8px; 
   cursor:pointer; 
   font-size:14px;
+  color: #0A0A0A;
+  line-height: 14px; /* 100% */
+  letter-spacing: -0.15px;
   
   &.grouped-option {
     padding-left: 8px;
@@ -121,13 +154,22 @@
 .clear { 
     background:none; 
     border:none; 
-    color:#2563eb; 
-    cursor:pointer; }
+    color:#0B41AD; 
+    cursor:pointer; 
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    letter-spacing: -0.15px;
+  }
 .done { 
-    background:#1e40af; 
+    background:#0B41AD; 
     color:#fff; 
     border:none; 
-    padding:6px 12px; 
-    border-radius:8px; 
+    padding:4px 8px; 
+    border-radius:4px; 
     cursor:pointer; 
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px; /* 142.857% */
+    letter-spacing: 0.035px;
 }
