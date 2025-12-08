@@ -1,0 +1,80 @@
+<div class="modal-overlay" (click)="onClose()" *ngIf="isVisible">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Close Button -->
+    <button class="close-btn" (click)="onClose()" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-content">
+        <div class="logo-container">
+          <div class="logo-icon">
+            <img src="assets/icons/sparkle-icon.svg" alt="MarketSense AI" class="logo-img">
+          </div>
+        </div>
+        <div class="header-text">
+          <h2 class="header-title">MarketSense AI</h2>
+          <p class="header-subtitle">Conversational insights powered by Mercer intelligence</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Section -->
+    <div class="context-section">
+      <div class="context-content">
+        <div class="context-text">
+          <p class="context-label">Context: Signal Card</p>
+          <p class="context-title">{{ card?.title || 'Signal Card' }}</p>
+        </div>
+        <div class="context-value">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="trend-icon">
+            <path d="M2 12L6 8L9 11L14 6" stroke="#00bc7d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 6H14V9" stroke="#00bc7d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="value-text">{{ card?.value || '$0' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area">
+      <div class="chat-bubble">
+        <div class="chat-message">
+          <p>I'm MarketSense AI. I can see you're exploring the {{ card?.title || 'signal' }} signal, which shows {{ card?.valueColor === 'green' ? 'strong inflows' : 'outflows' }} of {{ card?.value || '$0' }} ({{ card?.percentageChange || '+0%' }}). Recent momentum is being driven by institutional investors reallocating to {{ card?.title?.toLowerCase() || 'this asset class' }} as they seek higher returns and diversification amid equity market volatility.</p>
+          <p>&nbsp;</p>
+          <p>Would you like to dig deeper into what's driving this trend, compare it across regions, or explore related asset-class signals?</p>
+        </div>
+        <div class="chat-timestamp">11:39 PM</div>
+      </div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <div class="input-container">
+        <textarea 
+          class="input-field" 
+          placeholder="Ask about this signal, trend, or related insights..."
+          [(ngModel)]="userMessage"
+          (keydown.enter)="onSendMessage($event)"
+          rows="2">
+        </textarea>
+        <button class="send-btn" [disabled]="!userMessage.trim()" (click)="onSendMessage()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2L7 9M14 2L10 14L7 9M14 2L2 6L7 9" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="disclaimer">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="info-icon">
+          <circle cx="6" cy="6" r="5.5" stroke="currentColor"/>
+          <path d="M6 4V6M6 8H6.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p class="disclaimer-text">AI-generated insights for exploratory analysis only</p>
+      </div>
+    </div>
+  </div>
+</div>
+

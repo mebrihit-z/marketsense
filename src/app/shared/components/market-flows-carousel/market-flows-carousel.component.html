@@ -95,5 +95,13 @@
       </button>
     </div>
   </div>
+
+  <!-- Ask MarketSense Modal -->
+  <app-ask-marketsense-modal
+    [isVisible]="showModal"
+    [card]="selectedCard"
+    (close)="onCloseModal()"
+    (sendMessage)="onSendMessage($event)">
+  </app-ask-marketsense-modal>
 </div>
 

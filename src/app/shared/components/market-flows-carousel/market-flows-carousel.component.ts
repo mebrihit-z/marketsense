@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import { ViewMoreCardComponent } from './view-more-card/view-more-card.component';
+import { AskMarketsenseModalComponent } from './ask-marketsense-modal/ask-marketsense-modal.component';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
@@ -9,7 +10,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 @Component({
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
-  imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent],
+  imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent, AskMarketsenseModalComponent],
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
@@ -22,6 +23,10 @@ export class FeaturedMarketFlowsCarouselComponent {
   currentSlideIndex: number = 0;
   
   cardsPerSlide = 3;
+  
+  // Modal state
+  showModal: boolean = false;
+  selectedCard: MarketFlowCard | null = null;
   
   get headerTitle(): string {
     return this.dataType === 'historical' 
@@ -111,8 +116,23 @@ export class FeaturedMarketFlowsCarouselComponent {
   }
   
   onAskMarketSense(cardId: string): void {
-    // Handle ask MarketSense action
-    console.log('Ask MarketSense clicked for card:', cardId);
+    // Find the card by ID
+    const card = this.cards.find(c => c.id === cardId);
+    if (card) {
+      this.selectedCard = card;
+      this.showModal = true;
+    }
+  }
+  
+  onCloseModal(): void {
+    this.showModal = false;
+    this.selectedCard = null;
+  }
+  
+  onSendMessage(message: string): void {
+    // Handle sending message to AI
+    console.log('Message sent:', message);
+    // Here you would typically send the message to an AI service
   }
   
   onDownload(cardId: string): void {
