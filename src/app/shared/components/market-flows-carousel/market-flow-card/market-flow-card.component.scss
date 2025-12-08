@@ -261,7 +261,7 @@
   gap: 8px;
   padding: 8px 12px;
   background-color: white;
-  border: 1px solid #0b41ad;
+  border: 1px solid $primary-blue;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -281,7 +281,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.035px;
-  color: #0b41ad;
+  color: $primary-blue;
 }
 
 .divider {

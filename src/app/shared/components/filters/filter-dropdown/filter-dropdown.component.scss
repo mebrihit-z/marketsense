@@ -129,8 +129,8 @@
     position: relative;
     
     &:checked {
-      background-color: #0B41AD;
-      border-color: #0B41AD;
+      background-color: $primary-blue;
+      border-color: $primary-blue;
       
       &::after {
         content: '';
@@ -156,7 +156,7 @@
 .clear { 
     background:none; 
     border:none; 
-    color:#0B41AD; 
+    color:$primary-blue; 
     cursor:pointer; 
     font-size: 14px;
     font-weight: 500;
@@ -164,7 +164,7 @@
     letter-spacing: -0.15px;
   }
 .done { 
-    background:#0B41AD; 
+    background:$primary-blue; 
     color:#fff; 
     border:none; 
     padding:4px 8px; 

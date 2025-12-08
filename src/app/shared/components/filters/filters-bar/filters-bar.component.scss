@@ -61,8 +61,8 @@
         position: relative;
         
         &:checked {
-            background-color: #0B41AD;
-            border-color: #0B41AD;
+            background-color: $primary-blue;
+            border-color: $primary-blue;
             
             &::after {
                 content: '';
