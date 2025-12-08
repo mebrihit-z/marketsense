@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .icon-container {
@@ -52,18 +52,19 @@
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #0b41ad;
-  margin: 0;
-  line-height: 1.4;
+  color: #0B41AD;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: -0.312px;
 }
 
 .subtitle {
+  color: #717182;
+  text-align: center;
   font-size: 14px;
   font-weight: 400;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.5;
+  line-height: 21px;
 }
 
