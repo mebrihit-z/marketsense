@@ -147,7 +147,8 @@
 }
 .panel-footer { 
     display:flex; 
-    justify-content:space-between; 
+    justify-content:flex-end;
+     gap:20px;
     margin-top:12px; 
     align-items:center; 
 }
