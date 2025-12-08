@@ -10,8 +10,8 @@
     padding: 8px 13px;
     cursor: pointer;
     border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.10);
-    background: #FFF;
+    border: 1px solid $border-light;
+    background: $bg-white;
 
     color: $text-primary;
     font-size: 14px;
@@ -29,11 +29,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background:#ECEEF2; 
+    background: $bg-gray-lighter; 
     padding:2px 8px; 
     border-radius:8px; 
     font-size:12px;
-    color: #030213;
+    color: $text-primary-dark;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
@@ -43,8 +43,8 @@
     top: calc(100% + 8px);
     left: 0;
     width: 260px;
-    background: #fff; border: 1px solid #e5e7eb;
-    border-radius: 12px; padding: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    background: $bg-white; border: 1px solid $bg-gray-medium;
+    border-radius: 12px; padding: 12px; box-shadow: 0 6px 18px $overlay-shadow-medium;
     z-index: 50;
 }
 .panel-header { 
@@ -119,9 +119,9 @@
     height: 16px;
     margin-left: 4px;
     border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.10);
-    background: #F3F3F5;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid $border-light;
+    background: $bg-gray-lightest;
+    box-shadow: 0 1px 2px 0 $overlay-light;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
@@ -165,7 +165,7 @@
   }
 .done { 
     background:$primary-blue; 
-    color:#fff; 
+    color:$bg-white; 
     border:none; 
     padding:4px 8px; 
     border-radius:4px; 

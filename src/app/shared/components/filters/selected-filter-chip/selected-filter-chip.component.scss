@@ -13,7 +13,7 @@
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    color: #030213;
+    color: $text-primary-dark;
     font-size: 13px;
   }
   .label-name {
@@ -31,7 +31,7 @@
     width: 20px;
     height: 20px;
     background: $primary-blue;
-    color: #fff;
+    color: $bg-white;
     border-radius: 50%;
     border: none;
     cursor: pointer;
@@ -41,5 +41,5 @@
     font-weight: 500;
   }
   .close:focus { 
-    outline: 2px solid rgba(30,64,175,0.25); 
+    outline: 2px solid $blue-focus-outline; 
   }

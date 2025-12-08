@@ -9,6 +9,7 @@ $primary-blue-light: rgba(11, 65, 173, 0.05);
 
 // Text Colors
 $text-primary: #0A0A0A;
+$text-primary-dark: #030213;
 $text-secondary: #717182;
 $text-dark: #333333;
 $text-medium: #666666;
@@ -18,10 +19,14 @@ $text-light: rgba(0, 0, 0, 0.85);
 $bg-white: #ffffff;
 $bg-light: #ececf0;
 $bg-light-opacity: rgba(236, 236, 240, 0.3);
+$bg-light-opacity-50: rgba(236, 236, 240, 0.5);
 $bg-gray-light: #f9fafb;
+$bg-gray-lighter: #ECEEF2;
+$bg-gray-lightest: #F3F3F5;
 $bg-gray-medium: #e5e7eb;
 $bg-gray-dark: #6b7280;
 $bg-gray-darker: #4b5563;
+$bg-neutral: #e8e9eb;
 
 // Border Colors
 $border-light: rgba(0, 0, 0, 0.1);
@@ -38,12 +43,25 @@ $green-dark: #10b981;
 $green-darker: #059669;
 $green-hover: #34d399;
 $green-link: #6EE7B7;
+$green-accent: #00bc7d;
+$green-positive: #009966;
+$green-gradient-start: rgba(5, 150, 105, 0.15);
+$green-gradient-mid: rgba(5, 150, 105, 0.20);
+$green-gradient-end: rgba(5, 150, 105, 0.18);
+$green-gradient-top: rgba(5, 150, 105, 0.08);
 
 // Red Colors (Negative/Outflow)
 $red-light: #fca5a5;
 $red: #f87171;
 $red-dark: #ef4444;
 $red-link: #FCA5A5;
+$red-accent: #fb2c36;
+$red-negative: #e7000b;
+$red-badge: #d4183d;
+$red-gradient-start: rgba(251, 44, 54, 0.15);
+$red-gradient-mid: rgba(251, 44, 54, 0.20);
+$red-gradient-end: rgba(251, 44, 54, 0.18);
+$red-gradient-top: rgba(251, 44, 54, 0.08);
 
 // Blue Colors (Links/Accents)
 $blue-link: rgba(0, 100, 200, 0.7);
@@ -92,7 +110,15 @@ $overlay-dark: rgba(0, 0, 0, 0.12);
 $overlay-darker: rgba(0, 0, 0, 0.85);
 $overlay-gray: rgba(86, 86, 86, 0.1);
 $overlay-gray-light: rgba(86, 86, 86, 0.05);
+$overlay-modal: rgba(0, 0, 0, 0.5);
+$overlay-logo: rgba(3, 2, 19, 0.1);
+$overlay-white: rgba(255, 255, 255, 0.5);
+$overlay-shadow-light: rgba(0, 0, 0, 0.06);
+$overlay-shadow-medium: rgba(0, 0, 0, 0.08);
+$overlay-shadow-dark: rgba(0, 0, 0, 0.1);
 
 // Default/Misc
 $default-gray: #999999;
+$blue-focus-outline: rgba(30, 64, 175, 0.25);
+$primary-blue-light-hover: rgba(11, 65, 173, 0.05);
 

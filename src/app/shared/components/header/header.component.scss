@@ -4,8 +4,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: #fff;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    background-color: $bg-white;
+    box-shadow: 0 0 10px 0 $overlay-shadow-dark;
 }  
 // brand description
 .brand-description{
@@ -35,8 +35,8 @@
             justify-content: center;
             align-items: center;
             border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.10);
-            background: #FFF;
+            border: 1px solid $border-light;
+            background: $bg-white;
         }
     }
     .date-updated{

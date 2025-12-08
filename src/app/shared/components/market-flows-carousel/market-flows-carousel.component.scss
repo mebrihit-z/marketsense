@@ -1,7 +1,7 @@
 @use '../../../../_variables' as *;
 
 .featured-market-flows {
-  background-color: white;
+  background-color: $bg-white;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -98,10 +98,10 @@
 
 .toggle-buttons {
   display: flex;
-  border: 1px solid #b3b3b3;
+  border: 1px solid $border-gray;
   border-radius: 6px;
   padding: 1px;
-  background-color: white;
+  background-color: $bg-white;
   overflow: hidden;
 
   &.time-horizon {
@@ -116,9 +116,9 @@
   font-size: 12px;
   line-height: 16px;
   color: $text-primary;
-  background-color: white;
+  background-color: $bg-white;
   border: none;
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  border-right: 1px solid $border-medium;
   padding: 11px 8px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -129,12 +129,12 @@
   }
 
   &:hover:not(&.active) {
-    background-color: rgba(86, 86, 86, 0.05);
+    background-color: $overlay-gray-light;
   }
 
   &.active {
-    background-color: rgba(86, 86, 86, 0.1);
-    color: #030213;
+    background-color: $overlay-gray;
+    color: $text-primary-dark;
   }
 }
 
@@ -177,7 +177,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #d1d5dc;
+  background-color: $border-gray-dark;
   cursor: pointer;
   transition: background-color 0.2s, width 0.2s;
 
@@ -188,7 +188,7 @@
   }
 
   &:hover:not(&.active) {
-    background-color: #b3b3b3;
+    background-color: $border-gray;
   }
 }
 
@@ -203,15 +203,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: white;
-  border: 1px solid #d1d5dc;
+  background-color: $bg-white;
+  border: 1px solid $border-gray-dark;
   border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
 
   &:hover:not(:disabled) {
-    background-color: #f9fafb;
-    border-color: #b3b3b3;
+    background-color: $bg-gray-light;
+    border-color: $border-gray;
   }
 
   &:disabled {
@@ -220,7 +220,7 @@
   }
 
   &.prev:disabled {
-    background-color: #f9fafb;
+    background-color: $bg-gray-light;
   }
 
   svg {

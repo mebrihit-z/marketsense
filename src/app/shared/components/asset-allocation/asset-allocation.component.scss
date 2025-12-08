@@ -1,15 +1,15 @@
 @use '../../../../_variables' as *;
 
 .asset-allocation-container {
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: $bg-white;
+  border: 1px solid $border-light;
   border-radius: 14px;
   padding: 25px;
   display: flex;
   flex-direction: column;
   gap: 47px;
   width: 100%;
-  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 1px 3px 0px $overlay-shadow-dark, 0px 1px 2px -1px $overlay-shadow-dark;
 }
 
 // Header Section
@@ -47,7 +47,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background-color: rgba(236, 236, 240, 0.3);
+  background-color: $bg-light-opacity;
   border: 1px solid $primary-blue;
   border-radius: 4px;
   cursor: pointer;
@@ -67,7 +67,7 @@
   }
 
   &:hover {
-    background-color: rgba(11, 65, 173, 0.1);
+    background-color: $primary-blue-hover;
   }
 }
 
@@ -103,20 +103,20 @@
 
 .time-horizon-group {
   display: flex;
-  border: 1px solid #b3b3b3;
+  border: 1px solid $border-gray;
   border-radius: 2px;
   overflow: hidden;
 
   .horizon-btn {
     height: 40px;
     padding: 8px;
-    background-color: #ffffff;
+    background-color: $bg-white;
     border: none;
-    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    border-right: 1px solid $border-medium;
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color: #030213;
+    color: $text-primary-dark;
     cursor: pointer;
     transition: background-color 0.2s;
     white-space: nowrap;
@@ -127,12 +127,12 @@
     }
 
     &.active {
-      background-color: rgba(86, 86, 86, 0.1);
-      box-shadow: inset -1px 0 0 0 #c4c4c4;
+      background-color: $overlay-gray;
+      box-shadow: inset -1px 0 0 0 $border-gray-light;
     }
 
     &:hover:not(.active) {
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: $overlay-light;
     }
   }
 }
@@ -150,7 +150,7 @@
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: $overlay-light;
   }
 }
 
@@ -200,7 +200,7 @@
   .drag-icon {
     width: 16px;
     height: 16px;
-    color: #ffffff;
+    color: $bg-white;
     margin-right: -4px;
   }
 
@@ -209,7 +209,7 @@
     font-size: 13px;
     line-height: 16px;
     letter-spacing: 0.0325px;
-    color: #ffffff;
+    color: $bg-white;
     padding: 0 6px;
   }
 }
@@ -253,7 +253,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ececf0;
+    background-color: $bg-light;
     border-radius: 120px;
     transition: 0.4s;
 
@@ -276,7 +276,7 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: 0.08px;
-  color: rgba(0, 0, 0, 0.85);
+  color: $text-light;
 }
 
 // Treemap Container
@@ -288,8 +288,8 @@
 }
 
 .treemap-wrapper {
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: $bg-white;
+  border: 1px solid $border-light;
   border-radius: 10px;
   padding: 1px;
   overflow: hidden;
@@ -356,15 +356,15 @@
   border-radius: 4px;
 
   &.inflow {
-    background-color: #86efac;
+    background-color: $green-light;
   }
 
   &.neutral {
-    background-color: #e8e9eb;
+    background-color: $bg-neutral;
   }
 
   &.outflow {
-    background-color: #fca5a5;
+    background-color: $red-light;
   }
 }
 

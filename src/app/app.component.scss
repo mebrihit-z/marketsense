@@ -1,8 +1,10 @@
 // Global app styles
 // Component-specific styles should be in their respective component files
 
+@use '../_variables' as *;
+
 :host {
   display: block;
   min-height: 100vh;
-  background-color: #fff;
+  background-color: $bg-white;
 }

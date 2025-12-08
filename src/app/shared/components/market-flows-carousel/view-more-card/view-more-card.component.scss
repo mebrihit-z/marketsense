@@ -1,8 +1,8 @@
 @use '../../../../../_variables' as *;
 
 .view-more-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: $bg-white;
+  border: 1px solid $border-light;
   border-radius: 14px;
   padding: 48px 21px;
   display: flex;
@@ -14,13 +14,13 @@
   min-height: 400px;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px $overlay-shadow-medium;
     transform: translateY(-2px);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px $overlay-shadow-dark;
   }
 }
 

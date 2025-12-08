@@ -1,8 +1,8 @@
 @use '../../../../../_variables' as *;
 
 .card {
-  background-color: white;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: $bg-white;
+  border: 1px solid $border-light;
   border-radius: 14px;
   padding: 21px;
   display: flex;
@@ -12,7 +12,7 @@
   height: 100%;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px $overlay-shadow-medium;
   }
   
 }
@@ -55,8 +55,8 @@
   border-radius: 8px;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: #030213;
+    background-color: $overlay-light;
+    color: $text-primary-dark;
   }
 
   svg {
@@ -71,9 +71,9 @@
   height: 128.5px;
   border-left: 4px solid;
   border-radius: 10px;
-  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 6px -1px $overlay-shadow-dark, 0px 2px 4px -2px $overlay-shadow-dark;
   overflow: hidden;
-  background-color: white;
+  background-color: $bg-white;
   
   // Apply color based on border color (determined by card type)
   // Green cards - Pastel green with subtle gradient and top band
@@ -82,9 +82,9 @@
     .chart-background {
       // Base pastel green with gradient from lighter to darker
       background: linear-gradient(180deg, 
-        rgba(5, 150, 105, 0.15) 0%, 
-        rgba(5, 150, 105, 0.20) 15%, 
-        rgba(5, 150, 105, 0.18) 100%
+        $green-gradient-start 0%, 
+        $green-gradient-mid 15%, 
+        $green-gradient-end 100%
       );
       
       // Add subtle top band effect
@@ -96,7 +96,7 @@
         right: 0;
         height: 20%;
         background: linear-gradient(180deg, 
-          rgba(5, 150, 105, 0.08) 0%, 
+          $green-gradient-top 0%, 
           transparent 100%
         );
       }
@@ -108,7 +108,7 @@
         width: 100%;
         height: 40px;
         clip-path: polygon(-40% 0%, 130% 0%, 0% 70%);
-        background: rgba(255,255,255,0.5);
+        background: $overlay-white;
       }
   }
   
@@ -118,9 +118,9 @@
     .chart-background {
       // Base pastel red with gradient from lighter to darker
       background: linear-gradient(180deg, 
-        rgba(251, 44, 54, 0.15) 0%, 
-        rgba(251, 44, 54, 0.20) 15%, 
-        rgba(251, 44, 54, 0.18) 100%
+        $red-gradient-start 0%, 
+        $red-gradient-mid 15%, 
+        $red-gradient-end 100%
       );
       
       // Add subtle top band effect
@@ -132,7 +132,7 @@
         right: 0;
         height: 20%;
         background: linear-gradient(180deg, 
-          rgba(251, 44, 54, 0.08) 0%, 
+          $red-gradient-top 0%, 
           transparent 100%
         );
       }
@@ -143,7 +143,7 @@
         width: 100%;
         height: 40px;
         clip-path: polygon(-40% 0%, 100% 0, 100% 70%);
-        background: rgba(255,255,255,0.5);
+        background: $overlay-white;
       }
     }
   }
@@ -187,11 +187,11 @@
   letter-spacing: -0.31px;
 
   &.negative {
-    color: #e7000b;
+    color: $red-negative;
   }
 
   &.positive {
-    color: #009966;
+    color: $green-positive;
   }
 }
 
@@ -206,11 +206,11 @@
   margin-bottom: 8px;
 
   &.negative {
-    background-color: #d4183d;
+    background-color: $red-badge;
   }
 
   &.positive {
-    background-color: #009966;
+    background-color: $green-positive;
   }
 }
 
@@ -245,7 +245,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 1px 3px 0px $overlay-shadow-dark, 0px 1px 2px -1px $overlay-shadow-dark;
 }
 
 .confidence-text {
@@ -267,7 +267,7 @@
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: rgba(11, 65, 173, 0.05);
+    background-color: $primary-blue-light-hover;
   }
 
   .sparkle-icon {
@@ -287,7 +287,7 @@
 .divider {
   width: 100%;
   height: 1px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: $border-light;
 }
 
 .description {
