@@ -1,0 +1,46 @@
+<div class="modal-overlay" (click)="onClose()" *ngIf="isVisible">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Close Button -->
+    <button class="close-btn" (click)="onClose()" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <!-- Header -->
+    <div class="modal-header">
+      <h2 class="modal-title">Export Market Flow</h2>
+      <p class="modal-subtitle">Choose your preferred export format</p>
+    </div>
+
+    <!-- Export Options -->
+    <div class="export-options">
+      <!-- XLS Option -->
+      <button class="export-option" (click)="onExportXLS()">
+        <div class="option-content">
+          <div class="option-header">
+            <div class="option-icon excel-icon">
+              <img src="assets/icons/excel-icon.svg" alt="Excel" class="excel-icon">
+            </div>
+            <span class="option-title">XLS (Excel)</span>
+          </div>
+          <p class="option-description">Download underlying data and metrics</p>
+        </div>
+      </button>
+
+      <!-- PDF Option -->
+      <button class="export-option" (click)="onExportPDF()">
+        <div class="option-content">
+          <div class="option-header">
+            <div class="option-icon pdf-icon">
+              <img src="assets/icons/pdf-icon.svg" alt="PDF" class="pdf-icon">
+            </div>
+            <span class="option-title">PDF</span>
+          </div>
+          <p class="option-description">Export formatted market flow card</p>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+

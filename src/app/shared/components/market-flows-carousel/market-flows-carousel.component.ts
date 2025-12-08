@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import { ViewMoreCardComponent } from './view-more-card/view-more-card.component';
 import { AskMarketsenseModalComponent } from './ask-marketsense-modal/ask-marketsense-modal.component';
+import { ExportModalComponent } from './export-modal/export-modal.component';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
@@ -10,7 +11,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 @Component({
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
-  imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent, AskMarketsenseModalComponent],
+  imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent, AskMarketsenseModalComponent, ExportModalComponent],
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
@@ -27,6 +28,8 @@ export class FeaturedMarketFlowsCarouselComponent {
   // Modal state
   showModal: boolean = false;
   selectedCard: MarketFlowCard | null = null;
+  showExportModal: boolean = false;
+  selectedCardForExport: MarketFlowCard | null = null;
   
   get headerTitle(): string {
     return this.dataType === 'historical' 
@@ -136,8 +139,29 @@ export class FeaturedMarketFlowsCarouselComponent {
   }
   
   onDownload(cardId: string): void {
-    // Handle download action
-    console.log('Download clicked for card:', cardId);
+    // Find the card by ID and show export modal
+    const card = this.cards.find(c => c.id === cardId);
+    if (card) {
+      this.selectedCardForExport = card;
+      this.showExportModal = true;
+    }
+  }
+
+  onCloseExportModal(): void {
+    this.showExportModal = false;
+    this.selectedCardForExport = null;
+  }
+
+  onExportXLS(): void {
+    // Handle XLS export
+    console.log('Export XLS for card:', this.selectedCardForExport?.id);
+    // Here you would typically trigger the XLS export
+  }
+
+  onExportPDF(): void {
+    // Handle PDF export
+    console.log('Export PDF for card:', this.selectedCardForExport?.id);
+    // Here you would typically trigger the PDF export
   }
   
   onMoreOptions(cardId: string): void {

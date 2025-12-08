@@ -103,5 +103,13 @@
     (close)="onCloseModal()"
     (sendMessage)="onSendMessage($event)">
   </app-ask-marketsense-modal>
+
+  <!-- Export Modal -->
+  <app-export-modal
+    [isVisible]="showExportModal"
+    (close)="onCloseExportModal()"
+    (exportXLS)="onExportXLS()"
+    (exportPDF)="onExportPDF()">
+  </app-export-modal>
 </div>
 
