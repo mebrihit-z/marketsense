@@ -1,7 +1,7 @@
 @use '../../../_variables' as *;
 
 .dashboard-container {
-    min-height: calc(100vh - 70px); // Account for navbar height
+    min-height: calc(100vh - 70px); // Account for header height
     background-color: $bg-white;
     padding: 2rem;
     display: flex;
@@ -19,17 +19,15 @@
 
 .carousel-section {
     width: 100%;
-    padding: 1rem 0;
+
 }
 
 .asset-allocation-section {
     width: 100%;
-    padding: 1rem 0;
 }
 
 .asset-flows-section {
     width: 100%;
-    padding: 1rem 0;
 }
 
 .treemap-section {

@@ -1,6 +1,6 @@
 @use '../../../../_variables' as *;
-.navbar-container{
-    padding: 48px 48px 23px;
+.header-container{
+    padding: 48px 48px 0px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -17,7 +17,7 @@
     letter-spacing: -0.15px;
 }
 // user and settings section
-.navbar-user-settings-date {
+.header-user-settings-date {
     display: flex;
     flex-direction: column;
     justify-content: end;

@@ -56,7 +56,7 @@ body {
   background-color: $bg-white;
 }
 
-// Ensure main content doesn't overlap with sticky navbar
+// Ensure main content doesn't overlap with sticky header
 app-root {
   display: block;
   min-height: 100vh;
