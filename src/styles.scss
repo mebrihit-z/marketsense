@@ -1,6 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 
-@import '_variables';
+@use '_variables' as *;
 
 // CSS Custom Properties (for TypeScript access)
 :root {

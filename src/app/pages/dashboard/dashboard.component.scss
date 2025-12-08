@@ -1,4 +1,4 @@
-@import '../../../_variables';
+@use '../../../_variables' as *;
 
 .dashboard-container {
     min-height: calc(100vh - 70px); // Account for navbar height
