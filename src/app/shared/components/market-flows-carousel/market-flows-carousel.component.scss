@@ -1,3 +1,5 @@
+@use '../../../../_variables' as *;
+
 .featured-market-flows {
   background-color: white;
   display: flex;
@@ -33,7 +35,7 @@
   font-size: 20px;
   line-height: 28px;
   letter-spacing: -0.76px;
-  color: #0A0A0A;
+  color: $text-primary;
   margin: 0;
 }
 
@@ -90,7 +92,7 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 20px;
-  color: #717182;
+  color: $text-secondary;
   white-space: nowrap;
 }
 
@@ -113,7 +115,7 @@
   font-weight: 500;
   font-size: 12px;
   line-height: 16px;
-  color: #0A0A0A;
+  color: $text-primary;
   background-color: white;
   border: none;
   border-right: 1px solid rgba(0, 0, 0, 0.12);
@@ -224,7 +226,7 @@
   svg {
     width: 18px;
     height: 18px;
-    color: #717182;
+    color: $text-secondary;
   }
 }
 

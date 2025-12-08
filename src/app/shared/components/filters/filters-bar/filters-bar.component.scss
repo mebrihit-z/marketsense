@@ -1,3 +1,5 @@
+@use '../../../../../_variables' as *;
+
 .filters-root {
     background: #fff;
     padding: 12px;
@@ -16,7 +18,7 @@
     align-items:center;
     gap:8px;
 
-    color: #717182;
+    color: $text-secondary;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
@@ -39,7 +41,7 @@
     margin-left: 60px;
     margin-top:4px;
 
-    color: #0A0A0A;
+    color: $text-primary;
     font-size: 14px;
     font-weight: 500;
     line-height: 14px; 
@@ -81,7 +83,7 @@
     border:none;  
     cursor:pointer; 
     font-family: Inter;
-    color: #717182;
+    color: $text-secondary;
     font-size: 14px;
     font-style: normal;
     font-weight: 500;

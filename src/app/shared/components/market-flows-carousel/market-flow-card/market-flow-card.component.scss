@@ -1,3 +1,5 @@
+@use '../../../../../_variables' as *;
+
 .card {
   background-color: white;
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -28,7 +30,7 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: -0.31px;
-  color: #0A0A0A;
+  color: $text-primary;
   margin: 0;
   flex: 1;
 }
@@ -48,7 +50,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #717182;
+  color: $text-secondary;
   transition: color 0.2s, background-color 0.2s;
   border-radius: 8px;
 
@@ -216,7 +218,7 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #717182;
+  color: $text-secondary;
 }
 
 // Card Footer
@@ -250,7 +252,7 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #717182;
+  color: $text-secondary;
 }
 
 .ask-btn {
@@ -293,7 +295,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: #717182;
+  color: $text-secondary;
   margin: 0;
 }
 
