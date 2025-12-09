@@ -5,12 +5,11 @@ import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/ma
 import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
-import { TreemapComponent } from '../../shared/components/charts/treemap/treemap.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, TreemapComponent],
+  imports: [CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })

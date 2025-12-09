@@ -163,7 +163,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: labelToIndex[lbl],
         target: poolIndex,
         value: Math.abs(value),
-        color: greenLink || "#6EE7B7" // green
+        color: redLink || "#FCA5A5" // red
       });
     });
 
@@ -180,7 +180,7 @@ export class SankeyDiagramComponent implements AfterViewInit {
         source: poolIndex,
         target: targetIndex,
         value: rebalFlow,
-        color: redLink || "#FCA5A5" // red
+        color: greenLink || "#6EE7B7"
       });
 
       // New Capital → Target
