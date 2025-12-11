@@ -48,11 +48,4 @@
       <input type="checkbox" [(ngModel)]="includeMediumConfidence" />
       <span>Include Medium AI Confidence</span>
     </div>
-  
-    <div class="horizontal-divider" *ngIf="chips?.length"></div>
-    <app-selected-filters-list
-      *ngIf="chips?.length"
-      [chips]="chips"
-      (remove)="removeChip($event)"
-    ></app-selected-filters-list>
 </div>

@@ -1,7 +1,0 @@
-<div class="chip-container" *ngIf="chips?.length">
-    <app-selected-filter-chip
-      *ngFor="let c of chips; trackBy: trackByFn"
-      [label]="c.label"
-      (remove)="onRemove(c)"
-    ></app-selected-filter-chip>
-</div>
