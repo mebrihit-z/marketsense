@@ -44,8 +44,30 @@
         <button class="clear-all" (click)="clearAll()">Clear All Filters</button>
       </div>
     </div>
-    <div class="include-medium-confidence-container">
-      <input type="checkbox" [(ngModel)]="includeMediumConfidence" />
-      <span>Include Medium AI Confidence</span>
+    <div class="ai-confidence-container">
+      <p class="ai-confidence-label">AI Confidence</p>
+      <div class="slider-wrapper">
+        <div class="slider-label">Low</div>
+        <div class="slider-container" #sliderContainer>
+          <div class="slider-track">
+            <div class="slider-dots">
+              <div class="dot" *ngFor="let i of [0,1,2,3,4,5,6,7,8,9,10]"></div>
+            </div>
+            <div class="slider-track-background"></div>
+            <div class="slider-track-active" 
+                 [style.left.px]="getActiveTrackLeft()" 
+                 [style.width.px]="getActiveTrackWidth()"></div>
+          </div>
+          <div class="slider-knob slider-knob-min" 
+               [style.left.px]="getKnobPosition('min')"
+               (mousedown)="startDrag($event, 'min')"
+               (touchstart)="startDrag($event, 'min')"></div>
+          <div class="slider-knob slider-knob-max" 
+               [style.left.px]="getKnobPosition('max')"
+               (mousedown)="startDrag($event, 'max')"
+               (touchstart)="startDrag($event, 'max')"></div>
+        </div>
+        <div class="slider-label">High</div>
+      </div>
     </div>
 </div>
