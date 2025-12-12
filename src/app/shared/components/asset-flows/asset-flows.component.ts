@@ -38,12 +38,7 @@ export interface AssetFlowData {
 })
 export class AssetFlowsComponent implements OnInit {
   // View and filter state
-  dataView: 'cumulative' | 'pointInTime' = 'cumulative';
-  selectedTimeHorizon: string = '+9 mo';
   showProductSubTypes: boolean = false;
-  
-  // Available time horizons
-  timeHorizons = ['-18 mo', '-12 mo', '-6 mo', '-3 mo', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   
   // Flow dimensions (draggable chips)
   flowDimensions: FlowDimension[] = [
@@ -78,16 +73,6 @@ export class AssetFlowsComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Asset Flows component initialized');
-  }
-
-  setDataView(view: 'cumulative' | 'pointInTime'): void {
-    this.dataView = view;
-    console.log('Data view changed to:', view);
-  }
-
-  setTimeHorizon(horizon: string): void {
-    this.selectedTimeHorizon = horizon;
-    console.log('Time horizon changed to:', horizon);
   }
 
   toggleProductSubTypes(): void {

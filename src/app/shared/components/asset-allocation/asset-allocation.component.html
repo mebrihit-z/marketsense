@@ -15,21 +15,15 @@
 
     <!-- Right: Controls -->
     <div class="controls-section">
-      <!-- Time Horizon Selector -->
-      <div class="control-group">
-        <label class="control-label">Time Horizon:</label>
-        <div class="time-horizon-group">
-          <button 
-            *ngFor="let horizon of timeHorizons"
-            class="horizon-btn"
-            [class.active]="selectedTimeHorizon === horizon"
-            (click)="setTimeHorizon(horizon)">
-            {{ horizon }}
-          </button>
-        </div>
-      </div>
-
-      <!-- More Options Button -->
+      <!-- Pin Button -->
+      <button class="more-options-btn" aria-label="More options">
+        <img src="assets/icons/pin-icon.svg" alt="More options">
+      </button>
+      <!-- Download Button -->
+      <button class="more-options-btn" aria-label="More options">
+        <img src="assets/icons/download-icon.svg" alt="More options">
+      </button>
+       <!-- More Options Button -->
       <button class="more-options-btn" aria-label="More options">
         <img src="assets/icons/more-options-icon.svg" alt="More options">
       </button>

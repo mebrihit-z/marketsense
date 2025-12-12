@@ -5,49 +5,20 @@
     <div class="title-container">
       <div class="title-row">
         <h2 class="title">Asset Flows</h2>
-        <button class="streamgraph-btn" (click)="onStreamgraphClick()">
-          <img src="assets/icons/streamgraph-icon.svg" alt="Streamgraph">
-          <span>Streamgraph</span>
-        </button>
       </div>
       <p class="subtitle">Aggregated asset flows across selected categories</p>
     </div>
 
     <!-- Right: Controls -->
     <div class="controls-section">
-      <!-- Data View Toggle -->
-      <div class="control-group">
-        <label class="control-label">Data View:</label>
-        <div class="toggle-group">
-          <button 
-            class="toggle-btn"
-            [class.active]="dataView === 'cumulative'"
-            (click)="setDataView('cumulative')">
-            Cumulative
-          </button>
-          <button 
-            class="toggle-btn"
-            [class.active]="dataView === 'pointInTime'"
-            (click)="setDataView('pointInTime')">
-            Point in Time
-          </button>
-        </div>
-      </div>
-
-      <!-- Time Horizon Selector -->
-      <div class="control-group">
-        <label class="control-label">Time Horizon:</label>
-        <div class="time-horizon-group">
-          <button 
-            *ngFor="let horizon of timeHorizons"
-            class="horizon-btn"
-            [class.active]="selectedTimeHorizon === horizon"
-            (click)="setTimeHorizon(horizon)">
-            {{ horizon }}
-          </button>
-        </div>
-      </div>
-
+      <!-- Pin Button -->
+      <button class="more-options-btn" aria-label="More options">
+        <img src="assets/icons/pin-icon.svg" alt="More options">
+      </button>
+       <!-- Download Button -->
+      <button class="more-options-btn" aria-label="More options">
+        <img src="assets/icons/download-icon.svg" alt="More options">
+      </button>
       <!-- More Options Button -->
       <button class="more-options-btn" aria-label="More options">
         <img src="assets/icons/more-options-icon.svg" alt="More options">

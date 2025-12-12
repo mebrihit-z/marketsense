@@ -84,7 +84,7 @@
 .controls-section {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
 .control-group {
@@ -141,8 +141,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
   background-color: transparent;
   border: none;
   border-radius: 8px;
