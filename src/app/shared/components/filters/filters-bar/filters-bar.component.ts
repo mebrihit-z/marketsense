@@ -14,6 +14,7 @@ export class FiltersBarComponent implements OnInit {
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
+  @Output() productSubTypeChange = new EventEmitter<string[]>();
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
@@ -29,6 +30,8 @@ export class FiltersBarComponent implements OnInit {
     this.state.productSubType = this.productSubTypeOptions.flatMap(group => 
       group.options.map(opt => opt.value)
     );
+    // Emit initial selection
+    this.productSubTypeChange.emit(this.state.productSubType);
   }
 
   // --- sample options (replace with your real data) ---
@@ -103,6 +106,9 @@ export class FiltersBarComponent implements OnInit {
 
   onChange(key: keyof typeof this.state, values: string[]) {
     this.state[key] = values;
+    if (key === 'productSubType') {
+      this.productSubTypeChange.emit(values);
+    }
   }
 
   clearAll() {

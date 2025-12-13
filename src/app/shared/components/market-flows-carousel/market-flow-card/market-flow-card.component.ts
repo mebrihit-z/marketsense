@@ -15,6 +15,7 @@ export interface MarketFlowCard {
   borderColor: string;
   timeHorizon: string;
   dataType: 'historical' | 'forecasted';
+  productSubType?: string;
 }
 
 @Component({

@@ -2,13 +2,14 @@
   <!-- Filters Bar -->
   <app-filters-bar
     (dataTypeChange)="onDataTypeChange($event)"
-    (timeHorizonChange)="onTimeHorizonChange($event)">
+    (timeHorizonChange)="onTimeHorizonChange($event)"
+    (productSubTypeChange)="onProductSubTypeChange($event)">
   </app-filters-bar>
 
   <!-- Featured Market Flows Carousel -->
   <div class="carousel-section">
     <app-featured-market-flows-carousel 
-      [cards]="marketFlowCards"
+      [cards]="filteredMarketFlowCards"
       [dataType]="carouselDataType"
       [selectedTimeHorizon]="carouselTimeHorizon">
     </app-featured-market-flows-carousel>

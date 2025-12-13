@@ -33,8 +33,9 @@
     <div class="nav-buttons">
       <button 
         class="nav-btn prev" 
-        [disabled]="currentSlideIndex === 0"
-        (click)="previousSlide()"
+        [disabled]="currentSlideIndex === 0 || totalSlides === 0"
+        (click)="previousSlide($event)"
+        type="button"
         aria-label="Previous slide">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M11.25 13.5L6.75 9L11.25 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -42,8 +43,9 @@
       </button>
       <button 
         class="nav-btn next" 
-        [disabled]="currentSlideIndex >= totalSlides - 1"
-        (click)="nextSlide()"
+        [disabled]="currentSlideIndex >= totalSlides - 1 || totalSlides === 0"
+        (click)="nextSlide($event)"
+        type="button"
         aria-label="Next slide">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M6.75 4.5L11.25 9L6.75 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

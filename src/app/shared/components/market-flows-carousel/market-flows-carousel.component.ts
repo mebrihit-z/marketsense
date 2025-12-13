@@ -37,21 +37,21 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   }
   
   get filteredCards(): MarketFlowCard[] {
-    // Filter cards based on selected dataType and timeHorizon
-    return this.cards.filter(card => 
-      card.dataType === this.dataType && card.timeHorizon === this.selectedTimeHorizon
-    );
+    // Cards are already filtered by the dashboard component
+    // Just return all cards passed in
+    return this.cards || [];
   }
   
   get totalSlides(): number {
-    return this.showViewMoreCard ? this.filteredCards.length + 1 : this.filteredCards.length;
+    // Calculate number of slides (groups of cardsPerSlide)
+    const totalCards = this.filteredCards.length;
+    if (totalCards === 0) return 0;
+    return Math.ceil(totalCards / this.cardsPerSlide);
   }
   
   get visibleCards(): MarketFlowCard[] {
-    // Calculate the starting index to keep the selected card visible
-    // If we're at card 7 out of 9, we want to show cards 7, 8, 9
-    const maxStartIndex = Math.max(0, this.totalSlides - this.cardsPerSlide);
-    const startIndex = Math.min(this.currentSlideIndex, maxStartIndex);
+    // Calculate the starting index based on current slide (each slide shows cardsPerSlide cards)
+    const startIndex = this.currentSlideIndex * this.cardsPerSlide;
     return this.filteredCards.slice(startIndex, startIndex + this.cardsPerSlide);
   }
   
@@ -69,21 +69,49 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Reset to first slide when dataType or timeHorizon changes
+    // Reset to first slide when dataType or timeHorizon change
     if (changes['dataType'] || changes['selectedTimeHorizon']) {
       this.currentSlideIndex = 0;
     }
+    
+    // Only reset for cards if it's the first time or if the content actually changed
+    if (changes['cards']) {
+      const cardsChange = changes['cards'];
+      const previousCards = cardsChange.previousValue || [];
+      const currentCards = cardsChange.currentValue || [];
+      
+      // Only reset if:
+      // 1. It's the first time cards are set (no previous value)
+      // 2. The length changed
+      // 3. The card IDs are different (content changed)
+      const shouldReset = !cardsChange.previousValue || 
+                         previousCards.length !== currentCards.length ||
+                         (previousCards.length > 0 && currentCards.length > 0 && 
+                          previousCards[0]?.id !== currentCards[0]?.id);
+      
+      if (shouldReset) {
+        this.currentSlideIndex = 0;
+      }
+    }
   }
   
-  previousSlide(): void {
-    if (this.currentSlideIndex > 0) {
+  previousSlide(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (this.currentSlideIndex > 0 && this.totalSlides > 0) {
       this.currentSlideIndex--;
     }
   }
   
-  nextSlide(): void {
-    const maxIndex = this.filteredCards.length - 1;
-    if (this.currentSlideIndex < maxIndex) {
+  nextSlide(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const maxSlideIndex = this.totalSlides - 1;
+    if (this.currentSlideIndex < maxSlideIndex && this.totalSlides > 0) {
       this.currentSlideIndex++;
     }
   }

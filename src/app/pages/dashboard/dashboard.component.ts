@@ -16,6 +16,7 @@ import { AssetAllocationComponent } from '../../shared/components/asset-allocati
 export class DashboardComponent implements OnInit {
   carouselDataType: 'historical' | 'forecasted' = 'historical';
   carouselTimeHorizon: string = '-9 mo';
+  selectedProductSubTypes: string[] = [];
 
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
@@ -559,6 +560,50 @@ export class DashboardComponent implements OnInit {
 
   onTimeHorizonChange(timeHorizon: string): void {
     this.carouselTimeHorizon = timeHorizon;
+  }
+
+  onProductSubTypeChange(productSubTypes: string[]): void {
+    this.selectedProductSubTypes = productSubTypes;
+  }
+
+  get filteredMarketFlowCards(): MarketFlowCard[] {
+    // If no product sub-types selected, return empty array
+    if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
+      return [];
+    }
+
+    // Generate cards dynamically based on selected product sub-types
+    return this.selectedProductSubTypes.map((subType, index) => {
+      // Find a matching card from existing data for the same timeHorizon and dataType, or create a default one
+      const matchingCard = this.marketFlowCards.find(
+        card => card.timeHorizon === this.carouselTimeHorizon && 
+                card.dataType === this.carouselDataType
+      );
+
+      // Use matching card as template, or create default values
+      const baseCard = matchingCard || {
+        id: '',
+        title: '',
+        value: '$0B',
+        valueColor: 'green' as const,
+        percentageChange: '0%',
+        percentageColor: 'green' as const,
+        metricLabel: 'Net Flow',
+        aiConfidence: 'medium' as const,
+        description: '',
+        chartColor: 'green' as const,
+        borderColor: '#00bc7d',
+        timeHorizon: this.carouselTimeHorizon,
+        dataType: this.carouselDataType
+      };
+
+      return {
+        ...baseCard,
+        id: `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-')}-${index}`,
+        title: subType,
+        productSubType: subType
+      };
+    });
   }
 
 }
