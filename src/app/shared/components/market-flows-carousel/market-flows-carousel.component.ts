@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import { ViewMoreCardComponent } from './view-more-card/view-more-card.component';
@@ -15,12 +15,12 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
-export class FeaturedMarketFlowsCarouselComponent {
+export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   @Input() cards: MarketFlowCard[] = [];
   @Input() showViewMoreCard: boolean = true;
+  @Input() dataType: 'historical' | 'forecasted' = 'historical';
+  @Input() selectedTimeHorizon: string = '-9 mo';
   
-  dataType: 'historical' | 'forecasted' = 'historical';
-  selectedTimeHorizon: string = '-9 mo';
   currentSlideIndex: number = 0;
   
   cardsPerSlide = 3;
@@ -33,14 +33,8 @@ export class FeaturedMarketFlowsCarouselComponent {
   
   get headerTitle(): string {
     return this.dataType === 'historical' 
-      ? 'Past Market Flows' 
+      ? 'Featured Market Flows' 
       : 'Featured Market Flows';
-  }
-  
-  get timeHorizons(): string[] {
-    return this.dataType === 'historical' 
-      ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo']
-      : ['+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   }
   
   get filteredCards(): MarketFlowCard[] {
@@ -74,21 +68,12 @@ export class FeaturedMarketFlowsCarouselComponent {
     
     return viewMorePosition >= startIndex && viewMorePosition < endIndex;
   }
-  
-  setDataType(type: 'historical' | 'forecasted'): void {
-    this.dataType = type;
-    // Update the time horizon sign when switching data type
-    const currentValue = this.selectedTimeHorizon.replace(/[+-]/g, '');
-    const newSign = type === 'historical' ? '-' : '+';
-    this.selectedTimeHorizon = `${newSign}${currentValue}`;
-    // Reset to first slide when changing data type
-    this.currentSlideIndex = 0;
-  }
-  
-  setTimeHorizon(horizon: string): void {
-    this.selectedTimeHorizon = horizon;
-    // Reset to first slide when changing time horizon
-    this.currentSlideIndex = 0;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Reset to first slide when dataType or timeHorizon changes
+    if (changes['dataType'] || changes['selectedTimeHorizon']) {
+      this.currentSlideIndex = 0;
+    }
   }
   
   previousSlide(): void {

@@ -42,7 +42,7 @@
     border: 1px solid $border-light;
     border-radius: 8px;
     padding: 8px 13px;
-    margin-left: 60px;
+    margin-left: 75px;
     margin-top: 4px;
     width: fit-content;
 }
@@ -177,5 +177,79 @@
     font-weight: 500;
     line-height: 20px; /* 142.857% */
     letter-spacing: -0.15px;
+}
+
+// Toggles Section
+.toggles-container {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-top: 12px;
+    
+    @media (max-width: 768px) {
+        flex-direction: column;
+        width: 100%;
+        align-items: flex-start;
+    }
+}
+
+.toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    @media (max-width: 768px) {
+        width: 100%;
+    }
+}
+
+.toggle-label {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 20px;
+    color: $text-secondary;
+    white-space: nowrap;
+}
+
+.toggle-buttons {
+    display: flex;
+    border: 1px solid $border-gray;
+    border-radius: 6px;
+    padding: 1px;
+    background-color: $bg-white;
+    overflow: hidden;
+
+    &.time-horizon {
+        @media (max-width: 768px) {
+            flex-wrap: wrap;
+        }
+    }
+}
+
+.toggle-btn {
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    color: $text-primary;
+    background-color: $bg-white;
+    border: none;
+    border-right: 1px solid $border-medium;
+    padding: 11px 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+
+    &:last-child {
+        border-right: none;
+    }
+
+    &:hover:not(&.active) {
+        background-color: $overlay-gray-light;
+    }
+
+    &.active {
+        background-color: $overlay-gray;
+        color: $text-primary-dark;
+    }
 }
 

@@ -14,6 +14,9 @@ import { AssetAllocationComponent } from '../../shared/components/asset-allocati
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
+  carouselDataType: 'historical' | 'forecasted' = 'historical';
+  carouselTimeHorizon: string = '-9 mo';
+
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
     {
@@ -548,6 +551,14 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Dashboard component initialized');
+  }
+
+  onDataTypeChange(dataType: 'historical' | 'forecasted'): void {
+    this.carouselDataType = dataType;
+  }
+
+  onTimeHorizonChange(timeHorizon: string): void {
+    this.carouselTimeHorizon = timeHorizon;
   }
 
 }

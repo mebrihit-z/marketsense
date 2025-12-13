@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, HostListener, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FilterDropdownComponent, FilterOption, GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
@@ -12,11 +12,17 @@ import { FilterDropdownComponent, FilterOption, GroupedFilterOption } from '../f
 })
 export class FiltersBarComponent implements OnInit {
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
+  @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
+  @Output() timeHorizonChange = new EventEmitter<string>();
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
   dragType: 'min' | 'max' | null = null;
   sliderTrackWidth = 142; // Width of the slider track in pixels
+  
+  // Toggle state
+  dataType: 'historical' | 'forecasted' = 'historical';
+  selectedTimeHorizon: string = '-9 mo';
 
   ngOnInit() {
     // Initialize product sub-types with all options selected by default
@@ -154,5 +160,27 @@ export class FiltersBarComponent implements OnInit {
     } else {
       this.aiConfidenceRange.max = Math.max(percentage, this.aiConfidenceRange.min + 1);
     }
+  }
+
+  // Toggle methods
+  get timeHorizons(): string[] {
+    return this.dataType === 'historical' 
+      ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo', 'Today']
+      : ['Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
+  }
+
+  setDataType(type: 'historical' | 'forecasted'): void {
+    this.dataType = type;
+    // Update the time horizon sign when switching data type
+    const currentValue = this.selectedTimeHorizon.replace(/[+-]/g, '');
+    const newSign = type === 'historical' ? '-' : '+';
+    this.selectedTimeHorizon = `${newSign}${currentValue}`;
+    this.dataTypeChange.emit(type);
+    this.timeHorizonChange.emit(this.selectedTimeHorizon);
+  }
+
+  setTimeHorizon(horizon: string): void {
+    this.selectedTimeHorizon = horizon;
+    this.timeHorizonChange.emit(horizon);
   }
 }

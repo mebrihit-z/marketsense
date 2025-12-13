@@ -3,46 +3,7 @@
   <div class="header-container">
     <div class="title-section">
       <h2 class="title">{{ headerTitle }}</h2>
-      <button class="view-all-btn" (click)="onViewAll()">
-        <span class="view-all-text">View All</span>
-        <img src="assets/icons/arrow-right-icon.svg" alt="Arrow Right" class="arrow-icon">
-      </button>
-    </div>
-
-    <!-- Toggles Section -->
-    <div class="toggles-container">
-      <!-- Data Type Toggle -->
-      <div class="toggle-group">
-        <label class="toggle-label">Data Type:</label>
-        <div class="toggle-buttons">
-          <button 
-            class="toggle-btn" 
-            [class.active]="dataType === 'historical'"
-            (click)="setDataType('historical')">
-            Historical
-          </button>
-          <button 
-            class="toggle-btn" 
-            [class.active]="dataType === 'forecasted'"
-            (click)="setDataType('forecasted')">
-            Forecasted
-          </button>
-        </div>
-      </div>
-
-      <!-- Time Horizon Toggle -->
-      <div class="toggle-group">
-        <label class="toggle-label">Time Horizon:</label>
-        <div class="toggle-buttons time-horizon">
-          <button 
-            *ngFor="let horizon of timeHorizons"
-            class="toggle-btn" 
-            [class.active]="selectedTimeHorizon === horizon"
-            (click)="setTimeHorizon(horizon)">
-            {{ horizon }}
-          </button>
-        </div>
-      </div>
+     
     </div>
   </div>
 
