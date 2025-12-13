@@ -92,17 +92,38 @@
         </div>
       </div>
 
-      <!-- Time Horizon Toggle -->
-      <div class="toggle-group">
+      <!-- Time Horizon Range Slider -->
+      <div class="time-horizon-container">
         <label class="toggle-label">Time Horizon:</label>
-        <div class="toggle-buttons time-horizon">
-          <button 
-            *ngFor="let horizon of timeHorizons"
-            class="toggle-btn" 
-            [class.active]="selectedTimeHorizon === horizon"
-            (click)="setTimeHorizon(horizon)">
-            {{ horizon }}
-          </button>
+        <div class="time-horizon-slider-wrapper">
+          <div class="time-horizon-slider-container" #timeHorizonSliderContainer>
+            <div class="time-horizon-slider-track">
+              <div class="time-horizon-dots">
+                <div class="dot" *ngFor="let horizon of timeHorizons; let i = index" 
+                     [style.left.%]="(i / (timeHorizons.length - 1)) * 100"></div>
+              </div>
+              <div class="time-horizon-track-background"></div>
+              <div class="time-horizon-track-active" 
+                   [style.left.px]="getTimeHorizonActiveTrackLeft()" 
+                   [style.width.px]="getTimeHorizonActiveTrackWidth()"></div>
+            </div>
+            <div class="time-horizon-handle time-horizon-handle-start" 
+                 [style.left.px]="getTimeHorizonHandlePosition('start')"
+                 (mousedown)="startTimeHorizonDrag($event, 'start')"
+                 (touchstart)="startTimeHorizonDrag($event, 'start')"></div>
+            <div class="time-horizon-handle time-horizon-handle-end" 
+                 [style.left.px]="getTimeHorizonHandlePosition('end')"
+                 (mousedown)="startTimeHorizonDrag($event, 'end')"
+                 (touchstart)="startTimeHorizonDrag($event, 'end')"></div>
+          </div>
+          <div class="time-horizon-labels">
+            <span class="time-horizon-label" 
+                  *ngFor="let horizon of timeHorizons; let i = index"
+                  [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
+                  [style.transform]="'translateX(-50%)'">
+              {{ horizon }}
+            </span>
+          </div>
         </div>
       </div>
     </div>

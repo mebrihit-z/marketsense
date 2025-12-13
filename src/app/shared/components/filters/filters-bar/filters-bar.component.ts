@@ -12,6 +12,7 @@ import { FilterDropdownComponent, FilterOption, GroupedFilterOption } from '../f
 })
 export class FiltersBarComponent implements OnInit {
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
+  @ViewChild('timeHorizonSliderContainer', { static: false }) timeHorizonSliderContainer!: ElementRef<HTMLElement>;
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
   @Output() productSubTypeChange = new EventEmitter<string[]>();
@@ -20,6 +21,12 @@ export class FiltersBarComponent implements OnInit {
   isDragging = false;
   dragType: 'min' | 'max' | null = null;
   sliderTrackWidth = 142; // Width of the slider track in pixels
+  
+  // Time Horizon range slider state
+  timeHorizonRange = { startIndex: 0, endIndex: 1 }; // Default: Today to +3mo for forecasted
+  isTimeHorizonDragging = false;
+  timeHorizonDragType: 'start' | 'end' | null = null;
+  timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
   
   // Toggle state
   dataType: 'historical' | 'forecasted' = 'historical';
@@ -32,6 +39,22 @@ export class FiltersBarComponent implements OnInit {
     );
     // Emit initial selection
     this.productSubTypeChange.emit(this.state.productSubType);
+    
+    // Initialize time horizon range based on selectedTimeHorizon
+    this.initializeTimeHorizonRange();
+  }
+
+  private initializeTimeHorizonRange(): void {
+    const horizons = this.timeHorizons;
+    const selectedIndex = horizons.indexOf(this.selectedTimeHorizon);
+    if (selectedIndex >= 0) {
+      // Set range from start (Today/First option) to selected index
+      this.timeHorizonRange = { startIndex: 0, endIndex: selectedIndex || 1 };
+    } else {
+      // Default: Today to first option (+3mo for forecasted)
+      this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
+      this.updateSelectedTimeHorizon();
+    }
   }
 
   // --- sample options (replace with your real data) ---
@@ -129,6 +152,9 @@ export class FiltersBarComponent implements OnInit {
     if (this.isDragging) {
       this.handleDrag(event);
     }
+    if (this.isTimeHorizonDragging) {
+      this.handleTimeHorizonDrag(event);
+    }
   }
 
   @HostListener('document:mouseup')
@@ -136,6 +162,10 @@ export class FiltersBarComponent implements OnInit {
   stopDrag() {
     this.isDragging = false;
     this.dragType = null;
+    if (this.isTimeHorizonDragging) {
+      this.isTimeHorizonDragging = false;
+      this.timeHorizonDragType = null;
+    }
   }
 
   getKnobPosition(type: 'min' | 'max'): number {
@@ -168,7 +198,7 @@ export class FiltersBarComponent implements OnInit {
     }
   }
 
-  // Toggle methods
+  // Time Horizon methods
   get timeHorizons(): string[] {
     return this.dataType === 'historical' 
       ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo', 'Today']
@@ -177,16 +207,65 @@ export class FiltersBarComponent implements OnInit {
 
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
-    // Update the time horizon sign when switching data type
-    const currentValue = this.selectedTimeHorizon.replace(/[+-]/g, '');
-    const newSign = type === 'historical' ? '-' : '+';
-    this.selectedTimeHorizon = `${newSign}${currentValue}`;
+    // Reset time horizon range to default (Today to first option)
+    this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
+    this.updateSelectedTimeHorizon();
     this.dataTypeChange.emit(type);
-    this.timeHorizonChange.emit(this.selectedTimeHorizon);
   }
 
-  setTimeHorizon(horizon: string): void {
-    this.selectedTimeHorizon = horizon;
-    this.timeHorizonChange.emit(horizon);
+  private updateSelectedTimeHorizon(): void {
+    // Emit the end value (right handle) as the selected time horizon
+    const endHorizon = this.timeHorizons[this.timeHorizonRange.endIndex];
+    this.selectedTimeHorizon = endHorizon;
+    this.timeHorizonChange.emit(endHorizon);
+  }
+
+  startTimeHorizonDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end') {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isTimeHorizonDragging = true;
+    this.timeHorizonDragType = type;
+    this.handleTimeHorizonDrag(event);
+  }
+
+  private handleTimeHorizonDrag(event: MouseEvent | TouchEvent) {
+    if (!this.timeHorizonDragType || !this.timeHorizonSliderContainer) return;
+
+    const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+    const x = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / this.timeHorizonSliderTrackWidth) * 100));
+    
+    // Calculate which index this percentage corresponds to
+    const numSteps = this.timeHorizons.length - 1;
+    const stepIndex = Math.round((percentage / 100) * numSteps);
+    const clampedIndex = Math.max(0, Math.min(numSteps, stepIndex));
+
+    if (this.timeHorizonDragType === 'start') {
+      // Ensure start is not greater than end
+      this.timeHorizonRange.startIndex = Math.min(clampedIndex, this.timeHorizonRange.endIndex);
+    } else {
+      // Ensure end is not less than start
+      this.timeHorizonRange.endIndex = Math.max(clampedIndex, this.timeHorizonRange.startIndex);
+    }
+    
+    this.updateSelectedTimeHorizon();
+  }
+
+  getTimeHorizonHandlePosition(type: 'start' | 'end'): number {
+    const index = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
+    const numSteps = this.timeHorizons.length - 1;
+    return (index / numSteps) * this.timeHorizonSliderTrackWidth;
+  }
+
+  getTimeHorizonActiveTrackLeft(): number {
+    const numSteps = this.timeHorizons.length - 1;
+    return (this.timeHorizonRange.startIndex / numSteps) * this.timeHorizonSliderTrackWidth;
+  }
+
+  getTimeHorizonActiveTrackWidth(): number {
+    const numSteps = this.timeHorizons.length - 1;
+    const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
+    return (range / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 }

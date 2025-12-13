@@ -253,3 +253,104 @@
     }
 }
 
+// Time Horizon Range Slider
+.time-horizon-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-horizon-slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 400px;
+}
+
+.time-horizon-slider-container {
+    position: relative;
+    width: 400px;
+    height: 20px;
+}
+
+.time-horizon-slider-track {
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 400px;
+    height: 2px;
+}
+
+.time-horizon-dots {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 400px;
+    height: 2px;
+    pointer-events: none;
+}
+
+.time-horizon-dots .dot {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: $primary-blue;
+    border-radius: 2px;
+    top: 0;
+    transform: translateX(-50%);
+}
+
+.time-horizon-track-background {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 400px;
+    height: 2px;
+    background: rgba(11, 65, 173, 0.4); // Light blue track (matching image)
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.time-horizon-track-active {
+    position: absolute;
+    top: 0;
+    height: 2px;
+    background: $primary-blue; // Darker blue active segment
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.time-horizon-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: $primary-blue; // Dark blue handle
+    border-radius: 50%;
+    cursor: grab;
+    transform: translateX(-50%);
+    top: 2px;
+    z-index: 2;
+    user-select: none;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+    
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+.time-horizon-labels {
+    position: relative;
+    width: 400px;
+    height: 20px;
+    margin-top: 4px;
+}
+
+.time-horizon-label {
+    position: absolute;
+    font-size: 12px;
+    font-weight: 400;
+    color: $text-secondary;
+    white-space: nowrap;
+    top: 0;
+}
+

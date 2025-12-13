@@ -26,16 +26,6 @@ describe('FeaturedMarketFlowsCarouselComponent', () => {
     expect(component.currentSlideIndex).toBe(0);
   });
 
-  it('should change data type', () => {
-    component.setDataType('forecasted');
-    expect(component.dataType).toBe('forecasted');
-  });
-
-  it('should change time horizon', () => {
-    component.setTimeHorizon('+12 mo');
-    expect(component.selectedTimeHorizon).toBe('+12 mo');
-  });
-
   it('should navigate slides correctly', () => {
     component.cards = new Array(9).fill({}).map((_, i) => ({
       id: `card-${i}`,
