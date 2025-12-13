@@ -16,6 +16,7 @@ export class FiltersBarComponent implements OnInit {
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
   @Output() productSubTypeChange = new EventEmitter<string[]>();
+  @Output() productTypeChange = new EventEmitter<string[]>();
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
@@ -133,6 +134,9 @@ export class FiltersBarComponent implements OnInit {
     this.state[key] = values;
     if (key === 'productSubType') {
       this.productSubTypeChange.emit(values);
+    }
+    if (key === 'productType') {
+      this.productTypeChange.emit(values);
     }
   }
 

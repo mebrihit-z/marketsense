@@ -17,6 +17,7 @@ export class DashboardComponent implements OnInit {
   carouselDataType: 'historical' | 'forecasted' = 'historical';
   carouselTimeHorizon: string = '-9 mo';
   selectedProductSubTypes: string[] = [];
+  selectedProductTypes: string[] = [];
 
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
@@ -564,6 +565,10 @@ export class DashboardComponent implements OnInit {
 
   onProductSubTypeChange(productSubTypes: string[]): void {
     this.selectedProductSubTypes = productSubTypes;
+  }
+
+  onProductTypeChange(productTypes: string[]): void {
+    this.selectedProductTypes = productTypes;
   }
 
   get filteredMarketFlowCards(): MarketFlowCard[] {

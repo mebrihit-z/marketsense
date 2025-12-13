@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SankeyDiagramComponent } from '../charts/sankey-diagram/sankey-diagram.component';
 
@@ -36,16 +36,15 @@ export interface AssetFlowData {
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })
-export class AssetFlowsComponent implements OnInit {
+export class AssetFlowsComponent implements OnInit, OnChanges {
+  @Input() selectedProductTypes: string[] = [];
+  
   // View and filter state
   showProductSubTypes: boolean = false;
   
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
-    { id: 'product-type', label: 'Product Type', count: 4, active: true },
-    { id: 'investor-region', label: 'Investor Region', count: 2, active: true },
-    { id: 'investors', label: 'Investors', count: 0, active: true },
-    { id: 'product-region', label: 'Product Region', count: 3, active: true }
+    { id: 'product-type', label: 'Product Type', count: 0, active: true }
   ];
 
   // Selected dimensions for drop zones
@@ -80,6 +79,20 @@ export class AssetFlowsComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Asset Flows component initialized');
+    this.updateProductTypeDimension();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedProductTypes']) {
+      this.updateProductTypeDimension();
+    }
+  }
+
+  private updateProductTypeDimension(): void {
+    const productTypeDimension = this.availableDimensions.find(d => d.id === 'product-type');
+    if (productTypeDimension) {
+      productTypeDimension.count = this.selectedProductTypes.length;
+    }
   }
 
   toggleProductSubTypes(): void {

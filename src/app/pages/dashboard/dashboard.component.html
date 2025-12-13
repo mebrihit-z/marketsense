@@ -3,7 +3,8 @@
   <app-filters-bar
     (dataTypeChange)="onDataTypeChange($event)"
     (timeHorizonChange)="onTimeHorizonChange($event)"
-    (productSubTypeChange)="onProductSubTypeChange($event)">
+    (productSubTypeChange)="onProductSubTypeChange($event)"
+    (productTypeChange)="onProductTypeChange($event)">
   </app-filters-bar>
 
   <!-- Featured Market Flows Carousel -->
@@ -16,7 +17,7 @@
   </div>
   <!-- Asset Flows Section -->
   <div class="asset-flows-section">
-    <app-asset-flows></app-asset-flows>
+    <app-asset-flows [selectedProductTypes]="selectedProductTypes"></app-asset-flows>
   </div>
   <!-- Asset Allocation Section -->
   <div class="asset-allocation-section">
