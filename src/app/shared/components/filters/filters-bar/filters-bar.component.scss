@@ -257,13 +257,12 @@
 .time-horizon-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 24px;
 }
 
 .time-horizon-slider-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 8px;
     width: 400px;
 }
 
@@ -342,7 +341,6 @@
     position: relative;
     width: 400px;
     height: 20px;
-    margin-top: 4px;
 }
 
 .time-horizon-label {
