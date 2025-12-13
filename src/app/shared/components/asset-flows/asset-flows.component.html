@@ -28,32 +28,98 @@
 
   <!-- Flow Dimensions & Toggle Section -->
   <div class="dimensions-section">
-    <!-- Flow Dimensions -->
-    <div class="dimensions-container">
-      <p class="dimensions-label">Flow Dimensions (Drag to reorder)</p>
-      <div class="dimensions-chips">
-        <div 
-          *ngFor="let dimension of flowDimensions" 
-          class="dimension-chip"
-          [class.active]="dimension.active">
-          <img src="assets/icons/nimbus-drag-dots.svg" alt="Drag" class="drag-icon">
-          <span class="chip-text">
-            {{ dimension.label }} 
-            <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>
-            <ng-container *ngIf="dimension.count === 0">(All Types)</ng-container>
-          </span>
+    <!-- Flow Dimensions Section -->
+    <div class="flow-dimensions-section">
+      <h3 class="flow-dimensions-title">Flow Dimensions</h3>
+      <p class="flow-dimensions-instruction">
+        Sankey diagram requires two matching dimension levels. Drag and drop available dimensions for the left and right nodes of the diagram.
+      </p>
+      
+      <!-- Available Dimensions -->
+      <div class="available-dimensions-container">
+        <span class="available-dimensions-label">Available Dimensions</span>
+        <div class="available-dimensions-list">
+          <div 
+            *ngFor="let dimension of availableDimensions" 
+            class="available-dimension-chip"
+            [draggable]="true"
+            (dragstart)="onDimensionDragStart($event, dimension)">
+            <svg class="grid-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 2H6V6H2V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 2H14V6H10V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 10H6V14H2V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 10H14V14H10V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="dimension-chip-text">
+              {{ dimension.label }}
+              <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dimension Drop Zones -->
+      <div class="dimension-drop-zones">
+        <div class="drop-zone-container">
+          <label class="drop-zone-label">Dimension 1 (From)</label>
+          <div 
+            class="drop-zone"
+            [class.has-dimension]="selectedDimension1"
+            (dragover)="onDragOver($event)"
+            (drop)="onDrop($event, 'dimension1')"
+            (dragleave)="onDragLeave($event)">
+            <span *ngIf="!selectedDimension1" class="drop-zone-placeholder">Drop Dimension Here</span>
+            <div *ngIf="selectedDimension1" class="selected-dimension">
+              <svg class="grid-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 2H6V6H2V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 2H14V6H10V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 10H6V14H2V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 10H14V14H10V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="dimension-chip-text">
+                {{ selectedDimension1.label }}
+                <ng-container *ngIf="selectedDimension1.count > 0">({{ selectedDimension1.count }})</ng-container>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="drop-zone-container">
+          <label class="drop-zone-label">Dimension 2 (To)</label>
+          <div 
+            class="drop-zone"
+            [class.has-dimension]="selectedDimension2"
+            (dragover)="onDragOver($event)"
+            (drop)="onDrop($event, 'dimension2')"
+            (dragleave)="onDragLeave($event)">
+            <span *ngIf="!selectedDimension2" class="drop-zone-placeholder">Drop Dimension Here</span>
+            <div *ngIf="selectedDimension2" class="selected-dimension">
+              <svg class="grid-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 2H6V6H2V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 2H14V6H10V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 10H6V14H2V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 10H14V14H10V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="dimension-chip-text">
+                {{ selectedDimension2.label }}
+                <ng-container *ngIf="selectedDimension2.count > 0">({{ selectedDimension2.count }})</ng-container>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Product Sub-Types Toggle -->
-    <div class="toggle-container">
-      <div class="switch-wrapper">
-        <label class="switch">
-          <input type="checkbox" [checked]="showProductSubTypes" (change)="toggleProductSubTypes()">
-          <span class="slider"></span>
-        </label>
-        <span class="toggle-label">Show Product Sub-Types</span>
+    <div class="toggle-section">
+      <div class="toggle-container">
+        <div class="switch-wrapper">
+          <label class="switch">
+            <input type="checkbox" [checked]="showProductSubTypes" (change)="toggleProductSubTypes()">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Show Product Sub-Types</span>
+        </div>
       </div>
     </div>
   </div>
