@@ -51,7 +51,9 @@
         <p class="ai-confidence-label">AI Confidence</p>
         <div class="slider-wrapper">
           <div class="slider-label">Low</div>
-          <div class="slider-container" #sliderContainer>
+          <div class="slider-container" #sliderContainer
+               (click)="onAIConfidenceTrackClick($event)"
+               (touchend)="onAIConfidenceTrackClick($event)">
             <div class="slider-track">
               <div class="slider-dots">
                 <div class="dot" *ngFor="let i of [0,1,2,3,4,5,6,7,8,9,10]"></div>
@@ -64,11 +66,13 @@
             <div class="slider-knob slider-knob-min" 
                  [style.left.px]="getKnobPosition('min')"
                  (mousedown)="startDrag($event, 'min')"
-                 (touchstart)="startDrag($event, 'min')"></div>
+                 (touchstart)="startDrag($event, 'min')"
+                 (click)="$event.stopPropagation()"></div>
             <div class="slider-knob slider-knob-max" 
                  [style.left.px]="getKnobPosition('max')"
                  (mousedown)="startDrag($event, 'max')"
-                 (touchstart)="startDrag($event, 'max')"></div>
+                 (touchstart)="startDrag($event, 'max')"
+                 (click)="$event.stopPropagation()"></div>
           </div>
           <div class="slider-label">High</div>
         </div>
@@ -96,7 +100,9 @@
       <div class="time-horizon-container">
         <label class="toggle-label">Time Horizon:</label>
         <div class="time-horizon-slider-wrapper">
-          <div class="time-horizon-slider-container" #timeHorizonSliderContainer>
+          <div class="time-horizon-slider-container" #timeHorizonSliderContainer
+               (click)="onTimeHorizonTrackClick($event)"
+               (touchend)="onTimeHorizonTrackClick($event)">
             <div class="time-horizon-slider-track">
               <div class="time-horizon-dots">
                 <div class="dot" *ngFor="let horizon of timeHorizons; let i = index" 
@@ -110,11 +116,13 @@
             <div class="time-horizon-handle time-horizon-handle-start" 
                  [style.left.px]="getTimeHorizonHandlePosition('start')"
                  (mousedown)="startTimeHorizonDrag($event, 'start')"
-                 (touchstart)="startTimeHorizonDrag($event, 'start')"></div>
+                 (touchstart)="startTimeHorizonDrag($event, 'start')"
+                 (click)="$event.stopPropagation()"></div>
             <div class="time-horizon-handle time-horizon-handle-end" 
                  [style.left.px]="getTimeHorizonHandlePosition('end')"
                  (mousedown)="startTimeHorizonDrag($event, 'end')"
-                 (touchstart)="startTimeHorizonDrag($event, 'end')"></div>
+                 (touchstart)="startTimeHorizonDrag($event, 'end')"
+                 (click)="$event.stopPropagation()"></div>
           </div>
           <div class="time-horizon-labels">
             <span class="time-horizon-label" 

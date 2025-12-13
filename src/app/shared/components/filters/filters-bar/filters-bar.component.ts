@@ -20,12 +20,14 @@ export class FiltersBarComponent implements OnInit {
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
   dragType: 'min' | 'max' | null = null;
+  hasDragged = false; // Track if user actually dragged vs just clicked
   sliderTrackWidth = 142; // Width of the slider track in pixels
   
   // Time Horizon range slider state
   timeHorizonRange = { startIndex: 0, endIndex: 1 }; // Default: Today to +3mo for forecasted
   isTimeHorizonDragging = false;
   timeHorizonDragType: 'start' | 'end' | null = null;
+  timeHorizonHasDragged = false; // Track if user actually dragged vs just clicked
   timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
   
   // Toggle state
@@ -141,7 +143,9 @@ export class FiltersBarComponent implements OnInit {
 
   startDrag(event: MouseEvent | TouchEvent, type: 'min' | 'max') {
     event.preventDefault();
+    event.stopPropagation();
     this.isDragging = true;
+    this.hasDragged = false;
     this.dragType = type;
     this.handleDrag(event);
   }
@@ -162,9 +166,17 @@ export class FiltersBarComponent implements OnInit {
   stopDrag() {
     this.isDragging = false;
     this.dragType = null;
+    // Reset drag flag after a brief delay to allow click handler to check it
+    setTimeout(() => {
+      this.hasDragged = false;
+    }, 100);
     if (this.isTimeHorizonDragging) {
       this.isTimeHorizonDragging = false;
       this.timeHorizonDragType = null;
+      // Reset drag flag after a brief delay to allow click handler to check it
+      setTimeout(() => {
+        this.timeHorizonHasDragged = false;
+      }, 100);
     }
   }
 
@@ -196,6 +208,42 @@ export class FiltersBarComponent implements OnInit {
     } else {
       this.aiConfidenceRange.max = Math.max(percentage, this.aiConfidenceRange.min + 1);
     }
+    
+    this.hasDragged = true;
+  }
+
+  onAIConfidenceTrackClick(event: MouseEvent | TouchEvent) {
+    // Don't handle clicks if user was dragging
+    if (this.hasDragged || this.isDragging) {
+      return;
+    }
+    
+    event.stopPropagation();
+    if (!this.sliderContainer) return;
+
+    const rect = this.sliderContainer.nativeElement.getBoundingClientRect();
+    let clientX: number;
+    if ('touches' in event || 'changedTouches' in event) {
+      const touchEvent = event as TouchEvent;
+      clientX = touchEvent.changedTouches?.[0]?.clientX || touchEvent.touches?.[0]?.clientX || 0;
+    } else {
+      clientX = (event as MouseEvent).clientX;
+    }
+    const x = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / this.sliderTrackWidth) * 100));
+    
+    // Determine which knob is closer to the click position
+    const minDistance = Math.abs(percentage - this.aiConfidenceRange.min);
+    const maxDistance = Math.abs(percentage - this.aiConfidenceRange.max);
+    
+    // Move the closer knob, or min knob if equidistant
+    if (minDistance <= maxDistance) {
+      // Move min knob, but ensure it doesn't go past max
+      this.aiConfidenceRange.min = Math.min(percentage, this.aiConfidenceRange.max - 1);
+    } else {
+      // Move max knob, but ensure it doesn't go before min
+      this.aiConfidenceRange.max = Math.max(percentage, this.aiConfidenceRange.min + 1);
+    }
   }
 
   // Time Horizon methods
@@ -224,8 +272,50 @@ export class FiltersBarComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
     this.isTimeHorizonDragging = true;
+    this.timeHorizonHasDragged = false;
     this.timeHorizonDragType = type;
     this.handleTimeHorizonDrag(event);
+  }
+
+  onTimeHorizonTrackClick(event: MouseEvent | TouchEvent) {
+    // Don't handle clicks if user was dragging
+    if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
+      return;
+    }
+    
+    event.stopPropagation();
+    if (!this.timeHorizonSliderContainer) return;
+
+    const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+    let clientX: number;
+    if ('touches' in event || 'changedTouches' in event) {
+      const touchEvent = event as TouchEvent;
+      clientX = touchEvent.changedTouches?.[0]?.clientX || touchEvent.touches?.[0]?.clientX || 0;
+    } else {
+      clientX = (event as MouseEvent).clientX;
+    }
+    const x = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / this.timeHorizonSliderTrackWidth) * 100));
+    
+    // Calculate which index this percentage corresponds to
+    const numSteps = this.timeHorizons.length - 1;
+    const stepIndex = Math.round((percentage / 100) * numSteps);
+    const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
+    
+    // Determine which handle is closer to the click position
+    const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
+    const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
+    
+    // Move the closer handle, or start handle if equidistant
+    if (startDistance <= endDistance) {
+      // Move start handle, but ensure it doesn't go past end
+      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex);
+    } else {
+      // Move end handle, but ensure it doesn't go before start
+      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex);
+    }
+    
+    this.updateSelectedTimeHorizon();
   }
 
   private handleTimeHorizonDrag(event: MouseEvent | TouchEvent) {
@@ -249,6 +339,7 @@ export class FiltersBarComponent implements OnInit {
       this.timeHorizonRange.endIndex = Math.max(clampedIndex, this.timeHorizonRange.startIndex);
     }
     
+    this.timeHorizonHasDragged = true;
     this.updateSelectedTimeHorizon();
   }
 
