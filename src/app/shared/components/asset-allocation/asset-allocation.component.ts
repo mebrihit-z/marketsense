@@ -184,6 +184,15 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     }
   }
 
+  removeDimension(dropZone: 'dimension1' | 'dimension2'): void {
+    if (dropZone === 'dimension1') {
+      this.selectedDimension1 = null;
+    } else {
+      this.selectedDimension2 = null;
+    }
+    console.log('Dimension removed from:', dropZone);
+  }
+
   setTimeHorizon(horizon: string): void {
     this.selectedTimeHorizon = horizon;
     console.log('Time horizon changed to:', horizon);

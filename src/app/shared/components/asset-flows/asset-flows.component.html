@@ -70,6 +70,12 @@
                 {{ selectedDimension1.label }}
                 <ng-container *ngIf="selectedDimension1.count > 0">({{ selectedDimension1.count }})</ng-container>
               </span>
+              <!-- Remove Dimension Button -->
+              <img 
+                src="assets/icons/remove-icon.svg" 
+                alt="Remove dimension" 
+                class="remove-icon"
+                (click)="removeDimension('dimension1'); $event.stopPropagation()">
             </div>
           </div>
         </div>
@@ -89,6 +95,12 @@
                 {{ selectedDimension2.label }}
                 <ng-container *ngIf="selectedDimension2.count > 0">({{ selectedDimension2.count }})</ng-container>
               </span>
+              <!-- Remove Dimension Button -->
+              <img 
+                src="assets/icons/remove-icon.svg" 
+                alt="Remove dimension" 
+                class="remove-icon"
+                (click)="removeDimension('dimension2'); $event.stopPropagation()">
             </div>
           </div>
         </div>

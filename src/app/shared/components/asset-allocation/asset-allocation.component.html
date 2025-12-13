@@ -32,7 +32,7 @@
     <div class="flow-dimensions-section">
       <h3 class="flow-dimensions-title">Flow Dimensions</h3>
       <p class="flow-dimensions-instruction">
-        Two-level drill-down view across selected categories. Drag and drop available dimensions for the treemap visualization.
+        Treemap diagram requires two matching dimension levels. Drag and drop available dimensions for the left and right nodes of the diagram.
       </p>
       
       <!-- Available Dimensions -->
@@ -56,7 +56,7 @@
       <!-- Dimension Drop Zones -->
       <div class="dimension-drop-zones">
         <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 1 (From)</label>
+          <label class="drop-zone-label">Dimension 1</label>
           <div 
             class="drop-zone"
             [class.has-dimension]="selectedDimension1"
@@ -70,12 +70,18 @@
                 {{ selectedDimension1.label }}
                 <ng-container *ngIf="selectedDimension1.count > 0">({{ selectedDimension1.count }})</ng-container>
               </span>
+              <!-- Remove Dimension Button -->
+              <img 
+                src="assets/icons/remove-icon.svg" 
+                alt="Remove dimension" 
+                class="remove-icon"
+                (click)="removeDimension('dimension1'); $event.stopPropagation()">
             </div>
           </div>
         </div>
 
         <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 2 (To)</label>
+          <label class="drop-zone-label">Dimension 2</label>
           <div 
             class="drop-zone"
             [class.has-dimension]="selectedDimension2"
@@ -89,6 +95,12 @@
                 {{ selectedDimension2.label }}
                 <ng-container *ngIf="selectedDimension2.count > 0">({{ selectedDimension2.count }})</ng-container>
               </span>
+              <!-- Remove Dimension Button -->
+              <img 
+                src="assets/icons/remove-icon.svg" 
+                alt="Remove dimension" 
+                class="remove-icon"
+                (click)="removeDimension('dimension2'); $event.stopPropagation()">
             </div>
           </div>
         </div>
