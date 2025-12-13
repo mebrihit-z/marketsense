@@ -65,12 +65,7 @@
             (dragleave)="onDragLeave($event)">
             <span *ngIf="!selectedDimension1" class="drop-zone-placeholder">Drop Dimension Here</span>
             <div *ngIf="selectedDimension1" class="selected-dimension">
-              <svg class="grid-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 2H6V6H2V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10 2H14V6H10V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M2 10H6V14H2V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10 10H14V14H10V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
               <span class="dimension-chip-text">
                 {{ selectedDimension1.label }}
                 <ng-container *ngIf="selectedDimension1.count > 0">({{ selectedDimension1.count }})</ng-container>
@@ -89,12 +84,7 @@
             (dragleave)="onDragLeave($event)">
             <span *ngIf="!selectedDimension2" class="drop-zone-placeholder">Drop Dimension Here</span>
             <div *ngIf="selectedDimension2" class="selected-dimension">
-              <svg class="grid-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 2H6V6H2V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10 2H14V6H10V2Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M2 10H6V14H2V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10 10H14V14H10V10Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
               <span class="dimension-chip-text">
                 {{ selectedDimension2.label }}
                 <ng-container *ngIf="selectedDimension2.count > 0">({{ selectedDimension2.count }})</ng-container>

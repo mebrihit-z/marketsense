@@ -17,6 +17,7 @@ export class FiltersBarComponent implements OnInit {
   @Output() timeHorizonChange = new EventEmitter<string>();
   @Output() productSubTypeChange = new EventEmitter<string[]>();
   @Output() productTypeChange = new EventEmitter<string[]>();
+  @Output() productRegionChange = new EventEmitter<string[]>();
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
@@ -137,6 +138,9 @@ export class FiltersBarComponent implements OnInit {
     }
     if (key === 'productType') {
       this.productTypeChange.emit(values);
+    }
+    if (key === 'productRegion') {
+      this.productRegionChange.emit(values);
     }
   }
 
