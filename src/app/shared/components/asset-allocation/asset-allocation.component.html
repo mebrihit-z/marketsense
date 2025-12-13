@@ -122,22 +122,12 @@
   </div>
   <!-- Treemap Visualization -->
   <div class="treemap-section">
-    <app-treemap></app-treemap>
+    <app-treemap 
+      [selectedProductRegions]="selectedProductRegions"
+      [selectedProductTypes]="selectedProductTypes">
+    </app-treemap>
   </div>
-  <!-- Legend -->
-  <div class="legend">
-    <div class="legend-item">
-      <div class="legend-color inflow"></div>
-      <span class="legend-text">Inflow</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-color neutral"></div>
-      <span class="legend-text">Neutral</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-color outflow"></div>
-      <span class="legend-text">Outflow</span>
-    </div>
-  </div>
+ 
+ 
 </div>
 

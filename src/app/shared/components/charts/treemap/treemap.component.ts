@@ -1,4 +1,4 @@
-import { Component, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
 import * as d3 from 'd3';
 
 interface TreemapDataNode {
@@ -23,7 +23,10 @@ interface TreemapNode extends d3.HierarchyNode<TreemapDataNode> {
   templateUrl: './treemap.component.html',
   styleUrl: './treemap.component.scss'
 })
-export class TreemapComponent implements AfterViewInit, OnDestroy {
+export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
+  @Input() selectedProductRegions: string[] = [];
+  @Input() selectedProductTypes: string[] = [];
+  
   private resizeObserver?: ResizeObserver;
 
   constructor(private el: ElementRef) {}
@@ -36,6 +39,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedProductRegions'] || changes['selectedProductTypes']) {
+      // Recreate treemap when filters change
+      this.createTreemap();
     }
   }
 
@@ -98,38 +108,84 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
     const regionLabelHeight = 25;
     const regionPadding = 5;
 
-    // Prepare region data
-    const regionsData = [
-      {
-        name: 'United States',
-        children: [
-          { name: 'Equity', value: 285, percentage: 6.8 },
-          { name: 'Fixed Income', value: 215, percentage: 3.5 },
-          { name: 'Private Equ.', value: 95, percentage: 12.5 },
-          { name: 'Real Estate', value: 95, percentage: -7.2 },
-          { name: 'Alternatives', value: 55, percentage: 9.8 }
-        ]
+    // Raw data: Product Region -> Product Type
+    const rawData: { [region: string]: { [productType: string]: { value: number; percentage: number } } } = {
+      'United States': {
+        'Equity': { value: 285, percentage: 6.8 },
+        'Fixed Income': { value: 215, percentage: 3.5 },
+        'Private Markets': { value: 95, percentage: 12.5 },
+        'Real Estate': { value: 95, percentage: -7.2 },
+        'Alternatives': { value: 55, percentage: 9.8 }
       },
-      {
-        name: 'Europe',
-        children: [
-          { name: 'Fixed Income', value: 235, percentage: 4.8 },
-          { name: 'Alternatives', value: 105, percentage: 9.5 },
-          { name: 'Equity', value: 195, percentage: 2.5 },
-          { name: 'Infrastruct.', value: 58, percentage: 7.9 },
-          { name: 'Real Estate', value: 32, percentage: -4.5 }
-        ]
+      'Europe': {
+        'Fixed Income': { value: 235, percentage: 4.8 },
+        'Alternatives': { value: 105, percentage: 9.5 },
+        'Equity': { value: 195, percentage: 2.5 },
+        'Other/Specialized': { value: 58, percentage: 7.9 },
+        'Real Estate': { value: 32, percentage: -4.5 }
       },
-      {
-        name: 'Asia Pacific',
-        children: [
-          { name: 'Equity', value: 198, percentage: -0.8 },
-          { name: 'Fixed Income', value: 168, percentage: 2.2 },
-          { name: 'Alternatives', value: 85, percentage: 6.5 },
-          { name: 'Real Estate', value: 69, percentage: -3.2 }
-        ]
+      'Asia Pacific': {
+        'Equity': { value: 198, percentage: -0.8 },
+        'Fixed Income': { value: 168, percentage: 2.2 },
+        'Alternatives': { value: 85, percentage: 6.5 },
+        'Real Estate': { value: 69, percentage: -3.2 }
+      },
+      'United Kingdom': {
+        'Equity': { value: 145, percentage: 4.2 },
+        'Fixed Income': { value: 125, percentage: 3.1 },
+        'Alternatives': { value: 75, percentage: 8.5 }
+      },
+      'Middle East & Africa': {
+        'Equity': { value: 98, percentage: 2.8 },
+        'Fixed Income': { value: 88, percentage: 2.5 },
+        'Alternatives': { value: 55, percentage: 7.2 }
       }
-    ];
+    };
+
+    // Filter and prepare region data based on selected filters
+    const regionsData: Array<{ name: string; children: Array<{ name: string; value: number; percentage: number }> }> = [];
+    
+    // Get all available regions if none selected, otherwise use selected ones
+    const availableRegions = Object.keys(rawData);
+    const regionsToShow = this.selectedProductRegions.length > 0 
+      ? this.selectedProductRegions.filter(r => availableRegions.includes(r))
+      : availableRegions;
+
+    // Get all available product types if none selected, otherwise use selected ones
+    const allProductTypes = new Set<string>();
+    Object.values(rawData).forEach(regionData => {
+      Object.keys(regionData).forEach(type => allProductTypes.add(type));
+    });
+    const productTypesToShow = this.selectedProductTypes.length > 0
+      ? this.selectedProductTypes.filter(t => allProductTypes.has(t))
+      : Array.from(allProductTypes);
+
+    // Build filtered regions data
+    regionsToShow.forEach(regionName => {
+      const regionData = rawData[regionName];
+      if (!regionData) return;
+
+      const children: Array<{ name: string; value: number; percentage: number }> = [];
+      
+      productTypesToShow.forEach(productType => {
+        const typeData = regionData[productType];
+        if (typeData) {
+          children.push({
+            name: productType,
+            value: typeData.value,
+            percentage: typeData.percentage
+          });
+        }
+      });
+
+      // Only add region if it has children after filtering
+      if (children.length > 0) {
+        regionsData.push({
+          name: regionName,
+          children: children
+        });
+      }
+    });
 
     // Calculate total value and region widths
     const totalValue = regionsData.reduce((sum, region) => 
@@ -149,6 +205,19 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
 
     const g = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Add background rectangle to the group
+    g.append('rect')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', availableWidth)
+      .attr('height', availableHeight + regionLabelHeight)
+      .attr('fill', this.getCssVariable('--green-light', 'rgba(134, 239, 172, 0.61)'))
+      .attr('rx', 0)
+      .attr('ry', 10)
+      .attr('stroke', this.getCssVariable('--border-light', 'rgba(0, 0, 0, 0.10)'))
+      .attr('stroke-width', 1)
+      .style('pointer-events', 'none');
 
     // Create tooltip
     const tooltip = d3.select(element)
@@ -185,11 +254,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
       // Draw region label
       regionGroup.append('text')
         .attr('class', 'region-label')
-        .attr('x', regionWidth / 2)
-        .attr('y', -regionLabelHeight + 5)
-        .attr('text-anchor', 'middle')
+        .attr('x', 8)
+        .attr('y', -5)
+        .attr('text-anchor', 'start')
         .attr('dominant-baseline', 'bottom')
-        .style('font-size', '14px')
+        .style('font-size', '12px')
         .style('font-weight', '600')
         .style('fill', this.getCssVariable('--text-primary', '#030213'))
         .text(regionData.name);
@@ -226,7 +295,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
         .attr('width', d => d.x1 - d.x0)
         .attr('height', d => d.y1 - d.y0)
         .attr('fill', d => this.getColorForPercentage(d.data.percentage))
-        .attr('stroke', d => this.getBorderColorForPercentage(d.data.percentage))
+        .attr('stroke', this.getCssVariable('--bg-white', 'white'))
         .attr('stroke-width', 1.5)
         .style('cursor', 'pointer')
         .on('mouseover', function(event, d) {
@@ -277,7 +346,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
             .attr('x', 6)
             .attr('y', 32)
             .attr('class', 'cell-label-value')
-            .style('font-size', '11px')
+            .style('font-size', '10px')
             .style('font-weight', '500')
             .style('fill', getCssVar('--text-secondary', '#717182'))
             .text(`$${d.data.value}B`);
@@ -287,7 +356,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
             .attr('x', 6)
             .attr('y', 46)
             .attr('class', 'cell-label-percentage')
-            .style('font-size', '11px')
+            .style('font-size', '10px')
             .style('font-weight', '500')
             .style('fill', getCssVar('--text-secondary', '#717182'))
             .text(`${d.data.percentage > 0 ? '+' : ''}${d.data.percentage}%`);
@@ -327,10 +396,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy {
       .attr('transform', (d, i) => `translate(${i * 120}, 0)`);
 
     legendItems.append('rect')
-      .attr('width', 16)
-      .attr('height', 16)
+      .attr('width', 12)
+      .attr('height', 12)
+      .attr('rx', 4)
+      .attr('ry', 4)
       .attr('fill', d => d.color)
-      .attr('stroke', d => d.border)
       .attr('stroke-width', 1.5);
 
     legendItems.append('text')
