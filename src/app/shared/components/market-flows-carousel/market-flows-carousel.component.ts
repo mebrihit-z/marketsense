@@ -1,7 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
-import { ViewMoreCardComponent } from './view-more-card/view-more-card.component';
 import { AskMarketsenseModalComponent } from './ask-marketsense-modal/ask-marketsense-modal.component';
 import { ExportModalComponent } from './export-modal/export-modal.component';
 
@@ -11,7 +10,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 @Component({
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
-  imports: [CommonModule, MarketFlowCardComponent, ViewMoreCardComponent, AskMarketsenseModalComponent, ExportModalComponent],
+  imports: [CommonModule, MarketFlowCardComponent, AskMarketsenseModalComponent, ExportModalComponent],
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
