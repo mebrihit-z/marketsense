@@ -24,14 +24,33 @@ interface TreemapNode extends d3.HierarchyNode<TreemapDataNode> {
   styleUrl: './treemap.component.scss'
 })
 export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
-  @Input() selectedProductRegions: string[] = [];
-  @Input() selectedProductTypes: string[] = [];
+  private _selectedProductRegions: string[] = [];
+  private _selectedProductTypes: string[] = [];
+  
+  @Input() 
+  set selectedProductRegions(value: string[]) {
+    console.log('selectedProductRegions setter called:', value);
+    this._selectedProductRegions = value || [];
+  }
+  get selectedProductRegions(): string[] {
+    return this._selectedProductRegions;
+  }
+  
+  @Input() 
+  set selectedProductTypes(value: string[]) {
+    console.log('selectedProductTypes setter called:', value);
+    this._selectedProductTypes = value || [];
+  }
+  get selectedProductTypes(): string[] {
+    return this._selectedProductTypes;
+  }
   
   private resizeObserver?: ResizeObserver;
 
   constructor(private el: ElementRef) {}
 
   ngAfterViewInit(): void {
+    // Initial creation - inputs should be set by now
     this.createTreemap();
     this.setupResizeObserver();
   }
@@ -44,8 +63,20 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedProductRegions'] || changes['selectedProductTypes']) {
-      // Recreate treemap when filters change
-      this.createTreemap();
+      console.log('Treemap: Filters changed', {
+        selectedProductRegions: this.selectedProductRegions,
+        selectedProductTypes: this.selectedProductTypes,
+        previousRegions: changes['selectedProductRegions']?.previousValue,
+        previousTypes: changes['selectedProductTypes']?.previousValue,
+        currentRegions: changes['selectedProductRegions']?.currentValue,
+        currentTypes: changes['selectedProductTypes']?.currentValue
+      });
+      
+      // Recreate treemap when filters change (only if view is initialized)
+      const container = this.el.nativeElement.querySelector('.treemap-container');
+      if (container) {
+        this.createTreemap();
+      }
     }
   }
 
@@ -97,6 +128,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const element = this.el.nativeElement.querySelector('.treemap-container');
     if (!element) return;
 
+    // Log current input values at the start of createTreemap
+    console.log('=== createTreemap called ===', new Date().toISOString());
+    console.log('selectedProductTypes:', this.selectedProductTypes);
+    console.log('selectedProductTypes type:', typeof this.selectedProductTypes);
+    console.log('selectedProductTypes isArray:', Array.isArray(this.selectedProductTypes));
+    console.log('selectedProductTypes length:', this.selectedProductTypes?.length);
+    console.log('selectedProductRegions:', this.selectedProductRegions);
+    console.log('selectedProductRegions length:', this.selectedProductRegions?.length);
+
     // Clear any existing SVG and tooltip
     d3.select(element).select('svg').remove();
     d3.select(element).select('.treemap-tooltip').remove();
@@ -113,32 +153,52 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       'United States': {
         'Equity': { value: 285, percentage: 6.8 },
         'Fixed Income': { value: 215, percentage: 3.5 },
+        'Alternatives': { value: 215, percentage: 3.5 },
+        'Cash': { value: 45, percentage: 1.2 },
         'Private Markets': { value: 95, percentage: 12.5 },
         'Real Estate': { value: 95, percentage: -7.2 },
-        'Alternatives': { value: 55, percentage: 9.8 }
+        'Other/Specialized': { value: 95, percentage: -7.2 },
+        'Multi-Asset': { value: 75, percentage: 4.5 }
       },
       'Europe': {
+        'Equity': { value: 195, percentage: 2.5 },
         'Fixed Income': { value: 235, percentage: 4.8 },
         'Alternatives': { value: 105, percentage: 9.5 },
-        'Equity': { value: 195, percentage: 2.5 },
+        'Cash': { value: 42, percentage: 1.8 },
+        'Private Markets': { value: 95, percentage: 12.5 },
+        'Real Estate': { value: 32, percentage: -4.5 },
         'Other/Specialized': { value: 58, percentage: 7.9 },
-        'Real Estate': { value: 32, percentage: -4.5 }
+        'Multi-Asset': { value: 68, percentage: 3.9 }
       },
       'Asia Pacific': {
         'Equity': { value: 198, percentage: -0.8 },
         'Fixed Income': { value: 168, percentage: 2.2 },
         'Alternatives': { value: 85, percentage: 6.5 },
-        'Real Estate': { value: 69, percentage: -3.2 }
+        'Cash': { value: 38, percentage: 1.5 },
+        'Private Markets': { value: 95, percentage: 12.5 },
+        'Real Estate': { value: 69, percentage: -3.2 },
+        'Other/Specialized': { value: 95, percentage: -7.2 },
+        'Multi-Asset': { value: 52, percentage: 3.2 }
       },
       'United Kingdom': {
         'Equity': { value: 145, percentage: 4.2 },
         'Fixed Income': { value: 125, percentage: 3.1 },
-        'Alternatives': { value: 75, percentage: 8.5 }
+        'Alternatives': { value: 75, percentage: 8.5 },
+        'Cash': { value: 35, percentage: 1.1 },
+        'Private Markets': { value: 95, percentage: 12.5 },
+        'Real Estate': { value: 69, percentage: -3.2 },
+        'Other/Specialized': { value: 95, percentage: -7.2 },
+        'Multi-Asset': { value: 48, percentage: 2.8 }
       },
       'Middle East & Africa': {
         'Equity': { value: 98, percentage: 2.8 },
         'Fixed Income': { value: 88, percentage: 2.5 },
-        'Alternatives': { value: 55, percentage: 7.2 }
+        'Alternatives': { value: 55, percentage: 7.2 },
+        'Cash': { value: 28, percentage: 0.9 },
+        'Private Markets': { value: 95, percentage: 12.5 },
+        'Real Estate': { value: 69, percentage: -3.2 },
+        'Other/Specialized': { value: 95, percentage: -7.2 },
+        'Multi-Asset': { value: 38, percentage: 2.1 },
       }
     };
 
@@ -156,11 +216,65 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     Object.values(rawData).forEach(regionData => {
       Object.keys(regionData).forEach(type => allProductTypes.add(type));
     });
-    const productTypesToShow = this.selectedProductTypes.length > 0
-      ? this.selectedProductTypes.filter(t => allProductTypes.has(t))
-      : Array.from(allProductTypes);
+    
+    // Filter selected product types to only include those that exist in the data
+    // If selectedProductTypes is empty, null, or undefined, show all types
+    const hasSelectedTypes = Array.isArray(this.selectedProductTypes) && this.selectedProductTypes.length > 0;
+    let productTypesToShow: string[] = [];
+    
+    console.log('Filtering product types:', {
+      selectedProductTypes: this.selectedProductTypes,
+      isArray: Array.isArray(this.selectedProductTypes),
+      length: this.selectedProductTypes?.length,
+      hasSelectedTypes,
+      allProductTypes: Array.from(allProductTypes)
+    });
+    
+    if (hasSelectedTypes) {
+      // Filter to only include types that exist in the data
+      productTypesToShow = this.selectedProductTypes
+        .map(t => t?.trim())
+        .filter(t => {
+          if (!t) return false;
+          const exists = allProductTypes.has(t);
+          if (!exists) {
+            console.warn(`Product type "${t}" not found in treemap data. Available types:`, Array.from(allProductTypes));
+          }
+          return exists;
+        });
+      
+      console.log('After filtering:', {
+        originalCount: this.selectedProductTypes.length,
+        filteredCount: productTypesToShow.length,
+        filteredTypes: productTypesToShow
+      });
+      
+      // If all selected types were filtered out, show all types instead
+      // This handles the case where user selects types that don't exist in the data
+      if (productTypesToShow.length === 0) {
+        console.warn('All selected product types were filtered out. Showing all available types instead.');
+        productTypesToShow = Array.from(allProductTypes);
+      } else {
+        // IMPORTANT: Only show the filtered types, not all available types
+        // This ensures that when user selects specific types, only those are shown
+        console.log('Showing only selected/filtered product types:', productTypesToShow);
+      }
+    } else {
+      // No types selected (empty array, null, or undefined), show all
+      console.log('No product types selected, showing all available types');
+      productTypesToShow = Array.from(allProductTypes);
+    }
+    
+    console.log('Treemap filtering:', {
+      selectedProductTypes: this.selectedProductTypes,
+      hasSelectedTypes,
+      productTypesToShow,
+      availableProductTypes: Array.from(allProductTypes),
+      willShowAll: !hasSelectedTypes
+    });
 
     // Build filtered regions data
+    console.log('Building regions data with productTypesToShow:', productTypesToShow);
     regionsToShow.forEach(regionName => {
       const regionData = rawData[regionName];
       if (!regionData) return;
@@ -175,8 +289,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
             value: typeData.value,
             percentage: typeData.percentage
           });
+        } else {
+          console.log(`Region "${regionName}" does not have product type "${productType}"`);
         }
       });
+
+      console.log(`Region "${regionName}" will show ${children.length} product types:`, children.map(c => c.name));
 
       // Only add region if it has children after filtering
       if (children.length > 0) {
@@ -184,8 +302,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           name: regionName,
           children: children
         });
+      } else {
+        console.log(`Region "${regionName}" filtered out (no matching product types)`);
       }
     });
+    
+    console.log(`Final regionsData: ${regionsData.length} regions with data`, 
+      regionsData.map(r => ({ name: r.name, types: r.children.map(c => c.name) })));
 
     // Calculate total value and region widths
     const totalValue = regionsData.reduce((sum, region) => 

@@ -80,8 +80,8 @@ export class FiltersBarComponent implements OnInit {
 
   productTypeOptions: FilterOption[] = [
     { value: 'Equity' }, { value: 'Fixed Income' }, { value: 'Alternatives' },
-    { value: 'Cash' }, { value: 'Private Markets' }, { value: 'Other/Specialized' }, 
-    { value: 'Multi-Asset' }
+    { value: 'Cash' }, { value: 'Private Markets' }, { value: 'Real Estate' },
+    { value: 'Other/Specialized' }, { value: 'Multi-Asset' }
   ];
 
   productSubTypeOptions: GroupedFilterOption[] = [
