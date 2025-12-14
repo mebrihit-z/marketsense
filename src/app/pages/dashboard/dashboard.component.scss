@@ -24,10 +24,53 @@
 
 .asset-allocation-section {
     width: 100%;
+    order: 2; // Default order (after asset-flows)
+    
+    &.pinned {
+        order: 1; // When pinned, show before asset-flows
+    }
 }
 
 .asset-flows-section {
     width: 100%;
+    order: 1; // Default order (before asset-allocation)
+    
+    &.pinned {
+        order: 1; // When pinned, show before asset-allocation
+    }
+}
+
+// When asset-allocation is pinned, reorder components
+.dashboard-container.asset-allocation-pinned {
+    .asset-allocation-section {
+        order: 1;
+    }
+    
+    .asset-flows-section {
+        order: 2;
+    }
+}
+
+// When asset-flows is pinned, reorder components
+.dashboard-container.asset-flows-pinned {
+    .asset-flows-section {
+        order: 1;
+    }
+    
+    .asset-allocation-section {
+        order: 2;
+    }
+}
+
+// When both are pinned, asset-flows takes priority (pinned first)
+.dashboard-container.asset-flows-pinned.asset-allocation-pinned {
+    .asset-flows-section {
+        order: 1;
+    }
+    
+    .asset-allocation-section {
+        order: 2;
+    }
 }
 
 .treemap-section {

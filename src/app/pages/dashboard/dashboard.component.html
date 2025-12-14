@@ -1,4 +1,6 @@
-<div class="dashboard-container">
+<div class="dashboard-container" 
+     [class.asset-allocation-pinned]="isAssetAllocationPinned"
+     [class.asset-flows-pinned]="isAssetFlowsPinned">
   <!-- Filters Bar -->
   <app-filters-bar
     (dataTypeChange)="onDataTypeChange($event)"
@@ -18,16 +20,20 @@
       (pinCard)="onPinCard($event)">
     </app-featured-market-flows-carousel>
   </div>
-  <!-- Asset Flows Section -->
-  <div class="asset-flows-section">
-    <app-asset-flows [selectedProductTypes]="selectedProductTypes"></app-asset-flows>
-  </div>
   <!-- Asset Allocation Section -->
-  <div class="asset-allocation-section">
+  <div class="asset-allocation-section" [class.pinned]="isAssetAllocationPinned">
     <app-asset-allocation 
       [selectedProductTypes]="selectedProductTypes"
-      [selectedProductRegions]="selectedProductRegions">
+      [selectedProductRegions]="selectedProductRegions"
+      (pinToggle)="onAssetAllocationPinToggle()">
     </app-asset-allocation>
+  </div>
+  <!-- Asset Flows Section -->
+  <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">
+    <app-asset-flows 
+      [selectedProductTypes]="selectedProductTypes"
+      (pinToggle)="onAssetFlowsPinToggle()">
+    </app-asset-flows>
   </div>
 </div>
 

@@ -12,8 +12,8 @@
     <!-- Right: Controls -->
     <div class="controls-section">
       <!-- Pin Button -->
-      <button class="more-options-btn" aria-label="More options">
-        <img src="assets/icons/pin-icon.svg" alt="More options">
+      <button class="more-options-btn" [class.pinned]="isPinned" aria-label="Pin Button" (click)="onPinClick()">
+        <img src="assets/icons/pin-icon.svg" alt="Pin Button">
       </button>
        <!-- Download Button -->
       <button class="more-options-btn" aria-label="More options">

@@ -181,6 +181,16 @@
   &:hover {
     background-color: $overlay-light;
   }
+
+  img {
+    transition: filter 0.2s;
+  }
+
+  &.pinned {
+    img {
+      filter: brightness(0) saturate(100%) invert(27%) sepia(95%) saturate(2598%) hue-rotate(210deg) brightness(98%) contrast(101%);
+    }
+  }
 }
 
 // Flow Dimensions Section

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
 
@@ -41,11 +41,13 @@ export interface FlowDimension {
 export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductRegions: string[] = [];
+  @Output() pinToggle = new EventEmitter<void>();
   
   // View state
   viewMode: 'treemap' | 'packing-circles' = 'treemap';
   selectedTimeHorizon: string = '+9 mo';
   showProductSubTypes: boolean = false;
+  isPinned: boolean = false;
   
   // Available time horizons
   timeHorizons = ['-12 mo', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
@@ -278,6 +280,11 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   onNodeClick(node: TreemapNode): void {
     console.log('Node clicked:', node);
     // TODO: Implement drill-down functionality
+  }
+
+  onPinClick(): void {
+    this.isPinned = !this.isPinned;
+    this.pinToggle.emit();
   }
 }
 

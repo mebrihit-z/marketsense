@@ -20,6 +20,8 @@ export class DashboardComponent implements OnInit {
   selectedProductTypes: string[] = [];
   selectedProductRegions: string[] = [];
   pinnedCardIds: string[] = [];
+  isAssetAllocationPinned: boolean = false;
+  isAssetFlowsPinned: boolean = false;
 
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
@@ -575,6 +577,14 @@ export class DashboardComponent implements OnInit {
 
   onProductRegionChange(productRegions: string[]): void {
     this.selectedProductRegions = productRegions;
+  }
+
+  onAssetAllocationPinToggle(): void {
+    this.isAssetAllocationPinned = !this.isAssetAllocationPinned;
+  }
+
+  onAssetFlowsPinToggle(): void {
+    this.isAssetFlowsPinned = !this.isAssetFlowsPinned;
   }
 
   onPinCard(cardId: string): void {

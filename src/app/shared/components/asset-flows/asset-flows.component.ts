@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SankeyDiagramComponent } from '../charts/sankey-diagram/sankey-diagram.component';
 
@@ -38,9 +38,11 @@ export interface AssetFlowData {
 })
 export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
+  @Output() pinToggle = new EventEmitter<void>();
   
   // View and filter state
   showProductSubTypes: boolean = false;
+  isPinned: boolean = false;
   
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
@@ -210,5 +212,10 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   formatPercentage(value: number): string {
     return `${value > 0 ? '+' : ''}${value}%`;
+  }
+
+  onPinClick(): void {
+    this.isPinned = !this.isPinned;
+    this.pinToggle.emit();
   }
 }
