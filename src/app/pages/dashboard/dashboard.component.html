@@ -25,6 +25,7 @@
     <app-asset-allocation 
       [selectedProductTypes]="selectedProductTypes"
       [selectedProductRegions]="selectedProductRegions"
+      [selectedProductSubTypes]="selectedProductSubTypes"
       (pinToggle)="onAssetAllocationPinToggle()">
     </app-asset-allocation>
   </div>
@@ -32,6 +33,7 @@
   <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">
     <app-asset-flows 
       [selectedProductTypes]="selectedProductTypes"
+      [selectedProductSubTypes]="selectedProductSubTypes"
       (pinToggle)="onAssetFlowsPinToggle()">
     </app-asset-flows>
   </div>

@@ -37,12 +37,19 @@ export class FiltersBarComponent implements OnInit {
   selectedTimeHorizon: string = '-9 mo';
 
   ngOnInit() {
-    // Initialize product sub-types with all options selected by default
+    // Initialize all filters with all options selected by default
+    this.state.investorRegion = this.investorRegionOptions.map(opt => opt.value);
+    this.state.investorType = this.investorTypeOptions.map(opt => opt.value);
+    this.state.productRegion = this.productRegionOptions.map(opt => opt.value);
+    this.state.productType = this.productTypeOptions.map(opt => opt.value);
     this.state.productSubType = this.productSubTypeOptions.flatMap(group => 
       group.options.map(opt => opt.value)
     );
-    // Emit initial selection
+    
+    // Emit initial selections
     this.productSubTypeChange.emit(this.state.productSubType);
+    this.productTypeChange.emit(this.state.productType);
+    this.productRegionChange.emit(this.state.productRegion);
     
     // Initialize time horizon range based on selectedTimeHorizon
     this.initializeTimeHorizonRange();

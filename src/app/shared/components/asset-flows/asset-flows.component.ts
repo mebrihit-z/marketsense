@@ -38,6 +38,7 @@ export interface AssetFlowData {
 })
 export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
+  @Input() selectedProductSubTypes: string[] = [];
   @Output() pinToggle = new EventEmitter<void>();
   
   // View and filter state
@@ -81,19 +82,24 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     console.log('Asset Flows component initialized');
-    this.updateProductTypeDimension();
+    this.updateDimensions();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedProductTypes']) {
-      this.updateProductTypeDimension();
+    if (changes['selectedProductTypes'] || changes['selectedProductSubTypes']) {
+      this.updateDimensions();
     }
   }
 
-  private updateProductTypeDimension(): void {
+  private updateDimensions(): void {
     const productTypeDimension = this.availableDimensions.find(d => d.id === 'product-type');
     if (productTypeDimension) {
       productTypeDimension.count = this.selectedProductTypes.length;
+    }
+
+    const productSubTypeDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
+    if (productSubTypeDimension) {
+      productSubTypeDimension.count = this.selectedProductSubTypes.length;
     }
   }
 
@@ -108,9 +114,12 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
         this.availableDimensions.push({
           id: 'product-sub-types',
           label: 'Product sub-types',
-          count: 0,
+          count: this.selectedProductSubTypes.length,
           active: true
         });
+      } else {
+        // Update count if dimension already exists
+        existingDimension.count = this.selectedProductSubTypes.length;
       }
     } else {
       // Remove "Product sub-types" from available dimensions

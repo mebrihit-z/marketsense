@@ -41,6 +41,7 @@ export interface FlowDimension {
 export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductRegions: string[] = [];
+  @Input() selectedProductSubTypes: string[] = [];
   @Output() pinToggle = new EventEmitter<void>();
   
   // View state
@@ -119,7 +120,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedProductTypes'] || changes['selectedProductRegions']) {
+    if (changes['selectedProductTypes'] || changes['selectedProductRegions'] || changes['selectedProductSubTypes']) {
       this.updateDimensions();
     }
   }
@@ -133,6 +134,11 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     const productTypeDimension = this.availableDimensions.find(d => d.id === 'product-type');
     if (productTypeDimension) {
       productTypeDimension.count = this.selectedProductTypes.length;
+    }
+
+    const productSubTypeDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
+    if (productSubTypeDimension) {
+      productSubTypeDimension.count = this.selectedProductSubTypes.length;
     }
   }
 
@@ -211,9 +217,12 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         this.availableDimensions.push({
           id: 'product-sub-types',
           label: 'Product sub-types',
-          count: 0,
+          count: this.selectedProductSubTypes.length,
           active: true
         });
+      } else {
+        // Update count if dimension already exists
+        existingDimension.count = this.selectedProductSubTypes.length;
       }
     } else {
       // Remove "Product sub-types" from available dimensions
