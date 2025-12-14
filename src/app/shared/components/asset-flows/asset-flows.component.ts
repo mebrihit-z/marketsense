@@ -98,6 +98,34 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   toggleProductSubTypes(): void {
     this.showProductSubTypes = !this.showProductSubTypes;
     console.log('Show product sub-types:', this.showProductSubTypes);
+    
+    if (this.showProductSubTypes) {
+      // Add "Product sub-types" to available dimensions if not already present
+      const existingDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
+      if (!existingDimension) {
+        this.availableDimensions.push({
+          id: 'product-sub-types',
+          label: 'Product sub-types',
+          count: 0,
+          active: true
+        });
+      }
+    } else {
+      // Remove "Product sub-types" from available dimensions
+      const index = this.availableDimensions.findIndex(d => d.id === 'product-sub-types');
+      if (index !== -1) {
+        // If this dimension is selected in a drop zone, remove it
+        if (this.selectedDimension1?.id === 'product-sub-types') {
+          this.selectedDimension1 = null;
+        }
+        if (this.selectedDimension2?.id === 'product-sub-types') {
+          this.selectedDimension2 = null;
+        }
+        
+        // Remove from available dimensions
+        this.availableDimensions.splice(index, 1);
+      }
+    }
   }
 
   onStreamgraphClick(): void {
