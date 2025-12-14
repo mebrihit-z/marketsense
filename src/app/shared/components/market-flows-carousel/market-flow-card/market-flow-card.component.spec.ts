@@ -16,7 +16,9 @@ describe('MarketFlowCardComponent', () => {
     aiConfidence: 'high' as const,
     description: 'Test description',
     chartColor: 'green' as const,
-    borderColor: '#00bc7d'
+    borderColor: '#00bc7d',
+    timeHorizon: '-9 mo',
+    dataType: 'historical' as const
   };
 
   beforeEach(async () => {

@@ -12,8 +12,10 @@
   <div class="carousel-section">
     <app-featured-market-flows-carousel 
       [cards]="filteredMarketFlowCards"
+      [pinnedCardIds]="pinnedCardIds"
       [dataType]="carouselDataType"
-      [selectedTimeHorizon]="carouselTimeHorizon">
+      [selectedTimeHorizon]="carouselTimeHorizon"
+      (pinCard)="onPinCard($event)">
     </app-featured-market-flows-carousel>
   </div>
   <!-- Asset Flows Section -->

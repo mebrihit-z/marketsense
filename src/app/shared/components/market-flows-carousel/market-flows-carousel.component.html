@@ -13,9 +13,11 @@
       <app-market-flow-card
         *ngFor="let card of visibleCards"
         [card]="card"
+        [isPinned]="isCardPinned(card.id)"
         (download)="onDownload($event)"
         (moreOptions)="onMoreOptions($event)"
-        (askMarketSense)="onAskMarketSense($event)">
+        (askMarketSense)="onAskMarketSense($event)"
+        (pin)="onPin($event)">
       </app-market-flow-card>
     </div>
   </div>

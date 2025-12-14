@@ -27,9 +27,11 @@ export interface MarketFlowCard {
 })
 export class MarketFlowCardComponent {
   @Input() card!: MarketFlowCard;
+  @Input() isPinned: boolean = false;
   @Output() download = new EventEmitter<string>();
   @Output() moreOptions = new EventEmitter<string>();
   @Output() askMarketSense = new EventEmitter<string>();
+  @Output() pin = new EventEmitter<string>();
 
   getConfidenceColor(confidence: 'high' | 'medium' | 'low'): string {
     switch (confidence) {
@@ -50,6 +52,10 @@ export class MarketFlowCardComponent {
 
   onAskMarketSense(): void {
     this.askMarketSense.emit(this.card.id);
+  }
+
+  onPin(): void {
+    this.pin.emit(this.card.id);
   }
 }
 

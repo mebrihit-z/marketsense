@@ -4,15 +4,15 @@
     <h3 class="card-title">{{ card.title }}</h3>
     <div class="card-actions">
       <!-- Pin Button -->
-      <button class="icon-btn" aria-label="More options">
-        <img src="assets/icons/pin-icon.svg" alt="More options">
+      <button class="icon-btn" [class.pinned]="isPinned" (click)="onPin()" aria-label="Pin Button">
+        <img src="assets/icons/pin-icon.svg" alt="Pin Button">
       </button>
       <!-- Download Button -->
       <button class="icon-btn" (click)="onDownload()" aria-label="Download">
         <img src="assets/icons/download-icon.svg" alt="Download" class="download-icon">
       </button>
       <!-- More Options Button -->
-      <button class="icon-btn" (click)="onMoreOptions()" aria-label="More options">
+      <button class="icon-btn" (click)="onMoreOptions()" aria-label="More Options">
         <img src="assets/icons/more-options-icon.svg" alt="More Options" class="more-options-icon">
       </button>
     </div>

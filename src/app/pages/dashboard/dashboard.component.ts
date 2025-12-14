@@ -19,6 +19,7 @@ export class DashboardComponent implements OnInit {
   selectedProductSubTypes: string[] = [];
   selectedProductTypes: string[] = [];
   selectedProductRegions: string[] = [];
+  pinnedCardIds: string[] = [];
 
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
@@ -576,6 +577,18 @@ export class DashboardComponent implements OnInit {
     this.selectedProductRegions = productRegions;
   }
 
+  onPinCard(cardId: string): void {
+    // If card is already pinned, unpin it; otherwise, pin it
+    const index = this.pinnedCardIds.indexOf(cardId);
+    if (index > -1) {
+      // Unpin: remove from pinned list
+      this.pinnedCardIds.splice(index, 1);
+    } else {
+      // Pin: add to the beginning of pinned list
+      this.pinnedCardIds.unshift(cardId);
+    }
+  }
+
   get filteredMarketFlowCards(): MarketFlowCard[] {
     // If no product sub-types selected, return empty array
     if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
@@ -583,7 +596,7 @@ export class DashboardComponent implements OnInit {
     }
 
     // Generate cards dynamically based on selected product sub-types
-    return this.selectedProductSubTypes.map((subType, index) => {
+    const cards = this.selectedProductSubTypes.map((subType, index) => {
       // Find a matching card from existing data for the same timeHorizon and dataType, or create a default one
       const matchingCard = this.marketFlowCards.find(
         card => card.timeHorizon === this.carouselTimeHorizon && 
@@ -613,6 +626,23 @@ export class DashboardComponent implements OnInit {
         title: subType,
         productSubType: subType
       };
+    });
+
+    // Sort cards: pinned cards first (in order of pinning), then others
+    return cards.sort((a, b) => {
+      const aPinIndex = this.pinnedCardIds.indexOf(a.id);
+      const bPinIndex = this.pinnedCardIds.indexOf(b.id);
+      
+      // Both pinned: maintain pin order (lower index = pinned earlier = appears first)
+      if (aPinIndex > -1 && bPinIndex > -1) {
+        return aPinIndex - bPinIndex;
+      }
+      // Only a is pinned: a comes first
+      if (aPinIndex > -1) return -1;
+      // Only b is pinned: b comes first
+      if (bPinIndex > -1) return 1;
+      // Neither pinned: maintain original order
+      return 0;
     });
   }
 

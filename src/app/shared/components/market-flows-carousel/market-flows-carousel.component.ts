@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import { AskMarketsenseModalComponent } from './ask-marketsense-modal/ask-marketsense-modal.component';
@@ -16,9 +16,11 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 })
 export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   @Input() cards: MarketFlowCard[] = [];
+  @Input() pinnedCardIds: string[] = [];
   @Input() showViewMoreCard: boolean = true;
   @Input() dataType: 'historical' | 'forecasted' = 'historical';
   @Input() selectedTimeHorizon: string = '-9 mo';
+  @Output() pinCard = new EventEmitter<string>();
   
   currentSlideIndex: number = 0;
   
@@ -179,6 +181,17 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   onMoreOptions(cardId: string): void {
     // Handle more options action
     console.log('More options clicked for card:', cardId);
+  }
+
+  onPin(cardId: string): void {
+    // Emit pin event to parent component
+    this.pinCard.emit(cardId);
+    // Reset to first slide to show the pinned card
+    this.currentSlideIndex = 0;
+  }
+
+  isCardPinned(cardId: string): boolean {
+    return this.pinnedCardIds.includes(cardId);
   }
 }
 
