@@ -1,3 +1,5 @@
+/* eslint-disable import/prefer-default-export */
+/* eslint-disable max-lines */
 import { Component, OnInit, HostListener, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -36,6 +38,9 @@ export class FiltersBarComponent implements OnInit {
   dataType: 'historical' | 'forecasted' = 'historical';
   selectedTimeHorizon: string = '-9 mo';
 
+  /**
+   * @returns {void} Initializes filter state and time horizon defaults.
+   */
   ngOnInit() {
     // Initialize all filters with all options selected by default
     this.state.investorRegion = this.investorRegionOptions.map(opt => opt.value);
@@ -55,6 +60,9 @@ export class FiltersBarComponent implements OnInit {
     this.initializeTimeHorizonRange();
   }
 
+  /**
+   * @returns {void} Initializes the time horizon slider range from the current selection.
+   */
   private initializeTimeHorizonRange(): void {
     const horizons = this.timeHorizons;
     const selectedIndex = horizons.indexOf(this.selectedTimeHorizon);
@@ -138,6 +146,11 @@ export class FiltersBarComponent implements OnInit {
     productSubType: [] as string[]
   };
 
+  /**
+   * @param {keyof typeof this.state} key - The state key to update
+   * @param {string[]} values - The new values to set for the state key
+   * @returns {void} Updates internal state and emits changes for specific filter groups.
+   */
   onChange(key: keyof typeof this.state, values: string[]) {
     this.state[key] = values;
     if (key === 'productSubType') {
@@ -151,11 +164,21 @@ export class FiltersBarComponent implements OnInit {
     }
   }
 
+  /**
+   * @returns {void} Clears all filter selections and resets AI confidence range.
+   */
   clearAll() {
-    for (const k of Object.keys(this.state)) (this.state as any)[k] = [];
+    (Object.keys(this.state) as Array<keyof typeof this.state>).forEach((key) => {
+      this.state[key] = [];
+    });
     this.aiConfidenceRange = { min: 50, max: 100 };
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch event that initiated the drag
+   * @param {'min' | 'max'} type - The type of drag handle being dragged
+   * @returns {void} Starts dragging on the AI confidence slider for the specified handle.
+   */
   startDrag(event: MouseEvent | TouchEvent, type: 'min' | 'max') {
     event.preventDefault();
     event.stopPropagation();
@@ -165,6 +188,10 @@ export class FiltersBarComponent implements OnInit {
     this.handleDrag(event);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch event during dragging
+   * @returns {void} Handles drag events for both AI confidence and time horizon sliders.
+   */
   @HostListener('document:mousemove', ['$event'])
   @HostListener('document:touchmove', ['$event'])
   onDrag(event: MouseEvent | TouchEvent) {
@@ -176,6 +203,9 @@ export class FiltersBarComponent implements OnInit {
     }
   }
 
+  /**
+   * @returns {void} Stops any active drag operation and resets drag flags.
+   */
   @HostListener('document:mouseup')
   @HostListener('document:touchend')
   stopDrag() {
@@ -195,19 +225,33 @@ export class FiltersBarComponent implements OnInit {
     }
   }
 
+  /**
+   * @param {'min' | 'max'} type - The type of knob (minimum or maximum)
+   * @returns {number} The pixel position of the requested knob along the slider track.
+   */
   getKnobPosition(type: 'min' | 'max'): number {
     const value = type === 'min' ? this.aiConfidenceRange.min : this.aiConfidenceRange.max;
     return (value / 100) * this.sliderTrackWidth;
   }
 
+  /**
+   * @returns {number} The pixel offset for the left edge of the active AI confidence range.
+   */
   getActiveTrackLeft(): number {
     return (this.aiConfidenceRange.min / 100) * this.sliderTrackWidth;
   }
 
+  /**
+   * @returns {number} The pixel width of the active AI confidence range.
+   */
   getActiveTrackWidth(): number {
     return ((this.aiConfidenceRange.max - this.aiConfidenceRange.min) / 100) * this.sliderTrackWidth;
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch event during dragging
+   * @returns {void} Updates AI confidence values while the user drags a handle.
+   */
   private handleDrag(event: MouseEvent | TouchEvent) {
     if (!this.dragType || !this.sliderContainer) return;
 
@@ -227,6 +271,10 @@ export class FiltersBarComponent implements OnInit {
     this.hasDragged = true;
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch click event on the AI confidence track
+   * @returns {void} Moves the nearest AI confidence handle to the clicked position when not dragging.
+   */
   onAIConfidenceTrackClick(event: MouseEvent | TouchEvent) {
     // Don't handle clicks if user was dragging
     if (this.hasDragged || this.isDragging) {
@@ -262,12 +310,19 @@ export class FiltersBarComponent implements OnInit {
   }
 
   // Time Horizon methods
+  /**
+   * @returns {string[]} A list of time horizon labels matching the current data type.
+   */
   get timeHorizons(): string[] {
     return this.dataType === 'historical' 
       ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo', 'Today']
       : ['Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   }
 
+  /**
+   * @param {'historical' | 'forecasted'} type - The data type to set (historical or forecasted)
+   * @returns {void} Updates the data type and resets the time horizon range accordingly.
+   */
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
     // Reset time horizon range to default (Today to first option)
@@ -276,6 +331,9 @@ export class FiltersBarComponent implements OnInit {
     this.dataTypeChange.emit(type);
   }
 
+  /**
+   * @returns {void} Updates and emits the currently selected time horizon.
+   */
   private updateSelectedTimeHorizon(): void {
     // Emit the end value (right handle) as the selected time horizon
     const endHorizon = this.timeHorizons[this.timeHorizonRange.endIndex];
@@ -283,6 +341,11 @@ export class FiltersBarComponent implements OnInit {
     this.timeHorizonChange.emit(endHorizon);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch event that initiated the drag
+   * @param {'start' | 'end'} type - The type of time horizon drag handle being dragged
+   * @returns {void} Starts dragging for the specified time horizon handle.
+   */
   startTimeHorizonDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end') {
     event.preventDefault();
     event.stopPropagation();
@@ -292,6 +355,10 @@ export class FiltersBarComponent implements OnInit {
     this.handleTimeHorizonDrag(event);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch click event on the time horizon track
+   * @returns {void} Moves the nearest time horizon handle to the clicked position when not dragging.
+   */
   onTimeHorizonTrackClick(event: MouseEvent | TouchEvent) {
     // Don't handle clicks if user was dragging
     if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
@@ -333,6 +400,10 @@ export class FiltersBarComponent implements OnInit {
     this.updateSelectedTimeHorizon();
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - The mouse or touch event during time horizon dragging
+   * @returns {void} Updates the time horizon range while the user drags a handle.
+   */
   private handleTimeHorizonDrag(event: MouseEvent | TouchEvent) {
     if (!this.timeHorizonDragType || !this.timeHorizonSliderContainer) return;
 
@@ -358,17 +429,27 @@ export class FiltersBarComponent implements OnInit {
     this.updateSelectedTimeHorizon();
   }
 
+  /**
+   * @param {'start' | 'end'} type - The type of time horizon handle (start or end)
+   * @returns {number} The pixel position of the requested time horizon handle.
+   */
   getTimeHorizonHandlePosition(type: 'start' | 'end'): number {
     const index = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
     const numSteps = this.timeHorizons.length - 1;
     return (index / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 
+  /**
+   * @returns {number} The pixel offset for the left edge of the active time horizon range.
+   */
   getTimeHorizonActiveTrackLeft(): number {
     const numSteps = this.timeHorizons.length - 1;
     return (this.timeHorizonRange.startIndex / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 
+  /**
+   * @returns {number} The pixel width of the active time horizon range.
+   */
   getTimeHorizonActiveTrackWidth(): number {
     const numSteps = this.timeHorizons.length - 1;
     const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
