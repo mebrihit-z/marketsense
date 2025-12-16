@@ -194,7 +194,21 @@ export class DashboardComponent implements OnInit {
       timeHorizon: '-9 mo',
       dataType: 'historical'
     },
-    
+    {
+      id: 'hist-9-5',
+      title: 'Mid Cap Growth',
+      value: '+$6.3B',
+      valueColor: 'green',
+      percentageChange: '+5.1%',
+      percentageColor: 'green',
+      metricLabel: 'Net Flow',
+      aiConfidence: 'high',
+      description: 'Mid cap growth showing strong inflows as investors seek growth opportunities.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: '-9 mo',
+      dataType: 'historical'
+    },
     // Historical -12 mo
     {
       id: 'hist-12-1',
@@ -456,6 +470,21 @@ export class DashboardComponent implements OnInit {
       description: 'Emerging markets may see reduced outflows as global conditions improve.',
       chartColor: 'red',
       borderColor: '#fb2c36',
+      timeHorizon: '+9 mo',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-9-5',
+      title: 'Mid Cap Growth',
+      value: '+$4.1B',
+      valueColor: 'green',
+      percentageChange: '+3.2%',
+      percentageColor: 'green',
+      metricLabel: 'Projected Flow',
+      aiConfidence: 'low',
+      description: 'Mid cap growth showing strong inflows as investors seek growth opportunities.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
       timeHorizon: '+9 mo',
       dataType: 'forecasted'
     },

@@ -106,16 +106,20 @@ export class FiltersBarComponent implements OnInit {
         { value: 'US Equity Small Cap' },
         { value: 'US Equity Large Cap' },
         { value: 'Global Equity' },
-        { value: 'Emerging Markets' }
+        { value: 'Emerging Markets' },
+        { value: 'Mid Cap Growth' }
       ]
     },
     {
       category: 'Fixed Income',
       options: [
-        { value: 'US Fixed Income' },
+        { value: 'Core Investment Grade' },
         { value: 'Municipal Bond' },
         { value: 'Global Bonds' },
-        { value: 'Short Duration' }
+        { value: 'Short Duration' },
+        { value: 'High Yield Bonds' },
+        { value: 'Government/Sovereign' },
+        { value: 'Credit Long Duration' }
       ]
     },
     {
@@ -133,6 +137,29 @@ export class FiltersBarComponent implements OnInit {
         { value: 'Treasury Bills' },
         { value: 'Bank Deposits/CDs' },
         { value: 'Foreign Currency/FFX' }
+      ]
+    },
+    {
+      category: 'Private Markets',
+      options: [
+        { value: 'Private Credit' },
+        { value: 'Venture Capita' },
+        { value: 'Co-Investment' },
+        { value: 'Private Equity' }
+      ]
+    },
+    {
+      category: 'Other / Specialized',
+      options: [
+        { value: 'Overlay Strategies' },
+        { value: 'Factor Based Investing' },
+      ]
+    },
+    {
+      category: 'Multi-Asset',
+      options: [
+        { value: 'Diversified Growth Funds' },
+        { value: 'Target Date Funds' },
       ]
     }
   ];

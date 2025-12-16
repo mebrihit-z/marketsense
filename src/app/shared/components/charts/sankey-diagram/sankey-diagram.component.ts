@@ -98,6 +98,10 @@ export class SankeyDiagramComponent implements AfterViewInit {
       ["Fixed Income", "Government/Sovereign", 17.00],
       ["Fixed Income", "Credit Long Duration", 12.00],
 
+      ["Alternatives", "Hedge Funds", 30.33],
+      ["Alternatives", "Crypto", -23.90],
+      ["Alternatives", "Commodities", 44.73],
+
       ["Cash", "Money Market Funds", 0.0],
       ["Cash", "Treasury Bills", 0.64],
       ["Cash", "Bank Deposits / CDs", 0.0],
@@ -448,9 +452,9 @@ export class SankeyDiagramComponent implements AfterViewInit {
       });
 
     // -----------------------------------------
-    // 8. Node Labels
+    // 8. Node Labels (with values inline)
     // -----------------------------------------
-    svg.append('g')
+    const labelTexts = svg.append('g')
       .selectAll('text')
       .data(graph.nodes)
       .enter()
@@ -459,8 +463,21 @@ export class SankeyDiagramComponent implements AfterViewInit {
       .attr('y', d => (d.y0! + d.y1!) / 2)
       .attr('text-anchor', 'end')
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '12px')
-      .text(d => d.name);
+      .style('font-size', '12px');
+    
+    // Add label text
+    labelTexts.append('tspan')
+      .text(d => d.name + ':');
+    
+    // Add value text as tspan (on same line, bold)
+    labelTexts.append('tspan')
+      .attr('dx', '8px') // 8px spacing after label
+      .style('font-weight', 'bold')
+      .text(d => {
+        const value = nodeValues.get(d) || 0;
+        const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+        return '$' + formattedValue + 'B';
+      });
 
     // -----------------------------------------
     // 9. Link Values (on the links)
@@ -491,26 +508,5 @@ export class SankeyDiagramComponent implements AfterViewInit {
         return value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
       });
 
-    // -----------------------------------------
-    // 10. Node Values (total flow through each node)
-    // -----------------------------------------
-    // Note: nodeValues already calculated in step 7
-
-    svg.append('g')
-      .selectAll('text')
-      .data(graph.nodes)
-      .enter()
-      .append('text')
-      .attr('x', d => d.x0! - 6)
-      .attr('y', d => (d.y0! + d.y1!) / 2 + 15)
-      .attr('text-anchor', 'end')
-      .attr('alignment-baseline', 'middle')
-      .style('font-size', '10px')
-      .style('fill', this.getCssVariable('--text-medium') || '#666')
-      .style('font-weight', '600')
-      .text(d => {
-        const value = nodeValues.get(d) || 0;
-        return value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
-      });
   }
 }
