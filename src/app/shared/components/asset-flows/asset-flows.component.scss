@@ -7,8 +7,25 @@
   padding: 25px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.visualization-container {
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  
+  // Ensure regional sankey uses full width
+  app-regional-sankey-diagram {
+    display: block;
+    width: 100%;
+  }
 }
 
 // Header Section

@@ -7,7 +7,9 @@
     (timeHorizonChange)="onTimeHorizonChange($event)"
     (productSubTypeChange)="onProductSubTypeChange($event)"
     (productTypeChange)="onProductTypeChange($event)"
-    (productRegionChange)="onProductRegionChange($event)">
+    (productRegionChange)="onProductRegionChange($event)"
+    (investorRegionChange)="onInvestorRegionChange($event)"
+    (investorTypeChange)="onInvestorTypeChange($event)">
   </app-filters-bar>
 
   <!-- Featured Market Flows Carousel -->
@@ -26,6 +28,8 @@
       [selectedProductTypes]="selectedProductTypes"
       [selectedProductRegions]="selectedProductRegions"
       [selectedProductSubTypes]="selectedProductSubTypes"
+      [selectedInvestorRegions]="selectedInvestorRegions"
+      [selectedInvestorTypes]="selectedInvestorTypes"
       (pinToggle)="onAssetAllocationPinToggle()">
     </app-asset-allocation>
   </div>
@@ -34,6 +38,8 @@
     <app-asset-flows 
       [selectedProductTypes]="selectedProductTypes"
       [selectedProductSubTypes]="selectedProductSubTypes"
+      [dataType]="carouselDataType"
+      [timeHorizon]="carouselTimeHorizon"
       (pinToggle)="onAssetFlowsPinToggle()">
     </app-asset-flows>
   </div>

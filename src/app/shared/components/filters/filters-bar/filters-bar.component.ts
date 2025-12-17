@@ -20,6 +20,8 @@ export class FiltersBarComponent implements OnInit {
   @Output() productSubTypeChange = new EventEmitter<string[]>();
   @Output() productTypeChange = new EventEmitter<string[]>();
   @Output() productRegionChange = new EventEmitter<string[]>();
+  @Output() investorRegionChange = new EventEmitter<string[]>();
+  @Output() investorTypeChange = new EventEmitter<string[]>();
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
@@ -35,8 +37,8 @@ export class FiltersBarComponent implements OnInit {
   timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
   
   // Toggle state
-  dataType: 'historical' | 'forecasted' = 'historical';
-  selectedTimeHorizon: string = '-9 mo';
+  dataType: 'historical' | 'forecasted' = 'forecasted';
+  selectedTimeHorizon: string = 'Today';
 
   /**
    * @returns {void} Initializes filter state and time horizon defaults.
@@ -55,6 +57,8 @@ export class FiltersBarComponent implements OnInit {
     this.productSubTypeChange.emit(this.state.productSubType);
     this.productTypeChange.emit(this.state.productType);
     this.productRegionChange.emit(this.state.productRegion);
+    this.investorRegionChange.emit(this.state.investorRegion);
+    this.investorTypeChange.emit(this.state.investorType);
     
     // Initialize time horizon range based on selectedTimeHorizon
     this.initializeTimeHorizonRange();
@@ -188,6 +192,12 @@ export class FiltersBarComponent implements OnInit {
     }
     if (key === 'productRegion') {
       this.productRegionChange.emit(values);
+    }
+    if (key === 'investorRegion') {
+      this.investorRegionChange.emit(values);
+    }
+    if (key === 'investorType') {
+      this.investorTypeChange.emit(values);
     }
   }
 

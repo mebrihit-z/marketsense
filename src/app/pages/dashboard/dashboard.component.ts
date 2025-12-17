@@ -14,11 +14,13 @@ import { AssetAllocationComponent } from '../../shared/components/asset-allocati
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-  carouselDataType: 'historical' | 'forecasted' = 'historical';
-  carouselTimeHorizon: string = '-9 mo';
+  carouselDataType: 'historical' | 'forecasted' = 'forecasted';
+  carouselTimeHorizon: string = 'Today';
   selectedProductSubTypes: string[] = [];
   selectedProductTypes: string[] = [];
   selectedProductRegions: string[] = [];
+  selectedInvestorRegions: string[] = [];
+  selectedInvestorTypes: string[] = [];
   pinnedCardIds: string[] = [];
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
@@ -303,6 +305,113 @@ export class DashboardComponent implements OnInit {
       dataType: 'historical'
     },
     
+    // Forecasted Today
+    {
+      id: 'fore-today-1',
+      title: 'Real Estate Current State',
+      value: '-$1.8B',
+      valueColor: 'red',
+      percentageChange: '-1.4%',
+      percentageColor: 'red',
+      metricLabel: 'Current Outflow',
+      aiConfidence: 'high',
+      description: 'Current market conditions show ongoing pressure on commercial real estate with signs of stabilization ahead.',
+      chartColor: 'red',
+      borderColor: '#fb2c36',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-today-2',
+      title: 'Private Equity Current Momentum',
+      value: '$35.6B',
+      valueColor: 'green',
+      percentageChange: '+3.5%',
+      percentageColor: 'green',
+      metricLabel: 'Current AUM',
+      aiConfidence: 'high',
+      description: 'PE funds maintaining strong current performance with continued institutional interest.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-today-3',
+      title: 'Fixed Income Current Trends',
+      value: '$1.5B',
+      valueColor: 'green',
+      percentageChange: '+0.9%',
+      percentageColor: 'green',
+      metricLabel: 'Current Flow',
+      aiConfidence: 'medium',
+      description: 'Current bond market showing steady inflows as investors position for rate stability.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-today-4',
+      title: 'Global Equities Current View',
+      value: '$52.8B',
+      valueColor: 'green',
+      percentageChange: '+3.8%',
+      percentageColor: 'green',
+      metricLabel: 'Current Flow',
+      aiConfidence: 'high',
+      description: 'Current equity markets showing resilience with positive momentum in developed markets.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-today-5',
+      title: 'Emerging Markets Current Status',
+      value: '$12.4B',
+      valueColor: 'green',
+      percentageChange: '+2.1%',
+      percentageColor: 'green',
+      metricLabel: 'Current Flow',
+      aiConfidence: 'medium',
+      description: 'Current emerging markets showing positive momentum as global conditions improve.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-today-6',
+      title: 'Cash Allocation Current',
+      value: '$8.4B',
+      valueColor: 'green',
+      percentageChange: '+2.1%',
+      percentageColor: 'green',
+      metricLabel: 'Current Flow',
+      aiConfidence: 'medium',
+      description: 'Current cash allocations showing increased interest as investors seek liquidity and safety.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    {
+      id: 'fore-today-7',
+      title: 'Alternatives Current Performance',
+      value: '$28.5B',
+      valueColor: 'green',
+      percentageChange: '+2.8%',
+      percentageColor: 'green',
+      metricLabel: 'Current Flow',
+      aiConfidence: 'high',
+      description: 'Current alternative investments showing strong performance, particularly in hedge funds and commodities.',
+      chartColor: 'green',
+      borderColor: '#00bc7d',
+      timeHorizon: 'Today',
+      dataType: 'forecasted'
+    },
+    
     // Forecasted +3 mo
     {
       id: 'fore-3-1',
@@ -535,6 +644,21 @@ export class DashboardComponent implements OnInit {
       timeHorizon: '+12 mo',
       dataType: 'forecasted'
     },
+    {
+      id: 'fore-12-4',
+      title: 'Municipal Bond Concerns',
+      value: '-$3.5B',
+      valueColor: 'red',
+      percentageChange: '-2.8%',
+      percentageColor: 'red',
+      metricLabel: 'Projected Outflow',
+      aiConfidence: 'medium',
+      description: 'Municipal bonds facing headwinds as state and local government finances come under scrutiny.',
+      chartColor: 'red',
+      borderColor: '#fb2c36',
+      timeHorizon: '+12 mo',
+      dataType: 'forecasted'
+    },
     
     // Forecasted +18 mo
     {
@@ -582,6 +706,21 @@ export class DashboardComponent implements OnInit {
       timeHorizon: '+18 mo',
       dataType: 'forecasted'
     },
+    {
+      id: 'fore-18-4',
+      title: 'Short Duration Pressure',
+      value: '-$5.2B',
+      valueColor: 'red',
+      percentageChange: '-4.1%',
+      percentageColor: 'red',
+      metricLabel: 'Projected Outflow',
+      aiConfidence: 'medium',
+      description: 'Short duration bonds expected to face continued outflows as investors extend duration in search of yield.',
+      chartColor: 'red',
+      borderColor: '#fb2c36',
+      timeHorizon: '+18 mo',
+      dataType: 'forecasted'
+    },
   ];
 
   ngOnInit(): void {
@@ -590,14 +729,46 @@ export class DashboardComponent implements OnInit {
 
   onDataTypeChange(dataType: 'historical' | 'forecasted'): void {
     this.carouselDataType = dataType;
+    // Clean up pinned card IDs when data type changes (card IDs include data type)
+    this.cleanupPinnedCardIds();
   }
 
   onTimeHorizonChange(timeHorizon: string): void {
     this.carouselTimeHorizon = timeHorizon;
+    // Clean up pinned card IDs when time horizon changes (card IDs include time horizon)
+    this.cleanupPinnedCardIds();
+  }
+  
+  /**
+   * Removes pinned card IDs that are no longer valid
+   * (cards whose product sub-types were deselected, or data type/time horizon changed)
+   */
+  private cleanupPinnedCardIds(): void {
+    if (this.pinnedCardIds.length > 0) {
+      const validCardIds = this.getValidCardIds();
+      this.pinnedCardIds = this.pinnedCardIds.filter(id => validCardIds.includes(id));
+    }
   }
 
   onProductSubTypeChange(productSubTypes: string[]): void {
     this.selectedProductSubTypes = productSubTypes;
+    // Clean up pinned card IDs for cards that no longer exist
+    // This happens when product sub-types are deselected
+    this.cleanupPinnedCardIds();
+  }
+
+  /**
+   * Generates the card IDs that would exist based on current selected product sub-types
+   * Used for cleaning up pinned card IDs when sub-types are deselected
+   */
+  private getValidCardIds(): string[] {
+    if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
+      return [];
+    }
+
+    return this.selectedProductSubTypes.map((subType) => {
+      return `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
+    });
   }
 
   onProductTypeChange(productTypes: string[]): void {
@@ -606,6 +777,14 @@ export class DashboardComponent implements OnInit {
 
   onProductRegionChange(productRegions: string[]): void {
     this.selectedProductRegions = productRegions;
+  }
+
+  onInvestorRegionChange(investorRegions: string[]): void {
+    this.selectedInvestorRegions = investorRegions;
+  }
+
+  onInvestorTypeChange(investorTypes: string[]): void {
+    this.selectedInvestorTypes = investorTypes;
   }
 
   onAssetAllocationPinToggle(): void {
@@ -635,39 +814,42 @@ export class DashboardComponent implements OnInit {
     }
 
     // Generate cards dynamically based on selected product sub-types
+    // Each card title is the product sub-type name
     const cards = this.selectedProductSubTypes.map((subType, index) => {
-      // Find a matching card from existing data for the same timeHorizon and dataType, or create a default one
-      const matchingCard = this.marketFlowCards.find(
-        card => card.timeHorizon === this.carouselTimeHorizon && 
-                card.dataType === this.carouselDataType
-      );
+      // Generate default card data for each product sub-type
+      // Use alternating colors for visual variety
+      const isPositive = index % 3 !== 0; // Every third card will be red/negative for variety
+      const valueColor: 'red' | 'green' = isPositive ? 'green' : 'red';
+      const percentageColor: 'red' | 'green' = isPositive ? 'green' : 'red';
+      const chartColor: 'red' | 'green' = isPositive ? 'green' : 'red';
+      const borderColor = isPositive ? '#00bc7d' : '#fb2c36';
 
-      // Use matching card as template, or create default values
-      const baseCard = matchingCard || {
-        id: '',
-        title: '',
-        value: '$0B',
-        valueColor: 'green' as const,
-        percentageChange: '0%',
-        percentageColor: 'green' as const,
-        metricLabel: 'Net Flow',
-        aiConfidence: 'medium' as const,
-        description: '',
-        chartColor: 'green' as const,
-        borderColor: '#00bc7d',
-        timeHorizon: this.carouselTimeHorizon,
-        dataType: this.carouselDataType
-      };
+      // Generate deterministic values based on index for consistency
+      const baseValue = (index % 5) + 1; // Values from 1-5
+      const basePercentage = ((index % 4) + 0.5).toFixed(1); // Percentages from 0.5-3.5
+
+      // Generate unique ID based on sub-type, data type, and time horizon (without index for stability)
+      const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
 
       return {
-        ...baseCard,
-        id: `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-')}-${index}`,
+        id,
         title: subType,
+        value: isPositive ? `$${baseValue}.${index % 10}B` : `-$${baseValue}.${index % 10}B`,
+        valueColor,
+        percentageChange: isPositive ? `+${basePercentage}%` : `-${basePercentage}%`,
+        percentageColor,
+        metricLabel: 'Net Flow',
+        aiConfidence: 'medium' as const,
+        description: `${subType} showing ${isPositive ? 'positive' : 'negative'} market flow trends for ${this.carouselTimeHorizon}.`,
+        chartColor,
+        borderColor,
+        timeHorizon: this.carouselTimeHorizon,
+        dataType: this.carouselDataType,
         productSubType: subType
       };
     });
 
-    // Sort cards: pinned cards first (in order of pinning), then others
+    // Sort cards: pinned cards first (in order of pinning), then others by absolute percentage value
     return cards.sort((a, b) => {
       const aPinIndex = this.pinnedCardIds.indexOf(a.id);
       const bPinIndex = this.pinnedCardIds.indexOf(b.id);
@@ -680,9 +862,62 @@ export class DashboardComponent implements OnInit {
       if (aPinIndex > -1) return -1;
       // Only b is pinned: b comes first
       if (bPinIndex > -1) return 1;
-      // Neither pinned: maintain original order
-      return 0;
+      
+      // Neither pinned: sort by absolute percentage value (descending - highest first)
+      const aPercentage = this.getAbsolutePercentageValue(a.percentageChange);
+      const bPercentage = this.getAbsolutePercentageValue(b.percentageChange);
+      return bPercentage - aPercentage;
     });
+  }
+
+  /**
+   * Extracts the absolute numeric value from a percentage change string
+   * @param percentageChange - String like "+3.5%" or "-2.1%"
+   * @returns Absolute numeric value (e.g., 3.5 for "+3.5%" or "-3.5%")
+   */
+  private getAbsolutePercentageValue(percentageChange: string): number {
+    // Remove the % sign and + or - sign, then parse as float
+    const numericValue = parseFloat(percentageChange.replace(/[+\-%]/g, ''));
+    return isNaN(numericValue) ? 0 : Math.abs(numericValue);
+  }
+
+  private getProductTypeFromSubType(subType: string): string | null {
+    // Map sub-types to their product types
+    const subTypeToProductType: Record<string, string> = {
+      'US Equity Small Cap': 'Equity',
+      'US Equity Large Cap': 'Equity',
+      'Global Equity': 'Equity',
+      'Emerging Markets': 'Equity',
+      'Mid Cap Growth': 'Equity',
+      'Core Investment Grade': 'Fixed Income',
+      'Municipal Bond': 'Fixed Income',
+      'Global Bonds': 'Fixed Income',
+      'Short Duration': 'Fixed Income',
+      'High Yield Bonds': 'Fixed Income',
+      'Government/Sovereign': 'Fixed Income',
+      'Credit Long Duration': 'Fixed Income',
+      'Hedge Funds': 'Alternatives',
+      'Crypto': 'Alternatives',
+      'Commodities': 'Alternatives',
+      'Money Market Funds': 'Cash',
+      'Treasury Bills': 'Cash',
+      'Bank Deposits/CDs': 'Cash',
+      'Foreign Currency/FFX': 'Cash',
+      'Private Credit': 'Private Markets',
+      'Venture Capital': 'Private Markets',
+      'Co-Investment': 'Private Markets',
+      'Private Equity': 'Private Markets',
+      'Single-family homes': 'Real Estate',
+      'Multi-family homes': 'Real Estate',
+      'Condominiums': 'Real Estate',
+      'Townhouses': 'Real Estate',
+      'Overlay Strategies': 'Other / Specialized',
+      'Factor Based Investing': 'Other / Specialized',
+      'Diversified Growth Funds': 'Multi-Asset',
+      'Target Date Funds': 'Multi-Asset'
+    };
+
+    return subTypeToProductType[subType] || null;
   }
 
 }

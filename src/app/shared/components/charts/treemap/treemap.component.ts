@@ -26,14 +26,72 @@ interface TreemapNode extends d3.HierarchyNode<TreemapDataNode> {
 })
 export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   // eslint-disable-next-line no-underscore-dangle
+  private _dimension1Id: string | null = null;
+  // eslint-disable-next-line no-underscore-dangle
+  private _dimension1Values: string[] = [];
+  // eslint-disable-next-line no-underscore-dangle
+  private _dimension2Id: string | null = null;
+  // eslint-disable-next-line no-underscore-dangle
+  private _dimension2Values: string[] = [];
+  
+  // Legacy inputs for backward compatibility
+  // eslint-disable-next-line no-underscore-dangle
   private _selectedProductRegions: string[] = [];
   // eslint-disable-next-line no-underscore-dangle
   private _selectedProductTypes: string[] = [];
   
   @Input() 
+  set dimension1Id(value: string | null) {
+    // eslint-disable-next-line no-underscore-dangle
+    this._dimension1Id = value || null;
+  }
+  get dimension1Id(): string | null {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._dimension1Id;
+  }
+  
+  @Input() 
+  set dimension1Values(value: string[]) {
+    // eslint-disable-next-line no-underscore-dangle
+    this._dimension1Values = value || [];
+  }
+  get dimension1Values(): string[] {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._dimension1Values;
+  }
+  
+  @Input() 
+  set dimension2Id(value: string | null) {
+    // eslint-disable-next-line no-underscore-dangle
+    this._dimension2Id = value || null;
+  }
+  get dimension2Id(): string | null {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._dimension2Id;
+  }
+  
+  @Input() 
+  set dimension2Values(value: string[]) {
+    // eslint-disable-next-line no-underscore-dangle
+    this._dimension2Values = value || [];
+  }
+  get dimension2Values(): string[] {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._dimension2Values;
+  }
+  
+  // Legacy inputs for backward compatibility
+  @Input() 
   set selectedProductRegions(value: string[]) {
     // eslint-disable-next-line no-underscore-dangle
     this._selectedProductRegions = value || [];
+    // If dimension1Id is not set, use legacy behavior
+    if (!this._dimension1Id) {
+      // eslint-disable-next-line no-underscore-dangle
+      this._dimension1Id = 'product-region';
+      // eslint-disable-next-line no-underscore-dangle
+      this._dimension1Values = value || [];
+    }
   }
   get selectedProductRegions(): string[] {
     // eslint-disable-next-line no-underscore-dangle
@@ -44,6 +102,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   set selectedProductTypes(value: string[]) {
     // eslint-disable-next-line no-underscore-dangle
     this._selectedProductTypes = value || [];
+    // If dimension2Id is not set, use legacy behavior
+    if (!this._dimension2Id) {
+      // eslint-disable-next-line no-underscore-dangle
+      this._dimension2Id = 'product-type';
+      // eslint-disable-next-line no-underscore-dangle
+      this._dimension2Values = value || [];
+    }
   }
   get selectedProductTypes(): string[] {
     // eslint-disable-next-line no-underscore-dangle
@@ -80,7 +145,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
    * @returns Nothing.
    */
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedProductRegions'] || changes['selectedProductTypes']) {
+    if (changes['selectedProductRegions'] || changes['selectedProductTypes'] || 
+        changes['dimension1Id'] || changes['dimension1Values'] || 
+        changes['dimension2Id'] || changes['dimension2Values']) {
       // Recreate treemap when filters change (only if view is initialized)
       const container = this.el.nativeElement.querySelector('.treemap-container');
       if (container) {
@@ -126,15 +193,17 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
    * @returns The CSS color value.
    */
   private getColorForPercentage(percentage: number): string {
-    if (percentage > 0) {
+    const neutralThreshold = 0.5; // Treat values between -0.5 and +0.5 as neutral
+    
+    if (Math.abs(percentage) <= neutralThreshold) {
+      // Light gray for neutral (values close to zero)
+      return TreemapComponent.getCssVariable('--bg-gray-medium', '#e5e7eb');
+    } else if (percentage > 0) {
       // Green for inflow/positive
       return TreemapComponent.getCssVariable('--green-light', '#86efac');
-    } else if (percentage < 0) {
+    } else {
       // Pink for outflow/negative
       return TreemapComponent.getCssVariable('--red-light', '#fca5a5');
-    } else {
-      // Light gray for neutral
-      return TreemapComponent.getCssVariable('--bg-gray-medium', '#e5e7eb');
     }
   }
 
@@ -144,141 +213,276 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
    * @returns The CSS color value for the border.
    */
   private getBorderColorForPercentage(percentage: number): string {
-    if (percentage > 0) {
-      return TreemapComponent.getCssVariable('--green-dark', '#10b981');
-    } else if (percentage < 0) {
-      return TreemapComponent.getCssVariable('--red-dark', '#ef4444');
-    } else {
+    const neutralThreshold = 0.5; // Treat values between -0.5 and +0.5 as neutral
+    
+    if (Math.abs(percentage) <= neutralThreshold) {
       return TreemapComponent.getCssVariable('--gray-medium', '#6b7280');
+    } else if (percentage > 0) {
+      return TreemapComponent.getCssVariable('--green-dark', '#10b981');
+    } else {
+      return TreemapComponent.getCssVariable('--red-dark', '#ef4444');
     }
   }
 
   /**
-   * Gets the raw treemap data organized by region and product type.
-   * @returns The raw data structure.
+   * Gets the raw treemap data organized by all possible dimension combinations.
+   * @returns The raw data structure with all dimension combinations.
    */
-  private getRawData(): { [region: string]: { [productType: string]: { value: number; percentage: number } } } {
-    return {
-      'United States': {
-        'Equity': { value: 285, percentage: 6.8 },
-        'Fixed Income': { value: 215, percentage: 3.5 },
-        'Alternatives': { value: 215, percentage: 3.5 },
-        'Cash': { value: 45, percentage: 1.2 },
-        'Private Markets': { value: 95, percentage: 12.5 },
-        'Real Estate': { value: 95, percentage: -7.2 },
-        'Other/Specialized': { value: 95, percentage: -7.2 },
-        'Multi-Asset': { value: 75, percentage: 4.5 }
-      },
-      'Europe': {
-        'Equity': { value: 195, percentage: 2.5 },
-        'Fixed Income': { value: 235, percentage: 4.8 },
-        'Alternatives': { value: 105, percentage: 9.5 },
-        'Cash': { value: 42, percentage: 1.8 },
-        'Private Markets': { value: 95, percentage: 12.5 },
-        'Real Estate': { value: 32, percentage: -4.5 },
-        'Other/Specialized': { value: 58, percentage: 7.9 },
-        'Multi-Asset': { value: 68, percentage: 3.9 }
-      },
-      'Asia Pacific': {
-        'Equity': { value: 198, percentage: -0.8 },
-        'Fixed Income': { value: 168, percentage: 2.2 },
-        'Alternatives': { value: 85, percentage: 6.5 },
-        'Cash': { value: 38, percentage: 1.5 },
-        'Private Markets': { value: 95, percentage: 12.5 },
-        'Real Estate': { value: 69, percentage: -3.2 },
-        'Other/Specialized': { value: 95, percentage: -7.2 },
-        'Multi-Asset': { value: 52, percentage: 3.2 }
-      },
-      'United Kingdom': {
-        'Equity': { value: 145, percentage: 4.2 },
-        'Fixed Income': { value: 125, percentage: 3.1 },
-        'Alternatives': { value: 75, percentage: 8.5 },
-        'Cash': { value: 35, percentage: 1.1 },
-        'Private Markets': { value: 95, percentage: 12.5 },
-        'Real Estate': { value: 69, percentage: -3.2 },
-        'Other/Specialized': { value: 95, percentage: -7.2 },
-        'Multi-Asset': { value: 48, percentage: 2.8 }
-      },
-      'Middle East & Africa': {
-        'Equity': { value: 98, percentage: 2.8 },
-        'Fixed Income': { value: 88, percentage: 2.5 },
-        'Alternatives': { value: 55, percentage: 7.2 },
-        'Cash': { value: 28, percentage: 0.9 },
-        'Private Markets': { value: 95, percentage: 12.5 },
-        'Real Estate': { value: 69, percentage: -3.2 },
-        'Other/Specialized': { value: 95, percentage: -7.2 },
-        'Multi-Asset': { value: 38, percentage: 2.1 },
-      }
-    };
+  private getRawData(): Array<{
+    'product-region': string;
+    'product-type': string;
+    'product-sub-types': string;
+    'investor-region': string;
+    'investor-type': string;
+    value: number;
+    percentage: number;
+  }> {
+    // Comprehensive data structure with all dimension combinations
+    return [
+      // United States combinations with product sub-types - Equity
+      { 'product-region': 'United States', 'product-type': 'Equity', 'product-sub-types': 'US Equity Large Cap', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 120, percentage: 6.8 },
+      { 'product-region': 'United States', 'product-type': 'Equity', 'product-sub-types': 'US Equity Small Cap', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 85, percentage: 5.2 },
+      { 'product-region': 'United States', 'product-type': 'Equity', 'product-sub-types': 'Global Equity', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 50, percentage: 4.1 },
+      { 'product-region': 'United States', 'product-type': 'Equity', 'product-sub-types': 'Emerging Markets', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 30, percentage: 3.5 },
+      // United States - Fixed Income
+      { 'product-region': 'United States', 'product-type': 'Fixed Income', 'product-sub-types': 'Core Investment Grade', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 100, percentage: 3.5 },
+      { 'product-region': 'United States', 'product-type': 'Fixed Income', 'product-sub-types': 'Municipal Bond', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 65, percentage: 2.8 },
+      { 'product-region': 'United States', 'product-type': 'Fixed Income', 'product-sub-types': 'High Yield Bonds', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 50, percentage: 2.2 },
+      // United States - Alternatives
+      { 'product-region': 'United States', 'product-type': 'Alternatives', 'product-sub-types': 'Hedge Funds', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 120, percentage: 3.5 },
+      { 'product-region': 'United States', 'product-type': 'Alternatives', 'product-sub-types': 'Crypto', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 60, percentage: 2.1 },
+      { 'product-region': 'United States', 'product-type': 'Alternatives', 'product-sub-types': 'Commodities', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 35, percentage: 1.5 },
+      // United States - Cash
+      { 'product-region': 'United States', 'product-type': 'Cash', 'product-sub-types': 'Money Market Funds', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 25, percentage: 1.2 },
+      { 'product-region': 'United States', 'product-type': 'Cash', 'product-sub-types': 'Treasury Bills', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 15, percentage: 0.8 },
+      { 'product-region': 'United States', 'product-type': 'Cash', 'product-sub-types': 'Bank Deposits/CDs', 'investor-region': 'United States', 'investor-type': 'Institutional', value: 5, percentage: 0.3 },
+      // United States - Private Markets
+      { 'product-region': 'United States', 'product-type': 'Private Markets', 'product-sub-types': 'Private Equity', 'investor-region': 'United States', 'investor-type': 'Pension Funds', value: 50, percentage: 12.5 },
+      { 'product-region': 'United States', 'product-type': 'Private Markets', 'product-sub-types': 'Private Credit', 'investor-region': 'United States', 'investor-type': 'Pension Funds', value: 30, percentage: 8.2 },
+      { 'product-region': 'United States', 'product-type': 'Private Markets', 'product-sub-types': 'Venture Capita', 'investor-region': 'United States', 'investor-type': 'Pension Funds', value: 15, percentage: 5.5 },
+      // United States - Real Estate
+      { 'product-region': 'United States', 'product-type': 'Real Estate', 'product-sub-types': 'Real Estate', 'investor-region': 'United States', 'investor-type': 'Corporate', value: 95, percentage: -7.2 },
+      // United States - Other/Specialized
+      { 'product-region': 'United States', 'product-type': 'Other/Specialized', 'product-sub-types': 'Overlay Strategies', 'investor-region': 'United States', 'investor-type': 'Family Office', value: 60, percentage: -7.2 },
+      { 'product-region': 'United States', 'product-type': 'Other/Specialized', 'product-sub-types': 'Factor Based Investing', 'investor-region': 'United States', 'investor-type': 'Family Office', value: 35, percentage: -4.5 },
+      // United States - Multi-Asset
+      { 'product-region': 'United States', 'product-type': 'Multi-Asset', 'product-sub-types': 'Diversified Growth Funds', 'investor-region': 'United States', 'investor-type': 'Endowments', value: 45, percentage: 4.5 },
+      { 'product-region': 'United States', 'product-type': 'Multi-Asset', 'product-sub-types': 'Target Date Funds', 'investor-region': 'United States', 'investor-type': 'Endowments', value: 30, percentage: 3.2 },
+      
+      // Europe combinations with product sub-types - Equity
+      { 'product-region': 'Europe', 'product-type': 'Equity', 'product-sub-types': 'Global Equity', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 100, percentage: 2.5 },
+      { 'product-region': 'Europe', 'product-type': 'Equity', 'product-sub-types': 'Emerging Markets', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 60, percentage: 1.8 },
+      { 'product-region': 'Europe', 'product-type': 'Equity', 'product-sub-types': 'US Equity Large Cap', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 35, percentage: 1.2 },
+      // Europe - Fixed Income
+      { 'product-region': 'Europe', 'product-type': 'Fixed Income', 'product-sub-types': 'Global Bonds', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 120, percentage: 4.8 },
+      { 'product-region': 'Europe', 'product-type': 'Fixed Income', 'product-sub-types': 'Government/Sovereign', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 70, percentage: 3.2 },
+      { 'product-region': 'Europe', 'product-type': 'Fixed Income', 'product-sub-types': 'Credit Long Duration', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 45, percentage: 2.1 },
+      // Europe - Alternatives
+      { 'product-region': 'Europe', 'product-type': 'Alternatives', 'product-sub-types': 'Commodities', 'investor-region': 'Europe', 'investor-type': 'Pension Funds', value: 60, percentage: 9.5 },
+      { 'product-region': 'Europe', 'product-type': 'Alternatives', 'product-sub-types': 'Hedge Funds', 'investor-region': 'Europe', 'investor-type': 'Pension Funds', value: 35, percentage: 6.2 },
+      { 'product-region': 'Europe', 'product-type': 'Alternatives', 'product-sub-types': 'Crypto', 'investor-region': 'Europe', 'investor-type': 'Pension Funds', value: 10, percentage: 2.1 },
+      // Europe - Cash
+      { 'product-region': 'Europe', 'product-type': 'Cash', 'product-sub-types': 'Treasury Bills', 'investor-region': 'Europe', 'investor-type': 'Corporate', value: 25, percentage: 1.8 },
+      { 'product-region': 'Europe', 'product-type': 'Cash', 'product-sub-types': 'Money Market Funds', 'investor-region': 'Europe', 'investor-type': 'Corporate', value: 12, percentage: 0.9 },
+      { 'product-region': 'Europe', 'product-type': 'Cash', 'product-sub-types': 'Foreign Currency/FFX', 'investor-region': 'Europe', 'investor-type': 'Corporate', value: 5, percentage: 0.4 },
+      // Europe - Private Markets
+      { 'product-region': 'Europe', 'product-type': 'Private Markets', 'product-sub-types': 'Private Credit', 'investor-region': 'Europe', 'investor-type': 'Sovereign Wealth', value: 50, percentage: 12.5 },
+      { 'product-region': 'Europe', 'product-type': 'Private Markets', 'product-sub-types': 'Private Equity', 'investor-region': 'Europe', 'investor-type': 'Sovereign Wealth', value: 30, percentage: 8.5 },
+      { 'product-region': 'Europe', 'product-type': 'Private Markets', 'product-sub-types': 'Co-Investment', 'investor-region': 'Europe', 'investor-type': 'Sovereign Wealth', value: 15, percentage: 5.2 },
+      // Europe - Real Estate
+      { 'product-region': 'Europe', 'product-type': 'Real Estate', 'product-sub-types': 'Real Estate', 'investor-region': 'Europe', 'investor-type': 'Family Office', value: 32, percentage: -4.5 },
+      // Europe - Other/Specialized
+      { 'product-region': 'Europe', 'product-type': 'Other/Specialized', 'product-sub-types': 'Factor Based Investing', 'investor-region': 'Europe', 'investor-type': 'Endowments', value: 35, percentage: 7.9 },
+      { 'product-region': 'Europe', 'product-type': 'Other/Specialized', 'product-sub-types': 'Overlay Strategies', 'investor-region': 'Europe', 'investor-type': 'Endowments', value: 23, percentage: 5.2 },
+      // Europe - Multi-Asset
+      { 'product-region': 'Europe', 'product-type': 'Multi-Asset', 'product-sub-types': 'Target Date Funds', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 40, percentage: 3.9 },
+      { 'product-region': 'Europe', 'product-type': 'Multi-Asset', 'product-sub-types': 'Diversified Growth Funds', 'investor-region': 'Europe', 'investor-type': 'Institutional', value: 28, percentage: 2.8 },
+      
+      // Asia Pacific combinations with product sub-types - Equity
+      { 'product-region': 'Asia Pacific', 'product-type': 'Equity', 'product-sub-types': 'Emerging Markets', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 100, percentage: -0.8 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Equity', 'product-sub-types': 'Global Equity', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 60, percentage: -0.5 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Equity', 'product-sub-types': 'US Equity Large Cap', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 38, percentage: -0.3 },
+      // Asia Pacific - Fixed Income
+      { 'product-region': 'Asia Pacific', 'product-type': 'Fixed Income', 'product-sub-types': 'Government/Sovereign', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 85, percentage: 2.2 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Fixed Income', 'product-sub-types': 'Global Bonds', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 55, percentage: 1.8 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Fixed Income', 'product-sub-types': 'Short Duration', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 28, percentage: 1.2 },
+      // Asia Pacific - Alternatives
+      { 'product-region': 'Asia Pacific', 'product-type': 'Alternatives', 'product-sub-types': 'Crypto', 'investor-region': 'Asia Pacific', 'investor-type': 'Sovereign Wealth', value: 50, percentage: 6.5 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Alternatives', 'product-sub-types': 'Hedge Funds', 'investor-region': 'Asia Pacific', 'investor-type': 'Sovereign Wealth', value: 25, percentage: 4.2 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Alternatives', 'product-sub-types': 'Commodities', 'investor-region': 'Asia Pacific', 'investor-type': 'Sovereign Wealth', value: 10, percentage: 2.1 },
+      // Asia Pacific - Cash
+      { 'product-region': 'Asia Pacific', 'product-type': 'Cash', 'product-sub-types': 'Bank Deposits/CDs', 'investor-region': 'Asia Pacific', 'investor-type': 'Corporate', value: 22, percentage: 1.5 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Cash', 'product-sub-types': 'Money Market Funds', 'investor-region': 'Asia Pacific', 'investor-type': 'Corporate', value: 12, percentage: 0.9 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Cash', 'product-sub-types': 'Treasury Bills', 'investor-region': 'Asia Pacific', 'investor-type': 'Corporate', value: 4, percentage: 0.3 },
+      // Asia Pacific - Private Markets
+      { 'product-region': 'Asia Pacific', 'product-type': 'Private Markets', 'product-sub-types': 'Venture Capita', 'investor-region': 'Asia Pacific', 'investor-type': 'Pension Funds', value: 50, percentage: 12.5 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Private Markets', 'product-sub-types': 'Private Equity', 'investor-region': 'Asia Pacific', 'investor-type': 'Pension Funds', value: 30, percentage: 8.5 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Private Markets', 'product-sub-types': 'Private Credit', 'investor-region': 'Asia Pacific', 'investor-type': 'Pension Funds', value: 15, percentage: 5.2 },
+      // Asia Pacific - Real Estate
+      { 'product-region': 'Asia Pacific', 'product-type': 'Real Estate', 'product-sub-types': 'Real Estate', 'investor-region': 'Asia Pacific', 'investor-type': 'Family Office', value: 69, percentage: -3.2 },
+      // Asia Pacific - Other/Specialized
+      { 'product-region': 'Asia Pacific', 'product-type': 'Other/Specialized', 'product-sub-types': 'Overlay Strategies', 'investor-region': 'Asia Pacific', 'investor-type': 'Endowments', value: 55, percentage: -7.2 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Other/Specialized', 'product-sub-types': 'Factor Based Investing', 'investor-region': 'Asia Pacific', 'investor-type': 'Endowments', value: 40, percentage: -5.2 },
+      // Asia Pacific - Multi-Asset
+      { 'product-region': 'Asia Pacific', 'product-type': 'Multi-Asset', 'product-sub-types': 'Diversified Growth Funds', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 32, percentage: 3.2 },
+      { 'product-region': 'Asia Pacific', 'product-type': 'Multi-Asset', 'product-sub-types': 'Target Date Funds', 'investor-region': 'Asia Pacific', 'investor-type': 'Institutional', value: 20, percentage: 2.1 },
+      
+      // United Kingdom combinations with product sub-types - Equity
+      { 'product-region': 'United Kingdom', 'product-type': 'Equity', 'product-sub-types': 'US Equity Small Cap', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 75, percentage: 4.2 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Equity', 'product-sub-types': 'Global Equity', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 50, percentage: 3.1 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Equity', 'product-sub-types': 'Mid Cap Growth', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 20, percentage: 1.8 },
+      // United Kingdom - Fixed Income
+      { 'product-region': 'United Kingdom', 'product-type': 'Fixed Income', 'product-sub-types': 'Municipal Bond', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 65, percentage: 3.1 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Fixed Income', 'product-sub-types': 'Core Investment Grade', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 40, percentage: 2.2 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Fixed Income', 'product-sub-types': 'Global Bonds', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 20, percentage: 1.5 },
+      // United Kingdom - Alternatives
+      { 'product-region': 'United Kingdom', 'product-type': 'Alternatives', 'product-sub-types': 'Hedge Funds', 'investor-region': 'United Kingdom', 'investor-type': 'Pension Funds', value: 45, percentage: 8.5 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Alternatives', 'product-sub-types': 'Commodities', 'investor-region': 'United Kingdom', 'investor-type': 'Pension Funds', value: 20, percentage: 5.2 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Alternatives', 'product-sub-types': 'Crypto', 'investor-region': 'United Kingdom', 'investor-type': 'Pension Funds', value: 10, percentage: 2.8 },
+      // United Kingdom - Cash
+      { 'product-region': 'United Kingdom', 'product-type': 'Cash', 'product-sub-types': 'Foreign Currency/FFX', 'investor-region': 'United Kingdom', 'investor-type': 'Corporate', value: 20, percentage: 1.1 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Cash', 'product-sub-types': 'Money Market Funds', 'investor-region': 'United Kingdom', 'investor-type': 'Corporate', value: 10, percentage: 0.7 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Cash', 'product-sub-types': 'Treasury Bills', 'investor-region': 'United Kingdom', 'investor-type': 'Corporate', value: 5, percentage: 0.4 },
+      // United Kingdom - Private Markets
+      { 'product-region': 'United Kingdom', 'product-type': 'Private Markets', 'product-sub-types': 'Co-Investment', 'investor-region': 'United Kingdom', 'investor-type': 'Sovereign Wealth', value: 50, percentage: 12.5 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Private Markets', 'product-sub-types': 'Private Equity', 'investor-region': 'United Kingdom', 'investor-type': 'Sovereign Wealth', value: 30, percentage: 8.5 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Private Markets', 'product-sub-types': 'Private Credit', 'investor-region': 'United Kingdom', 'investor-type': 'Sovereign Wealth', value: 15, percentage: 5.2 },
+      // United Kingdom - Real Estate
+      { 'product-region': 'United Kingdom', 'product-type': 'Real Estate', 'product-sub-types': 'Real Estate', 'investor-region': 'United Kingdom', 'investor-type': 'Family Office', value: 69, percentage: -3.2 },
+      // United Kingdom - Other/Specialized
+      { 'product-region': 'United Kingdom', 'product-type': 'Other/Specialized', 'product-sub-types': 'Factor Based Investing', 'investor-region': 'United Kingdom', 'investor-type': 'Endowments', value: 55, percentage: -7.2 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Other/Specialized', 'product-sub-types': 'Overlay Strategies', 'investor-region': 'United Kingdom', 'investor-type': 'Endowments', value: 40, percentage: -5.2 },
+      // United Kingdom - Multi-Asset
+      { 'product-region': 'United Kingdom', 'product-type': 'Multi-Asset', 'product-sub-types': 'Target Date Funds', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 28, percentage: 2.8 },
+      { 'product-region': 'United Kingdom', 'product-type': 'Multi-Asset', 'product-sub-types': 'Diversified Growth Funds', 'investor-region': 'United Kingdom', 'investor-type': 'Institutional', value: 20, percentage: 2.1 },
+      
+      // Middle East & Africa combinations with product sub-types - Equity
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Equity', 'product-sub-types': 'Mid Cap Growth', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 50, percentage: 2.8 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Equity', 'product-sub-types': 'Emerging Markets', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 30, percentage: 2.1 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Equity', 'product-sub-types': 'Global Equity', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 18, percentage: 1.5 },
+      // Middle East & Africa - Fixed Income
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Fixed Income', 'product-sub-types': 'High Yield Bonds', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 45, percentage: 2.5 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Fixed Income', 'product-sub-types': 'Government/Sovereign', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 28, percentage: 1.8 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Fixed Income', 'product-sub-types': 'Global Bonds', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 15, percentage: 1.2 },
+      // Middle East & Africa - Alternatives
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Alternatives', 'product-sub-types': 'Commodities', 'investor-region': 'Middle East & Africa', 'investor-type': 'Sovereign Wealth', value: 35, percentage: 7.2 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Alternatives', 'product-sub-types': 'Hedge Funds', 'investor-region': 'Middle East & Africa', 'investor-type': 'Sovereign Wealth', value: 15, percentage: 4.5 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Alternatives', 'product-sub-types': 'Crypto', 'investor-region': 'Middle East & Africa', 'investor-type': 'Sovereign Wealth', value: 5, percentage: 2.1 },
+      // Middle East & Africa - Cash
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Cash', 'product-sub-types': 'Money Market Funds', 'investor-region': 'Middle East & Africa', 'investor-type': 'Corporate', value: 15, percentage: 0.9 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Cash', 'product-sub-types': 'Treasury Bills', 'investor-region': 'Middle East & Africa', 'investor-type': 'Corporate', value: 8, percentage: 0.6 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Cash', 'product-sub-types': 'Bank Deposits/CDs', 'investor-region': 'Middle East & Africa', 'investor-type': 'Corporate', value: 5, percentage: 0.4 },
+      // Middle East & Africa - Private Markets
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Private Markets', 'product-sub-types': 'Private Equity', 'investor-region': 'Middle East & Africa', 'investor-type': 'Pension Funds', value: 50, percentage: 12.5 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Private Markets', 'product-sub-types': 'Private Credit', 'investor-region': 'Middle East & Africa', 'investor-type': 'Pension Funds', value: 30, percentage: 8.5 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Private Markets', 'product-sub-types': 'Venture Capita', 'investor-region': 'Middle East & Africa', 'investor-type': 'Pension Funds', value: 15, percentage: 5.2 },
+      // Middle East & Africa - Real Estate
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Real Estate', 'product-sub-types': 'Real Estate', 'investor-region': 'Middle East & Africa', 'investor-type': 'Family Office', value: 69, percentage: -3.2 },
+      // Middle East & Africa - Other/Specialized
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Other/Specialized', 'product-sub-types': 'Overlay Strategies', 'investor-region': 'Middle East & Africa', 'investor-type': 'Endowments', value: 55, percentage: -7.2 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Other/Specialized', 'product-sub-types': 'Factor Based Investing', 'investor-region': 'Middle East & Africa', 'investor-type': 'Endowments', value: 40, percentage: -5.2 },
+      // Middle East & Africa - Multi-Asset
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Multi-Asset', 'product-sub-types': 'Diversified Growth Funds', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 23, percentage: 2.1 },
+      { 'product-region': 'Middle East & Africa', 'product-type': 'Multi-Asset', 'product-sub-types': 'Target Date Funds', 'investor-region': 'Middle East & Africa', 'investor-type': 'Institutional', value: 15, percentage: 1.5 }
+    ];
   }
 
   /**
-   * Filters and prepares region data based on selected filters.
-   * @returns Array of filtered region data with their children.
+   * Filters and prepares data based on selected dimensions.
+   * @returns Array of filtered data with their children organized by dimension1 -> dimension2.
    */
   private filterRegionsData(): Array<{ name: string; children: Array<{ name: string; value: number; percentage: number }> }> {
     const rawData = this.getRawData();
-    const regionsData: Array<{ name: string; children: Array<{ name: string; value: number; percentage: number }> }> = [];
+    const resultData: Array<{ name: string; children: Array<{ name: string; value: number; percentage: number }> }> = [];
     
-    // Get all available regions if none selected, otherwise use selected ones
-    const availableRegions = Object.keys(rawData);
-    const regionsToShow = this.selectedProductRegions.length > 0 
-      ? this.selectedProductRegions.filter(r => availableRegions.includes(r))
-      : availableRegions;
-
-    // Get all available product types if none selected, otherwise use selected ones
-    const allProductTypes = new Set<string>();
-    Object.values(rawData).forEach((regionData: { [productType: string]: { value: number; percentage: number } }) => {
-      Object.keys(regionData).forEach((type: string) => allProductTypes.add(type));
+    // Get dimension IDs (default to product-region and product-type for backward compatibility)
+    const dim1Id = this._dimension1Id || 'product-region';
+    const dim2Id = this._dimension2Id || 'product-type';
+    const dim1Values = this._dimension1Values.length > 0 ? this._dimension1Values : [];
+    const dim2Values = this._dimension2Values.length > 0 ? this._dimension2Values : [];
+    
+    // If no dimensions are selected, return empty array
+    if (!dim1Id || !dim2Id) {
+      return resultData;
+    }
+    
+    // Get all unique values for dimension1 and dimension2 from raw data
+    const allDim1Values = new Set<string>();
+    const allDim2Values = new Set<string>();
+    
+    rawData.forEach((record) => {
+      const dim1Value = record[dim1Id as keyof typeof record] as string;
+      const dim2Value = record[dim2Id as keyof typeof record] as string;
+      if (dim1Value) allDim1Values.add(dim1Value);
+      if (dim2Value) allDim2Values.add(dim2Value);
     });
     
-    // Filter selected product types to only include those that exist in the data
-    const hasSelectedTypes = Array.isArray(this.selectedProductTypes) && this.selectedProductTypes.length > 0;
-    let productTypesToShow: string[] = [];
+    // Determine which values to show for each dimension
+    const dim1ValuesToShow = dim1Values.length > 0 
+      ? dim1Values.filter(v => allDim1Values.has(v))
+      : Array.from(allDim1Values);
     
-    if (hasSelectedTypes) {
-      // Filter to only include types that exist in the data
-      productTypesToShow = this.selectedProductTypes
-        .map(t => t?.trim())
-        .filter(t => t && allProductTypes.has(t));
+    const dim2ValuesToShow = dim2Values.length > 0
+      ? dim2Values.filter(v => allDim2Values.has(v))
+      : Array.from(allDim2Values);
+    
+    // Group data by dimension1, aggregating values for dimension2
+    const groupedData: { [key: string]: { [key: string]: { value: number; percentage: number } } } = {};
+    
+    rawData.forEach((record) => {
+      const dim1Value = record[dim1Id as keyof typeof record] as string;
+      const dim2Value = record[dim2Id as keyof typeof record] as string;
       
-      // If all selected types were filtered out, show all types instead
-      if (productTypesToShow.length === 0) {
-        productTypesToShow = Array.from(allProductTypes);
+      if (!dim1ValuesToShow.includes(dim1Value) || !dim2ValuesToShow.includes(dim2Value)) {
+        return;
       }
-    } else {
-      // No types selected, show all
-      productTypesToShow = Array.from(allProductTypes);
-    }
-
-    // Build filtered regions data
-    regionsToShow.forEach((regionName: string) => {
-      const regionData = rawData[regionName];
-      if (!regionData) return;
+      
+      if (!groupedData[dim1Value]) {
+        groupedData[dim1Value] = {};
+      }
+      
+      // Aggregate values if the same dimension1-dimension2 combination appears multiple times
+      if (groupedData[dim1Value][dim2Value]) {
+        groupedData[dim1Value][dim2Value].value += record.value;
+        // Average percentage (or use weighted average if needed)
+        groupedData[dim1Value][dim2Value].percentage = 
+          (groupedData[dim1Value][dim2Value].percentage + record.percentage) / 2;
+      } else {
+        groupedData[dim1Value][dim2Value] = {
+          value: record.value,
+          percentage: record.percentage
+        };
+      }
+    });
+    
+    // Build result data structure
+    dim1ValuesToShow.forEach((dim1Value: string) => {
+      const dim1Data = groupedData[dim1Value];
+      if (!dim1Data) return;
 
       const children: Array<{ name: string; value: number; percentage: number }> = [];
       
-      productTypesToShow.forEach((productType: string) => {
-        const typeData = regionData[productType];
-        if (typeData) {
+      dim2ValuesToShow.forEach((dim2Value: string) => {
+        const dim2Data = dim1Data[dim2Value];
+        if (dim2Data) {
           children.push({
-            name: productType,
-            value: typeData.value,
-            percentage: typeData.percentage
+            name: dim2Value,
+            value: dim2Data.value,
+            percentage: dim2Data.percentage
           });
         }
       });
 
-      // Only add region if it has children after filtering
+      // Only add dimension1 group if it has children after filtering
       if (children.length > 0) {
-        regionsData.push({
-          name: regionName,
+        resultData.push({
+          name: dim1Value,
           children: children
         });
       }
     });
     
-    return regionsData;
+    return resultData;
   }
 
   /**
@@ -452,7 +656,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
       const treemapRoot = regionHierarchy as unknown as TreemapNode;
 
-      this.drawRegionCells(regionGroup, treemapRoot, regionPadding, tooltip);
+      this.drawRegionCells(regionGroup, treemapRoot, regionPadding, tooltip, this._dimension2Id);
 
       currentX += regionWidth;
     });
@@ -464,13 +668,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
    * @param treemapRoot - The treemap hierarchy root node.
    * @param regionPadding - Padding between regions.
    * @param tooltip - The tooltip selection.
+   * @param dimension2Id - The ID of dimension 2 to determine if truncation is needed.
    * @returns Nothing.
    */
   private drawRegionCells(
     regionGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
     treemapRoot: TreemapNode,
     regionPadding: number,
-    tooltip: d3.Selection<HTMLDivElement, unknown, null, undefined>
+    tooltip: d3.Selection<HTMLDivElement, unknown, null, undefined>,
+    dimension2Id: string | null
   ): void {
     // Draw asset class rectangles
     const cells = regionGroup.selectAll('g.cell')
@@ -497,7 +703,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           .html(`
             <div><strong>${d.data.name}</strong></div>
             <div style="margin-top: 4px;">Value: $${d.data.value}B</div>
-            <div style="margin-top: 2px;">Change: ${d.data.percentage > 0 ? '+' : ''}${d.data.percentage}%</div>
+            <div style="margin-top: 2px;">Change: ${d.data.percentage > 0 ? '+' : ''}${d.data.percentage.toFixed(2)}%</div>
           `);
       })
       .on('mousemove', function handleMouseMove(event: MouseEvent) {
@@ -520,7 +726,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       const minSize = 60;
 
       if (rectWidth > minSize && rectHeight > minSize) {
-        // Asset name
+        // Asset name (truncated to 6 characters only for Product Sub-Types)
+        const shouldTruncate = dimension2Id === 'product-sub-types';
+        const displayName = shouldTruncate && d.data.name.length > 6 
+          ? d.data.name.substring(0, 3) + '...' 
+          : d.data.name;
         cell.append('text')
           .attr('x', 6)
           .attr('y', 16)
@@ -528,7 +738,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('font-size', '12px')
           .style('font-weight', '600')
           .style('fill', TreemapComponent.getCssVariable('--text-primary', '#030213'))
-          .text(d.data.name);
+          .text(displayName);
 
         // Value
         cell.append('text')
@@ -548,9 +758,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('font-size', '10px')
           .style('font-weight', '500')
           .style('fill', TreemapComponent.getCssVariable('--text-secondary', '#717182'))
-          .text(`${d.data.percentage > 0 ? '+' : ''}${d.data.percentage}%`);
+          .text(`${d.data.percentage > 0 ? '+' : ''}${d.data.percentage.toFixed(2)}%`);
       } else if (rectWidth > 40 && rectHeight > 30) {
-        // Show abbreviated label for medium-sized cells
+        // Show abbreviated label for medium-sized cells (truncated to 6 characters only for Product Sub-Types)
+        const shouldTruncate = dimension2Id === 'product-sub-types';
+        const displayName = shouldTruncate && d.data.name.length > 6 
+          ? d.data.name.substring(0, 3) + '...' 
+          : d.data.name;
         cell.append('text')
           .attr('x', rectWidth / 2)
           .attr('y', rectHeight / 2)
@@ -559,7 +773,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('font-size', '10px')
           .style('font-weight', '600')
           .style('fill', TreemapComponent.getCssVariable('--text-primary', '#030213'))
-          .text(d.data.name);
+          .text(displayName);
       }
     });
   }

@@ -123,6 +123,10 @@
   <!-- Treemap Visualization -->
   <div class="treemap-section">
     <app-treemap 
+      [dimension1Id]="selectedDimension1?.id || null"
+      [dimension1Values]="getDimensionValues(selectedDimension1?.id || null)"
+      [dimension2Id]="selectedDimension2?.id || null"
+      [dimension2Values]="getDimensionValues(selectedDimension2?.id || null)"
       [selectedProductRegions]="selectedProductRegions"
       [selectedProductTypes]="selectedProductTypes">
     </app-treemap>

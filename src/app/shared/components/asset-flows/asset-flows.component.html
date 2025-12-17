@@ -123,17 +123,17 @@
 
   <!-- Sankey Diagram Visualization -->
   <div class="visualization-container">
-    <app-sankey-diagram></app-sankey-diagram>
-    <!-- Legend -->
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-color inflow"></div>
-        <span class="legend-text">Inflow</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color outflow"></div>
-        <span class="legend-text">Outflow</span>
-      </div>
-    </div>
+    <app-sankey-diagram
+      [selectedProductTypes]="selectedProductTypes"
+      [selectedProductSubTypes]="selectedProductSubTypes"
+      [dataType]="dataType"
+      [timeHorizon]="timeHorizon">
+    </app-sankey-diagram>
+  </div>
+
+  <!-- Regional Sankey Diagram Visualization -->
+  <div class="visualization-container">
+    <app-regional-sankey-diagram>
+    </app-regional-sankey-diagram>
   </div>
 </div>

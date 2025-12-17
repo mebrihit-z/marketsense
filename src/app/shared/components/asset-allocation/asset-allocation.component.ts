@@ -42,6 +42,8 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
+  @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedInvestorTypes: string[] = [];
   @Output() pinToggle = new EventEmitter<void>();
   
   // View state
@@ -56,7 +58,9 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
-    { id: 'product-type', label: 'Product Type', count: 0, active: true }
+    { id: 'product-type', label: 'Product Type', count: 0, active: true },
+    { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
+    { id: 'investor-type', label: 'Investor Type', count: 0, active: true }
   ];
 
   // Selected dimensions for drop zones
@@ -117,10 +121,14 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     console.log('Asset Allocation component initialized');
     this.updateDimensions();
+    // Set default dimensions
+    this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'product-region') || null;
+    this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedProductTypes'] || changes['selectedProductRegions'] || changes['selectedProductSubTypes']) {
+    if (changes['selectedProductTypes'] || changes['selectedProductRegions'] || changes['selectedProductSubTypes'] ||
+        changes['selectedInvestorRegions'] || changes['selectedInvestorTypes']) {
       this.updateDimensions();
     }
   }
@@ -139,6 +147,16 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     const productSubTypeDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
     if (productSubTypeDimension) {
       productSubTypeDimension.count = this.selectedProductSubTypes.length;
+    }
+
+    const investorRegionDimension = this.availableDimensions.find(d => d.id === 'investor-region');
+    if (investorRegionDimension) {
+      investorRegionDimension.count = this.selectedInvestorRegions.length;
+    }
+
+    const investorTypeDimension = this.availableDimensions.find(d => d.id === 'investor-type');
+    if (investorTypeDimension) {
+      investorTypeDimension.count = this.selectedInvestorTypes.length;
     }
   }
 
@@ -189,6 +207,30 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
 
       this.draggedDimension = null;
       console.log('Dimension dropped:', dropZone, this.selectedDimension1, this.selectedDimension2);
+    }
+  }
+
+  /**
+   * Gets the values array for a given dimension ID.
+   * @param dimensionId - The dimension ID to get values for.
+   * @returns Array of selected values for the dimension.
+   */
+  getDimensionValues(dimensionId: string | null): string[] {
+    if (!dimensionId) return [];
+    
+    switch (dimensionId) {
+      case 'product-region':
+        return this.selectedProductRegions;
+      case 'product-type':
+        return this.selectedProductTypes;
+      case 'product-sub-types':
+        return this.selectedProductSubTypes;
+      case 'investor-region':
+        return this.selectedInvestorRegions;
+      case 'investor-type':
+        return this.selectedInvestorTypes;
+      default:
+        return [];
     }
   }
 
