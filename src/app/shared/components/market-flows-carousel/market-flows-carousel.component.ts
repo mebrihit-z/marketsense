@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import { AskMarketsenseModalComponent } from './ask-marketsense-modal/ask-marketsense-modal.component';
@@ -32,6 +32,17 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   showExportModal: boolean = false;
   selectedCardForExport: MarketFlowCard | null = null;
   
+  // Sort dropdown state
+  sortDropdownOpen: boolean = false;
+  selectedSortOption: string = 'value-high';
+  
+  sortOptions = [
+    { value: 'value-high', label: '↑ Value: Highest', displayLabel: 'Value: High to Low' },
+    { value: 'value-low', label: '↓ Value: Lowest', displayLabel: 'Value: Low to High' },
+    { value: 'change-high', label: '↑ Change %: Highest', displayLabel: 'Change %: High to Low' },
+    { value: 'change-low', label: '↓ Change %: Lowest', displayLabel: 'Change %: Low to High' }
+  ];
+  
   get headerTitle(): string {
     return this.dataType === 'historical' 
       ? 'Featured Market Flows' 
@@ -40,8 +51,40 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   
   get filteredCards(): MarketFlowCard[] {
     // Cards are already filtered by the dashboard component
-    // Just return all cards passed in
-    return this.cards || [];
+    // Apply sorting based on selected sort option
+    const cards = this.cards || [];
+    return this.sortCards([...cards]);
+  }
+  
+  sortCards(cards: MarketFlowCard[]): MarketFlowCard[] {
+    switch (this.selectedSortOption) {
+      case 'value-high':
+        return cards.sort((a, b) => this.parseValue(b.value) - this.parseValue(a.value));
+      case 'value-low':
+        return cards.sort((a, b) => this.parseValue(a.value) - this.parseValue(b.value));
+      case 'change-high':
+        return cards.sort((a, b) => this.parsePercentage(b.percentageChange) - this.parsePercentage(a.percentageChange));
+      case 'change-low':
+        return cards.sort((a, b) => this.parsePercentage(a.percentageChange) - this.parsePercentage(b.percentageChange));
+      default:
+        return cards;
+    }
+  }
+  
+  parseValue(valueStr: string): number {
+    // Parse values like "$124.8B", "-$98.4B", "$90B"
+    // Remove $ and B, but keep the negative sign
+    const cleaned = valueStr.replace(/[$,B]/g, '').trim();
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+  
+  parsePercentage(percentageStr: string): number {
+    // Parse percentages like "+12.3%", "-12.3%", "+4.6%"
+    // Remove + and %, but keep the negative sign
+    const cleaned = percentageStr.replace(/[+%]/g, '').trim();
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
   }
   
   get totalSlides(): number {
@@ -196,6 +239,43 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
 
   isCardPinned(cardId: string): boolean {
     return this.pinnedCardIds.includes(cardId);
+  }
+  
+  toggleSortDropdown(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.sortDropdownOpen = !this.sortDropdownOpen;
+  }
+  
+  closeSortDropdown(): void {
+    this.sortDropdownOpen = false;
+  }
+  
+  selectSortOption(optionValue: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.selectedSortOption = optionValue;
+    this.sortDropdownOpen = false;
+    // Reset to first slide when sort changes
+    this.currentSlideIndex = 0;
+  }
+  
+  get selectedSortDisplayLabel(): string {
+    const option = this.sortOptions.find(opt => opt.value === this.selectedSortOption);
+    return option?.displayLabel || 'Value: High to Low';
+  }
+  
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    if (this.sortDropdownOpen) {
+      const target = event.target as HTMLElement;
+      const dropdownElement = target.closest('.sort-section');
+      if (!dropdownElement) {
+        this.closeSortDropdown();
+      }
+    }
   }
 }
 

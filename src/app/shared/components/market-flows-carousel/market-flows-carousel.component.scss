@@ -24,6 +24,24 @@
   }
 }
 
+.sort-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  
+  @media (max-width: 1024px) {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
 .title-section {
   display: flex;
   align-items: center;
@@ -37,6 +55,128 @@
   letter-spacing: -0.76px;
   color: $text-primary;
   margin: 0;
+}
+
+
+.sort-label {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-primary;
+}
+
+.sort-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.sort-dropdown-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: $bg-white;
+  border: 1px solid $border-gray-dark;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-primary;
+  transition: border-color 0.2s, background-color 0.2s;
+  min-width: 160px;
+  justify-content: space-between;
+
+  &:hover {
+    border-color: $border-gray;
+    background-color: $bg-gray-light;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-blue;
+  }
+}
+
+.sort-dropdown-text {
+  flex: 1;
+  text-align: left;
+}
+
+.sort-dropdown-icon {
+  width: 16px;
+  height: 16px;
+  color: $text-secondary;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.sort-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: $bg-white;
+  border: 1px solid $border-gray-medium;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  @media (max-width: 768px) {
+    right: auto;
+    left: 0;
+    min-width: 100%;
+  }
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-primary;
+  transition: background-color 0.2s;
+  position: relative;
+
+  &:hover {
+    background-color: $bg-gray-light;
+  }
+
+  &.active {
+    background-color: $primary-blue-light;
+  }
+}
+
+.sort-option-label {
+  flex: 1;
+}
+
+.sort-option-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $primary-blue;
+  flex-shrink: 0;
 }
 
 .view-all-btn {

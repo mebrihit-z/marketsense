@@ -3,7 +3,40 @@
   <div class="header-container">
     <div class="title-section">
       <h2 class="title">{{ headerTitle }}</h2>
-     
+    </div>
+    <div class="sort-section">
+      <span class="sort-label">Sort by:</span>
+      <div class="sort-dropdown">
+        <button 
+          type="button"
+          class="sort-dropdown-button"
+          (click)="toggleSortDropdown($event)"
+          [attr.aria-expanded]="sortDropdownOpen"
+          aria-haspopup="true">
+          <span class="sort-dropdown-text">{{ selectedSortDisplayLabel }}</span>
+          <svg 
+            class="sort-dropdown-icon" 
+            [class.open]="sortDropdownOpen"
+            width="16" 
+            height="16" 
+            viewBox="0 0 16 16" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="sort-dropdown-menu" *ngIf="sortDropdownOpen" (click)="$event.stopPropagation()">
+          <button
+            *ngFor="let option of sortOptions"
+            type="button"
+            class="sort-option"
+            [class.active]="selectedSortOption === option.value"
+            (click)="selectSortOption(option.value, $event)">
+            <span class="sort-option-label">{{ option.label }}</span>
+            <span class="sort-option-dot" *ngIf="selectedSortOption === option.value"></span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
