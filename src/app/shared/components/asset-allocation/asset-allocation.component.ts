@@ -3,6 +3,7 @@ import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChange
 import { CommonModule } from '@angular/common';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
+import { ReallocationTreemapComponent } from '../charts/reallocation-treemap/reallocation-treemap.component';
 
 export interface TreemapNode {
   id: string;
@@ -36,7 +37,7 @@ export interface FlowDimension {
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule, TreemapComponent, TreemapCellModalComponent],
+  imports: [CommonModule, TreemapComponent, TreemapCellModalComponent, ReallocationTreemapComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })
