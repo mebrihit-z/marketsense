@@ -20,117 +20,11 @@
         <img src="assets/icons/download-icon.svg" alt="More options">
       </button>
       <!-- More Options Button -->
-      <button class="more-options-btn" aria-label="More options">
+      <!-- <button class="more-options-btn" aria-label="More options">
         <img src="assets/icons/more-options-icon.svg" alt="More options">
-      </button>
+      </button> -->
     </div>
   </div>
-
-  <!-- Flow Dimensions & Toggle Section -->
-  <div class="dimensions-section">
-    <!-- Flow Dimensions Section -->
-    <div class="flow-dimensions-section">
-      <h3 class="flow-dimensions-title">Flow Dimensions</h3>
-      <p class="flow-dimensions-instruction">
-        Sankey diagram requires two matching dimension levels. Drag and drop available dimensions for the left and right nodes of the diagram.
-      </p>
-      
-      <!-- Available Dimensions -->
-      <div class="available-dimensions-container">
-        <span class="available-dimensions-label">Available Dimensions</span>
-        <div class="available-dimensions-list">
-          <div 
-            *ngFor="let dimension of availableDimensions" 
-            class="available-dimension-chip"
-            [draggable]="true"
-            (dragstart)="onDimensionDragStart($event, dimension)">
-            <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-            <span class="dimension-chip-text">
-              {{ dimension.label }}
-              <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dimension Drop Zones -->
-      <div class="dimension-drop-zones">
-        <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 1 (From)</label>
-          <div 
-            class="drop-zone"
-            [class.has-dimension]="selectedDimension1"
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event, 'dimension1')"
-            (dragleave)="onDragLeave($event)">
-            <span *ngIf="!selectedDimension1" class="drop-zone-placeholder">Drop Dimension Here</span>
-            <div *ngIf="selectedDimension1" class="selected-dimension">
-              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-              <span class="dimension-chip-text">
-                {{ selectedDimension1.label }}
-                <ng-container *ngIf="selectedDimension1.count > 0">({{ selectedDimension1.count }})</ng-container>
-              </span>
-              <!-- Remove Dimension Button -->
-              <img 
-                src="assets/icons/remove-icon.svg" 
-                alt="Remove dimension" 
-                class="remove-icon"
-                (click)="removeDimension('dimension1'); $event.stopPropagation()">
-            </div>
-          </div>
-        </div>
-
-        <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 2 (To)</label>
-          <div 
-            class="drop-zone"
-            [class.has-dimension]="selectedDimension2"
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event, 'dimension2')"
-            (dragleave)="onDragLeave($event)">
-            <span *ngIf="!selectedDimension2" class="drop-zone-placeholder">Drop Dimension Here</span>
-            <div *ngIf="selectedDimension2" class="selected-dimension">
-              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-              <span class="dimension-chip-text">
-                {{ selectedDimension2.label }}
-                <ng-container *ngIf="selectedDimension2.count > 0">({{ selectedDimension2.count }})</ng-container>
-              </span>
-              <!-- Remove Dimension Button -->
-              <img 
-                src="assets/icons/remove-icon.svg" 
-                alt="Remove dimension" 
-                class="remove-icon"
-                (click)="removeDimension('dimension2'); $event.stopPropagation()">
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Product Sub-Types Toggle -->
-    <div class="toggle-section">
-      <div class="toggle-container">
-        <div class="switch-wrapper">
-          <label class="switch">
-            <input type="checkbox" [checked]="showProductSubTypes" (change)="toggleProductSubTypes()">
-            <span class="slider"></span>
-          </label>
-          <span class="toggle-label">Show Product Sub-Types</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sankey Diagram Visualization -->
-  <div class="visualization-container">
-    <app-sankey-diagram
-      [selectedProductTypes]="selectedProductTypes"
-      [selectedProductSubTypes]="selectedProductSubTypes"
-      [dataType]="dataType"
-      [timeHorizon]="timeHorizon">
-    </app-sankey-diagram>
-  </div>
-
   <!-- Regional Sankey Diagram Visualization -->
   <div class="visualization-container">
     <app-regional-sankey-diagram>

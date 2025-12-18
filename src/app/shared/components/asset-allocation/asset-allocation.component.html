@@ -20,9 +20,9 @@
         <img src="assets/icons/download-icon.svg" alt="More options">
       </button>
        <!-- More Options Button -->
-      <button class="more-options-btn" aria-label="More options">
+      <!-- <button class="more-options-btn" aria-label="More options">
         <img src="assets/icons/more-options-icon.svg" alt="More options">
-      </button>
+      </button> -->
     </div>
   </div>
 
@@ -128,10 +128,17 @@
       [dimension2Id]="selectedDimension2?.id || null"
       [dimension2Values]="getDimensionValues(selectedDimension2?.id || null)"
       [selectedProductRegions]="selectedProductRegions"
-      [selectedProductTypes]="selectedProductTypes">
+      [selectedProductTypes]="selectedProductTypes"
+      (cellClick)="onTreemapCellClick($event)">
     </app-treemap>
   </div>
- 
- 
 </div>
+
+<!-- Treemap Cell Modal -->
+<app-treemap-cell-modal
+  [isVisible]="showCellModal"
+  [cellData]="selectedCellData"
+  (close)="onCloseModal()"
+  (askAI)="onAskAI()">
+</app-treemap-cell-modal>
 

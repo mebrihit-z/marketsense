@@ -42,7 +42,11 @@ export class MarketFlowCardComponent {
     }
   }
 
-  onDownload(): void {
+  onDownload(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.download.emit(this.card.id);
   }
 
@@ -50,11 +54,19 @@ export class MarketFlowCardComponent {
     this.moreOptions.emit(this.card.id);
   }
 
-  onAskMarketSense(): void {
+  onAskMarketSense(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.askMarketSense.emit(this.card.id);
   }
 
-  onPin(): void {
+  onPin(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.pin.emit(this.card.id);
   }
 }

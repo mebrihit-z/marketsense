@@ -1,0 +1,49 @@
+<div class="modal-overlay" (click)="onClose()" *ngIf="isVisible">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <!-- Title -->
+      <div class="title-section">
+        <h3 class="modal-title">{{ getTitle() }}</h3>
+      </div>
+
+      <!-- Flow Indicator -->
+      <div class="flow-indicator" *ngIf="cellData">
+        <span class="flow-text">{{ cellData.name }}</span>
+        <svg class="flow-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4.5 2L7.5 6L4.5 10" stroke="#717182" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="flow-text">{{ cellData.name }}</span>
+      </div>
+
+      <!-- Net Flow Section -->
+      <div class="net-flow-section" *ngIf="cellData">
+        <span class="net-flow-label">{{ getFlowType() === 'outflow' ? 'Net Outflow' : getFlowType() === 'inflow' ? 'Net Inflow' : 'Net Flow' }}</span>
+        <span class="net-flow-value">{{ getFormattedValue() }}</span>
+      </div>
+
+      <!-- AI Confidence Indicator -->
+      <div class="ai-confidence-section">
+        <div class="confidence-indicator"></div>
+        <span class="confidence-label">AI Confidence</span>
+      </div>
+
+      <!-- Divider -->
+      <div class="divider"></div>
+
+      <!-- Description -->
+      <div class="description-section">
+        <p class="description-text">{{ getDescription() }}</p>
+      </div>
+
+      <!-- Divider -->
+      <div class="divider"></div>
+
+      <!-- Ask AI Button -->
+      <button class="ask-ai-button" (click)="onAskAI()">
+        <img src="assets/icons/sparkle-icon.svg" alt="Sparkle" class="ask-ai-icon">
+        <span class="ask-ai-text">Ask MarketSense AI for more insights</span>
+      </button>
+    </div>
+  </div>
+</div>
+

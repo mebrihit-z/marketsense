@@ -1,4 +1,4 @@
-import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import * as d3 from 'd3';
 
 interface TreemapDataNode {
@@ -114,6 +114,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     // eslint-disable-next-line no-underscore-dangle
     return this._selectedProductTypes;
   }
+  
+  @Output() cellClick = new EventEmitter<{
+    name: string;
+    value: number;
+    percentage: number;
+    regionName?: string;
+    dimension1Name?: string;
+    dimension2Name?: string;
+  }>();
   
   private resizeObserver?: ResizeObserver;
 
@@ -693,6 +702,18 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('stroke', TreemapComponent.getCssVariable('--bg-white', 'white'))
       .attr('stroke-width', 1.5)
       .style('cursor', 'pointer')
+      .on('click', (event: MouseEvent, d: TreemapNode) => {
+        // Get region name from parent hierarchy
+        const regionName = treemapRoot.data.name;
+        this.cellClick.emit({
+          name: d.data.name,
+          value: d.data.value,
+          percentage: d.data.percentage,
+          regionName: regionName,
+          dimension1Name: this._dimension1Id || undefined,
+          dimension2Name: this._dimension2Id || undefined
+        });
+      })
       .on('mouseover', function handleMouseOver(event: MouseEvent, d: TreemapNode) {
         d3.select(this)
           .attr('stroke-width', 2.5)

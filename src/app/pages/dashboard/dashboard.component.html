@@ -22,6 +22,16 @@
       (pinCard)="onPinCard($event)">
     </app-featured-market-flows-carousel>
   </div>
+   <!-- Asset Flows Section -->
+   <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">
+    <app-asset-flows 
+      [selectedProductTypes]="selectedProductTypes"
+      [selectedProductSubTypes]="selectedProductSubTypes"
+      [dataType]="carouselDataType"
+      [timeHorizon]="carouselTimeHorizon"
+      (pinToggle)="onAssetFlowsPinToggle()">
+    </app-asset-flows>
+  </div>
   <!-- Asset Allocation Section -->
   <div class="asset-allocation-section" [class.pinned]="isAssetAllocationPinned">
     <app-asset-allocation 
@@ -32,16 +42,6 @@
       [selectedInvestorTypes]="selectedInvestorTypes"
       (pinToggle)="onAssetAllocationPinToggle()">
     </app-asset-allocation>
-  </div>
-  <!-- Asset Flows Section -->
-  <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">
-    <app-asset-flows 
-      [selectedProductTypes]="selectedProductTypes"
-      [selectedProductSubTypes]="selectedProductSubTypes"
-      [dataType]="carouselDataType"
-      [timeHorizon]="carouselTimeHorizon"
-      (pinToggle)="onAssetFlowsPinToggle()">
-    </app-asset-flows>
   </div>
 </div>
 

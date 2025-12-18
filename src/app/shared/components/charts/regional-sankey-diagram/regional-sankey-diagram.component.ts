@@ -700,7 +700,7 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
     
     const legend = svg.append('g')
       .attr('class', 'legend')
-      .attr('transform', `translate(${legendStartX}, ${height - 30})`);
+      .attr('transform', `translate(${10}, ${height -15})`);
 
     const legendItems = legend.selectAll('.legend-item')
       .data(legendData)

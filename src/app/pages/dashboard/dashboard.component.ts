@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
@@ -24,6 +24,8 @@ export class DashboardComponent implements OnInit {
   pinnedCardIds: string[] = [];
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
@@ -799,12 +801,14 @@ export class DashboardComponent implements OnInit {
     // If card is already pinned, unpin it; otherwise, pin it
     const index = this.pinnedCardIds.indexOf(cardId);
     if (index > -1) {
-      // Unpin: remove from pinned list
-      this.pinnedCardIds.splice(index, 1);
+      // Unpin: remove from pinned list (create new array reference for change detection)
+      this.pinnedCardIds = this.pinnedCardIds.filter(id => id !== cardId);
     } else {
-      // Pin: add to the beginning of pinned list
-      this.pinnedCardIds.unshift(cardId);
+      // Pin: add to the beginning of pinned list (create new array reference for change detection)
+      this.pinnedCardIds = [cardId, ...this.pinnedCardIds];
     }
+    // Force change detection to ensure the UI updates
+    this.cdr.detectChanges();
   }
 
   get filteredMarketFlowCards(): MarketFlowCard[] {
@@ -812,6 +816,9 @@ export class DashboardComponent implements OnInit {
     if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
       return [];
     }
+
+    // Get time horizon multiplier to vary values based on time horizon
+    const timeHorizonMultiplier = this.getTimeHorizonMultiplier(this.carouselTimeHorizon);
 
     // Generate cards dynamically based on selected product sub-types
     // Each card title is the product sub-type name
@@ -824,17 +831,23 @@ export class DashboardComponent implements OnInit {
       const chartColor: 'red' | 'green' = isPositive ? 'green' : 'red';
       const borderColor = isPositive ? '#00bc7d' : '#fb2c36';
 
-      // Generate deterministic values based on index for consistency
-      const baseValue = (index % 5) + 1; // Values from 1-5
-      const basePercentage = ((index % 4) + 0.5).toFixed(1); // Percentages from 0.5-3.5
+      // Generate deterministic values based on index and time horizon for consistency
+      // Apply time horizon multiplier to make values change with time horizon
+      const baseValue = ((index % 5) + 1) * timeHorizonMultiplier; // Values scale with time horizon
+      const basePercentage = (((index % 4) + 0.5) * timeHorizonMultiplier).toFixed(1); // Percentages scale with time horizon
 
       // Generate unique ID based on sub-type, data type, and time horizon (without index for stability)
       const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
 
+      // Format value with appropriate decimal places
+      const valueInt = Math.floor(baseValue);
+      const valueDecimal = Math.round((baseValue - valueInt) * 10);
+      const formattedValue = valueDecimal > 0 ? `${valueInt}.${valueDecimal}` : `${valueInt}`;
+
       return {
         id,
         title: subType,
-        value: isPositive ? `$${baseValue}.${index % 10}B` : `-$${baseValue}.${index % 10}B`,
+        value: isPositive ? `$${formattedValue}B` : `-$${formattedValue}B`,
         valueColor,
         percentageChange: isPositive ? `+${basePercentage}%` : `-${basePercentage}%`,
         percentageColor,
@@ -868,6 +881,34 @@ export class DashboardComponent implements OnInit {
       const bPercentage = this.getAbsolutePercentageValue(b.percentageChange);
       return bPercentage - aPercentage;
     });
+  }
+
+  /**
+   * Gets a multiplier based on the time horizon to vary card values
+   * @param timeHorizon - The selected time horizon (e.g., "Today", "+3 mo", "-6 mo")
+   * @returns A multiplier value that scales with the time horizon
+   */
+  private getTimeHorizonMultiplier(timeHorizon: string): number {
+    // Map time horizons to multipliers
+    // For historical: longer periods (more negative) have larger absolute values
+    // For forecasted: longer periods (more positive) have larger values
+    const multiplierMap: Record<string, number> = {
+      // Historical
+      '-3 mo': 0.3,
+      '-6 mo': 0.6,
+      '-9 mo': 0.9,
+      '-12 mo': 1.2,
+      '-18 mo': 1.5,
+      // Forecasted
+      'Today': 0.4,
+      '+3 mo': 0.5,
+      '+6 mo': 0.8,
+      '+9 mo': 1.1,
+      '+12 mo': 1.4,
+      '+18 mo': 1.7
+    };
+
+    return multiplierMap[timeHorizon] || 1.0;
   }
 
   /**

@@ -76,6 +76,11 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
       this.currentSlideIndex = 0;
     }
     
+    // Reset to first slide when pinned cards change (to show newly pinned/unpinned cards)
+    if (changes['pinnedCardIds']) {
+      this.currentSlideIndex = 0;
+    }
+    
     // Only reset for cards if it's the first time or if the content actually changed
     if (changes['cards']) {
       const cardsChange = changes['cards'];
@@ -185,9 +190,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
 
   onPin(cardId: string): void {
     // Emit pin event to parent component
+    // The ngOnChanges will handle resetting to first slide when pinnedCardIds changes
     this.pinCard.emit(cardId);
-    // Reset to first slide to show the pinned card
-    this.currentSlideIndex = 0;
   }
 
   isCardPinned(cardId: string): boolean {

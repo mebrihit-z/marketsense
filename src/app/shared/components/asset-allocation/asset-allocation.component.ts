@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
+import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 
 export interface TreemapNode {
   id: string;
@@ -34,7 +35,7 @@ export interface FlowDimension {
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule, TreemapComponent],
+  imports: [CommonModule, TreemapComponent, TreemapCellModalComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })
@@ -69,6 +70,10 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
 
   // Currently dragged dimension
   private draggedDimension: FlowDimension | null = null;
+  
+  // Modal state
+  showCellModal: boolean = false;
+  selectedCellData: TreemapCellData | null = null;
   
   // Treemap regions data
   treemapRegions: TreemapRegion[] = [
@@ -336,6 +341,22 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   onPinClick(): void {
     this.isPinned = !this.isPinned;
     this.pinToggle.emit();
+  }
+
+  onTreemapCellClick(cellData: TreemapCellData): void {
+    this.selectedCellData = cellData;
+    this.showCellModal = true;
+  }
+
+  onCloseModal(): void {
+    this.showCellModal = false;
+    this.selectedCellData = null;
+  }
+
+  onAskAI(): void {
+    // TODO: Implement AI chat functionality
+    console.log('Ask AI clicked for cell:', this.selectedCellData);
+    // You can emit an event or navigate to AI chat here
   }
 }
 
