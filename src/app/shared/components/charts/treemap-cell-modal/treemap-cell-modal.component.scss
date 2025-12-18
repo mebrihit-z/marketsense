@@ -6,7 +6,6 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: $overlay-modal;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,39 +73,22 @@
   white-space: nowrap;
 }
 
-// Flow Indicator
-.flow-indicator {
+// Metrics Section
+.metrics-section {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  height: 16px;
-  align-items: center;
   width: 100%;
 }
 
-.flow-text {
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: $text-secondary;
-}
-
-.flow-icon {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-}
-
-// Net Flow Section
-.net-flow-section {
+.metric-row {
   display: flex;
-  height: 24px;
   align-items: center;
   justify-content: space-between;
   width: 100%;
 }
 
-.net-flow-label {
+.metric-label {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 12px;
@@ -114,7 +96,7 @@
   color: $text-secondary;
 }
 
-.net-flow-value {
+.metric-value {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;

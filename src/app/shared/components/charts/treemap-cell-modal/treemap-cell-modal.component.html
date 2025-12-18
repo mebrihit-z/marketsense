@@ -6,19 +6,19 @@
         <h3 class="modal-title">{{ getTitle() }}</h3>
       </div>
 
-      <!-- Flow Indicator -->
-      <div class="flow-indicator" *ngIf="cellData">
-        <span class="flow-text">{{ cellData.name }}</span>
-        <svg class="flow-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4.5 2L7.5 6L4.5 10" stroke="#717182" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span class="flow-text">{{ cellData.name }}</span>
-      </div>
+      <!-- Key Metrics Section -->
+      <div class="metrics-section" *ngIf="cellData">
+        <!-- Projected Value -->
+        <div class="metric-row">
+          <span class="metric-label">Projected Value</span>
+          <span class="metric-value">{{ getFormattedValue() }}</span>
+        </div>
 
-      <!-- Net Flow Section -->
-      <div class="net-flow-section" *ngIf="cellData">
-        <span class="net-flow-label">{{ getFlowType() === 'outflow' ? 'Net Outflow' : getFlowType() === 'inflow' ? 'Net Inflow' : 'Net Flow' }}</span>
-        <span class="net-flow-value">{{ getFormattedValue() }}</span>
+        <!-- Expected Change -->
+        <div class="metric-row">
+          <span class="metric-label">Expected Change</span>
+          <span class="metric-value">{{ getFormattedPercentage() }} ({{ getFlowTypeLabel() }})</span>
+        </div>
       </div>
 
       <!-- AI Confidence Indicator -->
@@ -39,11 +39,19 @@
       <div class="divider"></div>
 
       <!-- Ask AI Button -->
-      <button class="ask-ai-button" (click)="onAskAI()">
+      <button class="ask-ai-button" type="button" (click)="onAskAI($event)">
         <img src="assets/icons/sparkle-icon.svg" alt="Sparkle" class="ask-ai-icon">
         <span class="ask-ai-text">Ask MarketSense AI for more insights</span>
       </button>
     </div>
   </div>
 </div>
+
+<!-- Ask MarketSense Modal -->
+<app-ask-marketsense-modal
+  [isVisible]="showAskMarketSenseModal"
+  [card]="getMarketFlowCard()"
+  (close)="onCloseAskMarketSenseModal()"
+  (sendMessage)="onSendMessage($event)">
+</app-ask-marketsense-modal>
 
