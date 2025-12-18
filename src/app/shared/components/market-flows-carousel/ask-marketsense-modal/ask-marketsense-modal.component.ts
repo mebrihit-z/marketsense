@@ -10,7 +10,7 @@ import type { MarketFlowCard } from '../market-flow-card/market-flow-card.compon
   templateUrl: './ask-marketsense-modal.component.html',
   styleUrl: './ask-marketsense-modal.component.scss'
 })
-export class AskMarketsenseModalComponent implements OnChanges {
+export default class AskMarketsenseModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Input() card: MarketFlowCard | null = null;
   @Output() close = new EventEmitter<void>();

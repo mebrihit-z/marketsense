@@ -1,8 +1,8 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
-import { AskMarketsenseModalComponent } from './ask-marketsense-modal/ask-marketsense-modal.component';
-import { ExportModalComponent } from './export-modal/export-modal.component';
+import  AskMarketsenseModalComponent  from './ask-marketsense-modal/ask-marketsense-modal.component';
+import  ExportModalComponent from './export-modal/export-modal.component';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';

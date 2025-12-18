@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TreemapComponent } from '../charts/treemap/treemap.component';

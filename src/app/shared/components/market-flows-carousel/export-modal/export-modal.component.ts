@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './export-modal.component.html',
   styleUrl: './export-modal.component.scss'
 })
-export class ExportModalComponent implements OnChanges {
+export default class ExportModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Output() close = new EventEmitter<void>();
   @Output() exportXLS = new EventEmitter<void>();

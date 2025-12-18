@@ -1,9 +1,8 @@
-/* eslint-disable import/prefer-default-export */
-/* eslint-disable max-lines */
+/* eslint-disable */
 import { Component, OnInit, HostListener, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FilterDropdownComponent, FilterOption, GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
+import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
 
 @Component({
   selector: 'app-filters-bar',

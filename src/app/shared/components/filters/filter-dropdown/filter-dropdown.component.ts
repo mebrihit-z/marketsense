@@ -19,7 +19,7 @@ export interface GroupedFilterOption {
   templateUrl: './filter-dropdown.component.html',
   styleUrl: './filter-dropdown.component.scss'
 })
-export class FilterDropdownComponent {
+export default class FilterDropdownComponent {
   @Input() title = 'Filter';
   @Input() options: FilterOption[] = [];
   @Input() groupedOptions: GroupedFilterOption[] = []; // For categorized options

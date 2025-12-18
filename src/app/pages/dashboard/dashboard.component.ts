@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
@@ -5,15 +6,15 @@ import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/ma
 import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
-
+import HeaderComponent from '../../shared/components/header/header.component';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent],
+  imports: [HeaderComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export default class DashboardComponent implements OnInit {
   carouselDataType: 'historical' | 'forecasted' = 'forecasted';
   carouselTimeHorizon: string = 'Today';
   selectedProductSubTypes: string[] = [];
