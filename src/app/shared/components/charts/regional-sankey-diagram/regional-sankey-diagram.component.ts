@@ -94,12 +94,20 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
     });
   }
 
-  // Helper function to get CSS variable value
-  private getCssVariable(name: string): string {
-    return getComputedStyle(document.documentElement)
-      .getPropertyValue(name)
-      .trim();
-  }
+    // Helper function to get CSS variable value
+    private getCssVariable(name: string): string {
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+    }
+
+    // Helper function to format node name for display
+    private formatNodeName(name: string): string {
+      // Replace "United States" with "U.S" and "United Kingdom" with "U.K"
+      let formatted = name.replace(/United States/g, 'U.S');
+      formatted = formatted.replace(/United Kingdom/g, 'U.K');
+      return formatted;
+    }
 
   // -----------------------------------------
   // MAIN FUNCTION
@@ -232,6 +240,9 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
     // -----------------------------------------
     // 4. Draw Links
     // -----------------------------------------
+    // Capture component reference for use in callbacks
+    const component = this;
+    
     svg.append('g')
       .selectAll('path')
       .data(graph.links)
@@ -253,7 +264,7 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
         tooltip
           .style('opacity', 1)
           .html(`
-            <div><strong>${source.name}</strong> → <strong>${target.name}</strong></div>
+            <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
             <div style="margin-top: 4px;">Value: $${formattedValue}B</div>
           `);
         
@@ -447,7 +458,7 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
           .style('opacity', 1)
           .style('display', 'block')
           .html(`
-            <div><strong>${node.name}</strong></div>
+            <div><strong>${component.formatNodeName(node.name)}</strong></div>
             <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
             <div style="margin-top: 2px; font-size: 11px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
             <div style="font-size: 11px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
@@ -539,9 +550,11 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
     // Add label text
     nodeLabels.append('tspan')
       .text(d => {
+        // Format the name (replace United States with U.S and United Kingdom with U.K)
+        const formattedName = this.formatNodeName(d.name);
         // Truncate long labels
         const maxLength = 20;
-        const label = d.name.length > maxLength ? d.name.substring(0, maxLength) + '...' : d.name;
+        const label = formattedName.length > maxLength ? formattedName.substring(0, maxLength) + '...' : formattedName;
         return label + ':';
       });
     
