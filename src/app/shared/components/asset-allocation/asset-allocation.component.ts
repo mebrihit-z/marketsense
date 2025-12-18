@@ -52,7 +52,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   // View state
   viewMode: 'treemap' | 'packing-circles' = 'treemap';
   selectedTimeHorizon: string = '+9 mo';
-  showProductSubTypes: boolean = false;
   isPinned: boolean = false;
   
   // Available time horizons
@@ -62,6 +61,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   availableDimensions: FlowDimension[] = [
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
+    { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
     { id: 'investor-type', label: 'Investor Type', count: 0, active: true }
   ];
@@ -255,41 +255,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     console.log('Time horizon changed to:', horizon);
   }
 
-  toggleProductSubTypes(): void {
-    this.showProductSubTypes = !this.showProductSubTypes;
-    console.log('Show product sub-types:', this.showProductSubTypes);
-    
-    if (this.showProductSubTypes) {
-      // Add "Product sub-types" to available dimensions if not already present
-      const existingDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
-      if (!existingDimension) {
-        this.availableDimensions.push({
-          id: 'product-sub-types',
-          label: 'Product sub-types',
-          count: this.selectedProductSubTypes.length,
-          active: true
-        });
-      } else {
-        // Update count if dimension already exists
-        existingDimension.count = this.selectedProductSubTypes.length;
-      }
-    } else {
-      // Remove "Product sub-types" from available dimensions
-      const index = this.availableDimensions.findIndex(d => d.id === 'product-sub-types');
-      if (index !== -1) {
-        // If this dimension is selected in a drop zone, remove it
-        if (this.selectedDimension1?.id === 'product-sub-types') {
-          this.selectedDimension1 = null;
-        }
-        if (this.selectedDimension2?.id === 'product-sub-types') {
-          this.selectedDimension2 = null;
-        }
-        
-        // Remove from available dimensions
-        this.availableDimensions.splice(index, 1);
-      }
-    }
-  }
 
   onPackingCirclesClick(): void {
     console.log('Packing Circles view selected');
