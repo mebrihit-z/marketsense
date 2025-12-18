@@ -32,6 +32,7 @@
             class="sort-option"
             [class.active]="selectedSortOption === option.value"
             (click)="selectSortOption(option.value, $event)">
+            <img [src]="option.icon" [alt]="option.label" class="sort-option-icon">
             <span class="sort-option-label">{{ option.label }}</span>
             <span class="sort-option-dot" *ngIf="selectedSortOption === option.value"></span>
           </button>

@@ -37,10 +37,10 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   selectedSortOption: string = 'value-high';
   
   sortOptions = [
-    { value: 'value-high', label: '↑ Value: Highest', displayLabel: 'Value: High to Low' },
-    { value: 'value-low', label: '↓ Value: Lowest', displayLabel: 'Value: Low to High' },
-    { value: 'change-high', label: '↑ Change %: Highest', displayLabel: 'Change %: High to Low' },
-    { value: 'change-low', label: '↓ Change %: Lowest', displayLabel: 'Change %: Low to High' }
+    { value: 'value-high', label: 'Value: Highest', displayLabel: 'Value: High to Low', icon: 'assets/icons/highest-value-icon.svg' },
+    { value: 'value-low', label: 'Value: Lowest', displayLabel: 'Value: Low to High', icon: 'assets/icons/lowest-value-icon.svg' },
+    { value: 'change-high', label: 'Change %: Highest', displayLabel: 'Change %: High to Low', icon: 'assets/icons/highest-percentage-icon.svg' },
+    { value: 'change-low', label: 'Change %: Lowest', displayLabel: 'Change %: Low to High', icon: 'assets/icons/lowest-percentage-icon.svg' }
   ];
   
   get headerTitle(): string {
