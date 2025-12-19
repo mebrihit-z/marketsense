@@ -2,7 +2,9 @@
 import { Component, OnInit, HostListener, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
+import { extractProductSubTypes, extractProductTypes, extractProductSubTypesByType, extractInvestorRegions, type SankeyData } from '../../../utils/sankey-data.utils';
 
 @Component({
   selector: 'app-filters-bar',
@@ -21,6 +23,8 @@ export class FiltersBarComponent implements OnInit {
   @Output() productRegionChange = new EventEmitter<string[]>();
   @Output() investorRegionChange = new EventEmitter<string[]>();
   @Output() investorTypeChange = new EventEmitter<string[]>();
+
+  constructor(private http: HttpClient) {}
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
@@ -43,24 +47,69 @@ export class FiltersBarComponent implements OnInit {
    * @returns {void} Initializes filter state and time horizon defaults.
    */
   ngOnInit() {
+    // Load product sub-types and investor regions from sankey data (async)
+    this.loadProductSubTypes();
+    
     // Initialize all filters with all options selected by default
-    this.state.investorRegion = this.investorRegionOptions.map(opt => opt.value);
+    // Note: productType, productSubType, and investorRegion will be initialized in loadProductSubTypes() after async load
     this.state.investorType = this.investorTypeOptions.map(opt => opt.value);
     this.state.productRegion = this.productRegionOptions.map(opt => opt.value);
-    this.state.productType = this.productTypeOptions.map(opt => opt.value);
-    this.state.productSubType = this.productSubTypeOptions.flatMap(group => 
-      group.options.map(opt => opt.value)
-    );
     
-    // Emit initial selections
-    this.productSubTypeChange.emit(this.state.productSubType);
-    this.productTypeChange.emit(this.state.productType);
+    // Emit initial selections (productType, productSubType, and investorRegion will be emitted after async load)
     this.productRegionChange.emit(this.state.productRegion);
-    this.investorRegionChange.emit(this.state.investorRegion);
     this.investorTypeChange.emit(this.state.investorType);
     
     // Initialize time horizon range based on selectedTimeHorizon
     this.initializeTimeHorizonRange();
+  }
+
+  /**
+   * Loads product types, product sub-types, and investor regions dynamically from sankey_data.json
+   * @returns {void}
+   */
+  private loadProductSubTypes(): void {
+    this.http.get<SankeyData>('assets/data/sankey_data.json').subscribe({
+      next: (data) => {
+        // Extract product types
+        const productTypes = extractProductTypes(data);
+        this.productTypeOptions = productTypes.map(type => ({ value: type }));
+        
+        // Extract product sub-types grouped by product type
+        const groupedSubTypes = extractProductSubTypesByType(data);
+        
+        // Convert to GroupedFilterOption format for the dropdown
+        this.productSubTypeOptions = groupedSubTypes.map(group => ({
+          category: group.productType,
+          options: group.subTypes.map(subType => ({ value: subType }))
+        }));
+        
+        // Extract investor regions
+        const investorRegions = extractInvestorRegions(data);
+        this.investorRegionOptions = investorRegions.map(region => ({ value: region }));
+        
+        // Initialize productType selection with all options selected
+        this.state.productType = productTypes;
+        
+        // Initialize productSubType selection with all options selected
+        const allSubTypes = groupedSubTypes.flatMap(group => group.subTypes);
+        this.state.productSubType = allSubTypes;
+        
+        // Initialize investorRegion selection with all options selected
+        this.state.investorRegion = investorRegions;
+        
+        // Emit initial selections
+        this.productTypeChange.emit(this.state.productType);
+        this.productSubTypeChange.emit(this.state.productSubType);
+        this.investorRegionChange.emit(this.state.investorRegion);
+      },
+      error: (error) => {
+        console.error('Error loading sankey data for product types, sub-types, and investor regions:', error);
+        // Fallback to empty arrays
+        this.productTypeOptions = [];
+        this.productSubTypeOptions = [];
+        this.investorRegionOptions = [];
+      }
+    });
   }
 
   /**
@@ -80,10 +129,7 @@ export class FiltersBarComponent implements OnInit {
   }
 
   // --- sample options (replace with your real data) ---
-  investorRegionOptions: FilterOption[] = [
-    { value: 'United States' }, { value: 'Europe' }, { value: 'Asia Pacific' },
-    { value: 'United Kingdom' }, { value: 'Middle East & Africa' }
-  ];
+  investorRegionOptions: FilterOption[] = []; // Will be loaded from sankey data
 
   investorTypeOptions: FilterOption[] = [
     { value: 'Institutional' }, { value: 'Corporate' }, { value: 'Pension Funds' },
@@ -96,76 +142,9 @@ export class FiltersBarComponent implements OnInit {
     { value: 'United Kingdom' }, { value: 'Middle East & Africa' }
   ];
 
-  productTypeOptions: FilterOption[] = [
-    { value: 'Equity' }, { value: 'Fixed Income' }, { value: 'Alternatives' },
-    { value: 'Cash' }, { value: 'Private Markets' }, { value: 'Real Estate' },
-    { value: 'Other/Specialized' }, { value: 'Multi-Asset' }
-  ];
+  productTypeOptions: FilterOption[] = [];
 
-  productSubTypeOptions: GroupedFilterOption[] = [
-    {
-      category: 'Equity',
-      options: [
-        { value: 'US Equity Small Cap' },
-        { value: 'US Equity Large Cap' },
-        { value: 'Global Equity' },
-        { value: 'Emerging Markets' },
-        { value: 'Mid Cap Growth' }
-      ]
-    },
-    {
-      category: 'Fixed Income',
-      options: [
-        { value: 'Core Investment Grade' },
-        { value: 'Municipal Bond' },
-        { value: 'Global Bonds' },
-        { value: 'Short Duration' },
-        { value: 'High Yield Bonds' },
-        { value: 'Government/Sovereign' },
-        { value: 'Credit Long Duration' }
-      ]
-    },
-    {
-      category: 'Alternatives',
-      options: [
-        { value: 'Hedge Funds' },
-        { value: 'Crypto' },
-        { value: 'Commodities' }
-      ]
-    },
-    {
-      category: 'Cash',
-      options: [
-        { value: 'Money Market Funds' },
-        { value: 'Treasury Bills' },
-        { value: 'Bank Deposits/CDs' },
-        { value: 'Foreign Currency/FFX' }
-      ]
-    },
-    {
-      category: 'Private Markets',
-      options: [
-        { value: 'Private Credit' },
-        { value: 'Venture Capita' },
-        { value: 'Co-Investment' },
-        { value: 'Private Equity' }
-      ]
-    },
-    {
-      category: 'Other / Specialized',
-      options: [
-        { value: 'Overlay Strategies' },
-        { value: 'Factor Based Investing' },
-      ]
-    },
-    {
-      category: 'Multi-Asset',
-      options: [
-        { value: 'Diversified Growth Funds' },
-        { value: 'Target Date Funds' },
-      ]
-    }
-  ];
+  productSubTypeOptions: GroupedFilterOption[] = [];
   // --------------------------------------------------
    // centralized state (Option A)
    state = {
