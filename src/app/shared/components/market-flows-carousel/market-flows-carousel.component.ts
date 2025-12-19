@@ -59,13 +59,13 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   sortCards(cards: MarketFlowCard[]): MarketFlowCard[] {
     switch (this.selectedSortOption) {
       case 'value-high':
-        return cards.sort((a, b) => this.parseValue(b.value) - this.parseValue(a.value));
+        return cards.sort((a, b) => Math.abs(this.parseValue(b.value)) - Math.abs(this.parseValue(a.value)));
       case 'value-low':
-        return cards.sort((a, b) => this.parseValue(a.value) - this.parseValue(b.value));
+        return cards.sort((a, b) => Math.abs(this.parseValue(a.value)) - Math.abs(this.parseValue(b.value)));
       case 'change-high':
-        return cards.sort((a, b) => this.parsePercentage(b.percentageChange) - this.parsePercentage(a.percentageChange));
+        return cards.sort((a, b) => Math.abs(this.parsePercentage(b.percentageChange)) - Math.abs(this.parsePercentage(a.percentageChange)));
       case 'change-low':
-        return cards.sort((a, b) => this.parsePercentage(a.percentageChange) - this.parsePercentage(b.percentageChange));
+        return cards.sort((a, b) => Math.abs(this.parsePercentage(a.percentageChange)) - Math.abs(this.parsePercentage(b.percentageChange)));
       default:
         return cards;
     }
