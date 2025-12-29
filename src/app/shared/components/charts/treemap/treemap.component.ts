@@ -2,6 +2,7 @@ import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, Simp
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
+import { convertExcelToSankey } from '../../../utils/excel-to-sankey.util';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -34,7 +35,7 @@ interface TreemapHierarchyNode extends d3.HierarchyNode<TreemapNodeData> {
 })
 export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() data?: SankeyDataLocal;
-  @Input() dataUrl: string = 'assets/data/sankey_data.json';
+  @Input() dataUrl: string = 'assets/data/marketsense_input_data.xlsx';
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
@@ -94,16 +95,53 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private loadDataFromJson(): void {
-    this.http.get<SankeyDataLocal>(this.dataUrl).subscribe({
-      next: (data) => {
-        this.originalData = data;
-        this.applyFilters();
-      },
-      error: (error) => {
-        console.error('Error loading sankey data:', error);
-        console.error('Failed to load from:', this.dataUrl);
-      }
-    });
+    // Check if dataUrl is an Excel file
+    const isExcelFile = this.dataUrl.toLowerCase().endsWith('.xlsx') || 
+                        this.dataUrl.toLowerCase().endsWith('.xls');
+    
+    if (isExcelFile) {
+      // Load Excel file as ArrayBuffer
+      this.http.get(this.dataUrl, { responseType: 'arraybuffer' }).subscribe({
+        next: (arrayBuffer) => {
+          try {
+            // Convert Excel to Sankey data using the utility
+            const sankeyData = convertExcelToSankey(arrayBuffer, {
+              superparentCol: 'SuperParent',
+              parentCol: 'Parent',
+              subassetCol: 'SubAsset',
+              valueCol: 'Value'
+            });
+            
+            // Map to SankeyDataLocal format
+            this.originalData = {
+              nodes: sankeyData.nodes,
+              links: sankeyData.links,
+              summary: sankeyData.summary
+            };
+            
+            this.applyFilters();
+          } catch (error) {
+            console.error('Error converting Excel to treemap data:', error);
+          }
+        },
+        error: (error) => {
+          console.error('Error loading Excel file:', error);
+          console.error('Failed to load from:', this.dataUrl);
+        }
+      });
+    } else {
+      // Load JSON file (backward compatibility)
+      this.http.get<SankeyDataLocal>(this.dataUrl).subscribe({
+        next: (data) => {
+          this.originalData = data;
+          this.applyFilters();
+        },
+        error: (error) => {
+          console.error('Error loading sankey data:', error);
+          console.error('Failed to load from:', this.dataUrl);
+        }
+      });
+    }
   }
 
   private applyFilters(): void {
