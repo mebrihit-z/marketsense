@@ -11,6 +11,7 @@ import {
   SankeyLink,
   SankeyGraph
 } from 'd3-sankey';
+import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
 
 // ----------------------
 // TypeScript Models
@@ -50,6 +51,9 @@ interface RegionalSankeyData {
 })
 export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges {
   @Input() data?: RegionalSankeyData;
+  @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedProductTypes: string[] = [];
+  @Input() selectedProductSubTypes: string[] = [];
   private loadedData?: RegionalSankeyData;
 
   constructor(
@@ -70,8 +74,20 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // Recreate sankey if data or any filter changes
     if (changes['data'] && this.data) {
       this.loadedData = this.data;
+      if (this.el?.nativeElement) {
+        setTimeout(() => {
+          this.createSankey();
+        }, 0);
+      }
+    } else if (
+      changes['selectedInvestorRegions'] || 
+      changes['selectedProductTypes'] || 
+      changes['selectedProductSubTypes']
+    ) {
+      // If filters changed, recreate the sankey with filtered data
       if (this.el?.nativeElement) {
         setTimeout(() => {
           this.createSankey();
@@ -94,6 +110,31 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
     });
   }
 
+  /**
+   * Applies filters to the sankey data based on selected investor regions, product types, and product sub-types
+   */
+  private getFilteredData(): RegionalSankeyData | undefined {
+    const dataToUse = this.loadedData || this.data;
+    if (!dataToUse) return undefined;
+
+    // If no filters are selected, return original data
+    if (
+      this.selectedInvestorRegions.length === 0 &&
+      this.selectedProductTypes.length === 0 &&
+      this.selectedProductSubTypes.length === 0
+    ) {
+      return dataToUse;
+    }
+
+    // Apply filters using the utility function
+    return filterSankeyData(
+      dataToUse as SankeyData,
+      this.selectedInvestorRegions,
+      this.selectedProductTypes,
+      this.selectedProductSubTypes
+    ) as RegionalSankeyData;
+  }
+
     // Helper function to get CSS variable value
     private getCssVariable(name: string): string {
       return getComputedStyle(document.documentElement)
@@ -113,7 +154,7 @@ export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges 
   // MAIN FUNCTION
   // -----------------------------------------
   private createSankey() {
-    const dataToUse = this.loadedData || this.data;
+    const dataToUse = this.getFilteredData();
     if (!dataToUse) return;
 
     const element = this.el.nativeElement.querySelector('.regional-sankey');

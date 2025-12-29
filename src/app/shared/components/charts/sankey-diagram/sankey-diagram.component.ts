@@ -161,12 +161,13 @@ export class SankeyDiagramComponent implements AfterViewInit, OnChanges {
       const getTimeMultiplier = (): number => {
         if (this.dataType === 'historical') {
           // Historical: longer periods have larger absolute values
+          if (this.timeHorizon === '-1 mo') return 0.1;
           if (this.timeHorizon === '-3 mo') return 0.3;
           if (this.timeHorizon === '-6 mo') return 0.6;
-          if (this.timeHorizon === '-9 mo') return 0.9;
           if (this.timeHorizon === '-12 mo') return 1.2;
           if (this.timeHorizon === '-18 mo') return 1.8;
-          return 0.9; // default to -9 mo
+          if (this.timeHorizon === 'Today') return 1.0;
+          return 0.3; // default to -3 mo
         } else {
           // Forecasted: future periods have projected values
           if (this.timeHorizon === 'Today') return 1.0;

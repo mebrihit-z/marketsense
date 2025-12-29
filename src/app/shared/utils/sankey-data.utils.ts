@@ -220,3 +220,268 @@ export function extractInvestorRegions(data: SankeyData): string[] {
   return Array.from(regions).sort();
 }
 
+/**
+ * Extracts the investor region from a node name.
+ * Node names have the format: "Region: ..." or "Net New Capital (Region)"
+ * 
+ * @param nodeName - The node name to extract the region from
+ * @returns The investor region name, or null if not found
+ */
+export function extractRegionFromNodeName(nodeName: string): string | null {
+  // Check for "Net New Capital (Region)" format
+  const netNewCapitalMatch = nodeName.match(/Net New Capital \((.+?)\)/);
+  if (netNewCapitalMatch && netNewCapitalMatch[1]) {
+    return netNewCapitalMatch[1].trim();
+  }
+  
+  // Check for "Region: ..." format
+  const colonMatch = nodeName.match(/^(.+?):/);
+  if (colonMatch && colonMatch[1]) {
+    return colonMatch[1].trim();
+  }
+  
+  // Check for "Region (Super Start)" or "Region (Super End)" format
+  const superMatch = nodeName.match(/^(.+?)\s*\(Super (Start|End)\)/);
+  if (superMatch && superMatch[1]) {
+    return superMatch[1].trim();
+  }
+  
+  return null;
+}
+
+/**
+ * Extracts the product type from a node name.
+ * Product types are found in nodes with "(End)" or "(Start)" suffixes.
+ * 
+ * @param nodeName - The node name to extract the product type from
+ * @returns The product type name, or null if not found
+ */
+export function extractProductTypeFromNodeName(nodeName: string): string | null {
+  // Check for "Region: ProductType (End)" or "Region: ProductType (Start)" format
+  const match = nodeName.match(/:\s*(.+?)\s*\((End|Start)\)/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  
+  return null;
+}
+
+/**
+ * Extracts the product sub-type from a node name.
+ * Product sub-types are found in nodes with "(Source)" or "(Destination)" suffixes.
+ * 
+ * @param nodeName - The node name to extract the product sub-type from
+ * @returns The product sub-type name, or null if not found
+ */
+export function extractProductSubTypeFromNodeName(nodeName: string): string | null {
+  // Check for "Region: ProductSubType (Source)" or "Region: ProductSubType (Destination)" format
+  const match = nodeName.match(/:\s*(.+?)\s*\((Source|Destination)\)/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  
+  return null;
+}
+
+/**
+ * Filters Sankey data based on selected investor regions, product types, and product sub-types.
+ * Only nodes and links that match the selected filters are included in the result.
+ * 
+ * @param data - The Sankey data object to filter
+ * @param selectedInvestorRegions - Array of selected investor region names (empty array means all regions)
+ * @param selectedProductTypes - Array of selected product type names (empty array means all types)
+ * @param selectedProductSubTypes - Array of selected product sub-type names (empty array means all sub-types)
+ * @returns Filtered Sankey data object
+ */
+export function filterSankeyData(
+  data: SankeyData,
+  selectedInvestorRegions: string[] = [],
+  selectedProductTypes: string[] = [],
+  selectedProductSubTypes: string[] = []
+): SankeyData {
+  if (!data || !data.nodes || !Array.isArray(data.nodes)) {
+    return data;
+  }
+
+  // If no filters are selected, return original data
+  const hasInvestorRegionFilter = selectedInvestorRegions.length > 0;
+  const hasProductTypeFilter = selectedProductTypes.length > 0;
+  const hasProductSubTypeFilter = selectedProductSubTypes.length > 0;
+  
+  if (!hasInvestorRegionFilter && !hasProductTypeFilter && !hasProductSubTypeFilter) {
+    return data;
+  }
+
+  // First pass: identify nodes that directly match filters
+  const directlyMatchingNodes = new Set<string>();
+  
+  data.nodes.forEach(node => {
+    const nodeName = node.name;
+    let matches = true;
+
+    // Check investor region filter
+    if (hasInvestorRegionFilter) {
+      const region = extractRegionFromNodeName(nodeName);
+      if (!region || !selectedInvestorRegions.includes(region)) {
+        matches = false;
+      }
+    }
+
+    // Check product type filter (for Start/End nodes)
+    if (matches && hasProductTypeFilter && (nodeName.includes('(Start)') || nodeName.includes('(End)'))) {
+      const productType = extractProductTypeFromNodeName(nodeName);
+      if (!productType || !selectedProductTypes.includes(productType)) {
+        matches = false;
+      }
+    }
+
+    // Check product sub-type filter (for Source/Destination nodes)
+    if (matches && hasProductSubTypeFilter && (nodeName.includes('(Source)') || nodeName.includes('(Destination)'))) {
+      const productSubType = extractProductSubTypeFromNodeName(nodeName);
+      if (!productSubType || !selectedProductSubTypes.includes(productSubType)) {
+        matches = false;
+      }
+    }
+
+    if (matches) {
+      directlyMatchingNodes.add(nodeName);
+    }
+  });
+
+  // When filtering by investor region, always include Super Start/End nodes and Reallocation Pools for those regions
+  // This ensures the diagram structure is maintained
+  if (hasInvestorRegionFilter) {
+    data.nodes.forEach(node => {
+      const nodeName = node.name;
+      const region = extractRegionFromNodeName(nodeName);
+      
+      if (region && selectedInvestorRegions.includes(region)) {
+        // Always include Super Start, Super End, Reallocation Pool, and Net New Capital for selected regions
+        // These are structural nodes that maintain the diagram's visual structure
+        if (nodeName.includes('Super Start') || 
+            nodeName.includes('Super End') || 
+            nodeName.includes('Reallocation Pool') ||
+            nodeName.includes('Net New Capital')) {
+          directlyMatchingNodes.add(nodeName);
+        }
+        
+        // If only region filter is applied (no product type or sub-type filters), include all nodes for that region
+        // This preserves the full structure when filtering by region only
+        if (!hasProductTypeFilter && !hasProductSubTypeFilter) {
+          // Include all Start/End nodes
+          if (nodeName.includes('(Start)') || nodeName.includes('(End)')) {
+            directlyMatchingNodes.add(nodeName);
+          }
+          // Include all Source/Destination nodes
+          if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) {
+            directlyMatchingNodes.add(nodeName);
+          }
+        }
+      }
+    });
+  }
+
+  // Multiple passes to include all connected structural nodes
+  const nodesToInclude = new Set<string>(directlyMatchingNodes);
+  const links = data.links || [];
+  let changed = true;
+  let iterations = 0;
+  const maxIterations = 10; // Safety limit to prevent infinite loops
+  
+  // Keep iterating until no new nodes are added (to handle multi-level connections)
+  while (changed && iterations < maxIterations) {
+    changed = false;
+    iterations++;
+    
+    links.forEach(link => {
+      const source = typeof link.source === 'string' ? link.source : '';
+      const target = typeof link.target === 'string' ? link.target : '';
+      
+      // If source is included, check if we should include target
+      if (nodesToInclude.has(source) && !nodesToInclude.has(target)) {
+        // Check if target should be included based on filters
+        let shouldInclude = false;
+        
+        // Always include if it's a structural node or connected node type
+        if (target.includes('Reallocation Pool') || 
+            target.includes('Net New Capital') || 
+            target.includes('Super Start') || 
+            target.includes('Super End') ||
+            target.includes('(Start)') ||
+            target.includes('(End)') ||
+            target.includes('(Source)') ||
+            target.includes('(Destination)')) {
+          // Check investor region for nodes
+          if (!hasInvestorRegionFilter) {
+            shouldInclude = true;
+          } else {
+            const region = extractRegionFromNodeName(target);
+            if (region && selectedInvestorRegions.includes(region)) {
+              shouldInclude = true;
+            }
+          }
+        }
+        
+        if (shouldInclude) {
+          nodesToInclude.add(target);
+          changed = true;
+        }
+      }
+      
+      // If target is included, check if we should include source
+      if (nodesToInclude.has(target) && !nodesToInclude.has(source)) {
+        // Check if source should be included based on filters
+        let shouldInclude = false;
+        
+        // Always include if it's a structural node or connected node type
+        if (source.includes('Reallocation Pool') || 
+            source.includes('Net New Capital') || 
+            source.includes('Super Start') || 
+            source.includes('Super End') ||
+            source.includes('(Start)') ||
+            source.includes('(End)') ||
+            source.includes('(Source)') ||
+            source.includes('(Destination)')) {
+          // Check investor region for nodes
+          if (!hasInvestorRegionFilter) {
+            shouldInclude = true;
+          } else {
+            const region = extractRegionFromNodeName(source);
+            if (region && selectedInvestorRegions.includes(region)) {
+              shouldInclude = true;
+            }
+          }
+        }
+        
+        if (shouldInclude) {
+          nodesToInclude.add(source);
+          changed = true;
+        }
+      }
+    });
+  }
+
+  // Helper function to check if a node should be included
+  const shouldIncludeNode = (nodeName: string): boolean => {
+    return nodesToInclude.has(nodeName);
+  };
+
+  // Filter nodes
+  const filteredNodes = data.nodes.filter(node => shouldIncludeNode(node.name));
+  const filteredNodeNames = new Set(filteredNodes.map(node => node.name));
+
+  // Filter links to only include links between filtered nodes
+  const filteredLinks = (data.links || []).filter(link => {
+    const source = typeof link.source === 'string' ? link.source : '';
+    const target = typeof link.target === 'string' ? link.target : '';
+    return filteredNodeNames.has(source) && filteredNodeNames.has(target);
+  });
+
+  // Return filtered data
+  return {
+    ...data,
+    nodes: filteredNodes,
+    links: filteredLinks
+  };
+}
+

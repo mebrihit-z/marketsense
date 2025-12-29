@@ -895,13 +895,13 @@ export default class DashboardComponent implements OnInit {
     // For forecasted: longer periods (more positive) have larger values
     const multiplierMap: Record<string, number> = {
       // Historical
+      '-1 mo': 0.1,
       '-3 mo': 0.3,
       '-6 mo': 0.6,
-      '-9 mo': 0.9,
       '-12 mo': 1.2,
-      '-18 mo': 1.5,
+      '-18 mo': 1.8,
+      'Today': 1.0,
       // Forecasted
-      'Today': 0.4,
       '+3 mo': 0.5,
       '+6 mo': 0.8,
       '+9 mo': 1.1,

@@ -330,7 +330,7 @@ export class FiltersBarComponent implements OnInit {
    */
   get timeHorizons(): string[] {
     return this.dataType === 'historical' 
-      ? ['-3 mo', '-6 mo', '-9 mo', '-12 mo', '-18 mo', 'Today']
+      ? ['-18 mo', '-12 mo', '-9 mo', '-6 mo', '-3 mo', 'Today']
       : ['Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   }
 

@@ -40,6 +40,7 @@ export interface AssetFlowData {
 export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
+  @Input() selectedInvestorRegions: string[] = [];
   @Input() dataType: 'historical' | 'forecasted' = 'forecasted';
   @Input() timeHorizon: string = 'Today';
   @Output() pinToggle = new EventEmitter<void>();
