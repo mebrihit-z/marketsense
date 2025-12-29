@@ -59,10 +59,10 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
-    { id: 'product-region', label: 'Product Region', count: 0, active: true },
+    { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
-    { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
+    { id: 'product-region', label: 'Product Region', count: 0, active: true },
     { id: 'investor-type', label: 'Investor Type', count: 0, active: true }
   ];
 

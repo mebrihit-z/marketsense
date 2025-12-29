@@ -108,7 +108,7 @@
     </div>
   </div>
   <!-- Treemap Visualization -->
-  <div class="treemap-section">
+  <!-- <div class="treemap-section">
     <app-treemap 
       [dimension1Id]="selectedDimension1?.id || null"
       [dimension1Values]="getDimensionValues(selectedDimension1?.id || null)"
@@ -118,12 +118,10 @@
       [selectedProductTypes]="selectedProductTypes"
       (cellClick)="onTreemapCellClick($event)">
     </app-treemap>
-  </div>
+  </div> -->
 
   <!-- Reallocation Treemap Visualization -->
   <div class="reallocation-treemap-section">
-    <h3 class="section-title">Reallocation Treemap</h3>
-    <p class="section-subtitle">Visualization of capital flows from sankey data</p>
     <app-reallocation-treemap
       [selectedInvestorRegions]="selectedInvestorRegions"
       [selectedProductTypes]="selectedProductTypes"
