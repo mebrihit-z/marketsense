@@ -1,8 +1,9 @@
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
+import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
 
-interface SankeyData {
+interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
   links: Array<{ source: string; target: string; value: number }>;
   summary?: any;
@@ -32,10 +33,14 @@ interface TreemapHierarchyNode extends d3.HierarchyNode<TreemapNodeData> {
   encapsulation: ViewEncapsulation.None
 })
 export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
-  @Input() data?: SankeyData;
+  @Input() data?: SankeyDataLocal;
   @Input() dataUrl: string = 'assets/data/sankey_data.json';
+  @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedProductTypes: string[] = [];
+  @Input() selectedProductSubTypes: string[] = [];
 
-  private loadedData?: SankeyData;
+  private loadedData?: SankeyDataLocal;
+  private originalData?: SankeyDataLocal;
   private resizeObserver?: ResizeObserver;
 
   constructor(
@@ -45,8 +50,8 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
 
   ngAfterViewInit(): void {
     if (this.data) {
-      this.loadedData = this.data;
-      setTimeout(() => this.createTreemap(), 100);
+      this.originalData = this.data;
+      this.applyFilters();
     } else {
       this.loadDataFromJson();
     }
@@ -55,9 +60,16 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['data'] && this.data) {
-      this.loadedData = this.data;
-      if (this.el?.nativeElement) {
-        setTimeout(() => this.createTreemap(), 0);
+      this.originalData = this.data;
+      this.applyFilters();
+    } else if (
+      changes['selectedInvestorRegions'] || 
+      changes['selectedProductTypes'] || 
+      changes['selectedProductSubTypes']
+    ) {
+      // If filters changed, reapply filters and recreate treemap
+      if (this.originalData) {
+        this.applyFilters();
       }
     }
   }
@@ -69,16 +81,48 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
   }
 
   private loadDataFromJson(): void {
-    this.http.get<SankeyData>(this.dataUrl).subscribe({
+    this.http.get<SankeyDataLocal>(this.dataUrl).subscribe({
       next: (data) => {
-        this.loadedData = data;
-        setTimeout(() => this.createTreemap(), 100);
+        this.originalData = data;
+        this.applyFilters();
       },
       error: (error) => {
         console.error('Error loading sankey data:', error);
         console.error('Failed to load from:', this.dataUrl);
       }
     });
+  }
+
+  private applyFilters(): void {
+    if (!this.originalData) {
+      return;
+    }
+
+    // Convert to SankeyData format for filtering
+    const sankeyData: SankeyData = {
+      nodes: this.originalData.nodes,
+      links: this.originalData.links,
+      summary: this.originalData.summary
+    };
+
+    // Apply filters using the filterSankeyData utility
+    const filteredData = filterSankeyData(
+      sankeyData,
+      this.selectedInvestorRegions,
+      this.selectedProductTypes,
+      this.selectedProductSubTypes
+    );
+
+    // Convert back to local format
+    this.loadedData = {
+      nodes: filteredData.nodes,
+      links: filteredData.links || [],
+      summary: filteredData.summary
+    };
+
+    if (this.el?.nativeElement) {
+      setTimeout(() => this.createTreemap(), 100);
+    }
   }
 
   private setupResizeObserver(): void {
@@ -169,7 +213,7 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
     return Math.pow(floored, SIZE_EXPONENT);
   }
 
-  private buildHierarchy(sankeyData: SankeyData): TreemapNodeData {
+  private buildHierarchy(sankeyData: SankeyDataLocal): TreemapNodeData {
     // Map SubAsset -> Parent per SuperParent
     const outParentOf = new Map<string, string>();
     const inParentOf = new Map<string, string>();
@@ -397,8 +441,8 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
   }
 
   private createTreemap(): void {
-    if (!this.loadedData) {
-      console.warn('ReallocationTreemap: No data loaded');
+    if (!this.loadedData || !this.loadedData.nodes || this.loadedData.nodes.length === 0) {
+      console.warn('ReallocationTreemap: No data loaded or data is empty');
       return;
     }
 
