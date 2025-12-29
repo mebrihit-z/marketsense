@@ -59,15 +59,28 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // Handle data input changes
     if (changes['data'] && this.data) {
       this.originalData = this.data;
       this.applyFilters();
-    } else if (
-      changes['selectedInvestorRegions'] || 
-      changes['selectedProductTypes'] || 
-      changes['selectedProductSubTypes']
-    ) {
+      return;
+    }
+    
+    // Handle filter changes - check if any filter input changed
+    const filterChanged = changes['selectedInvestorRegions'] || 
+                          changes['selectedProductTypes'] || 
+                          changes['selectedProductSubTypes'];
+    
+    if (filterChanged) {
       // If filters changed, reapply filters and recreate treemap
+      console.log('ReallocationTreemap: Filters changed', {
+        investorRegions: this.selectedInvestorRegions,
+        productTypes: this.selectedProductTypes,
+        productSubTypes: this.selectedProductSubTypes,
+        changes: Object.keys(changes)
+      });
+      
+      // Apply filters if data is already loaded, otherwise filters will be applied when data loads
       if (this.originalData) {
         this.applyFilters();
       }
@@ -95,8 +108,16 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
 
   private applyFilters(): void {
     if (!this.originalData) {
+      console.log('ReallocationTreemap: No original data available yet');
       return;
     }
+
+    console.log('ReallocationTreemap: Applying filters', {
+      investorRegions: this.selectedInvestorRegions,
+      productTypes: this.selectedProductTypes,
+      productSubTypes: this.selectedProductSubTypes,
+      originalNodesCount: this.originalData.nodes?.length || 0
+    });
 
     // Convert to SankeyData format for filtering
     const sankeyData: SankeyData = {
@@ -112,6 +133,11 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
       this.selectedProductTypes,
       this.selectedProductSubTypes
     );
+
+    console.log('ReallocationTreemap: Filtered data', {
+      filteredNodesCount: filteredData.nodes?.length || 0,
+      filteredLinksCount: filteredData.links?.length || 0
+    });
 
     // Convert back to local format
     this.loadedData = {

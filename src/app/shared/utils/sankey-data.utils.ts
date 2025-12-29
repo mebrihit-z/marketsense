@@ -381,6 +381,35 @@ export function filterSankeyData(
     });
   }
 
+  // Helper function to check if a node passes all applicable filters
+  const nodePassesFilters = (nodeName: string, checkProductType: boolean, checkProductSubType: boolean): boolean => {
+    // Check investor region filter (applies to all nodes)
+    if (hasInvestorRegionFilter) {
+      const region = extractRegionFromNodeName(nodeName);
+      if (!region || !selectedInvestorRegions.includes(region)) {
+        return false;
+      }
+    }
+    
+    // Check product type filter (only for Start/End nodes when checkProductType is true)
+    if (checkProductType && hasProductTypeFilter && (nodeName.includes('(Start)') || nodeName.includes('(End)'))) {
+      const productType = extractProductTypeFromNodeName(nodeName);
+      if (!productType || !selectedProductTypes.includes(productType)) {
+        return false;
+      }
+    }
+    
+    // Check product sub-type filter (only for Source/Destination nodes when checkProductSubType is true)
+    if (checkProductSubType && hasProductSubTypeFilter && (nodeName.includes('(Source)') || nodeName.includes('(Destination)'))) {
+      const productSubType = extractProductSubTypeFromNodeName(nodeName);
+      if (!productSubType || !selectedProductSubTypes.includes(productSubType)) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   // Multiple passes to include all connected structural nodes
   const nodesToInclude = new Set<string>(directlyMatchingNodes);
   const links = data.links || [];
@@ -399,27 +428,22 @@ export function filterSankeyData(
       
       // If source is included, check if we should include target
       if (nodesToInclude.has(source) && !nodesToInclude.has(target)) {
-        // Check if target should be included based on filters
         let shouldInclude = false;
         
-        // Always include if it's a structural node or connected node type
+        // Structural nodes (don't have product types/sub-types, only check region filter)
         if (target.includes('Reallocation Pool') || 
             target.includes('Net New Capital') || 
             target.includes('Super Start') || 
-            target.includes('Super End') ||
-            target.includes('(Start)') ||
-            target.includes('(End)') ||
-            target.includes('(Source)') ||
-            target.includes('(Destination)')) {
-          // Check investor region for nodes
-          if (!hasInvestorRegionFilter) {
-            shouldInclude = true;
-          } else {
-            const region = extractRegionFromNodeName(target);
-            if (region && selectedInvestorRegions.includes(region)) {
-              shouldInclude = true;
-            }
-          }
+            target.includes('Super End')) {
+          shouldInclude = nodePassesFilters(target, false, false);
+        }
+        // Start/End nodes (have product types, check product type filter)
+        else if (target.includes('(Start)') || target.includes('(End)')) {
+          shouldInclude = nodePassesFilters(target, true, false);
+        }
+        // Source/Destination nodes (have product sub-types, check product sub-type filter)
+        else if (target.includes('(Source)') || target.includes('(Destination)')) {
+          shouldInclude = nodePassesFilters(target, false, true);
         }
         
         if (shouldInclude) {
@@ -430,27 +454,22 @@ export function filterSankeyData(
       
       // If target is included, check if we should include source
       if (nodesToInclude.has(target) && !nodesToInclude.has(source)) {
-        // Check if source should be included based on filters
         let shouldInclude = false;
         
-        // Always include if it's a structural node or connected node type
+        // Structural nodes (don't have product types/sub-types, only check region filter)
         if (source.includes('Reallocation Pool') || 
             source.includes('Net New Capital') || 
             source.includes('Super Start') || 
-            source.includes('Super End') ||
-            source.includes('(Start)') ||
-            source.includes('(End)') ||
-            source.includes('(Source)') ||
-            source.includes('(Destination)')) {
-          // Check investor region for nodes
-          if (!hasInvestorRegionFilter) {
-            shouldInclude = true;
-          } else {
-            const region = extractRegionFromNodeName(source);
-            if (region && selectedInvestorRegions.includes(region)) {
-              shouldInclude = true;
-            }
-          }
+            source.includes('Super End')) {
+          shouldInclude = nodePassesFilters(source, false, false);
+        }
+        // Start/End nodes (have product types, check product type filter)
+        else if (source.includes('(Start)') || source.includes('(End)')) {
+          shouldInclude = nodePassesFilters(source, true, false);
+        }
+        // Source/Destination nodes (have product sub-types, check product sub-type filter)
+        else if (source.includes('(Source)') || source.includes('(Destination)')) {
+          shouldInclude = nodePassesFilters(source, false, true);
         }
         
         if (shouldInclude) {
