@@ -757,7 +757,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     
     const legend = svg.append('g')
       .attr('class', 'legend')
-      .attr('transform', `translate(${10}, ${height -15})`);
+      .attr('transform', `translate(${150}, ${height -15})`);
 
     const legendItems = legend.selectAll('.legend-item')
       .data(legendData)
