@@ -42,14 +42,14 @@ interface RegionalSankeyData {
 // Angular Component
 // ----------------------
 @Component({
-  selector: 'app-regional-sankey-diagram',
+  selector: 'app-sankey',
   standalone: true,
   imports: [],
-  templateUrl: './regional-sankey-diagram.component.html',
-  styleUrl: './regional-sankey-diagram.component.scss',
+  templateUrl: './sankey.component.html',
+  styleUrl: './sankey.component.scss',
   providers: []
 })
-export class RegionalSankeyDiagramComponent implements AfterViewInit, OnChanges {
+export class SankeyComponent implements AfterViewInit, OnChanges {
   @Input() data?: RegionalSankeyData;
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];

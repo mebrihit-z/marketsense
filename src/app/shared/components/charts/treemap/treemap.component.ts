@@ -25,14 +25,14 @@ interface TreemapHierarchyNode extends d3.HierarchyNode<TreemapNodeData> {
 }
 
 @Component({
-  selector: 'app-reallocation-treemap',
+  selector: 'app-treemap',
   standalone: true,
   imports: [],
-  templateUrl: './reallocation-treemap.component.html',
-  styleUrl: './reallocation-treemap.component.scss',
+  templateUrl: './treemap.component.html',
+  styleUrl: './treemap.component.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
+export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() data?: SankeyDataLocal;
   @Input() dataUrl: string = 'assets/data/sankey_data.json';
   @Input() selectedInvestorRegions: string[] = [];

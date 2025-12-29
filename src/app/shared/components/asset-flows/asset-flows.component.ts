@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core'
 import { CommonModule } from '@angular/common';
-import { RegionalSankeyDiagramComponent } from '../charts/regional-sankey-diagram/regional-sankey-diagram.component';
+import { SankeyComponent } from '../charts/sankey/sankey.component';
 
 export interface FlowDimension {
   id: string;
@@ -33,7 +33,7 @@ export interface AssetFlowData {
 @Component({
   selector: 'app-asset-flows',
   standalone: true,
-  imports: [CommonModule, RegionalSankeyDiagramComponent],
+  imports: [CommonModule, SankeyComponent],
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })
