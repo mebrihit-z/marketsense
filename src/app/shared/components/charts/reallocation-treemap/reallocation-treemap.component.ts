@@ -492,7 +492,7 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
     // Get container dimensions or use defaults
     const containerWidth = container.parentElement?.clientWidth || container.offsetWidth || 1800;
     const width = Math.max(containerWidth - 40, 800); // Account for padding
-    const height = Math.round(width * (1050 / 1800)); // Maintain aspect ratio
+    const height = Math.round(width * (1050 / 1800) + 100); // Maintain aspect ratio
 
     console.log('ReallocationTreemap: Creating treemap with dimensions', width, height);
 
@@ -525,8 +525,8 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
       .style('height', height + 'px')
       .style('margin', '0 auto')
       .style('background', 'white')
-      .style('border', '1px solid #e6e6e6')
-      .style('box-shadow', '0 1px 3px rgba(0,0,0,0.06)');
+      // .style('border', '1px solid #e6e6e6')
+      // .style('box-shadow', '0 1px 3px rgba(0,0,0,0.06)');
 
     const tooltip = d3.select(container)
       .append('div')

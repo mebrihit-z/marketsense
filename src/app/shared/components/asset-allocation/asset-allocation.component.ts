@@ -1,7 +1,6 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TreemapComponent } from '../charts/treemap/treemap.component';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { ReallocationTreemapComponent } from '../charts/reallocation-treemap/reallocation-treemap.component';
 
@@ -37,7 +36,7 @@ export interface FlowDimension {
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule, TreemapComponent, TreemapCellModalComponent, ReallocationTreemapComponent],
+  imports: [CommonModule, TreemapCellModalComponent, ReallocationTreemapComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })
