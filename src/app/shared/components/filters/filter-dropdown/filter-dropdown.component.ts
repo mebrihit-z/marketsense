@@ -24,10 +24,15 @@ export default class FilterDropdownComponent {
   @Input() options: FilterOption[] = [];
   @Input() groupedOptions: GroupedFilterOption[] = []; // For categorized options
   @Input() selected: string[] = []; // parent's array reference
+  @Input() isOpen = false; // Controlled by parent
   @Output() selectedChange = new EventEmitter<string[]>();
+  @Output() openChange = new EventEmitter<boolean>(); // Emit when open state should change
 
-  open = false;
   map: Record<string, boolean> = {};
+  
+  get open(): boolean {
+    return this.isOpen;
+  }
   
   get isGrouped(): boolean {
     return this.groupedOptions && this.groupedOptions.length > 0;
@@ -91,7 +96,7 @@ export default class FilterDropdownComponent {
    */
   toggle(ev?: Event): void {
     if (ev) ev.stopPropagation();
-    this.open = !this.open;
+    this.openChange.emit(!this.isOpen);
   }
 
   // helpers
@@ -157,7 +162,7 @@ export default class FilterDropdownComponent {
    */
   done(ev?: Event): void { 
     ev?.stopPropagation(); 
-    this.open = false; 
+    this.openChange.emit(false);
   }
 
   // optional click outside handler fallback (simple)
@@ -170,8 +175,8 @@ export default class FilterDropdownComponent {
    */
   closeIfClickedOutside(event: Event): void {
     event.stopPropagation();
-    if (this.open) {
-      this.open = false;
+    if (this.isOpen) {
+      this.openChange.emit(false);
     }
   }
 }

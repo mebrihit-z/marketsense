@@ -1,4 +1,4 @@
-<div class="filters-root">
+<div class="filters-root" #filtersRoot>
     <div class="filters-container">
       <div class="filter-icon-container">
         <img src="assets/icons/filter-icon.svg" alt="Filter" class="filter-icon">
@@ -9,35 +9,45 @@
           title="Investor Region"
           [options]="investorRegionOptions"
           [selected]="state.investorRegion"
+          [isOpen]="isDropdownOpen('investorRegion')"
           (selectedChange)="onChange('investorRegion', $event)"
+          (openChange)="onDropdownOpenChange('investorRegion', $event)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
           title="Investor Type"
           [options]="investorTypeOptions"
           [selected]="state.investorType"
+          [isOpen]="isDropdownOpen('investorType')"
           (selectedChange)="onChange('investorType', $event)"
+          (openChange)="onDropdownOpenChange('investorType', $event)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
           title="Product Region"
           [options]="productRegionOptions"
           [selected]="state.productRegion"
+          [isOpen]="isDropdownOpen('productRegion')"
           (selectedChange)="onChange('productRegion', $event)"
+          (openChange)="onDropdownOpenChange('productRegion', $event)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
           title="Product Type"
           [options]="productTypeOptions"
           [selected]="state.productType"
+          [isOpen]="isDropdownOpen('productType')"
           (selectedChange)="onChange('productType', $event)"
+          (openChange)="onDropdownOpenChange('productType', $event)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
           title="Product Sub-Type"
           [groupedOptions]="productSubTypeOptions"
           [selected]="state.productSubType"
+          [isOpen]="isDropdownOpen('productSubType')"
           (selectedChange)="onChange('productSubType', $event)"
+          (openChange)="onDropdownOpenChange('productSubType', $event)"
         ></app-filter-dropdown>
       </div>
       <div class="clear-all-container">

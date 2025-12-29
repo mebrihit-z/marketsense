@@ -16,6 +16,7 @@ import { extractProductSubTypes, extractProductTypes, extractProductSubTypesByTy
 export class FiltersBarComponent implements OnInit {
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('timeHorizonSliderContainer', { static: false }) timeHorizonSliderContainer!: ElementRef<HTMLElement>;
+  @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
   @Output() productSubTypeChange = new EventEmitter<string[]>();
@@ -155,6 +156,9 @@ export class FiltersBarComponent implements OnInit {
     productSubType: [] as string[]
   };
 
+  // Track which dropdown is currently open
+  openDropdown: string | null = null;
+
   /**
    * @param {keyof typeof this.state} key - The state key to update
    * @param {string[]} values - The new values to set for the state key
@@ -177,6 +181,34 @@ export class FiltersBarComponent implements OnInit {
     if (key === 'investorType') {
       this.investorTypeChange.emit(values);
     }
+  }
+
+  /**
+   * Handles dropdown open/close state changes.
+   * Closes all other dropdowns when one opens.
+   * @param dropdownKey - The key identifying which dropdown is changing state
+   * @param isOpen - Whether the dropdown should be open
+   * @returns {void}
+   */
+  onDropdownOpenChange(dropdownKey: string, isOpen: boolean): void {
+    if (isOpen) {
+      // Close all other dropdowns when one opens
+      this.openDropdown = dropdownKey;
+    } else {
+      // Clear the open dropdown if this one is closing
+      if (this.openDropdown === dropdownKey) {
+        this.openDropdown = null;
+      }
+    }
+  }
+
+  /**
+   * Checks if a specific dropdown is open.
+   * @param dropdownKey - The key identifying the dropdown
+   * @returns {boolean} True if the dropdown is open, false otherwise
+   */
+  isDropdownOpen(dropdownKey: string): boolean {
+    return this.openDropdown === dropdownKey;
   }
 
   /**
@@ -237,6 +269,30 @@ export class FiltersBarComponent implements OnInit {
       setTimeout(() => {
         this.timeHorizonHasDragged = false;
       }, 100);
+    }
+  }
+
+  /**
+   * Handles clicks on the document to close any open dropdown when clicking outside the filters area.
+   * @param event - The click event
+   * @returns {void}
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    // Don't close if we're dragging sliders
+    if (this.isDragging || this.isTimeHorizonDragging) {
+      return;
+    }
+
+    // Check if click is outside the filters root element
+    if (this.filtersRoot && this.filtersRoot.nativeElement) {
+      const target = event.target as HTMLElement;
+      const clickedInside = this.filtersRoot.nativeElement.contains(target);
+      
+      if (!clickedInside && this.openDropdown !== null) {
+        // Click was outside the filters area, close any open dropdown
+        this.openDropdown = null;
+      }
     }
   }
 
