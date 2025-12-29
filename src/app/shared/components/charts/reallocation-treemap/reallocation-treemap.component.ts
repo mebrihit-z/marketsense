@@ -492,7 +492,7 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
     // Get container dimensions or use defaults
     const containerWidth = container.parentElement?.clientWidth || container.offsetWidth || 1800;
     const width = Math.max(containerWidth - 40, 800); // Account for padding
-    const height = Math.round(width * (1050 / 1800) + 100); // Maintain aspect ratio
+    const height = Math.round(width * (1050 / 1800) + 400); // Maintain aspect ratio
 
     console.log('ReallocationTreemap: Creating treemap with dimensions', width, height);
 
@@ -510,7 +510,8 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
       .paddingTop((d) => {
         if (d.depth === 1) return 30;
         if (d.depth === 2) return 24;
-        if (d.depth === 3) return 20;
+        // Increase padding for depth 3 nodes with children to accommodate multi-line labels when needed
+        if (d.depth === 3) return d.children && d.children.length > 0 ? 45 : 20;
         return 2;
       })
       .paddingInner(2)
@@ -592,13 +593,25 @@ export class ReallocationTreemapComponent implements AfterViewInit, OnDestroy, O
       })
       .style('line-height', d => d.depth === 1 || d.depth === 3 ? '1.30' : '1.25')
       .style('padding', '4px 6px')
-      .style('margin', '2px')
+      .style('margin', d => {
+        // Add extra bottom margin for depth 3 nodes with children to prevent overlap when labels wrap
+        if (d.depth === 3 && d.children && d.children.length > 0) return '2px 2px 12px 2px';
+        return '2px';
+      })
       .style('color', 'rgba(0, 0, 0, 0.92)')
       .style('pointer-events', 'none')
-      .style('white-space', d => !d.children ? 'nowrap' : 'normal')
+      .style('white-space', d => {
+        // Allow wrapping for product type (depth 3) nodes with children
+        if (d.depth === 3 && d.children && d.children.length > 0) return 'normal';
+        return 'nowrap';
+      })
       .style('word-break', 'break-word')
       .style('overflow', 'hidden')
-      .style('text-overflow', 'ellipsis')
+      .style('text-overflow', d => {
+        // Use clip instead of ellipsis when wrapping is allowed
+        if (d.depth === 3 && d.children && d.children.length > 0) return 'clip';
+        return 'ellipsis';
+      })
       .style('background', 'rgba(255, 255, 255, 0.65)')
       .style('border-radius', '4px')
       .style('display', 'inline-block')

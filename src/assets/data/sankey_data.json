@@ -152,7 +152,7 @@
     {"source": "United States: Credit - Long Duration (Destination)", "target": "United States: Fixed Income (End)", "value": 4.5},
     {"source": "United States: Global Bonds (Destination)", "target": "United States: Fixed Income (End)", "value": 34.73},
     {"source": "United States: High Yield (Destination)", "target": "United States: Fixed Income (End)", "value": 6.7},
-    {"source": "United States: Insurance Core Fixed Income (Destination)", "target": "United States: Fixed Income (End)", "value": 0.3},
+    {"source": "United States: Insurance Core Fixed Income (Destination)", "target": "United States: Fixed Income (End)", "value": 3.3},
     {"source": "United States: Investment Grade Private Credit (Destination)", "target": "United States: Fixed Income (End)", "value": 6.7},
     {"source": "United States: Long Duration (Destination)", "target": "United States: Fixed Income (End)", "value": 7.0},
     {"source": "United States: Municipal (Destination)", "target": "United States: Fixed Income (End)", "value": 3.9},
