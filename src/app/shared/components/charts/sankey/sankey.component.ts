@@ -12,6 +12,7 @@ import {
   SankeyGraph
 } from 'd3-sankey';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
+import { convertExcelToSankey } from '../../../utils/excel-to-sankey.util';
 
 // ----------------------
 // TypeScript Models
@@ -97,15 +98,34 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
   }
 
   private loadDataFromJson(): void {
-    this.http.get<RegionalSankeyData>('assets/data/sankey_data.json').subscribe({
-      next: (data) => {
-        this.loadedData = data;
-        setTimeout(() => {
-          this.createSankey();
-        }, 0);
+    // Load Excel file as ArrayBuffer
+    this.http.get('assets/data/marketsense_input_data.xlsx', { responseType: 'arraybuffer' }).subscribe({
+      next: (arrayBuffer) => {
+        try {
+          // Convert Excel to Sankey data using the utility (based on csv-to-json.ts)
+          const sankeyData = convertExcelToSankey(arrayBuffer, {
+            superparentCol: 'SuperParent',
+            parentCol: 'Parent',
+            subassetCol: 'SubAsset',
+            valueCol: 'Value'
+          });
+          
+          // Map to RegionalSankeyData format
+          this.loadedData = {
+            nodes: sankeyData.nodes,
+            links: sankeyData.links,
+            summary: sankeyData.summary
+          };
+          
+          setTimeout(() => {
+            this.createSankey();
+          }, 0);
+        } catch (error) {
+          console.error('Error converting Excel to Sankey data:', error);
+        }
       },
       error: (error) => {
-        console.error('Error loading sankey data:', error);
+        console.error('Error loading Excel file:', error);
       }
     });
   }
