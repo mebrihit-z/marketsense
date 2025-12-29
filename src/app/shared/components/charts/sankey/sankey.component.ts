@@ -159,8 +159,9 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
 
     const element = this.el.nativeElement.querySelector('.regional-sankey');
     
-    // Clear any existing SVG
+    // Clear any existing SVG and tooltip
     d3.select(element).select('svg').remove();
+    d3.select('body').select('.sankey-tooltip').remove();
     
     // Get the container width dynamically
     const nativeRect = this.el.nativeElement.getBoundingClientRect();
@@ -181,8 +182,8 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     const overlayDarker = this.getCssVariable('--overlay-darker');
     const bgWhite = this.getCssVariable('--bg-white');
 
-    // Create tooltip
-    const tooltip = d3.select(element)
+    // Create tooltip (append to body for better positioning and to avoid overflow issues)
+    const tooltip = d3.select('body')
       .append('div')
       .attr('class', 'sankey-tooltip')
       .style('position', 'absolute')
@@ -196,7 +197,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .style('z-index', 10000)
       .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)')
       .style('white-space', 'nowrap')
-      .style('display', 'block');
+      .style('display', 'none');
 
     // -----------------------------------------
     // 1. Prepare Data
@@ -266,8 +267,8 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .style('width', '100%')
       .style('height', 'auto');
 
-    const leftMargin = 0;
-    const rightMargin = 0;
+    const leftMargin = 150; // Space for Super Start node and labels
+    const rightMargin = 150; // Space for Super End node and labels
     const topMargin = 10;
     const bottomMargin = 50;
     
@@ -304,6 +305,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         
         tooltip
           .style('opacity', 1)
+          .style('display', 'block')
           .html(`
             <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
             <div style="margin-top: 4px;">Value: $${formattedValue}B</div>
