@@ -39,6 +39,8 @@
   display: flex;
   gap: 0;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .icon-btn {
@@ -53,15 +55,31 @@
   color: $text-secondary;
   transition: color 0.2s, background-color 0.2s;
   border-radius: 8px;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 
   &:hover {
     background-color: $overlay-light;
     color: $text-primary-dark;
   }
 
+  &:active {
+    background-color: $overlay-light;
+  }
+
   svg {
     width: 16px;
     height: 16px;
+    pointer-events: none;
+  }
+
+  img {
+    pointer-events: none;
   }
 
   &.pinned {
@@ -252,6 +270,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 
 .confidence-indicator {
@@ -284,14 +304,30 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 
   &:hover {
+    background-color: $primary-blue-light-hover;
+  }
+
+  &:active {
     background-color: $primary-blue-light-hover;
   }
 
   .sparkle-icon {
     width: 16px;
     height: 16px;
+    pointer-events: none;
+  }
+
+  .ask-text {
+    pointer-events: none;
   }
 }
 

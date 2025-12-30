@@ -4,11 +4,11 @@
     <h3 class="card-title">{{ card.title }}</h3>
     <div class="card-actions">
       <!-- Pin Button -->
-      <button type="button" class="icon-btn" [class.pinned]="isPinned" (click)="onPin($event)" aria-label="Pin Button">
+      <button type="button" class="icon-btn" [class.pinned]="isPinned" (click)="onPin($event)" (mousedown)="onPin($event)" (touchstart)="onPin($event)" aria-label="Pin Button">
         <img src="assets/icons/pin-icon.svg" alt="Pin Button">
       </button>
       <!-- Download Button -->
-      <button type="button" class="icon-btn" (click)="onDownload($event)" aria-label="Download">
+      <button type="button" class="icon-btn" (click)="onDownload($event)" (mousedown)="onDownload($event)" (touchstart)="onDownload($event)" aria-label="Download">
         <img src="assets/icons/download-icon.svg" alt="Download" class="download-icon">
       </button>
       <!-- More Options Button -->
@@ -47,7 +47,7 @@
         <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
         <span class="confidence-text">AI Confidence</span>
       </div>
-      <button type="button" class="ask-btn" (click)="onAskMarketSense($event)">
+      <button type="button" class="ask-btn" (click)="onAskMarketSense($event)" (mousedown)="onAskMarketSense($event)" (touchstart)="onAskMarketSense($event)">
         <img src="assets/icons/sparkle-icon.svg" alt="Sparkle" class="sparkle-icon">
         <span class="ask-text">Ask MarketSense</span>
       </button>
