@@ -39,6 +39,7 @@
             background: $bg-white;
             cursor: pointer;
             transition: all 0.2s ease;
+            color:$text-primary;
             
             &:hover {
                 background-color: $bg-gray-lightest;

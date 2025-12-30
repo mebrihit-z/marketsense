@@ -56,6 +56,7 @@ export class MarketFlowCardComponent {
   }
 
   onAskMarketSense(event?: Event): void {
+    console.log('zere onAskMarketSense', this.card.id);
     if (event) {
       event.preventDefault();
       event.stopPropagation();

@@ -1,7 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
 
 export interface Profile {
   id: string;
@@ -26,7 +25,6 @@ export default class ProfileModalComponent implements OnChanges {
   @Output() profileSwitch = new EventEmitter<Profile>();
 
   constructor(
-    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -71,7 +69,6 @@ export default class ProfileModalComponent implements OnChanges {
   }
 
   onSignOut(): void {
-    this.authService.logout();
     this.onClose();
     this.router.navigate(['/']);
   }
