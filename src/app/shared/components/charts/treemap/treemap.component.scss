@@ -63,6 +63,18 @@ app-treemap {
     display: flex;
     flex-direction: column;
 
+    // Allow overflow for small leaf nodes so labels can show
+    &.leaf.small-leaf {
+      overflow: visible !important;
+    }
+    
+    // For tiny leaf nodes, ensure labels are always visible
+    &.leaf.tiny-leaf {
+      overflow: visible !important;
+      // Ensure flex container doesn't clip content
+      align-items: flex-start !important;
+    }
+
     &.superparent .label {
       font-size: 15px;
       font-weight: 750;
@@ -88,6 +100,28 @@ app-treemap {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    
+    // Override for small leaf nodes - allow text to show
+    &.leaf.small-leaf .label {
+      overflow: visible !important;
+      white-space: normal !important;
+      text-overflow: clip !important;
+      word-break: break-word !important;
+    }
+    
+    // For tiny leaf nodes, make labels even more prominent
+    &.leaf.tiny-leaf .label {
+      overflow: visible !important;
+      white-space: normal !important;
+      text-overflow: clip !important;
+      word-break: break-word !important;
+      max-width: none !important;
+      width: auto !important;
+      min-width: fit-content !important;
+      // Ensure label is always on top
+      z-index: 100 !important;
+      position: relative !important;
     }
 
     &.group.leaf .label {
@@ -116,6 +150,9 @@ app-treemap {
     border-radius: 4px;
     display: inline-block;
     max-width: calc(100% - 8px);
+    
+    // Ensure labels are always visible, especially for small nodes
+    visibility: visible !important;
   }
 
   .value {

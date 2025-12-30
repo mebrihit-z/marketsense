@@ -592,9 +592,36 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .classed('group', d => d.depth === 2)
       .classed('parent', d => d.depth === 3)
       .classed('leaf', d => !d.children)
+      .classed('small-leaf', d => {
+        // Add class for small leaf nodes to allow CSS targeting
+        if (!d.children) {
+          const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+          const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+          return w < 60 || h < 25;
+        }
+        return false;
+      })
+      .classed('tiny-leaf', d => {
+        // Add class for tiny leaf nodes (very small)
+        if (!d.children) {
+          const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+          const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+          return w < 40 || h < 18;
+        }
+        return false;
+      })
       .style('position', 'absolute')
       .style('box-sizing', 'border-box')
-      .style('overflow', 'hidden')
+      .style('overflow', d => {
+        // For very small leaf nodes (product sub-types), allow overflow so labels can show
+        if (!d.children) {
+          const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+          const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+          const isVerySmall = w < 60 || h < 25;
+          if (isVerySmall) return 'visible';
+        }
+        return 'hidden';
+      })
       .style('border', d => {
         if (d.depth === 3) return '2px solid #000';
         return '1px solid rgba(0,0,0,0.12)';
@@ -618,9 +645,20 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const labels = nodes.append('div')
       .attr('class', 'label')
       .style('font-size', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 100 || h < 35;
+        const isVerySmall = w < 60 || h < 25;
+        const isTiny = w < 40 || h < 18;
+        
         if (d.depth === 1) return '15px';
         if (d.depth === 2) return '13px';
         if (d.depth === 3) return '13px';
+        // For leaf nodes (product sub-types), adjust font size based on node size
+        // Always show labels, even for tiny nodes
+        if (isTiny) return '7px';
+        if (isVerySmall) return '8px';
+        if (isSmall) return '9px';
         return '10px';
       })
       .style('font-weight', d => {
@@ -629,40 +667,152 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (d.depth === 3) return '650';
         return '650';
       })
-      .style('line-height', d => d.depth === 1 || d.depth === 3 ? '1.30' : '1.25')
-      .style('padding', '4px 6px')
+      .style('line-height', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        const isTiny = w < 40 || h < 18;
+        
+        if (d.depth === 1) return '1.30';
+        if (d.depth === 3) return '1.30';
+        // For very small leaf nodes, use tighter line height
+        if (!d.children && isTiny) return '1.0';
+        if (!d.children && isSmall) return '1.1';
+        return '1.25';
+      })
+      .style('padding', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        const isTiny = w < 40 || h < 18;
+        
+        // Reduce padding for small leaf nodes to ensure labels fit
+        if (!d.children && isTiny) return '1px 2px';
+        if (!d.children && isSmall) return '2px 3px';
+        return '4px 6px';
+      })
       .style('margin', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        const isTiny = w < 40 || h < 18;
+        
         // Add extra bottom margin for depth 3 nodes with children to prevent overlap when labels wrap
         if (d.depth === 3 && d.children && d.children.length > 0) return '2px 2px 12px 2px';
+        // Reduce margin for small leaf nodes
+        if (!d.children && isTiny) return '0px';
+        if (!d.children && isSmall) return '1px';
         return '2px';
       })
       .style('color', 'rgba(0, 0, 0, 0.92)')
       .style('pointer-events', 'none')
       .style('white-space', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        
         // Allow wrapping for product type (depth 3) nodes with children
         if (d.depth === 3 && d.children && d.children.length > 0) return 'normal';
+        // For small leaf nodes, allow wrapping to show at least part of the label
+        if (!d.children && isSmall) return 'normal';
         return 'nowrap';
       })
       .style('word-break', 'break-word')
-      .style('overflow', 'hidden')
+      .style('overflow', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        
+        // For small leaf nodes, use visible overflow to ensure labels show
+        if (!d.children && isSmall) return 'visible';
+        return 'hidden';
+      })
       .style('text-overflow', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        
         // Use clip instead of ellipsis when wrapping is allowed
         if (d.depth === 3 && d.children && d.children.length > 0) return 'clip';
+        // For small nodes, don't use ellipsis to ensure text shows
+        if (!d.children && isSmall) return 'clip';
         return 'ellipsis';
       })
-      .style('background', 'rgba(255, 255, 255, 0.65)')
-      .style('border-radius', '4px')
+      .style('background', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isTiny = w < 40 || h < 18;
+        
+        // For tiny nodes, use more opaque background to ensure text is readable
+        if (!d.children && isTiny) return 'rgba(255, 255, 255, 0.9)';
+        return 'rgba(255, 255, 255, 0.65)';
+      })
+      .style('border-radius', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        const isTiny = w < 40 || h < 18;
+        
+        // Smaller border radius for small nodes
+        if (!d.children && isTiny) return '1px';
+        if (!d.children && isSmall) return '2px';
+        return '4px';
+      })
+      .style('flex-shrink', '0') // Prevent labels from shrinking
+      .style('flex-grow', '0') // Prevent labels from growing
       .style('display', 'inline-block')
-      .style('max-width', 'calc(100% - 8px)')
+      .style('max-width', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isSmall = w < 60 || h < 25;
+        const isTiny = w < 40 || h < 18;
+        
+        // For small nodes, use more of the available width
+        // For tiny nodes, allow full width and even overflow slightly
+        if (!d.children && isTiny) return 'none';
+        if (!d.children && isSmall) return 'calc(100% - 2px)';
+        return 'calc(100% - 8px)';
+      })
+      .style('min-height', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isTiny = w < 40 || h < 18;
+        
+        // Ensure labels have minimum height to be visible
+        if (!d.children && isTiny) return 'auto';
+        return 'auto';
+      })
       .text(d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isTiny = w < 40 || h < 18;
+        const isSmall = w < 60 || h < 25;
+        
+        // Always show labels for all nodes, especially leaf nodes (product sub-types)
         if (d.depth === 2) {
           return d.data.name + ' — ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
         }
         if (d.depth === 3) {
           return d.data.name + ' — ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
         }
-        return d.data.name;
-      });
+        // For very small leaf nodes, include value in label to save space
+        if (!d.children && isTiny) {
+          const v = this.signedValue(d as TreemapHierarchyNode);
+          const name = d.data.name || '';
+          // Prioritize showing the name, add value if there's space
+          return name ? (name + ' ' + this.formatValue(v)) : this.formatValue(v);
+        }
+        // For small leaf nodes, show name first, value can be separate
+        if (!d.children && isSmall) {
+          return d.data.name || '';
+        }
+        // For leaf nodes (product sub-types), always return the name
+        return d.data.name || '';
+      })
+      .style('display', 'block') // Ensure labels are always displayed
+      .style('visibility', 'visible') // Explicitly make labels visible
+      .style('z-index', '10') // Ensure labels are above other elements
+      .style('position', 'relative'); // Ensure proper positioning
 
     const values = nodes.append('div')
       .attr('class', 'value')
@@ -675,6 +825,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .text(d => {
         const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
         const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        const isTiny = w < 40 || h < 18;
+
+        // For very small leaf nodes, hide the separate value div since it's included in the label
+        if (!d.children && isTiny) return '';
 
         if (w < 60 || h < 26) return '';
 
