@@ -1,0 +1,234 @@
+@use '../../../../_variables' as *;
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: transparent;
+  z-index: 999;
+  pointer-events: all;
+}
+
+.modal-container {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+  max-width: 360px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: all;
+  animation: slideDown 0.2s ease-out;
+  z-index: 1001;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Current Profile Section
+.profile-section {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background-color: $border-light;
+  }
+}
+
+.current-profile {
+  background-color: $bg-white;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+// Switch Profile Section
+.switch-profile-section {
+  padding: 12px 0;
+}
+
+.section-header {
+  padding: 0 16px 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: $text-secondary;
+  text-transform: uppercase;
+}
+
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background-color: $bg-gray-lightest;
+  }
+
+  &.selected {
+    background-color: $bg-gray-lightest;
+  }
+}
+
+// Profile Avatar
+.profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .avatar-initials {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: $bg-white;
+    letter-spacing: 0.5px;
+  }
+
+  &.avatar-blue {
+    background-color: $primary-blue;
+  }
+
+  &.avatar-green {
+    background-color: $green-dark;
+  }
+
+  &.avatar-red {
+    background-color: $red-dark;
+  }
+
+  &.avatar-orange {
+    background-color: $orange-primary;
+  }
+
+  &.avatar-purple {
+    background-color: $purple-primary;
+  }
+
+  &.avatar-pink {
+    background-color: $pink-primary;
+  }
+
+  &.avatar-teal {
+    background-color: $teal-primary;
+  }
+}
+
+// Profile Info
+.profile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-role {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: $text-secondary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Active Indicator
+.active-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $primary-blue;
+  flex-shrink: 0;
+}
+
+// Sign Out Section
+.sign-out-section {
+  padding: 0;
+}
+
+.sign-out-divider {
+  height: 1px;
+  background-color: $border-light;
+  margin: 0 16px;
+}
+
+.sign-out-button {
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-primary;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: $bg-gray-lightest;
+  }
+
+  &:active {
+    background-color: $bg-gray-light;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .modal-container {
+    min-width: 280px;
+    max-width: 90vw;
+  }
+}
+

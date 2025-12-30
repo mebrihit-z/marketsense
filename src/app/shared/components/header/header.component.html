@@ -11,7 +11,14 @@
     <div class="header-user-settings-date">
       <div class="settings-and-user">
         <!-- <span class="settings-icon"><img src="assets/icons/setting-icon.svg" alt="Settings"></span> -->
-        <span class="user-name">SF</span>
+        <span class="user-name" (click)="toggleProfileModal()">{{ currentProfile ? (currentProfile.firstName.charAt(0) + currentProfile.lastName.charAt(0)) : 'SF' }}</span>
+        <app-profile-modal
+          [isVisible]="isProfileModalOpen"
+          [profiles]="profiles"
+          [currentProfileId]="currentProfileId"
+          (close)="closeProfileModal()"
+          (profileSwitch)="onProfileSwitch($event)">
+        </app-profile-modal>
       </div>
       <div class="date-updated">
         <img src="assets/icons/calendar-icon.svg" alt="Calendar" class="calendar-icon">

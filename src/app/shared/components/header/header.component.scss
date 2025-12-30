@@ -1,6 +1,6 @@
 @use '../../../../_variables' as *;
 .header-container{
-    padding: 48px 48px 0px;
+    padding: 48px 32px 0px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -26,8 +26,8 @@
         display: flex;
         align-items: center;
         justify-content: end;
-        gap: 8px;
         margin-left: auto;
+        position: relative;
         .settings-icon,.user-name{
             display: flex;
             width: 36px;
@@ -37,6 +37,13 @@
             border-radius: 8px;
             border: 1px solid $border-light;
             background: $bg-white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            
+            &:hover {
+                background-color: $bg-gray-lightest;
+                border-color: $border-medium;
+            }
         }
     }
     .date-updated{
@@ -47,6 +54,7 @@
         font-size: 12px;
         font-style: normal;
         font-weight: 400;
-        line-height: 16px; /* 133.333% */
+        line-height: 16px;
+        margin-top: 2px;
     }
 }

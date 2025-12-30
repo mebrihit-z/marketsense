@@ -1,0 +1,43 @@
+<div *ngIf="isVisible">
+  <div class="modal-overlay" (click)="onClose()"></div>
+  <div class="modal-container" (click)="onModalClick($event)">
+    <!-- Current Profile Section -->
+    <div class="profile-section current-profile">
+      <div class="profile-avatar" [class]="'avatar-' + (currentProfile?.avatarColor || 'blue')">
+        <span class="avatar-initials">{{ currentProfile ? getInitials(currentProfile) : 'SF' }}</span>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">{{ currentProfile ? getFullName(currentProfile) : 'Sofia Fischer' }}</div>
+        <div class="profile-role">{{ currentProfile?.role || 'Product Strategist' }}</div>
+      </div>
+    </div>
+
+    <!-- Switch Profile Section -->
+    <div class="switch-profile-section">
+      <div class="section-header">SWITCH PROFILE</div>
+      <div class="profiles-list">
+        <div 
+          class="profile-item" 
+          [class.selected]="isProfileSelected(profile)"
+          (click)="onSwitchProfile(profile)"
+          *ngFor="let profile of profiles">
+          <div class="profile-avatar" [class]="'avatar-' + profile.avatarColor">
+            <span class="avatar-initials">{{ getInitials(profile) }}</span>
+          </div>
+          <div class="profile-info">
+            <div class="profile-name">{{ getFullName(profile) }}</div>
+            <div class="profile-role">{{ profile.role }}</div>
+          </div>
+          <div class="active-indicator" *ngIf="isProfileSelected(profile)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sign Out Section -->
+    <div class="sign-out-section">
+      <div class="sign-out-divider"></div>
+      <button class="sign-out-button" (click)="onSignOut()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
