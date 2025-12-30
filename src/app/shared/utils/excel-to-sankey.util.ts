@@ -1,11 +1,9 @@
 /**
  * Browser-compatible utility to convert Excel files to Sankey diagram data
- * Extracts the conversion logic from csv-to-json.ts for use in Angular components
  */
 
 import * as XLSX from 'xlsx';
 
-// Types (matching csv-to-json.ts)
 interface CSVRow {
   superparent: string;
   parent: string;
@@ -69,7 +67,6 @@ interface ExcelOptions {
 
 /**
  * Build Sankey diagram data structure from CSV rows
- * Extracted from csv-to-json.ts
  */
 function buildSankeyFromRows(rows: CSVRow[]): SankeyData {
   // Filter out exact zeros

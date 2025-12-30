@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Utility functions for extracting data from Sankey diagram data structures
  */

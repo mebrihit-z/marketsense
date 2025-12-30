@@ -98,7 +98,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     this.http.get('assets/data/marketsense_input_data.xlsx', { responseType: 'arraybuffer' }).subscribe({
       next: (arrayBuffer) => {
         try {
-          // Convert Excel to Sankey data using the utility (based on csv-to-json.ts)
+          // Convert Excel to Sankey data
           const sankeyData = convertExcelToSankey(arrayBuffer, {
             superparentCol: 'SuperParent',
             parentCol: 'Parent',
