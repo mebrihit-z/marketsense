@@ -1,14 +1,10 @@
 /* eslint-disable */
 import { Component, ElementRef, AfterViewInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import * as d3 from 'd3';
 import {
   sankey,
   sankeyLinkHorizontal,
-  SankeyNode,
-  SankeyLink,
   SankeyGraph
 } from 'd3-sankey';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
