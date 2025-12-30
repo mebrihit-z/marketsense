@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
-import { extractProductSubTypes, extractProductTypes, extractProductSubTypesByType, extractInvestorRegions, type SankeyData } from '../../../utils/sankey-data.utils';
+import { extractFilterOptionsFromExcel } from '../../../utils/excel-filter-options.util';
 
 @Component({
   selector: 'app-filters-bar',
@@ -48,11 +48,11 @@ export class FiltersBarComponent implements OnInit {
    * @returns {void} Initializes filter state and time horizon defaults.
    */
   ngOnInit() {
-    // Load product sub-types and investor regions from sankey data (async)
-    this.loadProductSubTypes();
+    // Load product sub-types and investor regions from Excel file (async)
+    this.loadFilterOptionsFromExcel();
     
     // Initialize all filters with all options selected by default
-    // Note: productType, productSubType, and investorRegion will be initialized in loadProductSubTypes() after async load
+    // Note: productType, productSubType, and investorRegion will be initialized in loadFilterOptionsFromExcel() after async load
     this.state.investorType = this.investorTypeOptions.map(opt => opt.value);
     this.state.productRegion = this.productRegionOptions.map(opt => opt.value);
     
@@ -65,46 +65,56 @@ export class FiltersBarComponent implements OnInit {
   }
 
   /**
-   * Loads product types, product sub-types, and investor regions dynamically from sankey_data.json
+   * Loads product types, product sub-types, and investor regions dynamically from marketsense_input_data.xlsx
    * @returns {void}
    */
-  private loadProductSubTypes(): void {
-    this.http.get<SankeyData>('assets/data/sankey_data.json').subscribe({
-      next: (data) => {
-        // Extract product types
-        const productTypes = extractProductTypes(data);
-        this.productTypeOptions = productTypes.map(type => ({ value: type }));
-        
-        // Extract product sub-types grouped by product type
-        const groupedSubTypes = extractProductSubTypesByType(data);
-        
-        // Convert to GroupedFilterOption format for the dropdown
-        this.productSubTypeOptions = groupedSubTypes.map(group => ({
-          category: group.productType,
-          options: group.subTypes.map(subType => ({ value: subType }))
-        }));
-        
-        // Extract investor regions
-        const investorRegions = extractInvestorRegions(data);
-        this.investorRegionOptions = investorRegions.map(region => ({ value: region }));
-        
-        // Initialize productType selection with all options selected
-        this.state.productType = productTypes;
-        
-        // Initialize productSubType selection with all options selected
-        const allSubTypes = groupedSubTypes.flatMap(group => group.subTypes);
-        this.state.productSubType = allSubTypes;
-        
-        // Initialize investorRegion selection with all options selected
-        this.state.investorRegion = investorRegions;
-        
-        // Emit initial selections
-        this.productTypeChange.emit(this.state.productType);
-        this.productSubTypeChange.emit(this.state.productSubType);
-        this.investorRegionChange.emit(this.state.investorRegion);
+  private loadFilterOptionsFromExcel(): void {
+    this.http.get('assets/data/marketsense_input_data.xlsx', { responseType: 'arraybuffer' }).subscribe({
+      next: (arrayBuffer) => {
+        try {
+          // Extract filter options from Excel file
+          const filterOptions = extractFilterOptionsFromExcel(arrayBuffer, {
+            superparentCol: 'SuperParent',
+            parentCol: 'Parent',
+            subassetCol: 'SubAsset'
+          });
+          
+          // Set product types
+          this.productTypeOptions = filterOptions.productTypes.map(type => ({ value: type }));
+          
+          // Set product sub-types grouped by product type
+          this.productSubTypeOptions = filterOptions.productSubTypes.map(group => ({
+            category: group.productType,
+            options: group.subTypes.map(subType => ({ value: subType }))
+          }));
+          
+          // Set investor regions
+          this.investorRegionOptions = filterOptions.investorRegions.map(region => ({ value: region }));
+          
+          // Initialize productType selection with all options selected
+          this.state.productType = filterOptions.productTypes;
+          
+          // Initialize productSubType selection with all options selected
+          const allSubTypes = filterOptions.productSubTypes.flatMap(group => group.subTypes);
+          this.state.productSubType = allSubTypes;
+          
+          // Initialize investorRegion selection with all options selected
+          this.state.investorRegion = filterOptions.investorRegions;
+          
+          // Emit initial selections
+          this.productTypeChange.emit(this.state.productType);
+          this.productSubTypeChange.emit(this.state.productSubType);
+          this.investorRegionChange.emit(this.state.investorRegion);
+        } catch (error) {
+          console.error('Error extracting filter options from Excel file:', error);
+          // Fallback to empty arrays
+          this.productTypeOptions = [];
+          this.productSubTypeOptions = [];
+          this.investorRegionOptions = [];
+        }
       },
       error: (error) => {
-        console.error('Error loading sankey data for product types, sub-types, and investor regions:', error);
+        console.error('Error loading Excel file for filter options:', error);
         // Fallback to empty arrays
         this.productTypeOptions = [];
         this.productSubTypeOptions = [];
