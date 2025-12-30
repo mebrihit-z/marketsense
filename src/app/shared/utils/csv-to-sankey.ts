@@ -80,7 +80,7 @@ function readCSVRows(
   csvPath: string,
   options: CSVOptions
 ): CSVRow[] {
-  const content = fs.readFileSync(csvPath, 'utf-8-sig');
+  const content = fs.readFileSync(csvPath, 'utf-8-sig' as BufferEncoding);
   const lines = content.split(/\r?\n/).filter(line => line.trim());
   
   if (lines.length === 0) {
