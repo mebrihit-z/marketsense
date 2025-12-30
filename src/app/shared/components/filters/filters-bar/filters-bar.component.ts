@@ -229,6 +229,13 @@ export class FiltersBarComponent implements OnInit {
       this.state[key] = [];
     });
     this.aiConfidenceRange = { min: 50, max: 100 };
+    
+    // Emit all filter change events to notify parent components
+    this.productSubTypeChange.emit([]);
+    this.productTypeChange.emit([]);
+    this.productRegionChange.emit([]);
+    this.investorRegionChange.emit([]);
+    this.investorTypeChange.emit([]);
   }
 
   /**
