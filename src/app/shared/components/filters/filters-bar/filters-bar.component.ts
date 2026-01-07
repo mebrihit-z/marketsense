@@ -169,6 +169,9 @@ export class FiltersBarComponent implements OnInit {
   // Track which dropdown is currently open
   openDropdown: string | null = null;
 
+  // Track if "Clear All Filters" was clicked to show "Select All Filters" button
+  showSelectAll: boolean = false;
+
   /**
    * @param {keyof typeof this.state} key - The state key to update
    * @param {string[]} values - The new values to set for the state key
@@ -176,6 +179,12 @@ export class FiltersBarComponent implements OnInit {
    */
   onChange(key: keyof typeof this.state, values: string[]) {
     this.state[key] = values;
+    
+    // Hide "Select All Filters" button when any filter is manually selected
+    if (values.length > 0) {
+      this.showSelectAll = false;
+    }
+    
     if (key === 'productSubType') {
       this.productSubTypeChange.emit(values);
     }
@@ -230,12 +239,52 @@ export class FiltersBarComponent implements OnInit {
     });
     this.aiConfidenceRange = { min: 50, max: 100 };
     
+    // Show "Select All Filters" button after clearing
+    this.showSelectAll = true;
+    
     // Emit all filter change events to notify parent components
     this.productSubTypeChange.emit([]);
     this.productTypeChange.emit([]);
     this.productRegionChange.emit([]);
     this.investorRegionChange.emit([]);
     this.investorTypeChange.emit([]);
+  }
+
+  /**
+   * @returns {void} Selects all available filter options for all filter types.
+   */
+  selectAll() {
+    // Select all investor type options
+    this.state.investorType = this.investorTypeOptions.map(opt => opt.value);
+    
+    // Select all product region options
+    this.state.productRegion = this.productRegionOptions.map(opt => opt.value);
+    
+    // Select all product type options
+    if (this.productTypeOptions.length > 0) {
+      this.state.productType = this.productTypeOptions.map(opt => opt.value);
+    }
+    
+    // Select all product sub-type options
+    if (this.productSubTypeOptions.length > 0) {
+      const allSubTypes = this.productSubTypeOptions.flatMap(group => group.options.map(opt => opt.value));
+      this.state.productSubType = allSubTypes;
+    }
+    
+    // Select all investor region options
+    if (this.investorRegionOptions.length > 0) {
+      this.state.investorRegion = this.investorRegionOptions.map(opt => opt.value);
+    }
+    
+    // Hide "Select All Filters" button after selecting
+    this.showSelectAll = false;
+    
+    // Emit all filter change events to notify parent components
+    this.productSubTypeChange.emit(this.state.productSubType);
+    this.productTypeChange.emit(this.state.productType);
+    this.productRegionChange.emit(this.state.productRegion);
+    this.investorRegionChange.emit(this.state.investorRegion);
+    this.investorTypeChange.emit(this.state.investorType);
   }
 
   /**

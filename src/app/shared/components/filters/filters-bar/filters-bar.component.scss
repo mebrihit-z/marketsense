@@ -30,10 +30,6 @@
     gap:12px; 
     
 }
-.clear-all-container { 
-    margin-left: auto;
-    padding: 12px;
-}
 .ai-confidence-container {
     display: flex;
     gap: 15px;
@@ -166,7 +162,16 @@
         cursor: grabbing;
     }
 }
-.clear-all { 
+.clear-all-container {
+    margin-left: auto;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.clear-all,
+.select-all { 
     background:none; 
     border:none;  
     cursor:pointer; 

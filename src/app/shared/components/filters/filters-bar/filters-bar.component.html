@@ -51,7 +51,8 @@
         ></app-filter-dropdown>
       </div>
       <div class="clear-all-container">
-        <button class="clear-all" (click)="clearAll()">Clear All Filters</button>
+        <button class="clear-all" *ngIf="!showSelectAll" (click)="clearAll()">Clear All Filters</button>
+        <button class="select-all" *ngIf="showSelectAll" (click)="selectAll()">Select All Filters</button>
       </div>
     </div>
     <!-- Toggles Section -->
