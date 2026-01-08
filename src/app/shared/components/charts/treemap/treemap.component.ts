@@ -643,6 +643,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         return c.formatRgb();
       });
 
+    // Capture component reference for use in callbacks
+    const component = this;
+
     const labels = nodes.append('div')
       .attr('class', 'label')
       .style('font-size', d => {
@@ -840,16 +843,41 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         return '';
       });
 
-    nodes.on('mousemove', (event: MouseEvent, d) => {
+    nodes.on('mousemove', function(event: MouseEvent, d) {
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
       tooltip.style('opacity', '1');
-      tooltip.text(`${path}\n${this.formatValue(this.signedValue(d as TreemapHierarchyNode))}`);
+      tooltip.text(`${path}\n${component.formatValue(component.signedValue(d as TreemapHierarchyNode))}`);
       tooltip.style('left', event.clientX + 'px');
       tooltip.style('top', event.clientY + 'px');
+      
+      // Highlight the hovered cell
+      d3.select(this)
+        .classed('highlighted', true)
+        .style('border-width', () => {
+          if (d.depth === 3) return '3px';
+          return '2px';
+        })
+        .style('border-color', '#0b41ad')
+        .style('box-shadow', '0 0 8px rgba(11, 65, 173, 0.5)')
+        .style('z-index', '2000');
     });
 
-    nodes.on('mouseleave', () => {
+    nodes.on('mouseleave', function(event: MouseEvent, d) {
       tooltip.style('opacity', '0');
+      
+      // Remove highlighting from the cell
+      d3.select(this)
+        .classed('highlighted', false)
+        .style('border-width', () => {
+          if (d.depth === 3) return '2px';
+          return '1px';
+        })
+        .style('border-color', () => {
+          if (d.depth === 3) return '#000';
+          return 'rgba(0,0,0,0.12)';
+        })
+        .style('box-shadow', 'none')
+        .style('z-index', () => String(1000 - d.depth));
     });
   }
 }

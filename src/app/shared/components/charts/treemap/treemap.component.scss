@@ -62,6 +62,7 @@ app-treemap {
     border: 1px solid rgba(0, 0, 0, 0.12);
     display: flex;
     flex-direction: column;
+    transition: border-color 0.2s ease, border-width 0.2s ease, box-shadow 0.2s ease, z-index 0s;
 
     // Allow overflow for small leaf nodes so labels can show
     &.leaf.small-leaf {
@@ -130,6 +131,11 @@ app-treemap {
       white-space: normal;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    &.highlighted {
+      border-color: #0b41ad !important;
+      box-shadow: 0 0 8px rgba(11, 65, 173, 0.5) !important;
     }
   }
 
