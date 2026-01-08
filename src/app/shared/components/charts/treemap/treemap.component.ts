@@ -478,12 +478,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
       const outflowScale = d3.scaleLinear<string>()
         .domain([0, maxOut])
-        .range(['#FCA5A5CF', '#DC2626CF'])
+        .range(['#f7c6c6', '#d62728'])
         .clamp(true);
 
       const inflowScale = d3.scaleLinear<string>()
         .domain([0, maxIn])
-        .range(['#86EFACA7', '#059669A7'])
+        .range(['#c7e9c0', '#2ca02c'])
         .clamp(true);
 
       if (g === 'Outflows') return outflowScale(mag);
@@ -491,9 +491,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     // Container nodes
-    if (g === 'Inflows') return '#6EE7B7';
-    if (g === 'Outflows') return '#FCA5A5';
-    if (g === 'Net New Capital') return '#4D93D9';
+    if (g === 'Inflows') return '#2ca02c';
+    if (g === 'Outflows') return '#d62728';
+    if (g === 'Net New Capital') return '#1f77b4';
     if (g === 'Capital Withdrawn') return '#ff7f0e';
     return '#999999';
   }
