@@ -25,8 +25,8 @@
     <div class="context-section">
       <div class="context-content">
         <div class="context-text">
-          <p class="context-label">Context: Signal Card</p>
-          <p class="context-title">{{ card?.title || 'Signal Card' }}</p>
+          <p class="context-label">Context: Market Flow</p>
+          <p class="context-title">{{ card?.title || 'Market Flow Card' }}</p>
         </div>
         <div class="context-value">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="trend-icon">
@@ -42,9 +42,9 @@
     <div class="chat-area">
       <div class="chat-bubble">
         <div class="chat-message">
-          <p>I'm MarketSense AI. I can see you're exploring the {{ card?.title || 'signal' }} signal, which shows {{ card?.valueColor === 'green' ? 'strong inflows' : 'outflows' }} of {{ card?.value || '$0' }} ({{ card?.percentageChange || '+0%' }}). Recent momentum is being driven by institutional investors reallocating to {{ card?.title?.toLowerCase() || 'this asset class' }} as they seek higher returns and diversification amid equity market volatility.</p>
+          <p>I'm MarketSense AI. I can see you're exploring the {{ card?.title}} card, which shows {{ card?.valueColor === 'green' ? 'strong inflows' : 'outflows' }} of {{ card?.value || '$0' }} ({{ card?.percentageChange || '+0%' }}). Recent momentum is being driven by institutional investors reallocating to {{ card?.title?.toLowerCase() || 'this asset class' }} as they seek higher returns and diversification amid equity market volatility.</p>
           <p>&nbsp;</p>
-          <p>Would you like to dig deeper into what's driving this trend, compare it across regions, or explore related asset-class signals?</p>
+          <p>Would you like to dig deeper into what's driving this trend, compare it across regions, or explore related asset-class cards?</p>
         </div>
         <div class="chat-timestamp">11:39 PM</div>
       </div>
@@ -55,7 +55,7 @@
       <div class="input-container">
         <textarea 
           class="input-field" 
-          placeholder="Ask about this signal, trend, or related insights..."
+          placeholder="Ask about this trend or related insights..."
           [(ngModel)]="userMessage"
           (keydown.enter)="onSendMessage($event)"
           rows="2">
