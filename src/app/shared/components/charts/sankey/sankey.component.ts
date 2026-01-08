@@ -197,7 +197,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
                           this.el.nativeElement.offsetWidth ||
                           window.innerWidth || 1600;
     const width = containerWidth;
-    const height = 600; // Optimized height to prevent scrolling
+    const height = 900; // Increased height to reduce crowding
 
     // Get CSS variable values
     const overlayDarker = this.getCssVariable('--overlay-darker');
@@ -267,7 +267,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .attr('preserveAspectRatio', 'none')
       .style('display', 'block')
       .style('width', '100%')
-      .style('height', 'auto');
+      .style('height', height + 'px');
 
     // Create a group for all zoomable content
     const zoomGroup = svg.append('g')
@@ -310,7 +310,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
 
     const leftMargin = 150; // Space for Super Start node and labels
     const rightMargin = 150; // Space for Super End node and labels
-    const topMargin = 10;
+    const topMargin = 35; // Increased to accommodate "Outflows" and "Inflows" labels
     const bottomMargin = 50;
     
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
@@ -705,8 +705,51 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .text(d => {
         const value = nodeValues.get(d) || 0;
         const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
-        return '$' + formattedValue + 'B';
+        // Add negative sign for nodes to the left of Reallocation Pool
+        const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
+        const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
+        const sign = isLeftOfReallocation ? '-' : '';
+        return '$' + sign + formattedValue + 'B';
       });
+
+    // -----------------------------------------
+    // 8.5. Add "Outflows" and "Inflows" labels above the chart
+    // -----------------------------------------
+    if (reallocationPoolNode && reallocationPoolX !== null) {
+      const labelY = 20; // Position above the chart area, within the top margin
+      const reallocationX1 = reallocationPoolNode.x1 || reallocationPoolX;
+      const reallocationCenterX = (reallocationPoolX + reallocationX1) / 2;
+      
+      // Calculate positions: left side for Outflows, right side for Inflows
+      const leftSideCenter = leftMargin + (reallocationCenterX - leftMargin) / 2;
+      const rightSideCenter = reallocationCenterX + (width - rightMargin - reallocationCenterX) / 2;
+      
+      // Add "Outflows" label on the left side above the chart
+      zoomGroup.append('text')
+        .attr('x', leftSideCenter)
+        .attr('y', labelY)
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .style('font-size', '16px')
+        .style('font-weight', 'bold')
+        .style('fill', this.getCssVariable('--red-link') || '#DC2626')
+        .style('pointer-events', 'none')
+        .style('text-shadow', '0 0 3px rgba(255,255,255,0.8), 0 0 3px rgba(255,255,255,0.8)')
+        .text('Outflows');
+      
+      // Add "Inflows" label on the right side above the chart
+      zoomGroup.append('text')
+        .attr('x', rightSideCenter)
+        .attr('y', labelY)
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .style('font-size', '16px')
+        .style('font-weight', 'bold')
+        .style('fill', this.getCssVariable('--green-link') || '#059669')
+        .style('pointer-events', 'none')
+        .style('text-shadow', '0 0 3px rgba(255,255,255,0.8), 0 0 3px rgba(255,255,255,0.8)')
+        .text('Inflows');
+    }
 
     // -----------------------------------------
     // 9. Link Values (on the links) - Only show for larger flows to avoid crowding
