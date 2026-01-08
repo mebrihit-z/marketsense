@@ -567,8 +567,14 @@ export class FiltersBarComponent implements OnInit {
    */
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
-    // Reset time horizon range to default (Today to first option)
-    this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
+    // Reset time horizon range based on data type
+    if (type === 'historical') {
+      // For historical: Today (index 5) to -3 mo (index 4)
+      this.timeHorizonRange = { startIndex: 4, endIndex: 5 };
+    } else {
+      // For forecasted: Today (index 0) to +3 mo (index 1)
+      this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
+    }
     this.updateSelectedTimeHorizon();
     this.dataTypeChange.emit(type);
   }
