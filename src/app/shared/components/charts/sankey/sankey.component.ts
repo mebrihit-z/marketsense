@@ -52,6 +52,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
   private loadedData?: RegionalSankeyData;
+  private currentZoom: any;
 
   constructor(
     private el: ElementRef,
@@ -64,6 +65,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       this.loadedData = this.data;
       setTimeout(() => {
         this.createSankey();
+        this.setupZoomControls();
       }, 0);
     } else {
       this.loadDataFromJson();
@@ -77,6 +79,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       if (this.el?.nativeElement) {
         setTimeout(() => {
           this.createSankey();
+          this.setupZoomControls();
         }, 0);
       }
     } else if (
@@ -88,6 +91,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       if (this.el?.nativeElement) {
         setTimeout(() => {
           this.createSankey();
+          this.setupZoomControls();
         }, 0);
       }
     }
@@ -115,6 +119,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           
           setTimeout(() => {
             this.createSankey();
+            this.setupZoomControls();
           }, 0);
         } catch (error) {
           console.error('Error converting Excel to Sankey data:', error);
@@ -271,7 +276,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     };
 
     // -----------------------------------------
-    // 3. Create SVG
+    // 3. Create SVG with Zoom
     // -----------------------------------------
     const svg = d3.select(element)
       .append('svg')
@@ -282,6 +287,45 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .style('display', 'block')
       .style('width', '100%')
       .style('height', 'auto');
+
+    // Create a group for all zoomable content
+    const zoomGroup = svg.append('g')
+      .attr('class', 'zoom-group');
+
+    // Calculate generous translate extents to allow panning to see all parts when zoomed
+    // When zoomed to 3x, we need to allow panning to see content that's up to 3x the viewport
+    // We make it generous: allow panning up to 4x the dimensions in each direction
+    const maxZoom = 3;
+    const panBoundary = Math.max(width, height) * maxZoom;
+    const translateExtent: [[number, number], [number, number]] = [
+      [-panBoundary, -panBoundary], // Minimum translate (far left and up)
+      [panBoundary, panBoundary]     // Maximum translate (far right and down)
+    ];
+
+    // Define zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, maxZoom]) // Allow zoom from 50% to 300%
+      .translateExtent(translateExtent) // Allow panning within generous bounds
+      .extent([[0, 0], [width, height]]) // Zoom extent is the full SVG
+      .filter((event: any) => {
+        // Only allow zoom with mouse wheel when holding Ctrl/Cmd/Shift
+        // This allows normal page scrolling when not holding modifier keys
+        // Allow all other interactions (drag, touch, buttons) normally
+        if (event.type === 'wheel') {
+          return event.ctrlKey || event.metaKey || event.shiftKey;
+        }
+        // Allow all other event types (mousedown, mousemove, touchstart, etc.)
+        return true;
+      })
+      .on('zoom', (event) => {
+        zoomGroup.attr('transform', event.transform);
+      });
+
+    // Apply zoom to SVG
+    svg.call(zoom as any);
+    
+    // Store zoom behavior for button controls
+    this.currentZoom = { zoom, svg };
 
     const leftMargin = 150; // Space for Super Start node and labels
     const rightMargin = 150; // Space for Super End node and labels
@@ -301,7 +345,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     // Capture component reference for use in callbacks
     const component = this;
     
-    svg.append('g')
+    zoomGroup.append('g')
       .selectAll('path')
       .data(graph.links)
       .enter()
@@ -337,7 +381,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           .raise(); // Bring to front
         
         // Dim other links slightly
-        svg.selectAll('path')
+        zoomGroup.selectAll('path')
           .filter(function() { return this !== d3.select(event.currentTarget).node(); })
           .attr('opacity', 0.2);
       })
@@ -355,7 +399,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           .attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
         
         // Restore all links opacity
-        svg.selectAll('path').attr('opacity', 0.45);
+        zoomGroup.selectAll('path').attr('opacity', 0.45);
       });
 
     // -----------------------------------------
@@ -479,7 +523,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     // -----------------------------------------
     // 7. Draw Nodes
     // -----------------------------------------
-    svg.append('g')
+    zoomGroup.append('g')
       .selectAll('rect')
       .data(graph.nodes)
       .enter()
@@ -535,7 +579,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           (link.source as SankeyNodeExtra) === node || (link.target as SankeyNodeExtra) === node
         );
         
-        svg.selectAll('path')
+        zoomGroup.selectAll('path')
           .filter(function(link: any) {
             return nodeLinks.includes(link as SankeyLinkExtra);
           })
@@ -546,11 +590,11 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           });
         
         // Dim other nodes and links
-        svg.selectAll('rect')
+        zoomGroup.selectAll('rect')
           .filter(function() { return this !== d3.select(event.currentTarget).node(); })
           .attr('opacity', 0.3);
         
-        svg.selectAll('path')
+        zoomGroup.selectAll('path')
           .filter(function(link: any) {
             return !nodeLinks.includes(link as SankeyLinkExtra);
           })
@@ -573,14 +617,14 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           .attr('stroke-width', 1);
         
         // Restore all nodes and links opacity
-        svg.selectAll('rect').attr('opacity', 1);
-        svg.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
+        zoomGroup.selectAll('rect').attr('opacity', 1);
+        zoomGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
       });
 
     // -----------------------------------------
     // 8. Node Labels (with values inline)
     // -----------------------------------------
-    const nodeLabels = svg.append('g')
+    const nodeLabels = zoomGroup.append('g')
       .selectAll('text')
       .data(graph.nodes)
       .enter()
@@ -668,7 +712,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       return !isTooCloseToNode(link, source, 30) && !isTooCloseToNode(link, target, 30);
     });
 
-    svg.append('g')
+    zoomGroup.append('g')
       .selectAll('text')
       .data(displayableLinks)
       .enter()
@@ -820,6 +864,37 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         const maxLength = 15;
         return d.label.length > maxLength ? d.label.substring(0, maxLength) + '...' : d.label;
       });
+  }
+
+  // -----------------------------------------
+  // Setup Zoom Controls
+  // -----------------------------------------
+  private setupZoomControls(): void {
+    const container = this.el.nativeElement.querySelector('.sankey-container');
+    if (!container) return;
+
+    const zoomInBtn = container.querySelector('.zoom-in');
+    const zoomOutBtn = container.querySelector('.zoom-out');
+    const zoomResetBtn = container.querySelector('.zoom-reset');
+
+    if (!this.currentZoom || !zoomInBtn || !zoomOutBtn || !zoomResetBtn) return;
+
+    const { zoom, svg } = this.currentZoom;
+
+    // Zoom in button
+    zoomInBtn.addEventListener('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+    });
+
+    // Zoom out button
+    zoomOutBtn.addEventListener('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+    });
+
+    // Reset zoom button
+    zoomResetBtn.addEventListener('click', () => {
+      svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+    });
   }
 }
 
