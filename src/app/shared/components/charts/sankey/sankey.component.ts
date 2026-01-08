@@ -231,6 +231,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     });
 
     // Create links with source and target indices
+    // Colors will be assigned after sankey layout computes node positions
     const links: SankeyLinkExtra[] = dataToUse.links.map(link => {
       const sourceIndex = nodeMap.get(link.source);
       const targetIndex = nodeMap.get(link.target);
@@ -239,31 +240,11 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         return null;
       }
 
-      // Determine link color based on node types
-      let linkColor = this.getCssVariable('--gray-medium') || '#999';
-      
-      // Red for outflows (Source -> Reallocation Pool)
-      if (link.source.includes('(Source)') && link.target.includes('Reallocation Pool')) {
-        linkColor = this.getCssVariable('--red-link') || '#DC2626';
-      }
-      // Green for reallocation flows (Reallocation Pool -> Destination)
-      else if (link.source.includes('Reallocation Pool') && link.target.includes('(Destination)')) {
-        linkColor = this.getCssVariable('--green-link') || '#059669';
-      }
-      // Blue for new capital flows
-      else if (link.source.includes('Net New Capital') || link.target.includes('Net New Capital')) {
-        linkColor = this.getCssVariable('--blue-link') || 'rgba(0,100,200,0.7)';
-      }
-      // Default for other flows
-      else {
-        linkColor = this.getCssVariable('--gray-medium') || '#999';
-      }
-
+      // Color will be set after layout based on horizontal position
       return {
         source: sourceIndex,
         target: targetIndex,
-        value: link.value,
-        color: linkColor
+        value: link.value
       };
     }).filter(link => link !== null) as SankeyLinkExtra[];
 
@@ -338,6 +319,62 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
 
     const graph = sankeyGen(graphData);
+
+    // Find the Reallocation Pool node to use as reference point
+    const reallocationPoolNode = graph.nodes.find(node => 
+      node.name && node.name.includes('Reallocation Pool')
+    );
+    
+    // Get the x position of the Reallocation Pool node (use x0 as reference)
+    const reallocationPoolX = reallocationPoolNode?.x0 !== undefined 
+      ? reallocationPoolNode.x0 
+      : (reallocationPoolNode?.x1 !== undefined ? reallocationPoolNode.x1 : null);
+
+    // Assign link colors based on position relative to Reallocation Pool
+    // Links to the right of Reallocation Pool are green, others are red
+    // Net New Capital links are always blue
+    graph.links.forEach(link => {
+      const linkExtra = link as SankeyLinkExtra;
+      const source = link.source as SankeyNodeExtra;
+      const target = link.target as SankeyNodeExtra;
+      
+      // Check if link is connected to Net New Capital - make it blue
+      if ((source.name && source.name.includes('Net New Capital')) || 
+          (target.name && target.name.includes('Net New Capital'))) {
+        linkExtra.color = this.getCssVariable('--blue-link') || 'rgba(0,100,200,0.7)';
+        return;
+      }
+      
+      // If Reallocation Pool position is not found, fall back to midpoint logic
+      if (reallocationPoolX === null) {
+        const allXPositions: number[] = [];
+        graph.nodes.forEach(node => {
+          if (node.x0 !== undefined) allXPositions.push(node.x0);
+          if (node.x1 !== undefined) allXPositions.push(node.x1);
+        });
+        const minX = Math.min(...allXPositions);
+        const maxX = Math.max(...allXPositions);
+        const midX = (minX + maxX) / 2;
+        const sourceX = source.x0 !== undefined ? source.x0 : (source.x1 || 0);
+        linkExtra.color = sourceX < midX 
+          ? (this.getCssVariable('--red-link') || '#DC2626')
+          : (this.getCssVariable('--green-link') || '#059669');
+        return;
+      }
+      
+      // Get x positions of source and target nodes
+      const sourceX = source.x0 !== undefined ? source.x0 : (source.x1 || 0);
+      const targetX = target.x0 !== undefined ? target.x0 : (target.x1 || 0);
+      
+      // Link is green if source or target is to the right of Reallocation Pool
+      if (sourceX > reallocationPoolX || targetX > reallocationPoolX) {
+        // Links to the right of Reallocation Pool are green
+        linkExtra.color = this.getCssVariable('--green-link') || '#059669';
+      } else {
+        // Links to the left of Reallocation Pool are red
+        linkExtra.color = this.getCssVariable('--red-link') || '#DC2626';
+      }
+    });
 
     // -----------------------------------------
     // 4. Draw Links
