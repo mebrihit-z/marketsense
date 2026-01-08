@@ -59,15 +59,16 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
+    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
+    { id: 'product-region', label: 'Product Region', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
-    { id: 'product-region', label: 'Product Region', count: 0, active: true },
-    { id: 'investor-type', label: 'Investor Type', count: 0, active: true }
   ];
 
   // Selected dimensions for drop zones
   selectedDimension1: FlowDimension | null = null;
   selectedDimension2: FlowDimension | null = null;
+  selectedDimension3: FlowDimension | null = null;
 
   // Currently dragged dimension
   private draggedDimension: FlowDimension | null = null;
@@ -128,8 +129,9 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     console.log('Asset Allocation component initialized');
     this.updateDimensions();
     // Set default dimensions
-    this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'product-region') || null;
+    this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
     this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
+    this.selectedDimension3 = this.availableDimensions.find(d => d.id === 'product-sub-types') || null;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -189,30 +191,35 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     target.classList.remove('drag-over');
   }
 
-  onDrop(event: DragEvent, dropZone: 'dimension1' | 'dimension2'): void {
+  onDrop(event: DragEvent, dropZone: 'dimension1' | 'dimension2' | 'dimension3'): void {
     event.preventDefault();
     event.stopPropagation();
     const target = event.currentTarget as HTMLElement;
     target.classList.remove('drag-over');
 
     if (this.draggedDimension) {
-      // Remove dimension from the other drop zone if it's already there
+      // Remove dimension from the other drop zones if it's already there
       if (this.selectedDimension1?.id === this.draggedDimension.id) {
         this.selectedDimension1 = null;
       }
       if (this.selectedDimension2?.id === this.draggedDimension.id) {
         this.selectedDimension2 = null;
       }
+      if (this.selectedDimension3?.id === this.draggedDimension.id) {
+        this.selectedDimension3 = null;
+      }
 
       // Set the dimension in the target drop zone
       if (dropZone === 'dimension1') {
         this.selectedDimension1 = this.draggedDimension;
-      } else {
+      } else if (dropZone === 'dimension2') {
         this.selectedDimension2 = this.draggedDimension;
+      } else {
+        this.selectedDimension3 = this.draggedDimension;
       }
 
       this.draggedDimension = null;
-      console.log('Dimension dropped:', dropZone, this.selectedDimension1, this.selectedDimension2);
+      console.log('Dimension dropped:', dropZone, this.selectedDimension1, this.selectedDimension2, this.selectedDimension3);
     }
   }
 
@@ -240,11 +247,13 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     }
   }
 
-  removeDimension(dropZone: 'dimension1' | 'dimension2'): void {
+  removeDimension(dropZone: 'dimension1' | 'dimension2' | 'dimension3'): void {
     if (dropZone === 'dimension1') {
       this.selectedDimension1 = null;
-    } else {
+    } else if (dropZone === 'dimension2') {
       this.selectedDimension2 = null;
+    } else {
+      this.selectedDimension3 = null;
     }
     console.log('Dimension removed from:', dropZone);
   }
