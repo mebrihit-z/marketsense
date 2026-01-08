@@ -1,0 +1,55 @@
+[
+    {
+      "Model_Run_Date": "2025-05-01",
+      "Model_Version": "V1.1",
+      "Investor_Region": "United States",
+      "Investor_Types": "Corporate",
+      "Plan_Type": "Retirement",
+      "Sec_Type": "DC",
+      "Product_Region": "United States",
+      "Product_Type": "Equity",
+      "Product_Sub_Type": "All Cap Core",
+      "Asset_Flow_Date": "2026-01",
+      "Asset_Flow_Value": -2602537
+    },
+    {
+      "Model_Run_Date": "2025-05-01",
+      "Model_Version": "V1.1",
+      "Investor_Region": "United States",
+      "Investor_Types": "Corporate",
+      "Plan_Type": "Retirement",
+      "Sec_Type": "DC",
+      "Product_Region": "United States",
+      "Product_Type": "Equity",
+      "Product_Sub_Type": "All Cap Core",
+      "Asset_Flow_Date": "2026-02",
+      "Asset_Flow_Value": -2729472
+    },
+    {
+      "Model_Run_Date": "2025-05-01",
+      "Model_Version": "V1.1",
+      "Investor_Region": "United States",
+      "Investor_Types": "Corporate",
+      "Plan_Type": "Retirement",
+      "Sec_Type": "DC",
+      "Product_Region": "United States",
+      "Product_Type": "Equity",
+      "Product_Sub_Type": "All Cap Core",
+      "Asset_Flow_Date": "2026-03",
+      "Asset_Flow_Value": -2808803
+    },
+    {
+      "Model_Run_Date": "2025-05-01",
+      "Model_Version": "V1.1",
+      "Investor_Region": "United States",
+      "Investor_Types": "Corporate",
+      "Plan_Type": "Retirement",
+      "Sec_Type": "DC",
+      "Product_Region": "United States",
+      "Product_Type": "Equity",
+      "Product_Sub_Type": "Large Cap Core",
+      "Asset_Flow_Date": "2026-01",
+      "Asset_Flow_Value": -1204656
+    }
+  ]
+  

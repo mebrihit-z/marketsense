@@ -1,0 +1,96 @@
+{
+    "investorRegion": {
+      "total": 2,
+      "selected": [
+        "United Kingdom",
+        "United States"
+      ]
+    },
+    "investorTypes": {
+      "total": 6,
+      "selected": [
+        "Institutional",
+        "Corporate",
+        "Pension Funds",
+        "Sovereign Wealth",
+        "Family Office",
+        "Endowments"
+      ]
+    },
+    "productRegion": {
+      "total": 3,
+      "selected": [
+        "United States",
+        "Europe",
+        "Asia Pacific",
+        "United Kingdom",
+        "Middle East & Africa"
+      ]
+    },
+    "productType": {
+      "total": 4,
+      "selected": [
+        "Cash",
+        "Equity",
+        "Fixed Income",
+        "Multi-Asset",
+        "Other / Specialized",
+        "Private Markets"
+      ]
+    },
+    "productSubTypePrimary": {
+      "total": 15,
+      "Cash": [
+        "Bank Deposits/CDs",
+        "Money Market Funds",
+        "Treasury Bills",
+        "Bank Deposits/CDs",
+        "Foreign Currency/FX"
+      ],
+      "Equity": [
+        "US Equity Small Cap",
+        "US Equity Large Cap",
+        "Global Equity",
+        "Emerging Markets",
+        "Mid Cap Growth"
+      ],
+      "FixedIncome": [
+        "US Fixed Income",
+        "Municipal Bond",
+        "Global Bonds",
+        "Short Duration"
+      ],
+      "Alternatives": [
+        "Hedge Funds",
+        "Crypto",
+        "Commodities"
+      ]
+    },
+    "productSubTypeSecondary": {
+      "total": 14,
+      "Equity": [
+        "US Equity Small Cap",
+        "US Equity Large Cap",
+        "Global Equity",
+        "Emerging Markets"
+      ],
+      "FixedIncome": [
+        "US Fixed Income",
+        "Municipal Bond",
+        "Global Bonds",
+        "Short Duration"
+      ],
+      "Alternatives": [
+        "Hedge Funds",
+        "Crypto",
+        "Commodities"
+      ],
+      "Cash": [
+        "Money Market Funds",
+        "Treasury Bills",
+        "Bank Deposits/CDs",
+        "Foreign Currency/FX"
+      ]
+    }
+  }
+  
