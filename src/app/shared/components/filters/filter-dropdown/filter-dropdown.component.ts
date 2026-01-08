@@ -29,7 +29,9 @@ export default class FilterDropdownComponent {
   @Output() selectedChange = new EventEmitter<string[]>();
   @Output() openChange = new EventEmitter<boolean>(); // Emit when open state should change
 
-  map: Record<string, boolean> = {};
+  map: Record<string, boolean> = {}; // Current confirmed selections
+  pendingMap: Record<string, boolean> = {}; // Pending selections (not yet applied)
+  private isApplyingChanges = false; // Flag to track if we're applying changes via Done button
   
   get open(): boolean {
     return this.isOpen;
@@ -53,6 +55,14 @@ export default class FilterDropdownComponent {
   }
 
   /**
+   * Gets the effective map to use for display (pending if dropdown is open, confirmed otherwise).
+   * @returns The map to use for checkbox states.
+   */
+  get displayMap(): Record<string, boolean> {
+    return this.isOpen ? this.pendingMap : this.map;
+  }
+
+  /**
    * Angular lifecycle hook that initializes the component.
    *
    * @returns Nothing.
@@ -66,7 +76,21 @@ export default class FilterDropdownComponent {
    *
    * @returns Nothing.
    */
-  ngOnChanges(): void { 
+  ngOnChanges(changes: any): void { 
+    // If isOpen changed from true to false externally (not via Done), discard pending changes
+    if (changes.isOpen && !changes.isOpen.firstChange) {
+      const wasOpen = changes.isOpen.previousValue;
+      const isNowOpen = changes.isOpen.currentValue;
+      
+      if (wasOpen && !isNowOpen && !this.isApplyingChanges) {
+        // Dropdown was closed externally, discard pending changes
+        this.pendingMap = {};
+      } else if (!wasOpen && isNowOpen) {
+        // Dropdown was opened, initialize pending map
+        this.initializePendingMap();
+      }
+    }
+    
     this.rebuildMap(); 
   }
 
@@ -82,6 +106,10 @@ export default class FilterDropdownComponent {
     opts.forEach(o => {
       this.map[o.value] = this.selected?.includes(o.value) || false;
     });
+    // Initialize pending map with current selections when dropdown opens
+    if (this.isOpen) {
+      this.initializePendingMap();
+    }
   }
 
   /**
@@ -97,38 +125,61 @@ export default class FilterDropdownComponent {
    */
   toggle(ev?: Event): void {
     if (ev) ev.stopPropagation();
-    this.openChange.emit(!this.isOpen);
+    const willBeOpen = !this.isOpen;
+    if (willBeOpen) {
+      // Initialize pending map when opening
+      this.initializePendingMap();
+    } else {
+      // Reset pending map when closing without applying
+      this.pendingMap = {};
+    }
+    this.openChange.emit(willBeOpen);
+  }
+
+  /**
+   * Initializes the pending map with current confirmed selections.
+   * @returns Nothing.
+   */
+  private initializePendingMap(): void {
+    this.pendingMap = {};
+    const opts = this.flatOptions;
+    opts.forEach(o => {
+      this.pendingMap[o.value] = this.map[o.value] || false;
+    });
   }
 
   // helpers
   /**
-   * Handles change event and emits selected values.
+   * Handles change event for checkboxes.
+   * Updates pending map but doesn't emit changes yet.
    * @returns Nothing.
    */
   onChange(): void { 
-    this.emitSelected(); 
+    // Only update pending map, don't emit yet
+    // The pending map is already bound to the checkboxes via displayMap
   }
 
   /**
-   * Emits the currently selected filter values.
+   * Emits the currently selected filter values from the pending map.
    * @returns Nothing.
    */
-  emitSelected(): void {
-    const arr = Object.keys(this.map).filter(k => this.map[k]);
+  private emitPendingSelected(): void {
+    const arr = Object.keys(this.pendingMap).filter(k => this.pendingMap[k]);
     this.selectedChange.emit(arr);
   }
 
   /**
-   * Checks if all options are currently selected.
+   * Checks if all options are currently selected (using display map).
    * @returns True if all options are selected, false otherwise.
    */
   allSelected(): boolean { 
     const opts = this.flatOptions;
-    return opts.length > 0 && opts.every(o => !!this.map[o.value]); 
+    const mapToCheck = this.isOpen ? this.pendingMap : this.map;
+    return opts.length > 0 && opts.every(o => !!mapToCheck[o.value]); 
   }
 
   /**
-   * Toggles the selection state of all options.
+   * Toggles the selection state of all options in the pending map.
    * @param ev The event object to stop propagation.
    * @returns Nothing.
    */
@@ -137,13 +188,12 @@ export default class FilterDropdownComponent {
     const set = !this.allSelected();
     const opts = this.flatOptions;
     opts.forEach(o => {
-      this.map[o.value] = set;
+      this.pendingMap[o.value] = set;
     });
-    this.emitSelected();
   }
 
   /**
-   * Clears all selected filter options.
+   * Clears all selected filter options in the pending map.
    * @param ev Optional event object to stop propagation.
    * @returns Nothing.
    */
@@ -151,19 +201,67 @@ export default class FilterDropdownComponent {
     ev?.stopPropagation(); 
     const opts = this.flatOptions;
     opts.forEach(o => {
-      this.map[o.value] = false;
+      this.pendingMap[o.value] = false;
     }); 
-    this.emitSelected(); 
   }
 
   /**
-   * Closes the dropdown and stops event propagation.
+   * Programmatically deselects specific values in the pending map.
+   * Useful for cascading deselections (e.g., deselecting sub-types when parent type is deselected).
+   * @param valuesToDeselect Array of values to deselect in the pending map.
+   * @returns Nothing.
+   */
+  deselectPendingValues(valuesToDeselect: string[]): void {
+    // Initialize pending map if it's empty (in case dropdown isn't open yet)
+    if (Object.keys(this.pendingMap).length === 0) {
+      this.initializePendingMap();
+    }
+    
+    valuesToDeselect.forEach(value => {
+      if (this.pendingMap.hasOwnProperty(value)) {
+        this.pendingMap[value] = false;
+      }
+    });
+  }
+
+  /**
+   * Programmatically selects specific values in the pending map.
+   * Useful for cascading selections (e.g., selecting sub-types when parent type is selected).
+   * @param valuesToSelect Array of values to select in the pending map.
+   * @returns Nothing.
+   */
+  selectPendingValues(valuesToSelect: string[]): void {
+    // Initialize pending map if it's empty (in case dropdown isn't open yet)
+    if (Object.keys(this.pendingMap).length === 0) {
+      this.initializePendingMap();
+    }
+    
+    valuesToSelect.forEach(value => {
+      if (this.pendingMap.hasOwnProperty(value)) {
+        this.pendingMap[value] = true;
+      }
+    });
+  }
+
+  /**
+   * Applies pending selections and closes the dropdown.
    * @param ev Optional event object to stop propagation.
    * @returns Nothing.
    */
   done(ev?: Event): void { 
-    ev?.stopPropagation(); 
+    ev?.stopPropagation();
+    // Set flag to indicate we're applying changes
+    this.isApplyingChanges = true;
+    // Apply pending selections to confirmed map
+    this.map = { ...this.pendingMap };
+    // Emit the changes
+    this.emitPendingSelected();
+    // Close the dropdown
     this.openChange.emit(false);
+    // Reset flag after a brief delay to allow ngOnChanges to process
+    setTimeout(() => {
+      this.isApplyingChanges = false;
+    }, 0);
   }
 
   // optional click outside handler fallback (simple)

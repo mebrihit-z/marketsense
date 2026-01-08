@@ -17,6 +17,7 @@ export class FiltersBarComponent implements OnInit {
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('timeHorizonSliderContainer', { static: false }) timeHorizonSliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
+  @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
   @Output() productSubTypeChange = new EventEmitter<string[]>();
@@ -178,6 +179,7 @@ export class FiltersBarComponent implements OnInit {
    * @returns {void} Updates internal state and emits changes for specific filter groups.
    */
   onChange(key: keyof typeof this.state, values: string[]) {
+    const previousValues = [...this.state[key]];
     this.state[key] = values;
     
     // Hide "Select All Filters" button when any filter is manually selected
@@ -185,20 +187,93 @@ export class FiltersBarComponent implements OnInit {
       this.showSelectAll = false;
     }
     
-    if (key === 'productSubType') {
-      this.productSubTypeChange.emit(values);
-    }
+    // Handle product type changes - deselect related sub-types when product type is deselected
     if (key === 'productType') {
+      this.handleProductTypeChange(previousValues, values);
       this.productTypeChange.emit(values);
-    }
-    if (key === 'productRegion') {
+    } else if (key === 'productSubType') {
+      this.productSubTypeChange.emit(values);
+    } else if (key === 'productRegion') {
       this.productRegionChange.emit(values);
-    }
-    if (key === 'investorRegion') {
+    } else if (key === 'investorRegion') {
       this.investorRegionChange.emit(values);
-    }
-    if (key === 'investorType') {
+    } else if (key === 'investorType') {
       this.investorTypeChange.emit(values);
+    }
+  }
+
+  /**
+   * Handles product type changes by selecting/deselecting related product sub-types when a product type is selected/deselected.
+   * @param previousValues - The previous product type selections
+   * @param newValues - The new product type selections
+   * @returns {void}
+   */
+  private handleProductTypeChange(previousValues: string[], newValues: string[]): void {
+    if (!this.productSubTypeDropdown) {
+      return;
+    }
+
+    // Find which product types were deselected
+    const deselectedTypes = previousValues.filter(type => !newValues.includes(type));
+    // Find which product types were selected
+    const selectedTypes = newValues.filter(type => !previousValues.includes(type));
+    
+    const subTypesToDeselect: string[] = [];
+    const subTypesToSelect: string[] = [];
+    
+    // Handle deselected product types
+    if (deselectedTypes.length > 0) {
+      deselectedTypes.forEach(deselectedType => {
+        // Find the group for this product type
+        const group = this.productSubTypeOptions.find(g => g.category === deselectedType);
+        if (group) {
+          // Add all sub-types from this group to the deselection list
+          group.options.forEach(option => {
+            subTypesToDeselect.push(option.value);
+          });
+        }
+      });
+    }
+    
+    // Handle selected product types
+    if (selectedTypes.length > 0) {
+      selectedTypes.forEach(selectedType => {
+        // Find the group for this product type
+        const group = this.productSubTypeOptions.find(g => g.category === selectedType);
+        if (group) {
+          // Add all sub-types from this group to the selection list
+          group.options.forEach(option => {
+            subTypesToSelect.push(option.value);
+          });
+        }
+      });
+    }
+    
+    // Update pending map and state for deselected sub-types
+    if (subTypesToDeselect.length > 0) {
+      this.productSubTypeDropdown.deselectPendingValues(subTypesToDeselect);
+      
+      // Update the state to reflect the deselection
+      this.state.productSubType = this.state.productSubType.filter(
+        subType => !subTypesToDeselect.includes(subType)
+      );
+    }
+    
+    // Update pending map and state for selected sub-types
+    if (subTypesToSelect.length > 0) {
+      this.productSubTypeDropdown.selectPendingValues(subTypesToSelect);
+      
+      // Add selected sub-types to state (avoid duplicates)
+      subTypesToSelect.forEach(subType => {
+        if (!this.state.productSubType.includes(subType)) {
+          this.state.productSubType.push(subType);
+        }
+      });
+    }
+    
+    // Emit the updated product sub-type selection if there were any changes
+    if (subTypesToDeselect.length > 0 || subTypesToSelect.length > 0) {
+      this.productSubTypeChange.emit(this.state.productSubType);
     }
   }
 
