@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
+import { FiltersBarComponent, type FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
 import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
@@ -22,6 +22,13 @@ export default class DashboardComponent implements OnInit {
   selectedProductRegions: string[] = [];
   selectedInvestorRegions: string[] = [];
   selectedInvestorTypes: string[] = [];
+  filterOptionTotals: FilterOptionTotals = {
+    productTypeTotal: 0,
+    productSubTypeTotal: 0,
+    investorRegionTotal: 0,
+    investorTypeTotal: 0,
+    productRegionTotal: 0
+  };
   pinnedCardIds: string[] = [];
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
@@ -788,6 +795,10 @@ export default class DashboardComponent implements OnInit {
 
   onInvestorTypeChange(investorTypes: string[]): void {
     this.selectedInvestorTypes = investorTypes;
+  }
+
+  onFilterOptionTotalsChange(totals: FilterOptionTotals): void {
+    this.filterOptionTotals = totals;
   }
 
   onAssetAllocationPinToggle(): void {

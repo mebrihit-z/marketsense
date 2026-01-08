@@ -6,6 +6,14 @@ import { HttpClient } from '@angular/common/http';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
 import { extractFilterOptionsFromExcel } from '../../../utils/excel-filter-options.util';
 
+export interface FilterOptionTotals {
+  productTypeTotal: number;
+  productSubTypeTotal: number;
+  investorRegionTotal: number;
+  investorTypeTotal: number;
+  productRegionTotal: number;
+}
+
 @Component({
   selector: 'app-filters-bar',
   standalone: true,
@@ -25,6 +33,7 @@ export class FiltersBarComponent implements OnInit {
   @Output() productRegionChange = new EventEmitter<string[]>();
   @Output() investorRegionChange = new EventEmitter<string[]>();
   @Output() investorTypeChange = new EventEmitter<string[]>();
+  @Output() filterOptionTotalsChange = new EventEmitter<FilterOptionTotals>();
 
   constructor(private http: HttpClient) {}
   
@@ -106,12 +115,14 @@ export class FiltersBarComponent implements OnInit {
           this.productTypeChange.emit(this.state.productType);
           this.productSubTypeChange.emit(this.state.productSubType);
           this.investorRegionChange.emit(this.state.investorRegion);
+          this.emitFilterOptionTotals();
         } catch (error) {
           console.error('Error extracting filter options from Excel file:', error);
           // Fallback to empty arrays
           this.productTypeOptions = [];
           this.productSubTypeOptions = [];
           this.investorRegionOptions = [];
+          this.emitFilterOptionTotals();
         }
       },
       error: (error) => {
@@ -120,7 +131,26 @@ export class FiltersBarComponent implements OnInit {
         this.productTypeOptions = [];
         this.productSubTypeOptions = [];
         this.investorRegionOptions = [];
+        this.emitFilterOptionTotals();
       }
+    });
+  }
+
+  /**
+   * Emits the total counts for each filter option group so other components can
+   * display selected/total badges (e.g., Flow Dimensions chips).
+   */
+  private emitFilterOptionTotals(): void {
+    const productSubTypeTotal = this.productSubTypeOptions.reduce((sum, group) => {
+      return sum + (group.options?.length || 0);
+    }, 0);
+
+    this.filterOptionTotalsChange.emit({
+      productTypeTotal: this.productTypeOptions.length,
+      productSubTypeTotal,
+      investorRegionTotal: this.investorRegionOptions.length,
+      investorTypeTotal: this.investorTypeOptions.length,
+      productRegionTotal: this.productRegionOptions.length
     });
   }
 

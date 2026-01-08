@@ -47,7 +47,7 @@
             <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
             <span class="dimension-chip-text">
               {{ dimension.label }}
-              <ng-container *ngIf="dimension.count > 0">({{ dimension.count }})</ng-container>
+              <ng-container *ngIf="getDimensionCountLabel(dimension) as countLabel">({{ countLabel }})</ng-container>
             </span>
           </div>
         </div>
@@ -68,7 +68,7 @@
               <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
               <span class="dimension-chip-text">
                 {{ selectedDimension1.label }}
-                <ng-container *ngIf="selectedDimension1.count > 0">({{ selectedDimension1.count }})</ng-container>
+                <ng-container *ngIf="getDimensionCountLabel(selectedDimension1) as countLabel">({{ countLabel }})</ng-container>
               </span>
               <!-- Remove Dimension Button -->
               <img 
@@ -93,7 +93,7 @@
               <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
               <span class="dimension-chip-text">
                 {{ selectedDimension2.label }}
-                <ng-container *ngIf="selectedDimension2.count > 0">({{ selectedDimension2.count }})</ng-container>
+                <ng-container *ngIf="getDimensionCountLabel(selectedDimension2) as countLabel">({{ countLabel }})</ng-container>
               </span>
               <!-- Remove Dimension Button -->
               <img 
@@ -118,7 +118,7 @@
               <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
               <span class="dimension-chip-text">
                 {{ selectedDimension3.label }}
-                <ng-container *ngIf="selectedDimension3.count > 0">({{ selectedDimension3.count }})</ng-container>
+                <ng-container *ngIf="getDimensionCountLabel(selectedDimension3) as countLabel">({{ countLabel }})</ng-container>
               </span>
               <!-- Remove Dimension Button -->
               <img 

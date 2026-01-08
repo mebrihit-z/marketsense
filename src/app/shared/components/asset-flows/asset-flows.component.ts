@@ -8,6 +8,7 @@ export interface FlowDimension {
   label: string;
   count: number;
   active: boolean;
+  total?: number;
 }
 
 export interface FlowCategory {
@@ -41,6 +42,11 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
   @Input() selectedInvestorRegions: string[] = [];
+  @Input() totalProductTypes: number = 0;
+  @Input() totalProductSubTypes: number = 0;
+  @Input() totalInvestorRegions: number = 0;
+  @Input() totalInvestorTypes: number = 0;
+  @Input() totalProductRegions: number = 0;
   @Input() dataType: 'historical' | 'forecasted' = 'forecasted';
   @Input() timeHorizon: string = 'Today';
   @Output() pinToggle = new EventEmitter<void>();
@@ -101,7 +107,10 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedProductTypes'] || changes['selectedProductSubTypes'] || 
-        changes['selectedInvestorRegions']) {
+        changes['selectedInvestorRegions'] ||
+        changes['totalProductTypes'] || changes['totalProductSubTypes'] ||
+        changes['totalInvestorRegions'] || changes['totalInvestorTypes'] ||
+        changes['totalProductRegions']) {
       this.updateDimensions();
     }
   }
@@ -110,26 +119,31 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     const productRegionDimension = this.availableDimensions.find(d => d.id === 'product-region');
     if (productRegionDimension) {
       productRegionDimension.count = 0; // Update when product regions are available
+      productRegionDimension.total = this.totalProductRegions;
     }
 
     const productTypeDimension = this.availableDimensions.find(d => d.id === 'product-type');
     if (productTypeDimension) {
       productTypeDimension.count = this.selectedProductTypes.length;
+      productTypeDimension.total = this.totalProductTypes;
     }
 
     const productSubTypeDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
     if (productSubTypeDimension) {
       productSubTypeDimension.count = this.selectedProductSubTypes.length;
+      productSubTypeDimension.total = this.totalProductSubTypes;
     }
 
     const investorRegionDimension = this.availableDimensions.find(d => d.id === 'investor-region');
     if (investorRegionDimension) {
       investorRegionDimension.count = this.selectedInvestorRegions.length;
+      investorRegionDimension.total = this.totalInvestorRegions;
     }
 
     const investorTypeDimension = this.availableDimensions.find(d => d.id === 'investor-type');
     if (investorTypeDimension) {
       investorTypeDimension.count = 0; // Update when investor types are available
+      investorTypeDimension.total = this.totalInvestorTypes;
     }
   }
 
@@ -266,5 +280,16 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   onPinClick(): void {
     this.isPinned = !this.isPinned;
     this.pinToggle.emit();
+  }
+
+  getDimensionCountLabel(dimension: FlowDimension): string | null {
+    const selected = dimension.count ?? 0;
+    const total = dimension.total ?? 0;
+
+    if (selected === 0 && total === 0) {
+      return null;
+    }
+
+    return total > 0 ? `${selected}/${total}` : `${selected}`;
   }
 }

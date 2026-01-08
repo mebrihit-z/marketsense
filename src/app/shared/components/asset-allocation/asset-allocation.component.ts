@@ -31,6 +31,7 @@ export interface FlowDimension {
   label: string;
   count: number;
   active: boolean;
+  total?: number;
 }
 
 @Component({
@@ -46,6 +47,11 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() selectedProductSubTypes: string[] = [];
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedInvestorTypes: string[] = [];
+  @Input() totalProductTypes: number = 0;
+  @Input() totalProductSubTypes: number = 0;
+  @Input() totalInvestorRegions: number = 0;
+  @Input() totalInvestorTypes: number = 0;
+  @Input() totalProductRegions: number = 0;
   @Output() pinToggle = new EventEmitter<void>();
   
   // View state
@@ -136,7 +142,10 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedProductTypes'] || changes['selectedProductRegions'] || changes['selectedProductSubTypes'] ||
-        changes['selectedInvestorRegions'] || changes['selectedInvestorTypes']) {
+        changes['selectedInvestorRegions'] || changes['selectedInvestorTypes'] ||
+        changes['totalProductTypes'] || changes['totalProductSubTypes'] ||
+        changes['totalInvestorRegions'] || changes['totalInvestorTypes'] ||
+        changes['totalProductRegions']) {
       this.updateDimensions();
     }
   }
@@ -145,26 +154,31 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     const productRegionDimension = this.availableDimensions.find(d => d.id === 'product-region');
     if (productRegionDimension) {
       productRegionDimension.count = this.selectedProductRegions.length;
+      productRegionDimension.total = this.totalProductRegions;
     }
 
     const productTypeDimension = this.availableDimensions.find(d => d.id === 'product-type');
     if (productTypeDimension) {
       productTypeDimension.count = this.selectedProductTypes.length;
+      productTypeDimension.total = this.totalProductTypes;
     }
 
     const productSubTypeDimension = this.availableDimensions.find(d => d.id === 'product-sub-types');
     if (productSubTypeDimension) {
       productSubTypeDimension.count = this.selectedProductSubTypes.length;
+      productSubTypeDimension.total = this.totalProductSubTypes;
     }
 
     const investorRegionDimension = this.availableDimensions.find(d => d.id === 'investor-region');
     if (investorRegionDimension) {
       investorRegionDimension.count = this.selectedInvestorRegions.length;
+      investorRegionDimension.total = this.totalInvestorRegions;
     }
 
     const investorTypeDimension = this.availableDimensions.find(d => d.id === 'investor-type');
     if (investorTypeDimension) {
       investorTypeDimension.count = this.selectedInvestorTypes.length;
+      investorTypeDimension.total = this.totalInvestorTypes;
     }
   }
 
@@ -316,6 +330,17 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   onPinClick(): void {
     this.isPinned = !this.isPinned;
     this.pinToggle.emit();
+  }
+
+  getDimensionCountLabel(dimension: FlowDimension): string | null {
+    const selected = dimension.count ?? 0;
+    const total = dimension.total ?? 0;
+
+    if (selected === 0 && total === 0) {
+      return null;
+    }
+
+    return total > 0 ? `${selected}/${total}` : `${selected}`;
   }
 
   onTreemapCellClick(cellData: TreemapCellData): void {

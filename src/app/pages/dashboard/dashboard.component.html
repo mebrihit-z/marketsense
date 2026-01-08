@@ -10,7 +10,8 @@
     (productTypeChange)="onProductTypeChange($event)"
     (productRegionChange)="onProductRegionChange($event)"
     (investorRegionChange)="onInvestorRegionChange($event)"
-    (investorTypeChange)="onInvestorTypeChange($event)">
+    (investorTypeChange)="onInvestorTypeChange($event)"
+    (filterOptionTotalsChange)="onFilterOptionTotalsChange($event)">
   </app-filters-bar>
 
   <!-- Featured Market Flows Carousel -->
@@ -29,6 +30,11 @@
       [selectedProductTypes]="selectedProductTypes"
       [selectedProductSubTypes]="selectedProductSubTypes"
       [selectedInvestorRegions]="selectedInvestorRegions"
+      [totalProductTypes]="filterOptionTotals.productTypeTotal"
+      [totalProductSubTypes]="filterOptionTotals.productSubTypeTotal"
+      [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
+      [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
+      [totalProductRegions]="filterOptionTotals.productRegionTotal"
       [dataType]="carouselDataType"
       [timeHorizon]="carouselTimeHorizon"
       (pinToggle)="onAssetFlowsPinToggle()">
@@ -42,6 +48,11 @@
       [selectedProductSubTypes]="selectedProductSubTypes"
       [selectedInvestorRegions]="selectedInvestorRegions"
       [selectedInvestorTypes]="selectedInvestorTypes"
+      [totalProductTypes]="filterOptionTotals.productTypeTotal"
+      [totalProductSubTypes]="filterOptionTotals.productSubTypeTotal"
+      [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
+      [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
+      [totalProductRegions]="filterOptionTotals.productRegionTotal"
       (pinToggle)="onAssetAllocationPinToggle()">
     </app-asset-allocation>
   </div>
