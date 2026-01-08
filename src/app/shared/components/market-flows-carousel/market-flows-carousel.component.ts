@@ -45,8 +45,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   
   get headerTitle(): string {
     return this.dataType === 'historical' 
-      ? 'Featured Market Flows' 
-      : 'Featured Market Flows';
+      ? 'Market Flows' 
+      : 'Market Flows';
   }
   
   get filteredCards(): MarketFlowCard[] {
