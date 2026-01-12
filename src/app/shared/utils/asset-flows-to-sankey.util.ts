@@ -25,6 +25,7 @@ export interface SankeyLink {
   source: string;
   target: string;
   value: number;
+  date?: string;
 }
 
 interface ParentSummary {
@@ -244,6 +245,7 @@ export function convertAssetFlowsToSankey(
       source: parentStartName(r.Investor_Region, r.Product_Type),
       target: subSourceName(r.Investor_Region, r.Product_Sub_Type),
       value: Math.abs(r.Asset_Flow_Value),
+      date: r.Asset_Flow_Date,
     });
   }
 
@@ -319,6 +321,7 @@ export function convertAssetFlowsToSankey(
       source: subDestName(r.Investor_Region, r.Product_Sub_Type),
       target: parentEndName(r.Investor_Region, r.Product_Type),
       value: r.Asset_Flow_Value,
+      date: r.Asset_Flow_Date,
     });
   }
 

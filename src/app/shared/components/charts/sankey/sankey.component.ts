@@ -26,11 +26,12 @@ interface SankeyLinkExtra {
   value: number;
   color?: string;
   width?: number;
+  date?: string;
 }
 
 interface RegionalSankeyData {
   nodes: Array<{ name: string }>;
-  links: Array<{ source: string; target: string; value: number }>;
+  links: Array<{ source: string; target: string; value: number; date?: string }>;
   summary?: any;
 }
 
@@ -50,6 +51,9 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
+  @Input() timeHorizon?: string;
+  @Input() timeHorizonStart?: string;
+  @Input() timeHorizonEnd?: string;
   private loadedData?: RegionalSankeyData;
   private currentZoom: any;
 
@@ -137,6 +141,20 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       return formatted;
     }
 
+    // Helper function to format time information for tooltip
+    private formatTimeInfo(): string {
+      if (this.timeHorizonStart && this.timeHorizonEnd) {
+        return `${this.timeHorizonStart} to ${this.timeHorizonEnd}`;
+      } else if (this.timeHorizon) {
+        // If timeHorizon is "Today", show it as "Today to +3mo" by default
+        if (this.timeHorizon === 'Today') {
+          return 'Today to +3mo';
+        }
+        return this.timeHorizon;
+      }
+      return '';
+    }
+
   // -----------------------------------------
   // MAIN FUNCTION
   // -----------------------------------------
@@ -211,7 +229,8 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       return {
         source: sourceIndex,
         target: targetIndex,
-        value: link.value
+        value: link.value,
+        date: link.date // Preserve date information
       };
     }).filter(link => link !== null) as SankeyLinkExtra[];
 
@@ -412,13 +431,29 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         const value = link.value;
         const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
         
+        // Check if this is a subasset link (connected to Source or Destination nodes)
+        const isSubassetLink = (source.name && (source.name.includes('(Source)') || source.name.includes('(Destination)'))) ||
+                               (target.name && (target.name.includes('(Source)') || target.name.includes('(Destination)')));
+        
+        let tooltipHtml = `
+          <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
+          <div style="margin-top: 4px;">Value: $${formattedValue}B</div>
+        `;
+        
+        // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
+        if (isSubassetLink && link.date) {
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 11px; opacity: 0.9;">Date: ${link.date}</div>`;
+        } else {
+          const timeInfo = component.formatTimeInfo();
+          if (timeInfo) {
+            tooltipHtml += `<div style="margin-top: 4px; font-size: 11px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+          }
+        }
+        
         tooltip
           .style('opacity', 1)
           .style('display', 'block')
-          .html(`
-            <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
-            <div style="margin-top: 4px;">Value: $${formattedValue}B</div>
-          `);
+          .html(tooltipHtml);
         
         // Highlight the hovered link
         d3.select(this)
@@ -692,74 +727,122 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         const outgoing = nodeOutgoing.get(node) || 0;
         const colors = getNodeColor(node.name);
         
-        // Check if this is a parent node (Start/End) and collect subasset information
-        let subassetHtml = '';
-        if (node.name.includes('(Start)') || node.name.includes('(End)')) {
-          const subassets: Array<{ name: string; value: number }> = [];
-          
-          // Find all connected subasset nodes (Source for Start nodes, Destination for End nodes)
-          if (node.name.includes('(Start)')) {
-            // For Start nodes, find all Source nodes connected via outgoing links
-            graph.links.forEach(link => {
-              const linkSource = link.source as SankeyNodeExtra;
-              const linkTarget = link.target as SankeyNodeExtra;
-              if (linkSource === node && linkTarget.name && linkTarget.name.includes('(Source)')) {
-                subassets.push({
-                  name: linkTarget.name,
-                  value: (link as SankeyLinkExtra).value
-                });
-              }
-            });
-          } else if (node.name.includes('(End)')) {
-            // For End nodes, find all Destination nodes connected via incoming links
-            graph.links.forEach(link => {
-              const linkSource = link.source as SankeyNodeExtra;
-              const linkTarget = link.target as SankeyNodeExtra;
-              if (linkTarget === node && linkSource.name && linkSource.name.includes('(Destination)')) {
-                subassets.push({
-                  name: linkSource.name,
-                  value: (link as SankeyLinkExtra).value
-                });
-              }
-            });
-          }
-          
-          // Sort subassets by value (descending) and format them
-          if (subassets.length > 0) {
-            subassets.sort((a, b) => b.value - a.value);
-            const maxItemsToShow = 10;
-            const itemsToShow = subassets.slice(0, maxItemsToShow);
-            const remainingCount = subassets.length - maxItemsToShow;
-            
-            subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px;">';
-            subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${subassets.length}):</div>`;
-            subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
-            itemsToShow.forEach(subasset => {
-              const subassetValue = subasset.value >= 0.1 ? subasset.value.toFixed(2) : subasset.value.toFixed(3);
-              // Clean up the subasset name - remove region prefix and (Source)/(Destination) suffix
-              let cleanName = subasset.name;
-              cleanName = cleanName.replace(/^[^:]+: /, ''); // Remove region prefix like "United States: "
-              cleanName = cleanName.replace(/\s*\(Source\)\s*$/, ''); // Remove (Source)
-              cleanName = cleanName.replace(/\s*\(Destination\)\s*$/, ''); // Remove (Destination)
-              subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${component.formatNodeName(cleanName)}: <strong>$${subassetValue}B</strong></div>`;
-            });
-            if (remainingCount > 0) {
-              subassetHtml += `<div style="margin-top: 4px; font-style: italic; opacity: 0.7; font-size: 10px;">... and ${remainingCount} more</div>`;
-            }
-            subassetHtml += '</div></div>';
-          }
+         // Check if this is a parent node (Start/End) and collect subasset information
+         let subassetHtml = '';
+         if (node.name.includes('(Start)') || node.name.includes('(End)')) {
+           const subassets: Array<{ name: string; value: number; date?: string }> = [];
+           
+           // Find all connected subasset nodes (Source for Start nodes, Destination for End nodes)
+           if (node.name.includes('(Start)')) {
+             // For Start nodes, find all Source nodes connected via outgoing links
+             graph.links.forEach(link => {
+               const linkSource = link.source as SankeyNodeExtra;
+               const linkTarget = link.target as SankeyNodeExtra;
+               if (linkSource === node && linkTarget.name && linkTarget.name.includes('(Source)')) {
+                 const linkExtra = link as SankeyLinkExtra;
+                 subassets.push({
+                   name: linkTarget.name,
+                   value: linkExtra.value,
+                   date: linkExtra.date
+                 });
+               }
+             });
+           } else if (node.name.includes('(End)')) {
+             // For End nodes, find all Destination nodes connected via incoming links
+             graph.links.forEach(link => {
+               const linkSource = link.source as SankeyNodeExtra;
+               const linkTarget = link.target as SankeyNodeExtra;
+               if (linkTarget === node && linkSource.name && linkSource.name.includes('(Destination)')) {
+                 const linkExtra = link as SankeyLinkExtra;
+                 subassets.push({
+                   name: linkSource.name,
+                   value: linkExtra.value,
+                   date: linkExtra.date
+                 });
+               }
+             });
+           }
+           
+           // Group subassets by name and aggregate values and collect unique dates
+           const subassetMap = new Map<string, { value: number; dates: Set<string> }>();
+           subassets.forEach(subasset => {
+             // Clean up the subasset name - remove region prefix and (Source)/(Destination) suffix
+             let cleanName = subasset.name;
+             cleanName = cleanName.replace(/^[^:]+: /, ''); // Remove region prefix like "United States: "
+             cleanName = cleanName.replace(/\s*\(Source\)\s*$/, ''); // Remove (Source)
+             cleanName = cleanName.replace(/\s*\(Destination\)\s*$/, ''); // Remove (Destination)
+             
+             if (!subassetMap.has(cleanName)) {
+               subassetMap.set(cleanName, { value: 0, dates: new Set<string>() });
+             }
+             const entry = subassetMap.get(cleanName)!;
+             entry.value += subasset.value;
+             if (subasset.date) {
+               entry.dates.add(subasset.date);
+             }
+           });
+           
+           // Convert map to array and sort by value
+           const aggregatedSubassets = Array.from(subassetMap.entries()).map(([name, data]) => ({
+             name,
+             value: data.value,
+             dates: Array.from(data.dates).sort()
+           }));
+           
+           // Sort subassets by value (descending) and format them
+           if (aggregatedSubassets.length > 0) {
+             aggregatedSubassets.sort((a, b) => b.value - a.value);
+             const maxItemsToShow = 10;
+             const itemsToShow = aggregatedSubassets.slice(0, maxItemsToShow);
+             const remainingCount = aggregatedSubassets.length - maxItemsToShow;
+             
+             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px;">';
+             subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
+             subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
+             itemsToShow.forEach(subasset => {
+               const subassetValue = subasset.value >= 0.1 ? subasset.value.toFixed(2) : subasset.value.toFixed(3);
+               
+               let subassetLine = `${component.formatNodeName(subasset.name)}: <strong>$${subassetValue}B</strong>`;
+               if (subasset.dates.length > 0) {
+                 // Format dates - if multiple, show range or list
+                 let dateStr = '';
+                 if (subasset.dates.length === 1) {
+                   dateStr = subasset.dates[0];
+                 } else if (subasset.dates.length <= 3) {
+                   dateStr = subasset.dates.join(', ');
+                 } else {
+                   dateStr = `${subasset.dates[0]} - ${subasset.dates[subasset.dates.length - 1]} (${subasset.dates.length} dates)`;
+                 }
+                 subassetLine += ` <span style="opacity: 0.75; font-size: 10px;">(${dateStr})</span>`;
+               }
+               subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
+             });
+             if (remainingCount > 0) {
+               subassetHtml += `<div style="margin-top: 4px; font-style: italic; opacity: 0.7; font-size: 10px;">... and ${remainingCount} more</div>`;
+             }
+             subassetHtml += '</div></div>';
+           }
+         }
+        
+        const timeInfo = component.formatTimeInfo();
+        
+        let tooltipHtml = `
+          <div><strong>${component.formatNodeName(node.name)}</strong></div>
+          <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
+          <div style="margin-top: 2px; font-size: 11px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
+          <div style="font-size: 11px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
+        `;
+        
+        if (timeInfo) {
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 11px; opacity: 0.9;">Time: ${timeInfo}</div>`;
         }
+        
+        tooltipHtml += subassetHtml;
         
         tooltip
           .style('opacity', 1)
           .style('display', 'block')
-          .html(`
-            <div><strong>${component.formatNodeName(node.name)}</strong></div>
-            <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
-            <div style="margin-top: 2px; font-size: 11px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
-            <div style="font-size: 11px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
-            ${subassetHtml}
-          `);
+          .html(tooltipHtml);
         
         // Highlight the hovered node
         d3.select(this)
