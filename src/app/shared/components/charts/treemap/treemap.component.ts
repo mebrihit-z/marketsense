@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
 import { convertExcelToSankey } from '../../../utils/excel-to-sankey.util';
+import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -36,7 +37,7 @@ interface TreemapHierarchyNode extends d3.HierarchyNode<TreemapNodeData> {
 })
 export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() data?: SankeyDataLocal;
-  @Input() dataUrl: string = 'assets/data/marketsense_input_data.xlsx';
+  @Input() dataUrl: string = 'assets/data/asset-flows-data.json';
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
@@ -100,6 +101,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const isExcelFile = this.dataUrl.toLowerCase().endsWith('.xlsx') || 
                         this.dataUrl.toLowerCase().endsWith('.xls');
     
+    // Check if dataUrl is asset-flows-data.json
+    const isAssetFlowsData = this.dataUrl.includes('asset-flows-data.json');
+    
     if (isExcelFile) {
       // Load Excel file as ArrayBuffer
       this.http.get(this.dataUrl, { responseType: 'arraybuffer' }).subscribe({
@@ -130,8 +134,33 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           console.error('Failed to load from:', this.dataUrl);
         }
       });
+    } else if (isAssetFlowsData) {
+      // Load asset-flows-data.json and convert to Sankey format
+      this.http.get<AssetFlowRecord[]>(this.dataUrl).subscribe({
+        next: (assetFlows) => {
+          try {
+            // Convert asset flows to Sankey data using the utility
+            const sankeyData = convertAssetFlowsToSankey(assetFlows);
+            
+            // Map to SankeyDataLocal format
+            this.originalData = {
+              nodes: sankeyData.nodes,
+              links: sankeyData.links,
+              summary: sankeyData.summary
+            };
+            
+            this.applyFilters();
+          } catch (error) {
+            console.error('Error converting asset flows to treemap data:', error);
+          }
+        },
+        error: (error) => {
+          console.error('Error loading asset-flows-data.json:', error);
+          console.error('Failed to load from:', this.dataUrl);
+        }
+      });
     } else {
-      // Load JSON file (backward compatibility)
+      // Load JSON file (backward compatibility - assumes it's already in SankeyDataLocal format)
       this.http.get<SankeyDataLocal>(this.dataUrl).subscribe({
         next: (data) => {
           this.originalData = data;

@@ -1,7 +1,10 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core'
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
+import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
+import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 
 export interface FlowDimension {
   id: string;
@@ -42,6 +45,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
   @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedInvestorTypes: string[] = [];
+  @Input() selectedProductRegions: string[] = [];
   @Input() totalProductTypes: number = 0;
   @Input() totalProductSubTypes: number = 0;
   @Input() totalInvestorRegions: number = 0;
@@ -50,11 +55,25 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() dataType: 'historical' | 'forecasted' = 'forecasted';
   @Input() timeHorizon: string = 'Today';
   @Output() pinToggle = new EventEmitter<void>();
+  @Output() filterOptionsChange = new EventEmitter<FilterOptions>();
+  @Output() filterOptionTotalsChange = new EventEmitter<{
+    productTypeTotal: number;
+    productSubTypeTotal: number;
+    investorRegionTotal: number;
+    investorTypeTotal: number;
+    productRegionTotal: number;
+  }>();
   
   // View and filter state
   showProductSubTypes: boolean = false;
   isPinned: boolean = false;
   showRegionalSankey: boolean = false;
+  
+  // Sankey data
+  sankeyData: SankeyData | undefined;
+  
+  // Filter options extracted from data
+  filterOptions: FilterOptions | undefined;
 
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
@@ -72,6 +91,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   // Currently dragged dimension
   private draggedDimension: FlowDimension | null = null;
+  
+  constructor(private http: HttpClient) {}
   
   // Sample flow data
   flowData: AssetFlowData = {
@@ -103,11 +124,59 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
     this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
     this.selectedDimension3 = this.availableDimensions.find(d => d.id === 'product-sub-types') || null;
+    
+    // Load and convert asset flows data
+    this.loadAssetFlowsData();
+  }
+  
+  private loadAssetFlowsData(): void {
+    this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
+      next: (data) => {
+        try {
+          // Convert asset flows data to Sankey format
+          this.sankeyData = convertAssetFlowsToSankey(data);
+          console.log('Asset flows data converted to Sankey format:', this.sankeyData);
+          
+          // Extract filter options from the data
+          this.filterOptions = extractFilterOptionsFromAssetFlows(data);
+          console.log('Filter options extracted:', this.filterOptions);
+          
+          // Emit filter options to parent component
+          this.filterOptionsChange.emit(this.filterOptions);
+          
+          // Emit filter option totals
+          const totals = {
+            productTypeTotal: this.filterOptions.productTypes.length,
+            productSubTypeTotal: this.filterOptions.productSubTypes.reduce((sum, group) => sum + group.subTypes.length, 0),
+            investorRegionTotal: this.filterOptions.investorRegions.length,
+            investorTypeTotal: this.filterOptions.investorTypes.length,
+            productRegionTotal: this.filterOptions.productRegions.length
+          };
+          this.filterOptionTotalsChange.emit(totals);
+          
+          // Update component totals
+          this.totalProductTypes = totals.productTypeTotal;
+          this.totalProductSubTypes = totals.productSubTypeTotal;
+          this.totalInvestorRegions = totals.investorRegionTotal;
+          this.totalInvestorTypes = totals.investorTypeTotal;
+          this.totalProductRegions = totals.productRegionTotal;
+          
+          // Update dimensions with new totals
+          this.updateDimensions();
+        } catch (error) {
+          console.error('Error converting asset flows to Sankey data:', error);
+        }
+      },
+      error: (error) => {
+        console.error('Error loading asset flows data:', error);
+      }
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedProductTypes'] || changes['selectedProductSubTypes'] || 
-        changes['selectedInvestorRegions'] ||
+        changes['selectedInvestorRegions'] || changes['selectedInvestorTypes'] ||
+        changes['selectedProductRegions'] ||
         changes['totalProductTypes'] || changes['totalProductSubTypes'] ||
         changes['totalInvestorRegions'] || changes['totalInvestorTypes'] ||
         changes['totalProductRegions']) {
@@ -118,7 +187,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   private updateDimensions(): void {
     const productRegionDimension = this.availableDimensions.find(d => d.id === 'product-region');
     if (productRegionDimension) {
-      productRegionDimension.count = 0; // Update when product regions are available
+      productRegionDimension.count = this.selectedProductRegions.length;
       productRegionDimension.total = this.totalProductRegions;
     }
 
@@ -142,7 +211,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
     const investorTypeDimension = this.availableDimensions.find(d => d.id === 'investor-type');
     if (investorTypeDimension) {
-      investorTypeDimension.count = 0; // Update when investor types are available
+      investorTypeDimension.count = this.selectedInvestorTypes.length;
       investorTypeDimension.total = this.totalInvestorTypes;
     }
   }
@@ -291,5 +360,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     }
 
     return total > 0 ? `${selected}/${total}` : `${selected}`;
+  }
+  
+  /**
+   * Get filter options extracted from the asset flows data
+   * @returns FilterOptions object or undefined if data hasn't loaded yet
+   */
+  getFilterOptions(): FilterOptions | undefined {
+    return this.filterOptions;
   }
 }

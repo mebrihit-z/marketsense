@@ -136,6 +136,7 @@
   <!-- Regional Sankey Diagram Visualization -->
   <div class="visualization-container">
     <app-sankey
+      [data]="sankeyData"
       [selectedInvestorRegions]="selectedInvestorRegions"
       [selectedProductTypes]="selectedProductTypes"
       [selectedProductSubTypes]="selectedProductSubTypes">

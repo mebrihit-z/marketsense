@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
 import { extractFilterOptionsFromExcel } from '../../../utils/excel-filter-options.util';
+import { extractFilterOptionsFromAssetFlows } from '../../../utils/asset-flows-filter-options.util';
+import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 
 export interface FilterOptionTotals {
   productTypeTotal: number;
@@ -58,11 +60,11 @@ export class FiltersBarComponent implements OnInit {
    * @returns {void} Initializes filter state and time horizon defaults.
    */
   ngOnInit() {
-    // Load product sub-types and investor regions from Excel file (async)
-    this.loadFilterOptionsFromExcel();
+    // Load product sub-types and investor regions from asset-flows-data.json (async)
+    this.loadFilterOptionsFromAssetFlows();
     
     // Initialize all filters with all options selected by default
-    // Note: productType, productSubType, and investorRegion will be initialized in loadFilterOptionsFromExcel() after async load
+    // Note: productType, productSubType, and investorRegion will be initialized in loadFilterOptionsFromAssetFlows() after async load
     this.state.investorType = this.investorTypeOptions.map(opt => opt.value);
     this.state.productRegion = this.productRegionOptions.map(opt => opt.value);
     
@@ -75,8 +77,86 @@ export class FiltersBarComponent implements OnInit {
   }
 
   /**
+   * Loads product types, product sub-types, investor regions, investor types, and product regions 
+   * dynamically from asset-flows-data.json
+   * @returns {void}
+   */
+  private loadFilterOptionsFromAssetFlows(): void {
+    this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
+      next: (data) => {
+        try {
+          // Extract filter options from asset flows data
+          const filterOptions = extractFilterOptionsFromAssetFlows(data);
+          
+          // Set product types
+          this.productTypeOptions = filterOptions.productTypes.map(type => ({ value: type }));
+          
+          // Set product sub-types grouped by product type
+          this.productSubTypeOptions = filterOptions.productSubTypes.map(group => ({
+            category: group.productType,
+            options: group.subTypes.map(subType => ({ value: subType }))
+          }));
+          
+          // Set investor regions
+          this.investorRegionOptions = filterOptions.investorRegions.map(region => ({ value: region }));
+          
+          // Set investor types
+          this.investorTypeOptions = filterOptions.investorTypes.map(type => ({ value: type }));
+          
+          // Set product regions
+          this.productRegionOptions = filterOptions.productRegions.map(region => ({ value: region }));
+          
+          // Initialize productType selection with all options selected
+          this.state.productType = filterOptions.productTypes;
+          
+          // Initialize productSubType selection with all options selected
+          const allSubTypes = filterOptions.productSubTypes.flatMap(group => group.subTypes);
+          this.state.productSubType = allSubTypes;
+          
+          // Initialize investorRegion selection with all options selected
+          this.state.investorRegion = filterOptions.investorRegions;
+          
+          // Initialize investorType selection with all options selected
+          this.state.investorType = filterOptions.investorTypes;
+          
+          // Initialize productRegion selection with all options selected
+          this.state.productRegion = filterOptions.productRegions;
+          
+          // Emit initial selections
+          this.productTypeChange.emit(this.state.productType);
+          this.productSubTypeChange.emit(this.state.productSubType);
+          this.investorRegionChange.emit(this.state.investorRegion);
+          this.investorTypeChange.emit(this.state.investorType);
+          this.productRegionChange.emit(this.state.productRegion);
+          this.emitFilterOptionTotals();
+        } catch (error) {
+          console.error('Error extracting filter options from asset flows data:', error);
+          // Fallback to empty arrays
+          this.productTypeOptions = [];
+          this.productSubTypeOptions = [];
+          this.investorRegionOptions = [];
+          this.investorTypeOptions = [];
+          this.productRegionOptions = [];
+          this.emitFilterOptionTotals();
+        }
+      },
+      error: (error) => {
+        console.error('Error loading asset flows data for filter options:', error);
+        // Fallback to empty arrays
+        this.productTypeOptions = [];
+        this.productSubTypeOptions = [];
+        this.investorRegionOptions = [];
+        this.investorTypeOptions = [];
+        this.productRegionOptions = [];
+        this.emitFilterOptionTotals();
+      }
+    });
+  }
+
+  /**
    * Loads product types, product sub-types, and investor regions dynamically from marketsense_input_data.xlsx
    * @returns {void}
+   * @deprecated Use loadFilterOptionsFromAssetFlows() instead
    */
   private loadFilterOptionsFromExcel(): void {
     this.http.get('assets/data/marketsense_input_data.xlsx', { responseType: 'arraybuffer' }).subscribe({
@@ -170,24 +250,12 @@ export class FiltersBarComponent implements OnInit {
     }
   }
 
-  // --- sample options (replace with your real data) ---
-  investorRegionOptions: FilterOption[] = []; // Will be loaded from sankey data
-
-  investorTypeOptions: FilterOption[] = [
-    { value: 'Institutional' }, { value: 'Corporate' }, { value: 'Pension Funds' },
-    { value: 'Sovereign Wealth' }, { value: 'Family Office' },
-    { value: 'Endowments' }
-  ];
-
-  productRegionOptions: FilterOption[] = [
-    { value: 'United States' }, { value: 'Europe' }, { value: 'Asia Pacific' },
-    { value: 'United Kingdom' }, { value: 'Middle East & Africa' }
-  ];
-
-  productTypeOptions: FilterOption[] = [];
-
-  productSubTypeOptions: GroupedFilterOption[] = [];
-  // --------------------------------------------------
+  // Filter options loaded from asset-flows-data.json
+  investorRegionOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
+  investorTypeOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
+  productRegionOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
+  productTypeOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
+  productSubTypeOptions: GroupedFilterOption[] = []; // Will be loaded from asset-flows-data.json
    // centralized state (Option A)
    state = {
     investorRegion: [] as string[],

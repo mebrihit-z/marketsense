@@ -8,7 +8,6 @@ import {
   SankeyGraph
 } from 'd3-sankey';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
-import { convertExcelToSankey } from '../../../utils/excel-to-sankey.util';
 
 // ----------------------
 // TypeScript Models
@@ -68,7 +67,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         this.setupZoomControls();
       }, 0);
     } else {
-      this.loadDataFromJson();
+      
     }
   }
 
@@ -97,39 +96,6 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  private loadDataFromJson(): void {
-    // Load Excel file as ArrayBuffer
-    this.http.get('assets/data/marketsense_input_data.xlsx', { responseType: 'arraybuffer' }).subscribe({
-      next: (arrayBuffer) => {
-        try {
-          // Convert Excel to Sankey data
-          const sankeyData = convertExcelToSankey(arrayBuffer, {
-            superparentCol: 'SuperParent',
-            parentCol: 'Parent',
-            subassetCol: 'SubAsset',
-            valueCol: 'Value'
-          });
-          
-          // Map to RegionalSankeyData format
-          this.loadedData = {
-            nodes: sankeyData.nodes,
-            links: sankeyData.links,
-            summary: sankeyData.summary
-          };
-          
-          setTimeout(() => {
-            this.createSankey();
-            this.setupZoomControls();
-          }, 0);
-        } catch (error) {
-          console.error('Error converting Excel to Sankey data:', error);
-        }
-      },
-      error: (error) => {
-        console.error('Error loading Excel file:', error);
-      }
-    });
-  }
 
   /**
    * Applies filters to the sankey data based on selected investor regions, product types, and product sub-types
@@ -189,14 +155,15 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     const elementRect = element.getBoundingClientRect();
     
     // Get the full container width, ensuring we use 100% of available space
-    const containerWidth = elementRect.width > 0 ? elementRect.width : 
+    const baseContainerWidth = elementRect.width > 0 ? elementRect.width : 
                           nativeRect.width > 0 ? nativeRect.width : 
                           element.clientWidth || 
                           element.offsetWidth || 
                           this.el.nativeElement.clientWidth || 
                           this.el.nativeElement.offsetWidth ||
-                          window.innerWidth || 1600;
-    const width = containerWidth;
+                          window.innerWidth || 2400;
+    // Increase the width for better spacing - use container width or minimum 2400px
+    const width = Math.max(baseContainerWidth, 2400);
     const height = 900; // Increased height to reduce crowding
 
     // Get CSS variable values
@@ -217,7 +184,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .style('opacity', 0)
       .style('z-index', 10000)
       .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)')
-      .style('white-space', 'nowrap')
+      .style('max-width', '300px')
       .style('display', 'none');
 
     // -----------------------------------------
@@ -319,6 +286,51 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
 
     const graph = sankeyGen(graphData);
+
+    // Build a map of Source/Destination nodes to their parent types
+    const nodeParentTypeMap = new Map<string, string>();
+    graph.links.forEach(link => {
+      const source = link.source as SankeyNodeExtra;
+      const target = link.target as SankeyNodeExtra;
+      
+      // If source is a parent (Start) node and target is a Source node, map target to parent type
+      if (source.name && source.name.includes('(Start)') && target.name && target.name.includes('(Source)')) {
+        if (source.name.includes('Equity')) {
+          nodeParentTypeMap.set(target.name, 'Equity');
+        } else if (source.name.includes('Fixed Income')) {
+          nodeParentTypeMap.set(target.name, 'Fixed Income');
+        } else if (source.name.includes('Cash')) {
+          nodeParentTypeMap.set(target.name, 'Cash');
+        } else if (source.name.includes('Multi-Asset')) {
+          nodeParentTypeMap.set(target.name, 'Multi-Asset');
+        } else if (source.name.includes('Alternatives')) {
+          nodeParentTypeMap.set(target.name, 'Alternatives');
+        } else if (source.name.includes('Other / Specialized')) {
+          nodeParentTypeMap.set(target.name, 'Other / Specialized');
+        } else if (source.name.includes('Private Markets')) {
+          nodeParentTypeMap.set(target.name, 'Private Markets');
+        }
+      }
+      
+      // If target is a parent (End) node and source is a Destination node, map source to parent type
+      if (target.name && target.name.includes('(End)') && source.name && source.name.includes('(Destination)')) {
+        if (target.name.includes('Equity')) {
+          nodeParentTypeMap.set(source.name, 'Equity');
+        } else if (target.name.includes('Fixed Income')) {
+          nodeParentTypeMap.set(source.name, 'Fixed Income');
+        } else if (target.name.includes('Cash')) {
+          nodeParentTypeMap.set(source.name, 'Cash');
+        } else if (target.name.includes('Multi-Asset')) {
+          nodeParentTypeMap.set(source.name, 'Multi-Asset');
+        } else if (target.name.includes('Alternatives')) {
+          nodeParentTypeMap.set(source.name, 'Alternatives');
+        } else if (target.name.includes('Other / Specialized')) {
+          nodeParentTypeMap.set(source.name, 'Other / Specialized');
+        } else if (target.name.includes('Private Markets')) {
+          nodeParentTypeMap.set(source.name, 'Private Markets');
+        }
+      }
+    });
 
     // Find the Reallocation Pool node to use as reference point
     const reallocationPoolNode = graph.nodes.find(node => 
@@ -502,14 +514,76 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           hoverStroke: getCssVar('--blue-primary', '#3b82f6')
         };
       }
-      // Start/End nodes
+      
+      // Source/Destination nodes - match parent node colors
+      const parentType = nodeParentTypeMap.get(nodeName);
+      if (parentType) {
+        if (parentType === 'Equity') {
+          return {
+            fill: '#5093b3',
+            stroke: '#0284c7',
+            hoverFill: '#38bdf8',
+            hoverStroke: '#5093b3'
+          };
+        }
+        if (parentType === 'Fixed Income') {
+          return {
+            fill: getCssVar('--purple-primary', '#8b5cf6'),
+            stroke: getCssVar('--purple-primary-dark', '#7c3aed'),
+            hoverFill: getCssVar('--purple-primary-hover', '#a78bfa'),
+            hoverStroke: getCssVar('--purple-primary', '#8b5cf6')
+          };
+        }
+        if (parentType === 'Cash') {
+          return {
+            fill: getCssVar('--cyan-primary', '#06b6d4'),
+            stroke: getCssVar('--cyan-primary-dark', '#0891b2'),
+            hoverFill: getCssVar('--cyan-primary-hover', '#22d3ee'),
+            hoverStroke: getCssVar('--cyan-primary', '#06b6d4')
+          };
+        }
+        if (parentType === 'Multi-Asset') {
+          return {
+            fill: '#ec4899',
+            stroke: '#db2777',
+            hoverFill: '#f472b6',
+            hoverStroke: '#ec4899'
+          };
+        }
+        if (parentType === 'Alternatives') {
+          return {
+            fill: '#6366f1',
+            stroke: '#4f46e5',
+            hoverFill: '#818cf8',
+            hoverStroke: '#6366f1'
+          };
+        }
+        if (parentType === 'Other / Specialized') {
+          return {
+            fill: '#f59e0b',
+            stroke: '#d97706',
+            hoverFill: '#fbbf24',
+            hoverStroke: '#f59e0b'
+          };
+        }
+        if (parentType === 'Private Markets') {
+          return {
+            fill: '#14b8a6',
+            stroke: '#0d9488',
+            hoverFill: '#2dd4bf',
+            hoverStroke: '#14b8a6'
+          };
+        }
+      }
+      
+      // Start/End nodes (Parent nodes) - each with distinct colors
       if (nodeName.includes('(Start)') || nodeName.includes('(End)')) {
         if (nodeName.includes('Equity')) {
           return {
-            fill: getCssVar('--blue-primary', '#3b82f6'),
-            stroke: getCssVar('--blue-primary-dark', '#2563eb'),
-            hoverFill: getCssVar('--blue-primary-hover', '#60a5fa'),
-            hoverStroke: getCssVar('--blue-primary', '#3b82f6')
+            fill: '#5093b3', // Sky Blue - bright and distinct
+            stroke: '#0284c7',
+            hoverFill: '#38bdf8',
+            hoverStroke: '#5093b3'
           };
         }
         if (nodeName.includes('Fixed Income')) {
@@ -528,23 +602,47 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
             hoverStroke: getCssVar('--cyan-primary', '#06b6d4')
           };
         }
+        if (nodeName.includes('Multi-Asset')) {
+          return {
+            fill: '#ec4899', // Pink
+            stroke: '#db2777',
+            hoverFill: '#f472b6',
+            hoverStroke: '#ec4899'
+          };
+        }
+        if (nodeName.includes('Alternatives')) {
+          return {
+            fill: '#6366f1', // Indigo
+            stroke: '#4f46e5',
+            hoverFill: '#818cf8',
+            hoverStroke: '#6366f1'
+          };
+        }
+        if (nodeName.includes('Other / Specialized')) {
+          return {
+            fill: '#f59e0b', // Amber
+            stroke: '#d97706',
+            hoverFill: '#fbbf24',
+            hoverStroke: '#f59e0b'
+          };
+        }
+        if (nodeName.includes('Private Markets')) {
+          return {
+            fill: '#14b8a6', // Teal
+            stroke: '#0d9488',
+            hoverFill: '#2dd4bf',
+            hoverStroke: '#14b8a6'
+          };
+        }
       }
-      // Source nodes
-      if (nodeName.includes('(Source)')) {
+      
+      // Default color for Source/Destination nodes that weren't mapped
+      if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) {
         return {
-          fill: getCssVar('--red-primary', '#ef4444'),
-          stroke: getCssVar('--red-primary-dark', '#dc2626'),
-          hoverFill: getCssVar('--red-primary-hover', '#f87171'),
-          hoverStroke: getCssVar('--red-primary', '#ef4444')
-        };
-      }
-      // Destination nodes
-      if (nodeName.includes('(Destination)')) {
-        return {
-          fill: getCssVar('--green-primary', '#22c55e'),
-          stroke: getCssVar('--green-primary-dark', '#16a34a'),
-          hoverFill: getCssVar('--green-primary-hover', '#4ade80'),
-          hoverStroke: getCssVar('--green-primary', '#22c55e')
+          fill: getCssVar('--gray-medium', '#6b7280'),
+          stroke: getCssVar('--gray-dark', '#4b5563'),
+          hoverFill: getCssVar('--gray-light', '#9ca3af'),
+          hoverStroke: getCssVar('--gray-medium', '#6b7280')
         };
       }
       
@@ -594,6 +692,64 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         const outgoing = nodeOutgoing.get(node) || 0;
         const colors = getNodeColor(node.name);
         
+        // Check if this is a parent node (Start/End) and collect subasset information
+        let subassetHtml = '';
+        if (node.name.includes('(Start)') || node.name.includes('(End)')) {
+          const subassets: Array<{ name: string; value: number }> = [];
+          
+          // Find all connected subasset nodes (Source for Start nodes, Destination for End nodes)
+          if (node.name.includes('(Start)')) {
+            // For Start nodes, find all Source nodes connected via outgoing links
+            graph.links.forEach(link => {
+              const linkSource = link.source as SankeyNodeExtra;
+              const linkTarget = link.target as SankeyNodeExtra;
+              if (linkSource === node && linkTarget.name && linkTarget.name.includes('(Source)')) {
+                subassets.push({
+                  name: linkTarget.name,
+                  value: (link as SankeyLinkExtra).value
+                });
+              }
+            });
+          } else if (node.name.includes('(End)')) {
+            // For End nodes, find all Destination nodes connected via incoming links
+            graph.links.forEach(link => {
+              const linkSource = link.source as SankeyNodeExtra;
+              const linkTarget = link.target as SankeyNodeExtra;
+              if (linkTarget === node && linkSource.name && linkSource.name.includes('(Destination)')) {
+                subassets.push({
+                  name: linkSource.name,
+                  value: (link as SankeyLinkExtra).value
+                });
+              }
+            });
+          }
+          
+          // Sort subassets by value (descending) and format them
+          if (subassets.length > 0) {
+            subassets.sort((a, b) => b.value - a.value);
+            const maxItemsToShow = 10;
+            const itemsToShow = subassets.slice(0, maxItemsToShow);
+            const remainingCount = subassets.length - maxItemsToShow;
+            
+            subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px;">';
+            subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Subassets (${subassets.length}):</div>`;
+            subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
+            itemsToShow.forEach(subasset => {
+              const subassetValue = subasset.value >= 0.1 ? subasset.value.toFixed(2) : subasset.value.toFixed(3);
+              // Clean up the subasset name - remove region prefix and (Source)/(Destination) suffix
+              let cleanName = subasset.name;
+              cleanName = cleanName.replace(/^[^:]+: /, ''); // Remove region prefix like "United States: "
+              cleanName = cleanName.replace(/\s*\(Source\)\s*$/, ''); // Remove (Source)
+              cleanName = cleanName.replace(/\s*\(Destination\)\s*$/, ''); // Remove (Destination)
+              subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${component.formatNodeName(cleanName)}: <strong>$${subassetValue}B</strong></div>`;
+            });
+            if (remainingCount > 0) {
+              subassetHtml += `<div style="margin-top: 4px; font-style: italic; opacity: 0.7; font-size: 10px;">... and ${remainingCount} more</div>`;
+            }
+            subassetHtml += '</div></div>';
+          }
+        }
+        
         tooltip
           .style('opacity', 1)
           .style('display', 'block')
@@ -602,6 +758,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
             <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
             <div style="margin-top: 2px; font-size: 11px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
             <div style="font-size: 11px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
+            ${subassetHtml}
           `);
         
         // Highlight the hovered node
@@ -856,6 +1013,14 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         presentTypes.add('Fixed Income');
       } else if (node.name.includes('Cash (Start)') || node.name.includes('Cash (End)')) {
         presentTypes.add('Cash');
+      } else if (node.name.includes('Multi-Asset (Start)') || node.name.includes('Multi-Asset (End)')) {
+        presentTypes.add('Multi-Asset');
+      } else if (node.name.includes('Alternatives (Start)') || node.name.includes('Alternatives (End)')) {
+        presentTypes.add('Alternatives');
+      } else if (node.name.includes('Other / Specialized (Start)') || node.name.includes('Other / Specialized (End)')) {
+        presentTypes.add('Other / Specialized');
+      } else if (node.name.includes('Private Markets (Start)') || node.name.includes('Private Markets (End)')) {
+        presentTypes.add('Private Markets');
       } else if (node.name.includes('(Source)')) {
         presentTypes.add('Source');
       } else if (node.name.includes('(Destination)')) {
@@ -868,13 +1033,25 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       legendData.push({ label: 'Super Start/End', color: getCssVar('--blue-primary', '#3b82f6') });
     }
     if (presentTypes.has('Equity')) {
-      legendData.push({ label: 'Equity', color: getCssVar('--blue-primary', '#3b82f6') });
+      legendData.push({ label: 'Equity', color: '#5093b3' });
     }
     if (presentTypes.has('Fixed Income')) {
       legendData.push({ label: 'Fixed Income', color: getCssVar('--purple-primary', '#8b5cf6') });
     }
     if (presentTypes.has('Cash')) {
       legendData.push({ label: 'Cash', color: getCssVar('--cyan-primary', '#06b6d4') });
+    }
+    if (presentTypes.has('Multi-Asset')) {
+      legendData.push({ label: 'Multi-Asset', color: '#ec4899' });
+    }
+    if (presentTypes.has('Alternatives')) {
+      legendData.push({ label: 'Alternatives', color: '#6366f1' });
+    }
+    if (presentTypes.has('Other / Specialized')) {
+      legendData.push({ label: 'Other / Specialized', color: '#f59e0b' });
+    }
+    if (presentTypes.has('Private Markets')) {
+      legendData.push({ label: 'Private Markets', color: '#14b8a6' });
     }
     if (presentTypes.has('Source')) {
       legendData.push({ label: 'Source', color: getCssVar('--red-primary', '#ef4444') });
@@ -897,7 +1074,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     
     const legend = svg.append('g')
       .attr('class', 'legend')
-      .attr('transform', `translate(${150}, ${height -15})`);
+      .attr('transform', `translate(${80}, ${height -15})`);
 
     const legendItems = legend.selectAll('.legend-item')
       .data(legendData)
@@ -919,9 +1096,14 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         // Use darker stroke for better visibility
         if (d.label === 'Reallocation Pool') return getCssVar('--orange-primary-dark', '#d97706');
         if (d.label === 'Net New Capital') return getCssVar('--green-darker', '#059669');
-        if (d.label === 'Super Start/End' || d.label === 'Equity') return getCssVar('--blue-primary-dark', '#2563eb');
+        if (d.label === 'Super Start/End') return getCssVar('--blue-primary-dark', '#2563eb');
+        if (d.label === 'Equity') return '#0284c7';
         if (d.label === 'Fixed Income') return getCssVar('--purple-primary-dark', '#7c3aed');
         if (d.label === 'Cash') return getCssVar('--cyan-primary-dark', '#0891b2');
+        if (d.label === 'Multi-Asset') return '#db2777';
+        if (d.label === 'Alternatives') return '#4f46e5';
+        if (d.label === 'Other / Specialized') return '#d97706';
+        if (d.label === 'Private Markets') return '#0d9488';
         if (d.label === 'Source') return getCssVar('--red-primary-dark', '#dc2626');
         if (d.label === 'Destination') return getCssVar('--green-primary-dark', '#16a34a');
         if (d.label === 'Outflow') return getCssVar('--red-link', '#DC2626');
