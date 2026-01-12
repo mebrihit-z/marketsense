@@ -58,6 +58,9 @@
       [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
       [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
       [totalProductRegions]="filterOptionTotals.productRegionTotal"
+      [timeHorizon]="carouselTimeHorizon"
+      [timeHorizonStart]="timeHorizonRange?.start"
+      [timeHorizonEnd]="timeHorizonRange?.end"
       (pinToggle)="onAssetAllocationPinToggle()">
     </app-asset-allocation>
   </div>

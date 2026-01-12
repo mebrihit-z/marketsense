@@ -41,9 +41,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
+  @Input() timeHorizon: string = 'Today';
+  @Input() timeHorizonStart?: string;
+  @Input() timeHorizonEnd?: string;
 
   private loadedData?: SankeyDataLocal;
   private originalData?: SankeyDataLocal;
+  private rawAssetFlowsData?: AssetFlowRecord[];
   private resizeObserver?: ResizeObserver;
 
   constructor(
@@ -74,18 +78,37 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
                           changes['selectedProductTypes'] || 
                           changes['selectedProductSubTypes'];
     
-    if (filterChanged) {
-      // If filters changed, reapply filters and recreate treemap
-      console.log('ReallocationTreemap: Filters changed', {
+    // Handle time horizon changes
+    const timeHorizonChanged = changes['timeHorizon'] || 
+                                changes['timeHorizonStart'] || 
+                                changes['timeHorizonEnd'];
+    
+    if (filterChanged || timeHorizonChanged) {
+      // If filters or time horizon changed, reapply filters and recreate treemap
+      console.log('ReallocationTreemap: Filters or time horizon changed', {
         investorRegions: this.selectedInvestorRegions,
         productTypes: this.selectedProductTypes,
         productSubTypes: this.selectedProductSubTypes,
+        timeHorizon: this.timeHorizon,
+        timeHorizonStart: this.timeHorizonStart,
+        timeHorizonEnd: this.timeHorizonEnd,
+        hasRawData: !!this.rawAssetFlowsData,
+        hasOriginalData: !!this.originalData,
         changes: Object.keys(changes)
       });
       
-      // Apply filters if data is already loaded, otherwise filters will be applied when data loads
-      if (this.originalData) {
+      // If time horizon changed and we have raw asset flows data, reload with new time horizon
+      if (timeHorizonChanged && this.rawAssetFlowsData) {
+        console.log('ReallocationTreemap: Time horizon changed, converting with new filter');
+        this.convertAssetFlowsWithTimeHorizonFilter();
+      } else if (filterChanged && this.originalData) {
+        // Apply filters if data is already loaded, otherwise filters will be applied when data loads
+        console.log('ReallocationTreemap: Filters changed, applying filters');
         this.applyFilters();
+      } else if (timeHorizonChanged && !this.rawAssetFlowsData && this.originalData) {
+        // If time horizon changed but we don't have raw data (maybe data was passed via @Input),
+        // we can't filter by time horizon - log a warning
+        console.warn('ReallocationTreemap: Time horizon changed but no raw asset flows data available. Data may have been passed via @Input data property.');
       }
     }
   }
@@ -139,17 +162,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.http.get<AssetFlowRecord[]>(this.dataUrl).subscribe({
         next: (assetFlows) => {
           try {
-            // Convert asset flows to Sankey data using the utility
-            const sankeyData = convertAssetFlowsToSankey(assetFlows);
+            // Store raw data for time horizon filtering
+            this.rawAssetFlowsData = assetFlows;
             
-            // Map to SankeyDataLocal format
-            this.originalData = {
-              nodes: sankeyData.nodes,
-              links: sankeyData.links,
-              summary: sankeyData.summary
-            };
-            
-            this.applyFilters();
+            // Convert asset flows to Sankey data with time horizon filtering
+            this.convertAssetFlowsWithTimeHorizonFilter();
           } catch (error) {
             console.error('Error converting asset flows to treemap data:', error);
           }
@@ -172,6 +189,152 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
       });
     }
+  }
+
+  /**
+   * Converts asset flows data to Sankey format with time horizon filtering
+   */
+  private convertAssetFlowsWithTimeHorizonFilter(): void {
+    if (!this.rawAssetFlowsData) {
+      console.warn('ReallocationTreemap: No raw asset flows data available');
+      return;
+    }
+    
+    console.log('ReallocationTreemap: Converting asset flows with time horizon filter', {
+      timeHorizon: this.timeHorizon,
+      timeHorizonStart: this.timeHorizonStart,
+      timeHorizonEnd: this.timeHorizonEnd
+    });
+    
+    // Filter data based on time horizon
+    const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    
+    // Convert filtered data to Sankey format
+    const sankeyData = convertAssetFlowsToSankey(filteredData);
+    
+    // Map to SankeyDataLocal format
+    this.originalData = {
+      nodes: sankeyData.nodes,
+      links: sankeyData.links,
+      summary: sankeyData.summary
+    };
+    
+    // Apply additional filters (investor regions, product types, etc.)
+    this.applyFilters();
+  }
+
+  /**
+   * Filters asset flows data based on the selected time horizon range
+   * If start and end are provided, filters data between those dates (inclusive)
+   * Otherwise, uses the single timeHorizon for backward compatibility
+   */
+  private filterDataByTimeHorizon(data: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!data || data.length === 0) {
+      return data;
+    }
+    
+    let startDate: string | null = null;
+    let endDate: string | null = null;
+    
+    // If range is provided, use both start and end
+    if (this.timeHorizonStart && this.timeHorizonEnd) {
+      startDate = this.getTargetDateFromTimeHorizon(this.timeHorizonStart);
+      endDate = this.getTargetDateFromTimeHorizon(this.timeHorizonEnd);
+      console.log('ReallocationTreemap: Time horizon range:', {
+        start: this.timeHorizonStart,
+        end: this.timeHorizonEnd,
+        startDate,
+        endDate
+      });
+    } else {
+      // Fallback to single time horizon for backward compatibility
+      endDate = this.getTargetDateFromTimeHorizon(this.timeHorizon);
+      console.log('ReallocationTreemap: Time horizon (single):', this.timeHorizon, 'Target date:', endDate);
+    }
+    
+    if (!endDate) {
+      // If time horizon is invalid, return all data
+      console.log('ReallocationTreemap: No target date, returning all data');
+      return data;
+    }
+    
+    // Filter data based on date range
+    const filtered = data.filter(record => {
+      const flowDate = record.Asset_Flow_Date;
+      if (!flowDate) {
+        return false;
+      }
+      
+      // If we have a range, check if date is between start and end (inclusive)
+      if (startDate && endDate) {
+        return flowDate >= startDate && flowDate <= endDate;
+      }
+      // Otherwise, filter data where Asset_Flow_Date is <= endDate (cumulative)
+      return flowDate <= endDate;
+    });
+    
+    const rangeInfo = startDate && endDate 
+      ? `range: ${startDate} to ${endDate}`
+      : `target: ${endDate}`;
+    console.log(`ReallocationTreemap: Filtered ${filtered.length} records out of ${data.length} for time horizon ${rangeInfo}`);
+    return filtered;
+  }
+
+  /**
+   * Converts time horizon string to target date in YYYY-MM format
+   * Returns null if time horizon is invalid
+   * Uses today's date as the base for calculations
+   * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo"). If not provided, uses this.timeHorizon
+   */
+  private getTargetDateFromTimeHorizon(horizon?: string): string | null {
+    const timeHorizonToUse = horizon || this.timeHorizon;
+    // Use today's date as the base
+    const today = new Date();
+    const baseYear = today.getFullYear();
+    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    
+    if (timeHorizonToUse === 'Today') {
+      // For "Today", return the current month
+      const monthStr = String(baseMonth).padStart(2, '0');
+      return `${baseYear}-${monthStr}`;
+    }
+    
+    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
+    // Support both formats: with/without space and with/without + prefix
+    const normalized = timeHorizonToUse.trim().toLowerCase();
+    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
+    
+    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
+    if (!match) {
+      match = normalized.match(/^([+-]?)(\d+)$/);
+    }
+    
+    if (!match) {
+      console.warn('ReallocationTreemap: Could not parse time horizon:', timeHorizonToUse);
+      return null;
+    }
+    
+    const isNegative = match[1] === '-';
+    const months = parseInt(match[2], 10);
+    
+    // Calculate target date by adding/subtracting months from today
+    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
+    
+    if (isNegative) {
+      // Historical: subtract months
+      targetDate.setMonth(targetDate.getMonth() - months);
+    } else {
+      // Forecasted: add months (default for positive or no sign)
+      targetDate.setMonth(targetDate.getMonth() + months);
+    }
+    
+    // Format as YYYY-MM
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    const monthStr = String(targetMonth).padStart(2, '0');
+    const result = `${targetYear}-${monthStr}`;
+    console.log(`ReallocationTreemap: Converted time horizon "${timeHorizonToUse}" from base ${baseYear}-${String(baseMonth).padStart(2, '0')} to date: ${result}`);
+    return result;
   }
 
   private applyFilters(): void {

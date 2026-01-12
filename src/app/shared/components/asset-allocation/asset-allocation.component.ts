@@ -52,15 +52,15 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() totalInvestorRegions: number = 0;
   @Input() totalInvestorTypes: number = 0;
   @Input() totalProductRegions: number = 0;
+  @Input() timeHorizon: string = '+9 mo';
+  @Input() timeHorizonStart?: string;
+  @Input() timeHorizonEnd?: string;
   @Output() pinToggle = new EventEmitter<void>();
   
   // View state
   viewMode: 'treemap' | 'packing-circles' = 'treemap';
-  selectedTimeHorizon: string = '+9 mo';
   isPinned: boolean = false;
   
-  // Available time horizons
-  timeHorizons = ['-12 mo', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
@@ -272,10 +272,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     console.log('Dimension removed from:', dropZone);
   }
 
-  setTimeHorizon(horizon: string): void {
-    this.selectedTimeHorizon = horizon;
-    console.log('Time horizon changed to:', horizon);
-  }
 
 
   onPackingCirclesClick(): void {
