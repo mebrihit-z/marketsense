@@ -732,7 +732,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
             const remainingCount = subassets.length - maxItemsToShow;
             
             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px;">';
-            subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Subassets (${subassets.length}):</div>`;
+            subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${subassets.length}):</div>`;
             subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
             itemsToShow.forEach(subasset => {
               const subassetValue = subasset.value >= 0.1 ? subasset.value.toFixed(2) : subasset.value.toFixed(3);
