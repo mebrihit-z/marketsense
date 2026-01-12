@@ -17,6 +17,7 @@ import HeaderComponent from '../../shared/components/header/header.component';
 export default class DashboardComponent implements OnInit {
   carouselDataType: 'historical' | 'forecasted' = 'forecasted';
   carouselTimeHorizon: string = 'Today';
+  timeHorizonRange: { start: string; end: string } | null = null;
   selectedProductSubTypes: string[] = [];
   selectedProductTypes: string[] = [];
   selectedProductRegions: string[] = [];
@@ -747,6 +748,12 @@ export default class DashboardComponent implements OnInit {
     this.carouselTimeHorizon = timeHorizon;
     // Clean up pinned card IDs when time horizon changes (card IDs include time horizon)
     this.cleanupPinnedCardIds();
+  }
+
+  onTimeHorizonRangeChange(range: { start: string; end: string }): void {
+    this.timeHorizonRange = range;
+    // Also update the carousel time horizon to the end value for backward compatibility
+    this.carouselTimeHorizon = range.end;
   }
   
   /**

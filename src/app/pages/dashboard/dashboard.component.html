@@ -6,6 +6,7 @@
   <app-filters-bar
     (dataTypeChange)="onDataTypeChange($event)"
     (timeHorizonChange)="onTimeHorizonChange($event)"
+    (timeHorizonRangeChange)="onTimeHorizonRangeChange($event)"
     (productSubTypeChange)="onProductSubTypeChange($event)"
     (productTypeChange)="onProductTypeChange($event)"
     (productRegionChange)="onProductRegionChange($event)"
@@ -39,6 +40,8 @@
       [totalProductRegions]="filterOptionTotals.productRegionTotal"
       [dataType]="carouselDataType"
       [timeHorizon]="carouselTimeHorizon"
+      [timeHorizonStart]="timeHorizonRange?.start"
+      [timeHorizonEnd]="timeHorizonRange?.end"
       (pinToggle)="onAssetFlowsPinToggle()">
     </app-asset-flows>
   </div>

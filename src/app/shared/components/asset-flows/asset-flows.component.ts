@@ -54,6 +54,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() totalProductRegions: number = 0;
   @Input() dataType: 'historical' | 'forecasted' = 'forecasted';
   @Input() timeHorizon: string = 'Today';
+  @Input() timeHorizonStart?: string;
+  @Input() timeHorizonEnd?: string;
   @Output() pinToggle = new EventEmitter<void>();
   @Output() filterOptionsChange = new EventEmitter<FilterOptions>();
   @Output() filterOptionTotalsChange = new EventEmitter<{
@@ -71,6 +73,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   
   // Sankey data
   sankeyData: SankeyData | undefined;
+  
+  // Raw asset flows data (before filtering)
+  private rawAssetFlowsData: AssetFlowRecord[] | undefined;
   
   // Filter options extracted from data
   filterOptions: FilterOptions | undefined;
@@ -133,11 +138,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
       next: (data) => {
         try {
-          // Convert asset flows data to Sankey format
-          this.sankeyData = convertAssetFlowsToSankey(data);
-          console.log('Asset flows data converted to Sankey format:', this.sankeyData);
+          // Store raw data for filtering
+          this.rawAssetFlowsData = data;
           
-          // Extract filter options from the data
+          // Filter and convert asset flows data to Sankey format
+          this.updateSankeyData();
+          
+          // Extract filter options from the raw data (before time horizon filtering)
           this.filterOptions = extractFilterOptionsFromAssetFlows(data);
           console.log('Filter options extracted:', this.filterOptions);
           
@@ -172,6 +179,147 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       }
     });
   }
+  
+  /**
+   * Filters asset flows data based on time horizon and converts to Sankey format
+   */
+  private updateSankeyData(): void {
+    if (!this.rawAssetFlowsData) {
+      console.warn('No raw asset flows data available');
+      return;
+    }
+    
+    console.log('Updating Sankey data for time horizon:', this.timeHorizon, 'dataType:', this.dataType);
+    
+    // Filter data based on time horizon
+    const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    
+    // Convert filtered data to Sankey format
+    const newSankeyData = convertAssetFlowsToSankey(filteredData);
+    
+    // Always assign a new object reference to ensure change detection
+    this.sankeyData = { ...newSankeyData };
+    
+    console.log('Sankey data updated:', {
+      nodes: this.sankeyData.nodes?.length || 0,
+      links: this.sankeyData.links?.length || 0,
+      summary: this.sankeyData.summary
+    });
+  }
+  
+  /**
+   * Filters asset flows data based on the selected time horizon range
+   * If start and end are provided, filters data between those dates (inclusive)
+   * Otherwise, uses the single timeHorizon for backward compatibility
+   */
+  private filterDataByTimeHorizon(data: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!data || data.length === 0) {
+      return data;
+    }
+    
+    let startDate: string | null = null;
+    let endDate: string | null = null;
+    
+    // If range is provided, use both start and end
+    if (this.timeHorizonStart && this.timeHorizonEnd) {
+      startDate = this.getTargetDateFromTimeHorizon(this.timeHorizonStart);
+      endDate = this.getTargetDateFromTimeHorizon(this.timeHorizonEnd);
+      console.log('Time horizon range:', {
+        start: this.timeHorizonStart,
+        end: this.timeHorizonEnd,
+        startDate,
+        endDate
+      });
+    } else {
+      // Fallback to single time horizon for backward compatibility
+      endDate = this.getTargetDateFromTimeHorizon(this.timeHorizon);
+      console.log('Time horizon (single):', this.timeHorizon, 'Target date:', endDate);
+    }
+    
+    if (!endDate) {
+      // If time horizon is invalid, return all data
+      console.log('No target date, returning all data');
+      return data;
+    }
+    
+    // Filter data based on date range
+    const filtered = data.filter(record => {
+      const flowDate = record.Asset_Flow_Date;
+      if (!flowDate) {
+        return false;
+      }
+      
+      // If we have a range, check if date is between start and end (inclusive)
+      if (startDate && endDate) {
+        return flowDate >= startDate && flowDate <= endDate;
+      }
+      // Otherwise, filter data where Asset_Flow_Date is <= endDate (cumulative)
+      return flowDate <= endDate;
+    });
+    
+    const rangeInfo = startDate && endDate 
+      ? `range: ${startDate} to ${endDate}`
+      : `target: ${endDate}`;
+    console.log(`Filtered ${filtered.length} records out of ${data.length} for time horizon ${rangeInfo}`);
+    return filtered;
+  }
+  
+  /**
+   * Converts time horizon string to target date in YYYY-MM format
+   * Returns null if time horizon is invalid
+   * Uses today's date as the base for calculations
+   * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo"). If not provided, uses this.timeHorizon
+   */
+  private getTargetDateFromTimeHorizon(horizon?: string): string | null {
+    const timeHorizonToUse = horizon || this.timeHorizon;
+    // Use today's date as the base
+    const today = new Date();
+    const baseYear = today.getFullYear();
+    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    
+    if (timeHorizonToUse === 'Today') {
+      // For "Today", return the current month
+      const monthStr = String(baseMonth).padStart(2, '0');
+      return `${baseYear}-${monthStr}`;
+    }
+    
+    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
+    // Support both formats: with/without space and with/without + prefix
+    const normalized = timeHorizonToUse.trim().toLowerCase();
+    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
+    
+    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
+    if (!match) {
+      match = normalized.match(/^([+-]?)(\d+)$/);
+    }
+    
+    if (!match) {
+      console.warn('Could not parse time horizon:', timeHorizonToUse);
+      return null;
+    }
+    
+    const isNegative = match[1] === '-';
+    const months = parseInt(match[2], 10);
+    
+    // Calculate target date by adding/subtracting months from today
+    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
+    
+    if (isNegative) {
+      // Historical: subtract months
+      targetDate.setMonth(targetDate.getMonth() - months);
+    } else {
+      // Forecasted: add months (default for positive or no sign)
+      targetDate.setMonth(targetDate.getMonth() + months);
+    }
+    
+    // Format as YYYY-MM
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    const monthStr = String(targetMonth).padStart(2, '0');
+    const result = `${targetYear}-${monthStr}`;
+    console.log(`Converted time horizon "${timeHorizonToUse}" from base ${baseYear}-${String(baseMonth).padStart(2, '0')} to date: ${result}`);
+    return result;
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedProductTypes'] || changes['selectedProductSubTypes'] || 
@@ -181,6 +329,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
         changes['totalInvestorRegions'] || changes['totalInvestorTypes'] ||
         changes['totalProductRegions']) {
       this.updateDimensions();
+    }
+    
+    // Update Sankey data when time horizon, time horizon range, or data type changes
+    if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd'] || changes['dataType']) {
+      if (this.rawAssetFlowsData) {
+        this.updateSankeyData();
+      }
     }
   }
 

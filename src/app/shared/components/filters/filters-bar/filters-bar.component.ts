@@ -30,6 +30,7 @@ export class FiltersBarComponent implements OnInit {
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
+  @Output() timeHorizonRangeChange = new EventEmitter<{ start: string; end: string }>();
   @Output() productSubTypeChange = new EventEmitter<string[]>();
   @Output() productTypeChange = new EventEmitter<string[]>();
   @Output() productRegionChange = new EventEmitter<string[]>();
@@ -651,10 +652,13 @@ export class FiltersBarComponent implements OnInit {
    * @returns {void} Updates and emits the currently selected time horizon.
    */
   private updateSelectedTimeHorizon(): void {
-    // Emit the end value (right handle) as the selected time horizon
+    // Emit the end value (right handle) as the selected time horizon (for backward compatibility)
     const endHorizon = this.timeHorizons[this.timeHorizonRange.endIndex];
+    const startHorizon = this.timeHorizons[this.timeHorizonRange.startIndex];
     this.selectedTimeHorizon = endHorizon;
     this.timeHorizonChange.emit(endHorizon);
+    // Also emit the range for components that need both start and end
+    this.timeHorizonRangeChange.emit({ start: startHorizon, end: endHorizon });
   }
 
   /**
