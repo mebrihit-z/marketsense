@@ -462,6 +462,37 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     return '$ ' + d3.format(',.2f')(v) + 'B';
   }
 
+  /**
+   * Formats the time horizon range for display in tooltips
+   * @returns Formatted time horizon string (e.g., "+3 mo", "+3 mo to +9 mo", "Today")
+   */
+  private getTimeHorizonDisplayString(): string {
+    // Debug logging
+    console.log('ReallocationTreemap: getTimeHorizonDisplayString called', {
+      timeHorizon: this.timeHorizon,
+      timeHorizonStart: this.timeHorizonStart,
+      timeHorizonEnd: this.timeHorizonEnd,
+      hasStart: !!this.timeHorizonStart,
+      hasEnd: !!this.timeHorizonEnd,
+      startTrimmed: this.timeHorizonStart?.trim(),
+      endTrimmed: this.timeHorizonEnd?.trim()
+    });
+    
+    // Prioritize range if both start and end are provided and not empty
+    if (this.timeHorizonStart && this.timeHorizonEnd && 
+        this.timeHorizonStart.trim() !== '' && this.timeHorizonEnd.trim() !== '') {
+      // If we have a range, display both start and end
+      const rangeDisplay = `${this.timeHorizonStart} to ${this.timeHorizonEnd}`;
+      console.log('ReallocationTreemap: Returning range display:', rangeDisplay);
+      return rangeDisplay;
+    } else {
+      // Otherwise, just display the single time horizon
+      const singleDisplay = this.timeHorizon || 'Today';
+      console.log('ReallocationTreemap: Returning single display:', singleDisplay);
+      return singleDisplay;
+    }
+  }
+
   private sizeWeight(d: TreemapNodeData): number {
     const SIZE_EXPONENT = 0.60;
     const MIN_SIZE_FLOOR = 0.15;
@@ -1037,8 +1068,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     nodes.on('mousemove', function(event: MouseEvent, d) {
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
+      const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
+      const timeHorizonDisplay = component.getTimeHorizonDisplayString();
       tooltip.style('opacity', '1');
-      tooltip.text(`${path}\n${component.formatValue(component.signedValue(d as TreemapHierarchyNode))}`);
+      tooltip.text(`${path}\n${value}\nTime Horizon: ${timeHorizonDisplay}`);
       tooltip.style('left', event.clientX + 'px');
       tooltip.style('top', event.clientY + 'px');
       

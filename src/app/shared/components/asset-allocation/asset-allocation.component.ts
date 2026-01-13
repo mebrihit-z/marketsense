@@ -148,6 +148,16 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         changes['totalProductRegions']) {
       this.updateDimensions();
     }
+    
+    // Log time horizon changes for debugging
+    if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd']) {
+      console.log('AssetAllocation: Time horizon changed', {
+        timeHorizon: this.timeHorizon,
+        timeHorizonStart: this.timeHorizonStart,
+        timeHorizonEnd: this.timeHorizonEnd,
+        changes: Object.keys(changes)
+      });
+    }
   }
 
   private updateDimensions(): void {

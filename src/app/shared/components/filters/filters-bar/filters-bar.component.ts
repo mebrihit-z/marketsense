@@ -247,8 +247,9 @@ export class FiltersBarComponent implements OnInit {
     } else {
       // Default: Today to first option (+3mo for forecasted)
       this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
-      this.updateSelectedTimeHorizon();
     }
+    // Always emit the initial range
+    this.updateSelectedTimeHorizon();
   }
 
   // Filter options loaded from asset-flows-data.json
