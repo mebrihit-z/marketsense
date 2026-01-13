@@ -1,6 +1,22 @@
 <div class="filter-root">
     <button type="button" class="btn" (click)="toggle($event)">
       <span class="title">{{ title }}</span>
+      <div class="info-btn-wrapper">
+        <button type="button" #infoButton class="info-btn" (click)="onInfoClick($event)" aria-label="Info">
+          <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+        </button>
+        <!-- Info Tooltip -->
+        <div 
+          #tooltip 
+          class="info-tooltip" 
+          *ngIf="isTooltipOpen"
+          (click)="$event.stopPropagation()">
+          <div class="tooltip-content">
+            {{ getTooltipText() }}
+          </div>
+          <div class="tooltip-arrow"></div>
+        </div>
+      </div>
       <span class="count">{{ selected.length || 0 }}/{{ flatOptions.length }}</span>
       <img src="assets/icons/caret-down-icon.svg" alt="Caret Down" class="caret-down-icon">
     </button>

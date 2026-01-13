@@ -28,6 +28,19 @@ export class FiltersBarComponent implements OnInit {
   @ViewChild('timeHorizonSliderContainer', { static: false }) timeHorizonSliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
+  @ViewChild('aiConfidenceInfoBtn', { static: false }) aiConfidenceInfoBtn!: ElementRef<HTMLButtonElement>;
+  @ViewChild('dataTypeInfoBtn', { static: false }) dataTypeInfoBtn!: ElementRef<HTMLButtonElement>;
+  @ViewChild('timeHorizonInfoBtn', { static: false }) timeHorizonInfoBtn!: ElementRef<HTMLButtonElement>;
+  @ViewChild('aiConfidenceTooltip', { static: false }) aiConfidenceTooltip!: ElementRef<HTMLDivElement>;
+  @ViewChild('dataTypeTooltip', { static: false }) dataTypeTooltip!: ElementRef<HTMLDivElement>;
+  @ViewChild('timeHorizonTooltip', { static: false }) timeHorizonTooltip!: ElementRef<HTMLDivElement>;
+  
+  // Track which filter dropdown has an open tooltip
+  openFilterDropdownTooltip: string | null = null;
+  
+  // Flag to force close all filter dropdown tooltips
+  closeAllFilterDropdownTooltips = false;
+  
   @Output() dataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
   @Output() timeHorizonChange = new EventEmitter<string>();
   @Output() timeHorizonRangeChange = new EventEmitter<{ start: string; end: string }>();
@@ -273,6 +286,9 @@ export class FiltersBarComponent implements OnInit {
   // Track if "Clear All Filters" was clicked to show "Select All Filters" button
   showSelectAll: boolean = false;
 
+  // Track which tooltip is open
+  openTooltip: 'aiConfidence' | 'dataType' | 'timeHorizon' | null = null;
+
   /**
    * @param {keyof typeof this.state} key - The state key to update
    * @param {string[]} values - The new values to set for the state key
@@ -515,6 +531,7 @@ export class FiltersBarComponent implements OnInit {
 
   /**
    * Handles clicks on the document to close any open dropdown when clicking outside the filters area.
+   * Also handles closing tooltips when clicking outside.
    * @param event - The click event
    * @returns {void}
    */
@@ -525,9 +542,10 @@ export class FiltersBarComponent implements OnInit {
       return;
     }
 
-    // Check if click is outside the filters root element
+    const target = event.target as HTMLElement;
+
+    // Handle dropdown closing
     if (this.filtersRoot && this.filtersRoot.nativeElement) {
-      const target = event.target as HTMLElement;
       const clickedInside = this.filtersRoot.nativeElement.contains(target);
       
       if (!clickedInside && this.openDropdown !== null) {
@@ -535,6 +553,29 @@ export class FiltersBarComponent implements OnInit {
         this.openDropdown = null;
       }
     }
+    
+    // Handle filters-bar tooltip closing
+    if (this.openTooltip) {
+      let clickedInside = false;
+
+      // Check if click was inside the relevant tooltip or button
+      if (this.openTooltip === 'aiConfidence') {
+        clickedInside = this.aiConfidenceTooltip?.nativeElement?.contains(target) ||
+                       this.aiConfidenceInfoBtn?.nativeElement?.contains(target);
+      } else if (this.openTooltip === 'dataType') {
+        clickedInside = this.dataTypeTooltip?.nativeElement?.contains(target) ||
+                       this.dataTypeInfoBtn?.nativeElement?.contains(target);
+      } else if (this.openTooltip === 'timeHorizon') {
+        clickedInside = this.timeHorizonTooltip?.nativeElement?.contains(target) ||
+                       this.timeHorizonInfoBtn?.nativeElement?.contains(target);
+      }
+
+      if (!clickedInside) {
+        this.openTooltip = null;
+      }
+    }
+    
+    // Close filter dropdown tooltips when clicking outside (handled by filter-dropdown component's own click handler)
   }
 
   /**
@@ -775,5 +816,87 @@ export class FiltersBarComponent implements OnInit {
     const numSteps = this.timeHorizons.length - 1;
     const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
     return (range / numSteps) * this.timeHorizonSliderTrackWidth;
+  }
+
+  /**
+   * Handles click on info buttons to toggle tooltips.
+   * @param tooltipType - The type of tooltip to toggle
+   * @param ev - The event object to stop propagation
+   * @returns {void}
+   */
+  onInfoClick(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon', ev: Event): void {
+    ev.stopPropagation();
+    if (this.openTooltip === tooltipType) {
+      this.openTooltip = null;
+    } else {
+      // Close filter dropdown tooltips when opening a filters-bar tooltip
+      if (this.openFilterDropdownTooltip !== null) {
+        this.closeAllFilterDropdownTooltips = true;
+        setTimeout(() => {
+          this.closeAllFilterDropdownTooltips = false;
+        }, 0);
+        this.openFilterDropdownTooltip = null;
+      }
+      this.openTooltip = tooltipType;
+    }
+  }
+
+  /**
+   * Handles tooltip open/close events from filter dropdown components.
+   * Closes other tooltips when one opens.
+   * @param dropdownTitle - The title of the dropdown that triggered the event
+   * @param isOpen - Whether the tooltip is open
+   * @returns {void}
+   */
+  onFilterDropdownTooltipChange(dropdownTitle: string, isOpen: boolean): void {
+    if (isOpen) {
+      // Close filters-bar tooltips when a filter dropdown tooltip opens
+      this.openTooltip = null;
+      // Track which dropdown has an open tooltip
+      this.openFilterDropdownTooltip = dropdownTitle;
+    } else {
+      // Clear tracking when tooltip closes
+      if (this.openFilterDropdownTooltip === dropdownTitle) {
+        this.openFilterDropdownTooltip = null;
+      }
+    }
+  }
+
+
+  /**
+   * Checks if a specific tooltip is open.
+   * @param tooltipType - The type of tooltip to check
+   * @returns {boolean} True if the tooltip is open
+   */
+  isTooltipOpen(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon'): boolean {
+    return this.openTooltip === tooltipType;
+  }
+
+  /**
+   * Gets the tooltip text for a specific tooltip type.
+   * @param tooltipType - The type of tooltip
+   * @returns {string} The tooltip text
+   */
+  getTooltipText(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon'): string {
+    // switch (tooltipType) {
+    //   case 'aiConfidence':
+    //     return 'AI Confidence indicates the reliability of the forecasted data. Higher values represent more confident predictions.';
+    //   case 'dataType':
+    //     return 'Choose between Historical data (past performance) or Forecasted data (predicted future trends).';
+    //   case 'timeHorizon':
+    //     return 'Select the time range for your analysis. Drag the handles to set a custom range.';
+    //   default:
+    //     return '';
+    // }
+    switch (tooltipType) {
+      case 'aiConfidence':
+        return 'Indicates the model’s confidence level based on data completeness, consistency, and signal strength.';
+      case 'dataType':
+        return 'Switch between observed market data and AI-driven forward-looking estimates.';
+      case 'timeHorizon':
+        return 'Adjust the time window to analyze short-term trends or long-term capital movements.';
+      default:
+        return '';
+    }
   }
 }

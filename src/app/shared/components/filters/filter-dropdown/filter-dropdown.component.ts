@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, EventEmitter, Input, Output  } from '@angular/core';
+import { Component, EventEmitter, Input, Output, HostListener, ViewChild, ElementRef  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -26,12 +26,19 @@ export default class FilterDropdownComponent {
   @Input() groupedOptions: GroupedFilterOption[] = []; // For categorized options
   @Input() selected: string[] = []; // parent's array reference
   @Input() isOpen = false; // Controlled by parent
+  @Input() infoTooltip?: string; // Optional tooltip text
+  @Input() isTooltipOpenExternal = false; // Controlled by parent to close tooltip
   @Output() selectedChange = new EventEmitter<string[]>();
   @Output() openChange = new EventEmitter<boolean>(); // Emit when open state should change
+  @Output() tooltipOpenChange = new EventEmitter<{ title: string; isOpen: boolean }>(); // Emit when tooltip opens/closes
+
+  @ViewChild('infoButton', { static: false }) infoButton!: ElementRef<HTMLButtonElement>;
+  @ViewChild('tooltip', { static: false }) tooltip!: ElementRef<HTMLDivElement>;
 
   map: Record<string, boolean> = {}; // Current confirmed selections
   pendingMap: Record<string, boolean> = {}; // Pending selections (not yet applied)
   private isApplyingChanges = false; // Flag to track if we're applying changes via Done button
+  isTooltipOpen = false; // Track tooltip visibility
   
   get open(): boolean {
     return this.isOpen;
@@ -89,6 +96,11 @@ export default class FilterDropdownComponent {
         // Dropdown was opened, initialize pending map
         this.initializePendingMap();
       }
+    }
+    
+    // Close tooltip if parent requests it (when isTooltipOpenExternal becomes true)
+    if (changes.isTooltipOpenExternal && changes.isTooltipOpenExternal.currentValue) {
+      this.isTooltipOpen = false;
     }
     
     this.rebuildMap(); 
@@ -276,6 +288,62 @@ export default class FilterDropdownComponent {
     event.stopPropagation();
     if (this.isOpen) {
       this.openChange.emit(false);
+    }
+  }
+
+  /**
+   * Handles click on the info button.
+   * @param ev The event object to stop propagation.
+   * @returns Nothing.
+   */
+  onInfoClick(ev: Event): void {
+    ev.stopPropagation();
+    const wasOpen = this.isTooltipOpen;
+    this.isTooltipOpen = !wasOpen;
+    // Emit to parent so it can close other tooltips
+    this.tooltipOpenChange.emit({ title: this.title, isOpen: this.isTooltipOpen });
+  }
+
+  /**
+   * Handles clicks outside the tooltip to close it.
+   * @param event The click event.
+   * @returns Nothing.
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.isTooltipOpen) {
+      const target = event.target as HTMLElement;
+      const clickedInsideTooltip = this.tooltip?.nativeElement?.contains(target);
+      const clickedOnInfoButton = this.infoButton?.nativeElement?.contains(target);
+      
+      if (!clickedInsideTooltip && !clickedOnInfoButton) {
+        this.isTooltipOpen = false;
+      }
+    }
+  }
+
+  /**
+   * Gets the default tooltip text based on the filter title.
+   * @returns The tooltip text.
+   */
+  getTooltipText(): string {
+    if (this.infoTooltip) {
+      return this.infoTooltip;
+    }
+    // Default tooltip text based on filter type
+    switch (this.title) {
+      case 'Investor Region':
+        return 'Select the geographic source of capital flows (e.g., U.S., Europe, Global) to understand where money is coming from.';
+      case 'Investor Type':
+        return 'Filter by investor category such as Pension Funds, Insurance, Asset Managers, or Sovereign Wealth Funds.';
+      case 'Product Region':
+        return 'View flows based on where investments are allocated geographically.';
+      case 'Product Type':
+        return 'Analyze flows by asset class such as Equity, Fixed Income, Private Markets, or Cash.';
+      case 'Product Sub-Type':
+        return 'Drill deeper into specific strategies or segments within an asset class.';
+      default:
+        return `Information about ${this.title}`;
     }
   }
 }

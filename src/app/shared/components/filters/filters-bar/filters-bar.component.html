@@ -10,8 +10,11 @@
           [options]="investorRegionOptions"
           [selected]="state.investorRegion"
           [isOpen]="isDropdownOpen('investorRegion')"
+          [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Region' && openFilterDropdownTooltip !== null)"
+          infoTooltip="Select the geographic source of capital flows (e.g., U.S., Europe, Global) to understand where money is coming from."
           (selectedChange)="onChange('investorRegion', $event)"
           (openChange)="onDropdownOpenChange('investorRegion', $event)"
+          (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
@@ -19,8 +22,11 @@
           [options]="investorTypeOptions"
           [selected]="state.investorType"
           [isOpen]="isDropdownOpen('investorType')"
+          [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Type' && openFilterDropdownTooltip !== null)"
+          infoTooltip="Filter by the type of investor (e.g., Institutional, Retail, Corporate) to analyze capital flows by investor category."
           (selectedChange)="onChange('investorType', $event)"
           (openChange)="onDropdownOpenChange('investorType', $event)"
+          (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
@@ -28,8 +34,11 @@
           [options]="productRegionOptions"
           [selected]="state.productRegion"
           [isOpen]="isDropdownOpen('productRegion')"
+          [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Region' && openFilterDropdownTooltip !== null)"
+          infoTooltip="Choose the geographic destination of capital flows to see where investments are being directed."
           (selectedChange)="onChange('productRegion', $event)"
           (openChange)="onDropdownOpenChange('productRegion', $event)"
+          (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
@@ -37,8 +46,11 @@
           [options]="productTypeOptions"
           [selected]="state.productType"
           [isOpen]="isDropdownOpen('productType')"
+          [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Type' && openFilterDropdownTooltip !== null)"
+          infoTooltip="Filter by asset class categories (e.g., Equity, Fixed Income, Alternatives) to analyze flows by investment type."
           (selectedChange)="onChange('productType', $event)"
           (openChange)="onDropdownOpenChange('productType', $event)"
+          (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
         ></app-filter-dropdown>
 
         <app-filter-dropdown
@@ -47,8 +59,11 @@
           [groupedOptions]="productSubTypeOptions"
           [selected]="state.productSubType"
           [isOpen]="isDropdownOpen('productSubType')"
+          [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Sub-Type' && openFilterDropdownTooltip !== null)"
+          infoTooltip="Select specific sub-categories within asset classes for detailed analysis of capital movements."
           (selectedChange)="onChange('productSubType', $event)"
           (openChange)="onDropdownOpenChange('productSubType', $event)"
+          (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
         ></app-filter-dropdown>
       </div>
       <div class="clear-all-container">
@@ -60,7 +75,25 @@
     <div class="toggles-container">
       <!-- AI Confidence Slider -->
       <div class="ai-confidence-container">
-        <p class="ai-confidence-label">AI Confidence</p>
+        <div class="label-with-info">
+          <p class="ai-confidence-label">AI Confidence</p>
+          <div class="info-btn-wrapper">
+            <button type="button" #aiConfidenceInfoBtn class="info-btn" (click)="onInfoClick('aiConfidence', $event)" aria-label="AI Confidence Info">
+              <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+            </button>
+            <!-- Info Tooltip -->
+            <div 
+              #aiConfidenceTooltip 
+              class="info-tooltip" 
+              *ngIf="isTooltipOpen('aiConfidence')"
+              (click)="$event.stopPropagation()">
+              <div class="tooltip-content">
+                {{ getTooltipText('aiConfidence') }}
+              </div>
+              <div class="tooltip-arrow"></div>
+            </div>
+          </div>
+        </div>
         <div class="slider-wrapper">
           <div class="slider-label">Low</div>
           <div class="slider-container" #sliderContainer
@@ -91,7 +124,25 @@
       </div>
       <!-- Data Type Toggle -->
       <div class="toggle-group">
-        <label class="toggle-label">Data Type:</label>
+        <div class="label-with-info">
+          <label class="toggle-label">Data Type:</label>
+          <div class="info-btn-wrapper">
+            <button type="button" #dataTypeInfoBtn class="info-btn" (click)="onInfoClick('dataType', $event)" aria-label="Data Type Info">
+              <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+            </button>
+            <!-- Info Tooltip -->
+            <div 
+              #dataTypeTooltip 
+              class="info-tooltip" 
+              *ngIf="isTooltipOpen('dataType')"
+              (click)="$event.stopPropagation()">
+              <div class="tooltip-content">
+                {{ getTooltipText('dataType') }}
+              </div>
+              <div class="tooltip-arrow"></div>
+            </div>
+          </div>
+        </div>
         <div class="toggle-buttons">
           <button 
             class="toggle-btn" 
@@ -110,7 +161,25 @@
 
       <!-- Time Horizon Range Slider -->
       <div class="time-horizon-container">
-        <label class="toggle-label">Time Horizon:</label>
+        <div class="label-with-info">
+          <label class="toggle-label">Time Horizon:</label>
+          <div class="info-btn-wrapper">
+            <button type="button" #timeHorizonInfoBtn class="info-btn" (click)="onInfoClick('timeHorizon', $event)" aria-label="Time Horizon Info">
+              <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+            </button>
+            <!-- Info Tooltip -->
+            <div 
+              #timeHorizonTooltip 
+              class="info-tooltip" 
+              *ngIf="isTooltipOpen('timeHorizon')"
+              (click)="$event.stopPropagation()">
+              <div class="tooltip-content">
+                {{ getTooltipText('timeHorizon') }}
+              </div>
+              <div class="tooltip-arrow"></div>
+            </div>
+          </div>
+        </div>
         <div class="time-horizon-slider-wrapper">
           <div class="time-horizon-slider-container" #timeHorizonSliderContainer
                (click)="onTimeHorizonTrackClick($event)"
