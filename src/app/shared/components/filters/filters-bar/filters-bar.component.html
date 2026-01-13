@@ -1,10 +1,12 @@
-<div class="filters-root" #filtersRoot>
-    <div class="filters-container">
+<div class="filters-root" #filtersRoot [class.condensed]="isScrolled">
+    <div class="filters-container" [class.condensed-layout]="isScrolled">
       <div class="filter-icon-container">
         <img src="assets/icons/filter-icon.svg" alt="Filter" class="filter-icon">
-        <span class="filters-label">Filters:</span>
+        <span class="filters-label" *ngIf="!isScrolled">Filters:</span>
       </div>
-      <div class="filters-list">
+      
+      <!-- Original Layout (when not scrolled) -->
+      <div class="filters-list" *ngIf="!isScrolled">
         <app-filter-dropdown
           title="Investor Region"
           [options]="investorRegionOptions"
@@ -66,13 +68,243 @@
           (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
         ></app-filter-dropdown>
       </div>
-      <div class="clear-all-container">
+
+      <!-- Condensed Layout (when scrolled) -->
+      <div class="filters-grouped" *ngIf="isScrolled">
+        <!-- Investor Filters Group -->
+        <div class="filter-group">
+          <label class="filter-group-label">Investor</label>
+          <div class="filter-group-dropdowns">
+            <app-filter-dropdown
+              title="Region"
+              [options]="investorRegionOptions"
+              [selected]="state.investorRegion"
+              [isOpen]="isDropdownOpen('investorRegion')"
+              [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Region' && openFilterDropdownTooltip !== null)"
+              infoTooltip="Select the geographic source of capital flows (e.g., U.S., Europe, Global) to understand where money is coming from."
+              (selectedChange)="onChange('investorRegion', $event)"
+              (openChange)="onDropdownOpenChange('investorRegion', $event)"
+              (tooltipOpenChange)="onFilterDropdownTooltipChange('Investor Region', $event.isOpen)"
+            ></app-filter-dropdown>
+
+            <app-filter-dropdown
+              title="Type"
+              [options]="investorTypeOptions"
+              [selected]="state.investorType"
+              [isOpen]="isDropdownOpen('investorType')"
+              [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Type' && openFilterDropdownTooltip !== null)"
+              infoTooltip="Filter by the type of investor (e.g., Institutional, Retail, Corporate) to analyze capital flows by investor category."
+              (selectedChange)="onChange('investorType', $event)"
+              (openChange)="onDropdownOpenChange('investorType', $event)"
+              (tooltipOpenChange)="onFilterDropdownTooltipChange('Investor Type', $event.isOpen)"
+            ></app-filter-dropdown>
+          </div>
+        </div>
+
+        <!-- Product Filters Group -->
+        <div class="filter-group">
+          <label class="filter-group-label">Product</label>
+          <div class="filter-group-dropdowns">
+            <app-filter-dropdown
+              title="Region"
+              [options]="productRegionOptions"
+              [selected]="state.productRegion"
+              [isOpen]="isDropdownOpen('productRegion')"
+              [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Region' && openFilterDropdownTooltip !== null)"
+              infoTooltip="Choose the geographic destination of capital flows to see where investments are being directed."
+              (selectedChange)="onChange('productRegion', $event)"
+              (openChange)="onDropdownOpenChange('productRegion', $event)"
+              (tooltipOpenChange)="onFilterDropdownTooltipChange('Product Region', $event.isOpen)"
+            ></app-filter-dropdown>
+
+            <app-filter-dropdown
+              title="Type"
+              [options]="productTypeOptions"
+              [selected]="state.productType"
+              [isOpen]="isDropdownOpen('productType')"
+              [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Type' && openFilterDropdownTooltip !== null)"
+              infoTooltip="Filter by asset class categories (e.g., Equity, Fixed Income, Alternatives) to analyze flows by investment type."
+              (selectedChange)="onChange('productType', $event)"
+              (openChange)="onDropdownOpenChange('productType', $event)"
+              (tooltipOpenChange)="onFilterDropdownTooltipChange('Product Type', $event.isOpen)"
+            ></app-filter-dropdown>
+
+            <app-filter-dropdown
+              #productSubTypeDropdown
+              title="Sub-Type"
+              [groupedOptions]="productSubTypeOptions"
+              [selected]="state.productSubType"
+              [isOpen]="isDropdownOpen('productSubType')"
+              [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Sub-Type' && openFilterDropdownTooltip !== null)"
+              infoTooltip="Select specific sub-categories within asset classes for detailed analysis of capital movements."
+              (selectedChange)="onChange('productSubType', $event)"
+              (openChange)="onDropdownOpenChange('productSubType', $event)"
+              (tooltipOpenChange)="onFilterDropdownTooltipChange('Product Sub-Type', $event.isOpen)"
+            ></app-filter-dropdown>
+          </div>
+        </div>
+      </div>
+
+      <div class="clear-all-container" *ngIf="!isScrolled">
         <button class="clear-all" *ngIf="!showSelectAll" (click)="clearAll()">Clear All Filters</button>
         <button class="select-all" *ngIf="showSelectAll" (click)="selectAll()">Select All Filters</button>
       </div>
+      
+      <!-- AI Confidence Slider (condensed) -->
+      <div class="ai-confidence-container-condensed" *ngIf="isScrolled">
+        <div class="label-with-info-condensed">
+          <p class="ai-confidence-label-condensed">AI Confidence</p>
+          <div class="info-btn-wrapper">
+            <button type="button" #aiConfidenceInfoBtn class="info-btn" (click)="onInfoClick('aiConfidence', $event)" aria-label="AI Confidence Info">
+              <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+            </button>
+            <!-- Info Tooltip -->
+            <div 
+              #aiConfidenceTooltip 
+              class="info-tooltip" 
+              *ngIf="isTooltipOpen('aiConfidence')"
+              (click)="$event.stopPropagation()">
+              <div class="tooltip-content">
+                {{ getTooltipText('aiConfidence') }}
+              </div>
+              <div class="tooltip-arrow"></div>
+            </div>
+          </div>
+        </div>
+        <div class="slider-wrapper-condensed">
+          <div class="slider-label-condensed">Low</div>
+          <div class="slider-container-condensed" #sliderContainer
+               (click)="onAIConfidenceTrackClick($event)"
+               (touchend)="onAIConfidenceTrackClick($event)">
+            <div class="slider-track-condensed">
+              <div class="slider-dots-condensed">
+                <div class="dot" *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]"></div>
+              </div>
+              <div class="slider-track-background-condensed"></div>
+              <div class="slider-track-active-condensed" 
+                   [style.left.px]="getActiveTrackLeft()" 
+                   [style.width.px]="getActiveTrackWidth()"></div>
+            </div>
+            <div class="slider-knob slider-knob-min" 
+                 [style.left.px]="getKnobPosition('min')"
+                 (mousedown)="startDrag($event, 'min')"
+                 (touchstart)="startDrag($event, 'min')"
+                 (click)="$event.stopPropagation()"></div>
+            <div class="slider-knob slider-knob-max" 
+                 [style.left.px]="getKnobPosition('max')"
+                 (mousedown)="startDrag($event, 'max')"
+                 (touchstart)="startDrag($event, 'max')"
+                 (click)="$event.stopPropagation()"></div>
+          </div>
+          <div class="slider-label-condensed">High</div>
+        </div>
+      </div>
+      
+      <!-- Data Type Toggle (condensed) -->
+      <div class="toggle-group-condensed" *ngIf="isScrolled">
+        <div class="label-with-info-condensed">
+          <label class="toggle-label-condensed">Data Type</label>
+          <div class="info-btn-wrapper">
+            <button type="button" #dataTypeInfoBtn class="info-btn" (click)="onInfoClick('dataType', $event)" aria-label="Data Type Info">
+              <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+            </button>
+            <!-- Info Tooltip -->
+            <div 
+              #dataTypeTooltip 
+              class="info-tooltip" 
+              *ngIf="isTooltipOpen('dataType')"
+              (click)="$event.stopPropagation()">
+              <div class="tooltip-content">
+                {{ getTooltipText('dataType') }}
+              </div>
+              <div class="tooltip-arrow"></div>
+            </div>
+          </div>
+        </div>
+        <div class="toggle-buttons-condensed">
+          <button 
+            class="toggle-btn-condensed" 
+            [class.active]="dataType === 'historical'"
+            (click)="setDataType('historical')">
+            Historical
+          </button>
+          <button 
+            class="toggle-btn-condensed" 
+            [class.active]="dataType === 'forecasted'"
+            (click)="setDataType('forecasted')">
+            Forecasted
+          </button>
+        </div>
+      </div>
+
+      <!-- Time Horizon Range Slider (condensed) -->
+      <div class="time-horizon-container-condensed" *ngIf="isScrolled">
+        <div class="label-with-info-condensed">
+          <label class="toggle-label-condensed">Time Horizon</label>
+          <div class="info-btn-wrapper">
+            <button type="button" #timeHorizonInfoBtn class="info-btn" (click)="onInfoClick('timeHorizon', $event)" aria-label="Time Horizon Info">
+              <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+            </button>
+            <!-- Info Tooltip -->
+            <div 
+              #timeHorizonTooltip 
+              class="info-tooltip" 
+              *ngIf="isTooltipOpen('timeHorizon')"
+              (click)="$event.stopPropagation()">
+              <div class="tooltip-content">
+                {{ getTooltipText('timeHorizon') }}
+              </div>
+              <div class="tooltip-arrow"></div>
+            </div>
+          </div>
+        </div>
+        <div class="time-horizon-slider-wrapper-condensed">
+          <div class="time-horizon-slider-container-condensed" #timeHorizonSliderContainer
+               (click)="onTimeHorizonTrackClick($event)"
+               (touchend)="onTimeHorizonTrackClick($event)">
+            <div class="time-horizon-slider-track-condensed">
+              <div class="time-horizon-dots-condensed">
+                <div class="time-horizon-dot-condensed" 
+                     *ngFor="let horizon of timeHorizons; let i = index"
+                     [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
+                     [class.active]="i >= timeHorizonRange.startIndex && i <= timeHorizonRange.endIndex"></div>
+              </div>
+              <div class="time-horizon-track-background-condensed"></div>
+              <div class="time-horizon-track-active-condensed" 
+                   [style.left.px]="getTimeHorizonActiveTrackLeft()" 
+                   [style.width.px]="getTimeHorizonActiveTrackWidth()"></div>
+            </div>
+            <div class="time-horizon-handle time-horizon-handle-start" 
+                 [style.left.px]="getTimeHorizonHandlePosition('start')"
+                 (mousedown)="startTimeHorizonDrag($event, 'start')"
+                 (touchstart)="startTimeHorizonDrag($event, 'start')"
+                 (click)="$event.stopPropagation()"></div>
+            <div class="time-horizon-handle time-horizon-handle-end" 
+                 [style.left.px]="getTimeHorizonHandlePosition('end')"
+                 (mousedown)="startTimeHorizonDrag($event, 'end')"
+                 (touchstart)="startTimeHorizonDrag($event, 'end')"
+                 (click)="$event.stopPropagation()"></div>
+          </div>
+          <div class="time-horizon-labels-condensed">
+            <span class="time-horizon-label-condensed" 
+                  *ngFor="let horizon of timeHorizons; let i = index"
+                  [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
+                  [style.transform]="'translateX(-50%)'"
+                  [class.active]="i >= timeHorizonRange.startIndex && i <= timeHorizonRange.endIndex">
+              {{ horizon }}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Clear All Filters (condensed) -->
+      <div class="clear-all-container-condensed" *ngIf="isScrolled">
+        <button class="clear-all-condensed" *ngIf="!showSelectAll" (click)="clearAll()">Clear All Filters</button>
+        <button class="select-all-condensed" *ngIf="showSelectAll" (click)="selectAll()">Select All Filters</button>
+      </div>
     </div>
-    <!-- Toggles Section -->
-    <div class="toggles-container">
+    <!-- Toggles Section (original when not scrolled) -->
+    <div class="toggles-container" *ngIf="!isScrolled">
       <!-- AI Confidence Slider -->
       <div class="ai-confidence-container">
         <div class="label-with-info">

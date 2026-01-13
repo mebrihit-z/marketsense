@@ -57,7 +57,8 @@ export class FiltersBarComponent implements OnInit {
   isDragging = false;
   dragType: 'min' | 'max' | null = null;
   hasDragged = false; // Track if user actually dragged vs just clicked
-  sliderTrackWidth = 142; // Width of the slider track in pixels
+  sliderTrackWidth = 142; // Width of the slider track in pixels (normal)
+  sliderTrackWidthCondensed = 56; // Width of the slider track in pixels (condensed)
   
   // Time Horizon range slider state
   timeHorizonRange = { startIndex: 0, endIndex: 1 }; // Default: Today to +3mo for forecasted
@@ -69,6 +70,10 @@ export class FiltersBarComponent implements OnInit {
   // Toggle state
   dataType: 'historical' | 'forecasted' = 'forecasted';
   selectedTimeHorizon: string = 'Today';
+  
+  // Scroll state for condensed layout
+  isScrolled = false;
+  scrollThreshold = 50; // Pixels to scroll before showing condensed layout
 
   /**
    * @returns {void} Initializes filter state and time horizon defaults.
@@ -88,6 +93,27 @@ export class FiltersBarComponent implements OnInit {
     
     // Initialize time horizon range based on selectedTimeHorizon
     this.initializeTimeHorizonRange();
+    
+    // Check initial scroll position
+    this.checkScrollPosition();
+  }
+  
+  /**
+   * Handles window scroll events to toggle condensed layout.
+   * @returns {void}
+   */
+  @HostListener('window:scroll', ['$event'])
+  onWindowScroll(): void {
+    this.checkScrollPosition();
+  }
+  
+  /**
+   * Checks the current scroll position and updates isScrolled state.
+   * @returns {void}
+   */
+  private checkScrollPosition(): void {
+    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+    this.isScrolled = scrollY > this.scrollThreshold;
   }
 
   /**
@@ -584,6 +610,11 @@ export class FiltersBarComponent implements OnInit {
    */
   getKnobPosition(type: 'min' | 'max'): number {
     const value = type === 'min' ? this.aiConfidenceRange.min : this.aiConfidenceRange.max;
+    if (this.isScrolled) {
+      // In condensed mode, track starts at 0.32px, so we need to add that offset
+      const trackWidth = this.sliderTrackWidthCondensed;
+      return 0.32 + (value / 100) * trackWidth;
+    }
     return (value / 100) * this.sliderTrackWidth;
   }
 
@@ -591,6 +622,11 @@ export class FiltersBarComponent implements OnInit {
    * @returns {number} The pixel offset for the left edge of the active AI confidence range.
    */
   getActiveTrackLeft(): number {
+    if (this.isScrolled) {
+      // In condensed mode, track starts at 0.32px
+      const trackWidth = this.sliderTrackWidthCondensed;
+      return 0.32 + (this.aiConfidenceRange.min / 100) * trackWidth;
+    }
     return (this.aiConfidenceRange.min / 100) * this.sliderTrackWidth;
   }
 
@@ -598,7 +634,8 @@ export class FiltersBarComponent implements OnInit {
    * @returns {number} The pixel width of the active AI confidence range.
    */
   getActiveTrackWidth(): number {
-    return ((this.aiConfidenceRange.max - this.aiConfidenceRange.min) / 100) * this.sliderTrackWidth;
+    const trackWidth = this.isScrolled ? this.sliderTrackWidthCondensed : this.sliderTrackWidth;
+    return ((this.aiConfidenceRange.max - this.aiConfidenceRange.min) / 100) * trackWidth;
   }
 
   /**
@@ -613,7 +650,16 @@ export class FiltersBarComponent implements OnInit {
     const x = clientX - rect.left;
     // Calculate percentage based on track width (142px)
     // Track starts at left: 0 within the container, so we use track width directly
-    const percentage = Math.max(0, Math.min(100, (x / this.sliderTrackWidth) * 100));
+    let percentage: number;
+    if (this.isScrolled) {
+      // In condensed mode, account for the 0.32px offset
+      const trackWidth = this.sliderTrackWidthCondensed;
+      const adjustedX = Math.max(0, x - 0.32);
+      percentage = Math.max(0, Math.min(100, (adjustedX / trackWidth) * 100));
+    } else {
+      const trackWidth = this.sliderTrackWidth;
+      percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
+    }
 
     if (this.dragType === 'min') {
       this.aiConfidenceRange.min = Math.min(percentage, this.aiConfidenceRange.max - 1);
@@ -646,7 +692,16 @@ export class FiltersBarComponent implements OnInit {
       clientX = (event as MouseEvent).clientX;
     }
     const x = clientX - rect.left;
-    const percentage = Math.max(0, Math.min(100, (x / this.sliderTrackWidth) * 100));
+    let percentage: number;
+    if (this.isScrolled) {
+      // In condensed mode, account for the 0.32px offset
+      const trackWidth = this.sliderTrackWidthCondensed;
+      const adjustedX = Math.max(0, x - 0.32);
+      percentage = Math.max(0, Math.min(100, (adjustedX / trackWidth) * 100));
+    } else {
+      const trackWidth = this.sliderTrackWidth;
+      percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
+    }
     
     // Determine which knob is closer to the click position
     const minDistance = Math.abs(percentage - this.aiConfidenceRange.min);
@@ -739,7 +794,8 @@ export class FiltersBarComponent implements OnInit {
       clientX = (event as MouseEvent).clientX;
     }
     const x = clientX - rect.left;
-    const percentage = Math.max(0, Math.min(100, (x / this.timeHorizonSliderTrackWidth) * 100));
+    const trackWidth = this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth;
+    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
     
     // Calculate which index this percentage corresponds to
     const numSteps = this.timeHorizons.length - 1;
@@ -772,7 +828,8 @@ export class FiltersBarComponent implements OnInit {
     const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
     const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
     const x = clientX - rect.left;
-    const percentage = Math.max(0, Math.min(100, (x / this.timeHorizonSliderTrackWidth) * 100));
+    const trackWidth = this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth;
+    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
     
     // Calculate which index this percentage corresponds to
     const numSteps = this.timeHorizons.length - 1;
@@ -798,6 +855,10 @@ export class FiltersBarComponent implements OnInit {
   getTimeHorizonHandlePosition(type: 'start' | 'end'): number {
     const index = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
     const numSteps = this.timeHorizons.length - 1;
+    if (this.isScrolled) {
+      const trackWidth = 252; // Condensed track width
+      return (index / numSteps) * trackWidth;
+    }
     return (index / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 
@@ -806,6 +867,10 @@ export class FiltersBarComponent implements OnInit {
    */
   getTimeHorizonActiveTrackLeft(): number {
     const numSteps = this.timeHorizons.length - 1;
+    if (this.isScrolled) {
+      const trackWidth = 252; // Condensed track width
+      return (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
+    }
     return (this.timeHorizonRange.startIndex / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 
@@ -815,6 +880,10 @@ export class FiltersBarComponent implements OnInit {
   getTimeHorizonActiveTrackWidth(): number {
     const numSteps = this.timeHorizons.length - 1;
     const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
+    if (this.isScrolled) {
+      const trackWidth = 252; // Condensed track width
+      return (range / numSteps) * trackWidth;
+    }
     return (range / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 

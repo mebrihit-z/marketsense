@@ -45,7 +45,7 @@
     width: 260px;
     background: $bg-white; border: 1px solid $bg-gray-medium;
     border-radius: 12px; padding: 12px; box-shadow: 0 6px 18px $overlay-shadow-medium;
-    z-index: 50;
+    z-index: 1000;
 }
 .panel-header { 
   display:flex; 
