@@ -1,15 +1,16 @@
 @use '../../../../_variables' as *;
 .header-container{
-    padding: 48px 32px 0px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: $bg-white;
-    box-shadow: 0 0 10px 0 $overlay-shadow-dark;
+    background-color: #0E2B73;
+    border-radius: 10px;
+    padding: 12px;
+
 }  
 // brand description
 .brand-description{
-    color: $text-secondary;
+    color: #fff;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
@@ -57,5 +58,6 @@
         font-weight: 400;
         line-height: 16px;
         margin-top: 2px;
+        color: #fff;
     }
 }

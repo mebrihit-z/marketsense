@@ -1,68 +1,69 @@
-<app-header></app-header>
-<div class="dashboard-container" 
-     [class.asset-allocation-pinned]="isAssetAllocationPinned"
-     [class.asset-flows-pinned]="isAssetFlowsPinned">
-  <!-- Filters Bar -->
-  <app-filters-bar
-    (dataTypeChange)="onDataTypeChange($event)"
-    (timeHorizonChange)="onTimeHorizonChange($event)"
-    (timeHorizonRangeChange)="onTimeHorizonRangeChange($event)"
-    (productSubTypeChange)="onProductSubTypeChange($event)"
-    (productTypeChange)="onProductTypeChange($event)"
-    (productRegionChange)="onProductRegionChange($event)"
-    (investorRegionChange)="onInvestorRegionChange($event)"
-    (investorTypeChange)="onInvestorTypeChange($event)"
-    (filterOptionTotalsChange)="onFilterOptionTotalsChange($event)">
-  </app-filters-bar>
+<div class="dashboard-page">
+  <app-header></app-header>
+  <div class="dashboard-container" 
+      [class.asset-allocation-pinned]="isAssetAllocationPinned"
+      [class.asset-flows-pinned]="isAssetFlowsPinned">
+    <!-- Filters Bar -->
+    <app-filters-bar
+      (dataTypeChange)="onDataTypeChange($event)"
+      (timeHorizonChange)="onTimeHorizonChange($event)"
+      (timeHorizonRangeChange)="onTimeHorizonRangeChange($event)"
+      (productSubTypeChange)="onProductSubTypeChange($event)"
+      (productTypeChange)="onProductTypeChange($event)"
+      (productRegionChange)="onProductRegionChange($event)"
+      (investorRegionChange)="onInvestorRegionChange($event)"
+      (investorTypeChange)="onInvestorTypeChange($event)"
+      (filterOptionTotalsChange)="onFilterOptionTotalsChange($event)">
+    </app-filters-bar>
 
-  <!-- Featured Market Flows Carousel -->
-  <div class="carousel-section">
-    <app-featured-market-flows-carousel 
-      [cards]="filteredMarketFlowCards"
-      [pinnedCardIds]="pinnedCardIds"
-      [dataType]="carouselDataType"
-      [selectedTimeHorizon]="carouselTimeHorizon"
-      (pinCard)="onPinCard($event)">
-    </app-featured-market-flows-carousel>
-  </div>
-   <!-- Asset Flows Section -->
-   <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">
-    <app-asset-flows 
-      [selectedProductTypes]="selectedProductTypes"
-      [selectedProductSubTypes]="selectedProductSubTypes"
-      [selectedInvestorRegions]="selectedInvestorRegions"
-      [selectedInvestorTypes]="selectedInvestorTypes"
-      [selectedProductRegions]="selectedProductRegions"
-      [totalProductTypes]="filterOptionTotals.productTypeTotal"
-      [totalProductSubTypes]="filterOptionTotals.productSubTypeTotal"
-      [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
-      [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
-      [totalProductRegions]="filterOptionTotals.productRegionTotal"
-      [dataType]="carouselDataType"
-      [timeHorizon]="carouselTimeHorizon"
-      [timeHorizonStart]="timeHorizonRange?.start"
-      [timeHorizonEnd]="timeHorizonRange?.end"
-      (pinToggle)="onAssetFlowsPinToggle()">
-    </app-asset-flows>
-  </div>
-  <!-- Asset Allocation Section -->
-  <div class="asset-allocation-section" [class.pinned]="isAssetAllocationPinned">
-    <app-asset-allocation 
-      [selectedProductTypes]="selectedProductTypes"
-      [selectedProductRegions]="selectedProductRegions"
-      [selectedProductSubTypes]="selectedProductSubTypes"
-      [selectedInvestorRegions]="selectedInvestorRegions"
-      [selectedInvestorTypes]="selectedInvestorTypes"
-      [totalProductTypes]="filterOptionTotals.productTypeTotal"
-      [totalProductSubTypes]="filterOptionTotals.productSubTypeTotal"
-      [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
-      [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
-      [totalProductRegions]="filterOptionTotals.productRegionTotal"
-      [timeHorizon]="carouselTimeHorizon"
-      [timeHorizonStart]="timeHorizonRange?.start"
-      [timeHorizonEnd]="timeHorizonRange?.end"
-      (pinToggle)="onAssetAllocationPinToggle()">
-    </app-asset-allocation>
+    <!-- Featured Market Flows Carousel -->
+    <div class="carousel-section">
+      <app-featured-market-flows-carousel 
+        [cards]="filteredMarketFlowCards"
+        [pinnedCardIds]="pinnedCardIds"
+        [dataType]="carouselDataType"
+        [selectedTimeHorizon]="carouselTimeHorizon"
+        (pinCard)="onPinCard($event)">
+      </app-featured-market-flows-carousel>
+    </div>
+    <!-- Asset Flows Section -->
+    <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">
+      <app-asset-flows 
+        [selectedProductTypes]="selectedProductTypes"
+        [selectedProductSubTypes]="selectedProductSubTypes"
+        [selectedInvestorRegions]="selectedInvestorRegions"
+        [selectedInvestorTypes]="selectedInvestorTypes"
+        [selectedProductRegions]="selectedProductRegions"
+        [totalProductTypes]="filterOptionTotals.productTypeTotal"
+        [totalProductSubTypes]="filterOptionTotals.productSubTypeTotal"
+        [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
+        [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
+        [totalProductRegions]="filterOptionTotals.productRegionTotal"
+        [dataType]="carouselDataType"
+        [timeHorizon]="carouselTimeHorizon"
+        [timeHorizonStart]="timeHorizonRange?.start"
+        [timeHorizonEnd]="timeHorizonRange?.end"
+        (pinToggle)="onAssetFlowsPinToggle()">
+      </app-asset-flows>
+    </div>
+    <!-- Asset Allocation Section -->
+    <div class="asset-allocation-section" [class.pinned]="isAssetAllocationPinned">
+      <app-asset-allocation 
+        [selectedProductTypes]="selectedProductTypes"
+        [selectedProductRegions]="selectedProductRegions"
+        [selectedProductSubTypes]="selectedProductSubTypes"
+        [selectedInvestorRegions]="selectedInvestorRegions"
+        [selectedInvestorTypes]="selectedInvestorTypes"
+        [totalProductTypes]="filterOptionTotals.productTypeTotal"
+        [totalProductSubTypes]="filterOptionTotals.productSubTypeTotal"
+        [totalInvestorRegions]="filterOptionTotals.investorRegionTotal"
+        [totalInvestorTypes]="filterOptionTotals.investorTypeTotal"
+        [totalProductRegions]="filterOptionTotals.productRegionTotal"
+        [timeHorizon]="carouselTimeHorizon"
+        [timeHorizonStart]="timeHorizonRange?.start"
+        [timeHorizonEnd]="timeHorizonRange?.end"
+        (pinToggle)="onAssetAllocationPinToggle()">
+      </app-asset-allocation>
+    </div>
   </div>
 </div>
-
