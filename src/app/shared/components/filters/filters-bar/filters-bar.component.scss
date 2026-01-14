@@ -903,7 +903,6 @@
     width: 259px;
     height: 51px;
     flex-shrink: 0;
-    margin-left: auto;
     position: relative;
     
     &::after {
@@ -932,6 +931,7 @@
     flex-direction: column;
     width: 252px;
     height: 24px;
+    margin-left: 16px
 }
 
 .time-horizon-slider-container-condensed {
