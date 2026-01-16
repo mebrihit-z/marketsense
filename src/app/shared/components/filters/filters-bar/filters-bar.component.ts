@@ -108,10 +108,24 @@ export class FiltersBarComponent implements OnInit {
   }
   
   /**
+   * Handles window resize events to update condensed layout state on mobile.
+   * @returns {void}
+   */
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(): void {
+    this.checkScrollPosition();
+  }
+  
+  /**
    * Checks the current scroll position and updates isScrolled state.
    * @returns {void}
    */
   private checkScrollPosition(): void {
+    // Don't enable condensed mode on mobile devices and iPad (screen width <= 1024px)
+    if (window.innerWidth <= 1024) {
+      this.isScrolled = false;
+      return;
+    }
     const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     this.isScrolled = scrollY > this.scrollThreshold;
   }
@@ -793,9 +807,28 @@ export class FiltersBarComponent implements OnInit {
     } else {
       clientX = (event as MouseEvent).clientX;
     }
+    
+    // Check if on mobile/tablet (screen width <= 1024px)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    
     const x = clientX - rect.left;
-    const trackWidth = this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth;
-    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
+    let trackWidth: number;
+    let xAdjusted = x;
+    
+    if (this.isScrolled) {
+      trackWidth = 252; // Condensed track width
+    } else if (isMobile) {
+      // On mobile, account for 6px padding on each side
+      const padding = 6;
+      xAdjusted = x - padding; // Subtract padding offset
+      trackWidth = rect.width - (padding * 2); // Track width is container minus padding
+      // Clamp to valid range
+      xAdjusted = Math.max(0, Math.min(xAdjusted, trackWidth));
+    } else {
+      trackWidth = this.timeHorizonSliderTrackWidth;
+    }
+    
+    const percentage = Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100));
     
     // Calculate which index this percentage corresponds to
     const numSteps = this.timeHorizons.length - 1;
@@ -803,6 +836,42 @@ export class FiltersBarComponent implements OnInit {
     const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
     
     // Determine which handle is closer to the click position
+    const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
+    const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
+    
+    // Move the closer handle, or start handle if equidistant
+    if (startDistance <= endDistance) {
+      // Move start handle, but ensure it doesn't go past end
+      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex);
+    } else {
+      // Move end handle, but ensure it doesn't go before start
+      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex);
+    }
+    
+    this.updateSelectedTimeHorizon();
+  }
+
+  /**
+   * Handles clicks on time horizon labels to directly set the range.
+   * @param index - The index of the clicked label
+   * @param event - The click event
+   * @returns {void}
+   */
+  onTimeHorizonLabelClick(index: number, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    
+    // Don't handle clicks if user was dragging
+    if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
+      return;
+    }
+    
+    const numSteps = this.timeHorizons.length - 1;
+    const clickedIndex = Math.max(0, Math.min(numSteps, index));
+    
+    // Determine which handle is closer to the clicked label
     const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
     const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
     
@@ -855,10 +924,35 @@ export class FiltersBarComponent implements OnInit {
   getTimeHorizonHandlePosition(type: 'start' | 'end'): number {
     const index = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
     const numSteps = this.timeHorizons.length - 1;
+    
+    // Check if on mobile/tablet (screen width <= 1024px)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    
     if (this.isScrolled) {
       const trackWidth = 252; // Condensed track width
       return (index / numSteps) * trackWidth;
     }
+    
+    // On mobile, use actual container width (track is now 100% width minus padding, no compression)
+    if (isMobile && !this.isScrolled) {
+      // Try to get actual container width from ViewChild if available
+      let containerWidth = 400; // Default fallback
+      if (this.timeHorizonSliderContainer?.nativeElement) {
+        const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+        containerWidth = rect.width || 400;
+      } else if (typeof window !== 'undefined') {
+        // Estimate: container is viewport width minus padding (typically 20px on each side on mobile)
+        containerWidth = window.innerWidth - 40;
+      }
+      
+      // Account for 6px padding on each side (12px total) for mobile
+      const trackWidth = containerWidth - 12;
+      const padding = 6;
+      
+      // Position within the track (between padding), then add padding offset
+      return padding + (index / numSteps) * trackWidth;
+    }
+    
     return (index / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 
@@ -867,10 +961,27 @@ export class FiltersBarComponent implements OnInit {
    */
   getTimeHorizonActiveTrackLeft(): number {
     const numSteps = this.timeHorizons.length - 1;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    
     if (this.isScrolled) {
       const trackWidth = 252; // Condensed track width
       return (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
     }
+    
+    // On mobile, use actual container width (track is now 100% width minus padding)
+    if (isMobile && !this.isScrolled) {
+      let containerWidth = 400;
+      if (this.timeHorizonSliderContainer?.nativeElement) {
+        const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+        containerWidth = rect.width || 400;
+      } else if (typeof window !== 'undefined') {
+        containerWidth = window.innerWidth - 40;
+      }
+      const trackWidth = containerWidth - 12;
+      const padding = 6;
+      return padding + (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
+    }
+    
     return (this.timeHorizonRange.startIndex / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 
@@ -880,10 +991,26 @@ export class FiltersBarComponent implements OnInit {
   getTimeHorizonActiveTrackWidth(): number {
     const numSteps = this.timeHorizons.length - 1;
     const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    
     if (this.isScrolled) {
       const trackWidth = 252; // Condensed track width
       return (range / numSteps) * trackWidth;
     }
+    
+    // On mobile, use actual container width (track is now 100% width minus padding)
+    if (isMobile && !this.isScrolled) {
+      let containerWidth = 400;
+      if (this.timeHorizonSliderContainer?.nativeElement) {
+        const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+        containerWidth = rect.width || 400;
+      } else if (typeof window !== 'undefined') {
+        containerWidth = window.innerWidth - 40;
+      }
+      const trackWidth = containerWidth - 12;
+      return (range / numSteps) * trackWidth;
+    }
+    
     return (range / numSteps) * this.timeHorizonSliderTrackWidth;
   }
 

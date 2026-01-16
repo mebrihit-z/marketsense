@@ -36,9 +36,9 @@
   }
   
   @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
 }
 
@@ -55,6 +55,12 @@
   letter-spacing: -0.76px;
   color: $text-primary;
   margin: 0;
+  
+  @media (max-width: 768px) {
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: -0.5px;
+  }
 }
 
 
@@ -221,15 +227,21 @@
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+  transition: transform 0.3s ease-in-out;
   
   @media (max-width: 1200px) {
     grid-template-columns: repeat(2, 1fr);
   }
   
+  @media (max-width: 1024px) and (min-width: 769px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    overflow: hidden;
   }
 }
 
@@ -237,15 +249,57 @@
 .navigation-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 36px;
+  justify-content: flex-end;
   width: 100%;
+  gap: 16px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  
+  @media (max-width: 768px) {
+    order: 3;
+    margin-right: 0;
+  }
+}
+
+.page-info-text {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-secondary;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: flex-end;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .pagination-dots {
   display: flex;
   gap: 6px;
   align-items: center;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
 }
 
 .dot {
@@ -267,20 +321,74 @@
   }
 }
 
-.nav-buttons {
+.pagination-numbers {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
 }
 
-.nav-btn {
-  width: 36px;
-  height: 36px;
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-number {
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  background-color: $bg-white;
+  border: 1px solid $border-gray-dark;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-primary;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+
+  &:hover:not(:disabled):not(.active) {
+    background-color: $bg-gray-light;
+    border-color: $border-gray;
+  }
+
+  &.active {
+    background-color: $primary-blue;
+    border-color: $primary-blue;
+    color: $bg-white;
+    font-weight: 500;
+  }
+
+  &.ellipsis {
+    border: none;
+    background: none;
+    cursor: default;
+    min-width: auto;
+    padding: 0 4px;
+    
+    &:hover {
+      background: none;
+    }
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: $bg-white;
   border: 1px solid $border-gray-dark;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
 
@@ -292,10 +400,6 @@
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-  }
-
-  &.prev:disabled {
-    background-color: $bg-gray-light;
   }
 
   svg {

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import  AskMarketsenseModalComponent  from './ask-marketsense-modal/ask-marketsense-modal.component';
@@ -14,7 +14,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
-export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
+export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   @Input() cards: MarketFlowCard[] = [];
   @Input() pinnedCardIds: string[] = [];
   @Input() showViewMoreCard: boolean = true;
@@ -24,7 +24,29 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
   
   currentSlideIndex: number = 0;
   
-  cardsPerSlide = 3;
+  cardsPerSlide = 4;
+  
+  ngOnInit(): void {
+    this.updateCardsPerSlide();
+  }
+  
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(): void {
+    this.updateCardsPerSlide();
+  }
+  
+  updateCardsPerSlide(): void {
+    const width = window.innerWidth;
+    if (width <= 768) {
+      this.cardsPerSlide = 1; // Mobile: 1 card
+    } else if (width <= 1024) {
+      this.cardsPerSlide = 2; // iPad: 2 cards
+    } else {
+      this.cardsPerSlide = 4; // Desktop: 4 cards
+    }
+    // Reset to first slide when cards per slide changes
+    this.currentSlideIndex = 0;
+  }
   
   // Modal state
   showModal: boolean = false;
@@ -92,6 +114,59 @@ export class FeaturedMarketFlowsCarouselComponent implements OnChanges {
     const totalCards = this.filteredCards.length;
     if (totalCards === 0) return 0;
     return Math.ceil(totalCards / this.cardsPerSlide);
+  }
+  
+  get currentPage(): number {
+    return this.currentSlideIndex + 1;
+  }
+  
+  get totalPages(): number {
+    return this.totalSlides;
+  }
+  
+  get totalCardsCount(): number {
+    return this.filteredCards.length;
+  }
+  
+  get visiblePageNumbers(): number[] {
+    const pages: number[] = [];
+    const total = this.totalPages;
+    const current = this.currentPage;
+    
+    if (total <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first page
+      pages.push(1);
+      
+      if (current <= 4) {
+        // Near the start: show 1, 2, 3, 4, 5, ..., last
+        for (let i = 2; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push(-1); // Ellipsis
+        pages.push(total);
+      } else if (current >= total - 3) {
+        // Near the end: show 1, ..., last-4, last-3, last-2, last-1, last
+        pages.push(-1); // Ellipsis
+        for (let i = total - 4; i <= total; i++) {
+          pages.push(i);
+        }
+      } else {
+        // In the middle: show 1, ..., current-1, current, current+1, ..., last
+        pages.push(-1); // Ellipsis
+        for (let i = current - 1; i <= current + 1; i++) {
+          pages.push(i);
+        }
+        pages.push(-1); // Ellipsis
+        pages.push(total);
+      }
+    }
+    
+    return pages;
   }
   
   get visibleCards(): MarketFlowCard[] {

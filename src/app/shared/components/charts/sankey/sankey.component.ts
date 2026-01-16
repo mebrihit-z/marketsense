@@ -909,9 +909,9 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .attr('x', d => {
         // Position labels based on node type
         if (d.name.includes('(Source)')) {
-          return d.x1! + 6;
+          return d.x1! + 12;
         } else if (d.name.includes('(Destination)')) {
-          return d.x0! - 6;
+          return d.x0! - 12;
         } else {
           return (d.x0! + d.x1!) / 2;
         }
@@ -923,9 +923,11 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         return 'middle';
       })
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '10px')
-      .style('fill', this.getCssVariable('--text-primary') || '#333')
-      .style('pointer-events', 'none');
+      .style('font-size', '12px')
+      .style('font-weight', '500')
+      .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
+      .style('pointer-events', 'none')
+      .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)');
     
     // Add label text
     nodeLabels.append('tspan')
@@ -933,7 +935,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         // Format the name (replace United States with U.S and United Kingdom with U.K)
         const formattedName = this.formatNodeName(d.name);
         // Truncate long labels
-        const maxLength = 20;
+        const maxLength = 25;
         const label = formattedName.length > maxLength ? formattedName.substring(0, maxLength) + '...' : formattedName;
         return label + ':';
       });
@@ -1049,11 +1051,11 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       })
       .attr('text-anchor', 'middle')
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '10px')
-      .style('fill', this.getCssVariable('--text-primary') || '#333')
+      .style('font-size', '11px')
+      .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
       .style('font-weight', '600')
       .style('pointer-events', 'none')
-      .style('text-shadow', '0 0 3px rgba(255,255,255,0.8), 0 0 3px rgba(255,255,255,0.8)') // White shadow for better visibility on colored links
+      .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)')
       .text(d => {
         const value = (d as SankeyLinkExtra).value;
         return value >= 0.1 ? value.toFixed(1) + 'B' : value.toFixed(2) + 'B';
@@ -1201,9 +1203,11 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
       .attr('x', 16)
       .attr('y', 9)
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '10px')
-      .style('fill', this.getCssVariable('--text-primary') || '#333')
+      .style('font-size', '11px')
+      .style('font-weight', '500')
+      .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
       .style('white-space', 'nowrap')
+      .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)')
       .text(d => {
         // Truncate long labels if needed
         const maxLength = 15;

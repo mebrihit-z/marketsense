@@ -1,0 +1,77 @@
+.card {
+    width: 280px;
+    height: 160px;
+    padding: 16px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    
+    @media (max-width: 768px) {
+      width: 100%;
+      max-width: 100%;
+      min-height: 160px;
+      height: auto;
+      padding: 14px;
+      border-radius: 12px;
+    }
+  }
+  
+  .header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-end;
+    margin-top: auto;
+  }
+  
+  .badge-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  
+  .badge {
+    background-color: #16a34a;
+    color: #fff;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  
+  .value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #009966;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -0.31px;
+    margin-top: -25px;
+    align-self: center;
+  }
+  
+  .trend-icon {
+    margin-top: 2px;
+  }
+  
+  .label {
+    font-size: 13px;
+    color: #047857;
+    font-weight: 500;
+  }
+  
+  .chart {
+    width: 100%;
+    height: 90px;
+    margin-top: -10px;
+  }
+  .arrow-icon {
+    width: 24px;
+    height: 24px;
+  }

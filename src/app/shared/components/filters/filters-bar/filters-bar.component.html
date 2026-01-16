@@ -441,7 +441,9 @@
             <span class="time-horizon-label" 
                   *ngFor="let horizon of timeHorizons; let i = index"
                   [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
-                  [style.transform]="'translateX(-50%)'">
+                  [style.transform]="'translateX(-50%)'"
+                  (click)="onTimeHorizonLabelClick(i, $event)"
+                  (touchend)="onTimeHorizonLabelClick(i, $event)">
               {{ horizon }}
             </span>
           </div>

@@ -12,6 +12,13 @@
   overflow-x: hidden;
   overflow-y: hidden;
   padding-bottom: 80px;
+  
+  @media (max-width: 768px) {
+    padding: 16px;
+    border-radius: 12px;
+    gap: 12px;
+    padding-bottom: 60px;
+  }
 }
 
 .visualization-container {
@@ -222,6 +229,11 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
   background: linear-gradient(0deg, rgba(236, 236, 240, 0.3) 0%, rgba(236, 236, 240, 0.3) 100%), #ffffff;
   margin-bottom: 36px;
+  
+  @media (max-width: 768px) {
+    padding: 16px;
+    gap: 16px;
+  }
 }
 
 .flow-dimensions-title {
@@ -230,6 +242,11 @@
   line-height: 24px;
   color: $text-primary;
   margin: 0;
+  
+  @media (max-width: 768px) {
+    font-size: 15px;
+    line-height: 22px;
+  }
 }
 
 .flow-dimensions-instruction {
@@ -239,6 +256,12 @@
   color: $text-secondary;
   margin: 0;
   margin-top: -4px;
+  
+  @media (max-width: 768px) {
+    font-size: 13px;
+    line-height: 18px;
+    margin-top: -2px;
+  }
 }
 
 // Available Dimensions
@@ -247,6 +270,13 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
 }
 
 .available-dimensions-label {
@@ -255,12 +285,22 @@
   line-height: 20px;
   color: $text-primary;
   white-space: nowrap;
+  
+  @media (max-width: 768px) {
+    font-size: 13px;
+    line-height: 18px;
+  }
 }
 
 .available-dimensions-list {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    gap: 6px;
+  }
 }
 
 .available-dimension-chip {
@@ -274,6 +314,13 @@
   transition: opacity 0.2s, transform 0.2s;
   user-select: none;
 
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+    gap: 6px;
+    touch-action: manipulation;
+    width: 100%;
+  }
+
   &:hover {
     opacity: 0.9;
     transform: scale(1.02);
@@ -283,6 +330,11 @@
     width: 16px;
     height: 16px;
     flex-shrink: 0;
+    
+    @media (max-width: 768px) {
+      width: 14px;
+      height: 14px;
+    }
   }
 
   .dimension-chip-text {
@@ -291,6 +343,11 @@
     line-height: 16px;
     letter-spacing: 0.0325px;
     color: $bg-white;
+    
+    @media (max-width: 768px) {
+      font-size: 12px;
+      line-height: 16px;
+    }
   }
 }
 
@@ -299,6 +356,12 @@
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
 }
 
 .drop-zone-container {
@@ -306,6 +369,11 @@
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    flex: none;
+  }
 }
 
 .drop-zone-label {
@@ -313,6 +381,11 @@
   font-size: 14px;
   line-height: 20px;
   color: $text-primary;
+  
+  @media (max-width: 768px) {
+    font-size: 13px;
+    line-height: 18px;
+  }
 }
 
 .drop-zone {
@@ -325,6 +398,13 @@
   justify-content: center;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
+  min-height: 44px;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
 
   &.drag-over {
     border-color: $primary-blue;
@@ -342,6 +422,11 @@
     line-height: 20px;
     color: $text-secondary;
     text-align: center;
+    
+    @media (max-width: 768px) {
+      font-size: 13px;
+      line-height: 18px;
+    }
   }
 
   .selected-dimension {
@@ -352,10 +437,22 @@
     background-color: $primary-blue;
     border-radius: 120px;
 
+    @media (max-width: 768px) {
+      padding: 8px 12px;
+      gap: 6px;
+      width: 100%;
+      justify-content: space-between;
+    }
+
     .grid-icon {
       width: 16px;
       height: 16px;
       flex-shrink: 0;
+      
+      @media (max-width: 768px) {
+        width: 14px;
+        height: 14px;
+      }
     }
 
     .dimension-chip-text {
@@ -364,6 +461,12 @@
       line-height: 16px;
       letter-spacing: 0.0325px;
       color: $bg-white;
+      flex: 1;
+      
+      @media (max-width: 768px) {
+        font-size: 12px;
+        line-height: 16px;
+      }
     }
 
     .remove-icon {
@@ -371,11 +474,23 @@
       height: 16px;
       flex-shrink: 0;
       cursor: pointer;
-      opacity: 0.8;
       transition: opacity 0.2s;
+      margin-left: 4px;
+      touch-action: manipulation;
+      
+      @media (max-width: 768px) {
+        width: 18px;
+        height: 18px;
+        padding: 4px;
+        min-width: 18px;
+      }
 
       &:hover {
-        opacity: 1;
+        opacity: 0.8;
+      }
+
+      &:active {
+        opacity: 0.6;
       }
     }
   }
@@ -704,14 +819,6 @@
 @media (max-width: 768px) {
   .asset-flows-container {
     padding: 16px;
-  }
-
-  .flow-dimensions-section {
-    padding: 16px;
-  }
-
-  .dimension-drop-zones {
-    flex-direction: column;
   }
 
   .sankey-diagram {
