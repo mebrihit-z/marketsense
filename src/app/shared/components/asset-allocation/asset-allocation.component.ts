@@ -1,8 +1,14 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
+import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
+import { 
+  aggregateSankeyDataByGlobal, 
+  filterSankeyData 
+} from '../../utils/sankey-data.utils';
 
 export interface TreemapNode {
   id: string;
@@ -83,6 +89,22 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   showCellModal: boolean = false;
   selectedCellData: TreemapCellData | null = null;
   
+  // Treemap data map (similar to asset-flows)
+  private treemapDataMap = new Map<string, SankeyData>();
+  regionDataArray: Array<{
+    key: string;
+    data: SankeyData;
+    investorRegions: string[];
+  }> = [];
+  
+  // Cached arrays to avoid creating new arrays in template
+  cachedSelectedProductTypes: string[] = [];
+  cachedSelectedProductSubTypes: string[] = [];
+  
+  // Data loading
+  private rawAssetFlowsData?: AssetFlowRecord[];
+  private dataUrl: string = 'assets/data/asset-flows-data.json';
+  
   // Treemap regions data
   treemapRegions: TreemapRegion[] = [
     {
@@ -131,6 +153,10 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     }
   ];
 
+  constructor(
+    private http: HttpClient
+  ) {}
+
   ngOnInit(): void {
     console.log('Asset Allocation component initialized');
     this.updateDimensions();
@@ -138,6 +164,9 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
     this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
     this.selectedDimension3 = this.availableDimensions.find(d => d.id === 'product-sub-types') || null;
+    
+    // Load data
+    this.loadData();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -149,8 +178,22 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       this.updateDimensions();
     }
     
+    // Handle data updates when filters or time horizon change
+    const filterChanged = changes['selectedInvestorRegions'] || 
+                          changes['selectedProductTypes'] || 
+                          changes['selectedProductSubTypes'];
+    const timeHorizonChanged = changes['timeHorizon'] || 
+                               changes['timeHorizonStart'] || 
+                               changes['timeHorizonEnd'];
+    
+    if (filterChanged || timeHorizonChanged) {
+      if (this.rawAssetFlowsData) {
+        this.updateTreemapData();
+      }
+    }
+    
     // Log time horizon changes for debugging
-    if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd']) {
+    if (timeHorizonChanged) {
       console.log('AssetAllocation: Time horizon changed', {
         timeHorizon: this.timeHorizon,
         timeHorizonStart: this.timeHorizonStart,
@@ -363,6 +406,225 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     // TODO: Implement AI chat functionality
     console.log('Ask AI clicked for cell:', this.selectedCellData);
     // You can emit an event or navigate to AI chat here
+  }
+
+  /**
+   * Loads asset flows data from JSON file
+   */
+  private loadData(): void {
+    this.http.get<AssetFlowRecord[]>(this.dataUrl).subscribe({
+      next: (assetFlows: AssetFlowRecord[]) => {
+        try {
+          // Store raw data for time horizon filtering
+          this.rawAssetFlowsData = assetFlows;
+          this.updateTreemapData();
+        } catch (error: unknown) {
+          console.error('Error loading asset-flows-data.json:', error);
+        }
+      },
+      error: (error: unknown) => {
+        console.error('Error loading asset-flows-data.json:', error);
+        console.error('Failed to load from:', this.dataUrl);
+      }
+    });
+  }
+
+  /**
+   * Updates treemap data based on current filters and time horizon
+   */
+  private updateTreemapData(): void {
+    if (!this.rawAssetFlowsData) {
+      console.warn('AssetAllocation: No raw asset flows data available');
+      return;
+    }
+
+    // Filter data based on time horizon
+    const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    
+    // Convert filtered data to Sankey format (contains all regions)
+    const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData);
+    
+    // Clear existing treemap data map
+    this.treemapDataMap.clear();
+    
+    // Separate Global from individual regions
+    const hasGlobal = this.selectedInvestorRegions.includes('Global');
+    const individualRegions = this.selectedInvestorRegions.filter(region => region !== 'Global');
+    
+    // Create Global treemap if Global is selected
+    if (hasGlobal) {
+      const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
+      this.treemapDataMap.set('Global', globalSankeyData);
+      console.log('Global Treemap created:', {
+        nodes: globalSankeyData.nodes?.length || 0,
+        links: globalSankeyData.links?.length || 0
+      });
+    }
+    
+    // Create one combined treemap for all selected non-Global regions
+    if (individualRegions.length > 0) {
+      const combinedSankeyData: SankeyData = filterSankeyData(
+        allRegionsSankeyData,
+        individualRegions, // All selected regions combined
+        this.selectedProductTypes || [],
+        this.selectedProductSubTypes || []
+      );
+      // Use a descriptive key that shows all selected regions
+      const regionsKey = individualRegions.join(', ');
+      this.treemapDataMap.set(regionsKey, combinedSankeyData);
+      console.log('Combined Treemap created for selected regions:', {
+        regions: individualRegions,
+        nodes: combinedSankeyData.nodes?.length || 0,
+        links: combinedSankeyData.links?.length || 0
+      });
+    }
+    
+    console.log('Treemap data updated for regions:', Array.from(this.treemapDataMap.keys()));
+    
+    // Update cached array for template
+    this.updateRegionDataArray();
+  }
+
+  /**
+   * Update the cached region data array (called only when treemapDataMap changes)
+   */
+  private updateRegionDataArray(): void {
+    const keys: string[] = [];
+    if (this.treemapDataMap.has('Global')) {
+      keys.push('Global');
+    }
+    // Get all keys that are not 'Global' - these are the combined region names
+    const nonGlobalKeys = Array.from(this.treemapDataMap.keys()).filter(key => key !== 'Global');
+    keys.push(...nonGlobalKeys);
+    
+    // Build cached region data array to avoid method calls in template
+    this.regionDataArray = keys.map(key => {
+      const data = this.treemapDataMap.get(key);
+      if (!data) {
+        return null;
+      }
+      return {
+        key,
+        data,
+        investorRegions: key === 'Global' 
+          ? ['Global']
+          : (this.selectedInvestorRegions || []).filter(r => r !== 'Global')
+      };
+    }).filter(item => item !== null) as Array<{
+      key: string;
+      data: SankeyData;
+      investorRegions: string[];
+    }>;
+    
+    // Cache product type arrays to avoid creating new arrays in template
+    this.cachedSelectedProductTypes = this.selectedProductTypes || [];
+    this.cachedSelectedProductSubTypes = this.selectedProductSubTypes || [];
+  }
+
+  /**
+   * TrackBy function for *ngFor to prevent unnecessary re-renders
+   */
+  trackByRegionKey(index: number, item: { key: string; data: SankeyData; investorRegions: string[] }): string {
+    return item.key;
+  }
+
+  /**
+   * Filters asset flows data based on the selected time horizon range
+   * If start and end are provided, filters data between those dates (inclusive)
+   * Otherwise, uses the single timeHorizon for backward compatibility
+   */
+  private filterDataByTimeHorizon(data: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!data || data.length === 0) {
+      return data;
+    }
+    
+    let startDate: string | null = null;
+    let endDate: string | null = null;
+    
+    // If range is provided, use both start and end
+    if (this.timeHorizonStart && this.timeHorizonEnd) {
+      startDate = this.getTargetDateFromTimeHorizon(this.timeHorizonStart);
+      endDate = this.getTargetDateFromTimeHorizon(this.timeHorizonEnd);
+    } else {
+      // Fallback to single time horizon for backward compatibility
+      endDate = this.getTargetDateFromTimeHorizon(this.timeHorizon);
+    }
+    
+    if (!endDate) {
+      // If time horizon is invalid, return all data
+      return data;
+    }
+    
+    // Filter data based on date range
+    const filtered = data.filter(record => {
+      const flowDate = record.Asset_Flow_Date;
+      if (!flowDate) {
+        return false;
+      }
+      
+      // If we have a range, check if date is between start and end (inclusive)
+      if (startDate && endDate) {
+        return flowDate >= startDate && flowDate <= endDate;
+      }
+      // Otherwise, filter data where Asset_Flow_Date is <= endDate (cumulative)
+      return flowDate <= endDate;
+    });
+    
+    return filtered;
+  }
+
+  /**
+   * Converts time horizon string to target date in YYYY-MM format
+   * Returns null if time horizon is invalid
+   * Uses today's date as the base for calculations
+   */
+  private getTargetDateFromTimeHorizon(horizon?: string): string | null {
+    const timeHorizonToUse = horizon || this.timeHorizon;
+    // Use today's date as the base
+    const today = new Date();
+    const baseYear = today.getFullYear();
+    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    
+    if (timeHorizonToUse === 'Today') {
+      // For "Today", return the current month
+      const monthStr = String(baseMonth).padStart(2, '0');
+      return `${baseYear}-${monthStr}`;
+    }
+    
+    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
+    // Support both formats: with/without space and with/without + prefix
+    const normalized = timeHorizonToUse.trim().toLowerCase();
+    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
+    
+    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
+    if (!match) {
+      match = normalized.match(/^([+-]?)(\d+)$/);
+    }
+    
+    if (!match) {
+      console.warn('AssetAllocation: Could not parse time horizon:', timeHorizonToUse);
+      return null;
+    }
+    
+    const isNegative = match[1] === '-';
+    const months = parseInt(match[2], 10);
+    
+    // Calculate target date by adding/subtracting months from today
+    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
+    
+    if (isNegative) {
+      // Historical: subtract months
+      targetDate.setMonth(targetDate.getMonth() - months);
+    } else {
+      // Forecasted: add months (default for positive or no sign)
+      targetDate.setMonth(targetDate.getMonth() + months);
+    }
+    
+    // Format as YYYY-MM
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    const monthStr = String(targetMonth).padStart(2, '0');
+    return `${targetYear}-${monthStr}`;
   }
 }
 

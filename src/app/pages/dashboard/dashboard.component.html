@@ -1,8 +1,11 @@
-<div class="dashboard-page">
+<div >
   <app-header></app-header>
   <div class="dashboard-container" 
       [class.asset-allocation-pinned]="isAssetAllocationPinned"
       [class.asset-flows-pinned]="isAssetFlowsPinned">
+    <!-- Welcome Section -->
+    <app-welcome-section></app-welcome-section>
+    
     <!-- Filters Bar -->
     <app-filters-bar
       (dataTypeChange)="onDataTypeChange($event)"
@@ -23,14 +26,18 @@
         [pinnedCardIds]="pinnedCardIds"
         [dataType]="carouselDataType"
         [selectedTimeHorizon]="carouselTimeHorizon"
+        [rawAssetFlowsData]="rawAssetFlowsData"
+        [timeHorizonRange]="timeHorizonRange"
+        [selectedInvestorRegions]="selectedInvestorRegions"
+        [selectedProductTypes]="selectedProductTypes"
         (pinCard)="onPinCard($event)">
       </app-featured-market-flows-carousel>
     </div>
     
     <!-- Line Chart Card -->
-    <div class="line-chart-section">
+    <!-- <div class="line-chart-section">
       <app-line-chart-card></app-line-chart-card>
-    </div>
+    </div> -->
     
     <!-- Asset Flows Section -->
     <div class="asset-flows-section" [class.pinned]="isAssetFlowsPinned">

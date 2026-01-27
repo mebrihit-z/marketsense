@@ -5,6 +5,10 @@ import { HttpClient } from '@angular/common/http';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
+import { 
+  aggregateSankeyDataByGlobal, 
+  filterSankeyData 
+} from '../../utils/sankey-data.utils';
 
 export interface FlowDimension {
   id: string;
@@ -71,8 +75,22 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   isPinned: boolean = false;
   showRegionalSankey: boolean = false;
   
-  // Sankey data
-  sankeyData: SankeyData | undefined;
+  // Sankey data - map of region name to Sankey data
+  sankeyDataMap: Map<string, SankeyData> = new Map();
+  
+  // Cached array of selected regions for template (prevents change detection loops)
+  selectedRegionsArray: string[] = [];
+  
+  // Cached region data objects for template (prevents method calls in template)
+  regionDataArray: Array<{
+    key: string;
+    data: SankeyData;
+    investorRegions: string[];
+  }> = [];
+  
+  // Cached arrays for Sankey inputs (prevents creating new arrays on every change detection)
+  cachedSelectedProductTypes: string[] = [];
+  cachedSelectedProductSubTypes: string[] = [];
   
   // Raw asset flows data (before filtering)
   private rawAssetFlowsData: AssetFlowRecord[] | undefined;
@@ -182,10 +200,20 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   
   /**
    * Filters asset flows data based on time horizon and converts to Sankey format
+   * Creates one Global Sankey if Global is selected
+   * Creates one combined Sankey for all other selected regions
    */
   private updateSankeyData(): void {
     if (!this.rawAssetFlowsData) {
       console.warn('No raw asset flows data available');
+      return;
+    }
+    
+    if (!this.selectedInvestorRegions || this.selectedInvestorRegions.length === 0) {
+      console.warn('No investor regions selected');
+      this.sankeyDataMap.clear();
+      this.selectedRegionsArray = [];
+      this.regionDataArray = [];
       return;
     }
     
@@ -194,17 +222,101 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     // Filter data based on time horizon
     const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
     
-    // Convert filtered data to Sankey format
-    const newSankeyData = convertAssetFlowsToSankey(filteredData);
+    if (!filteredData || filteredData.length === 0) {
+      console.warn('No data after time horizon filtering');
+      this.sankeyDataMap.clear();
+      this.selectedRegionsArray = [];
+      this.regionDataArray = [];
+      return;
+    }
     
-    // Always assign a new object reference to ensure change detection
-    this.sankeyData = { ...newSankeyData };
+    // Convert filtered data to Sankey format (contains all regions)
+    const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData);
     
-    console.log('Sankey data updated:', {
-      nodes: this.sankeyData.nodes?.length || 0,
-      links: this.sankeyData.links?.length || 0,
-      summary: this.sankeyData.summary
-    });
+    // Clear existing Sankey data map
+    this.sankeyDataMap.clear();
+    
+    // Separate Global from individual regions
+    const hasGlobal = this.selectedInvestorRegions.includes('Global');
+    const individualRegions = this.selectedInvestorRegions.filter(region => region !== 'Global');
+    
+    // Create Global Sankey if Global is selected
+    if (hasGlobal) {
+      const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
+      this.sankeyDataMap.set('Global', globalSankeyData);
+      console.log('Global Sankey created:', {
+        nodes: globalSankeyData.nodes?.length || 0,
+        links: globalSankeyData.links?.length || 0
+      });
+    }
+    
+    // Create one combined Sankey for all selected non-Global regions
+    if (individualRegions.length > 0) {
+      const combinedSankeyData: SankeyData = filterSankeyData(
+        allRegionsSankeyData,
+        individualRegions, // All selected regions combined
+        [], // No product type filter
+        []  // No product sub-type filter
+      );
+      // Use a descriptive key that shows all selected regions
+      const regionsKey = individualRegions.join(', ');
+      this.sankeyDataMap.set(regionsKey, combinedSankeyData);
+      console.log('Combined Sankey created for selected regions:', {
+        regions: individualRegions,
+        nodes: combinedSankeyData.nodes?.length || 0,
+        links: combinedSankeyData.links?.length || 0
+      });
+    }
+    
+    console.log('Sankey data updated for regions:', Array.from(this.sankeyDataMap.keys()));
+    
+    // Update cached array for template (only when map actually changes)
+    this.updateSelectedRegionsArray();
+  }
+  
+  /**
+   * Update the cached selected regions array and region data array (called only when sankeyDataMap changes)
+   * This prevents change detection loops from calling methods in template
+   */
+  private updateSelectedRegionsArray(): void {
+    const keys: string[] = [];
+    if (this.sankeyDataMap.has('Global')) {
+      keys.push('Global');
+    }
+    // Get all keys that are not 'Global' - these are the combined region names
+    const nonGlobalKeys = Array.from(this.sankeyDataMap.keys()).filter(key => key !== 'Global');
+    keys.push(...nonGlobalKeys);
+    this.selectedRegionsArray = keys;
+    
+    // Build cached region data array to avoid method calls in template
+    this.regionDataArray = keys.map(key => {
+      const data = this.sankeyDataMap.get(key);
+      if (!data) {
+        return null;
+      }
+      return {
+        key,
+        data,
+        investorRegions: key === 'Global' 
+          ? ['Global']
+          : (this.selectedInvestorRegions || []).filter(r => r !== 'Global')
+      };
+    }).filter(item => item !== null) as Array<{
+      key: string;
+      data: SankeyData;
+      investorRegions: string[];
+    }>;
+    
+    // Cache product type arrays to avoid creating new arrays in template
+    this.cachedSelectedProductTypes = this.selectedProductTypes || [];
+    this.cachedSelectedProductSubTypes = this.selectedProductSubTypes || [];
+  }
+  
+  /**
+   * TrackBy function for *ngFor to prevent unnecessary re-renders
+   */
+  trackByRegionKey(index: number, item: { key: string; data: SankeyData; investorRegions: string[] }): string {
+    return item.key;
   }
   
   /**
@@ -331,9 +443,26 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       this.updateDimensions();
     }
     
-    // Update Sankey data when time horizon, time horizon range, or data type changes
-    if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd'] || changes['dataType']) {
+    // Update cached arrays when product types/subtypes change
+    if (changes['selectedProductTypes'] || changes['selectedProductSubTypes']) {
+      this.cachedSelectedProductTypes = this.selectedProductTypes || [];
+      this.cachedSelectedProductSubTypes = this.selectedProductSubTypes || [];
+      // Update regionDataArray to reflect new cached arrays
+      this.regionDataArray = this.regionDataArray.map(item => ({ ...item }));
+    }
+    
+    // Update Sankey data when time horizon, time horizon range, data type, or investor regions change
+    // (Investor regions change is important for Global aggregation)
+    if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd'] || 
+        changes['dataType'] || changes['selectedInvestorRegions']) {
       if (this.rawAssetFlowsData) {
+        console.log('Updating Sankey data due to changes:', {
+          timeHorizon: changes['timeHorizon'],
+          timeHorizonStart: changes['timeHorizonStart'],
+          timeHorizonEnd: changes['timeHorizonEnd'],
+          dataType: changes['dataType'],
+          selectedInvestorRegions: changes['selectedInvestorRegions']?.currentValue
+        });
         this.updateSankeyData();
       }
     }

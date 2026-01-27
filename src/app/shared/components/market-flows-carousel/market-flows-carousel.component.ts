@@ -2,8 +2,10 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
-import  AskMarketsenseModalComponent  from './ask-marketsense-modal/ask-marketsense-modal.component';
-import  ExportModalComponent from './export-modal/export-modal.component';
+import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
+import ExportModalComponent from './export-modal/export-modal.component';
+import MarketFlowDetailModalComponent from './market-flow-detail-modal/market-flow-detail-modal.component';
+import { type AssetFlowRecord } from '../../utils/asset-flows-to-sankey.util';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
@@ -11,7 +13,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 @Component({
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
-  imports: [CommonModule, MarketFlowCardComponent, AskMarketsenseModalComponent, ExportModalComponent],
+  imports: [CommonModule, MarketFlowCardComponent, AskMarketsenseModalComponent, ExportModalComponent, MarketFlowDetailModalComponent],
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
@@ -21,6 +23,10 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   @Input() showViewMoreCard: boolean = true;
   @Input() dataType: 'historical' | 'forecasted' = 'historical';
   @Input() selectedTimeHorizon: string = '-9 mo';
+  @Input() rawAssetFlowsData: AssetFlowRecord[] = [];
+  @Input() timeHorizonRange: { start: string; end: string } | null = null;
+  @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedProductTypes: string[] = [];
   @Output() pinCard = new EventEmitter<string>();
   
   currentSlideIndex: number = 0;
@@ -54,6 +60,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   selectedCard: MarketFlowCard | null = null;
   showExportModal: boolean = false;
   selectedCardForExport: MarketFlowCard | null = null;
+  showDetailModal: boolean = false;
+  selectedCardForDetail: MarketFlowCard | null = null;
   
   // Sort dropdown state
   sortDropdownOpen: boolean = false;
@@ -127,6 +135,16 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   
   get totalCardsCount(): number {
     return this.filteredCards.length;
+  }
+  
+  get viewingRangeStart(): number {
+    if (this.totalCardsCount === 0) return 0;
+    return this.currentSlideIndex * this.cardsPerSlide + 1;
+  }
+  
+  get viewingRangeEnd(): number {
+    if (this.totalCardsCount === 0) return 0;
+    return Math.min((this.currentSlideIndex + 1) * this.cardsPerSlide, this.totalCardsCount);
   }
   
   get visiblePageNumbers(): number[] {
@@ -311,6 +329,20 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
     // Emit pin event to parent component
     // The ngOnChanges will handle resetting to first slide when pinnedCardIds changes
     this.pinCard.emit(cardId);
+  }
+
+  onCardClick(cardId: string): void {
+    // Find the card by ID and show detail modal
+    const card = this.cards.find(c => c.id === cardId);
+    if (card) {
+      this.selectedCardForDetail = card;
+      this.showDetailModal = true;
+    }
+  }
+
+  onCloseDetailModal(): void {
+    this.showDetailModal = false;
+    this.selectedCardForDetail = null;
   }
 
   isCardPinned(cardId: string): boolean {

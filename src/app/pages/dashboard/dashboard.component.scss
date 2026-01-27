@@ -1,5 +1,11 @@
 @use '../../../_variables' as *;
 
+// Root wrapper div
+:host {
+  display: block;
+  overflow: visible;
+}
+
 .dashboard-page {
     display: flex;
     flex-direction: column;
@@ -19,6 +25,8 @@
 .dashboard-container {
     min-height: calc(100vh - 70px); // Account for header height
     background-color: $bg-white;
+    position: relative;
+    overflow: visible;
    
     display: flex;
     flex-direction: column;
@@ -44,6 +52,7 @@
 
 .carousel-section {
     width: 100%;
+    padding: 2px 48px;
 
 }
 
@@ -52,6 +61,7 @@
 }
 
 .asset-allocation-section {
+    padding: 2px 48px;
     width: 100%;
     order: 2; // Default order (after asset-flows)
     
@@ -61,6 +71,7 @@
 }
 
 .asset-flows-section {
+    padding: 2px 48px;
     width: 100%;
     order: 1; // Default order (before asset-allocation)
     

@@ -1,0 +1,43 @@
+.line-chart-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  
+  .chart {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
+    
+    svg {
+      max-width: 100%;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+      box-sizing: border-box;
+    }
+  }
+}
+
+::ng-deep .line-chart-tooltip {
+  position: absolute;
+  background-color: #ffffff;
+  color: #030213;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+  
+  div {
+    line-height: 1.2;
+  }
+}

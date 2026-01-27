@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, ElementRef, AfterViewInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import {
@@ -46,7 +46,7 @@ interface RegionalSankeyData {
   styleUrl: './sankey.component.scss',
   providers: []
 })
-export class SankeyComponent implements AfterViewInit, OnChanges {
+export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() data?: RegionalSankeyData;
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
@@ -54,18 +54,52 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
   @Input() timeHorizon?: string;
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
+  @Input() showLegend: boolean = true;
+  
+  // Getter to ensure TypeScript recognizes the input
+  get shouldShowLegend(): boolean {
+    return this.showLegend;
+  }
+  
   private loadedData?: RegionalSankeyData;
   private currentZoom: any;
+  private lastDataHash: string = '';
+  private lastFiltersHash: string = '';
+  private tooltipId: string;
 
   constructor(
     private el: ElementRef,
     private http: HttpClient
-  ) {}
+  ) {
+    // Generate unique tooltip ID for this instance
+    this.tooltipId = `sankey-tooltip-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  /**
+   * Generate a simple hash of data to detect actual changes
+   */
+  private getDataHash(data: RegionalSankeyData | undefined): string {
+    if (!data) return '';
+    const nodesCount = data.nodes?.length || 0;
+    const linksCount = data.links?.length || 0;
+    const firstNode = data.nodes?.[0]?.name || '';
+    const lastNode = data.nodes?.[nodesCount - 1]?.name || '';
+    return `${nodesCount}-${linksCount}-${firstNode}-${lastNode}`;
+  }
+  
+  /**
+   * Generate a hash of filter values to detect actual changes
+   */
+  private getFiltersHash(): string {
+    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}`;
+  }
 
   ngAfterViewInit(): void {
     // If data is provided via input, use it; otherwise load from JSON
     if (this.data) {
       this.loadedData = this.data;
+      this.lastDataHash = this.getDataHash(this.data);
+      this.lastFiltersHash = this.getFiltersHash();
       setTimeout(() => {
         this.createSankey();
         this.setupZoomControls();
@@ -76,27 +110,38 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Recreate sankey if data or any filter changes
+    let shouldRecreate = false;
+    
+    // Check if data actually changed
     if (changes['data'] && this.data) {
-      this.loadedData = this.data;
-      if (this.el?.nativeElement) {
-        setTimeout(() => {
-          this.createSankey();
-          this.setupZoomControls();
-        }, 0);
+      const newDataHash = this.getDataHash(this.data);
+      if (newDataHash !== this.lastDataHash) {
+        this.loadedData = this.data;
+        this.lastDataHash = newDataHash;
+        shouldRecreate = true;
       }
-    } else if (
-      changes['selectedInvestorRegions'] || 
-      changes['selectedProductTypes'] || 
-      changes['selectedProductSubTypes']
-    ) {
-      // If filters changed, recreate the sankey with filtered data
-      if (this.el?.nativeElement) {
-        setTimeout(() => {
-          this.createSankey();
-          this.setupZoomControls();
-        }, 0);
+    }
+    
+    // Check if filters actually changed
+    if (changes['selectedInvestorRegions'] || 
+        changes['selectedProductTypes'] || 
+        changes['selectedProductSubTypes']) {
+      const newFiltersHash = this.getFiltersHash();
+      if (newFiltersHash !== this.lastFiltersHash) {
+        this.lastFiltersHash = newFiltersHash;
+        // Only recreate if data is available
+        if (this.data || this.loadedData) {
+          shouldRecreate = true;
+        }
       }
+    }
+    
+    // Only recreate if something actually changed
+    if (shouldRecreate && this.el?.nativeElement) {
+      setTimeout(() => {
+        this.createSankey();
+        this.setupZoomControls();
+      }, 0);
     }
   }
 
@@ -164,9 +209,9 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
 
     const element = this.el.nativeElement.querySelector('.regional-sankey');
     
-    // Clear any existing SVG and tooltip
+    // Clear any existing SVG and tooltip for this instance
     d3.select(element).select('svg').remove();
-    d3.select('body').select('.sankey-tooltip').remove();
+    d3.select('body').select(`#${this.tooltipId}`).remove();
     
     // Get the container width dynamically
     const nativeRect = this.el.nativeElement.getBoundingClientRect();
@@ -189,8 +234,12 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     const bgWhite = this.getCssVariable('--bg-white');
 
     // Create tooltip (append to body for better positioning and to avoid overflow issues)
+    // Use unique ID to prevent conflicts with multiple Sankey instances
+    // Remove any existing tooltip with this ID first, then create a new one
+    d3.select('body').select(`#${this.tooltipId}`).remove();
     const tooltip = d3.select('body')
       .append('div')
+      .attr('id', this.tooltipId)
       .attr('class', 'sankey-tooltip')
       .style('position', 'absolute')
       .style('background-color', overlayDarker || 'rgba(0, 0, 0, 0.85)')
@@ -376,6 +425,13 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         return;
       }
       
+      // Check if link is connected to Capital Withdrawn - make it orange
+      if ((source.name && source.name.includes('Capital Withdrawn')) || 
+          (target.name && target.name.includes('Capital Withdrawn'))) {
+        linkExtra.color = '#ff7f0e'; // Orange color matching treemap
+        return;
+      }
+      
       // If Reallocation Pool position is not found, fall back to midpoint logic
       if (reallocationPoolX === null) {
         const allXPositions: number[] = [];
@@ -538,6 +594,15 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
           stroke: getCssVar('--green-darker', '#059669'),
           hoverFill: getCssVar('--green-hover', '#34d399'),
           hoverStroke: getCssVar('--green-dark', '#10b981')
+        };
+      }
+      // Capital Withdrawn
+      if (nodeName.includes('Capital Withdrawn')) {
+        return {
+          fill: '#ff7f0e', // Orange color matching treemap
+          stroke: '#e6730c',
+          hoverFill: '#ff9933',
+          hoverStroke: '#ff7f0e'
         };
       }
       // Super Start/End
@@ -1064,14 +1129,24 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     // -----------------------------------------
     // 10. Legend
     // -----------------------------------------
-    // Build legend data based on node types in the diagram
-    const legendData: Array<{ label: string; color: string }> = [];
+    // Only show legend if showLegend input is true
+    if (this.showLegend) {
+      // Build legend data based on node types in the diagram
+      const legendData: Array<{ label: string; color: string }> = [];
 
     // Always include special nodes
     legendData.push(
       { label: 'Reallocation Pool', color: getCssVar('--orange-primary', '#f59e0b') },
       { label: 'Net New Capital', color: getCssVar('--green-dark', '#10b981') }
     );
+
+    // Check if Capital Withdrawn nodes are present
+    const hasCapitalWithdrawn = graph.nodes.some(node => 
+      node.name && node.name.includes('Capital Withdrawn')
+    );
+    if (hasCapitalWithdrawn) {
+      legendData.push({ label: 'Capital Withdrawn', color: '#ff7f0e' });
+    }
 
     // Add node type categories
     const nodeTypeMap: Record<string, string> = {
@@ -1181,6 +1256,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         // Use darker stroke for better visibility
         if (d.label === 'Reallocation Pool') return getCssVar('--orange-primary-dark', '#d97706');
         if (d.label === 'Net New Capital') return getCssVar('--green-darker', '#059669');
+        if (d.label === 'Capital Withdrawn') return '#e6730c';
         if (d.label === 'Super Start/End') return getCssVar('--blue-primary-dark', '#2563eb');
         if (d.label === 'Equity') return '#0284c7';
         if (d.label === 'Fixed Income') return getCssVar('--purple-primary-dark', '#7c3aed');
@@ -1213,6 +1289,7 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
         const maxLength = 15;
         return d.label.length > maxLength ? d.label.substring(0, maxLength) + '...' : d.label;
       });
+    }
   }
 
   // -----------------------------------------
@@ -1244,6 +1321,11 @@ export class SankeyComponent implements AfterViewInit, OnChanges {
     zoomResetBtn.addEventListener('click', () => {
       svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
     });
+  }
+  
+  ngOnDestroy(): void {
+    // Clean up tooltip when component is destroyed
+    d3.select('body').select(`#${this.tooltipId}`).remove();
   }
 }
 

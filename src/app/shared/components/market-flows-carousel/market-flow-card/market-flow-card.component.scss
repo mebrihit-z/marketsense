@@ -4,17 +4,18 @@
   background-color: $bg-white;
   border: 1px solid $border-light;
   border-radius: 14px;
-  padding: 21px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 38px;
+  gap: 16px;
   transition: box-shadow 0.3s;
   height: 100%;
+  position: relative;
+  cursor: pointer;
 
   &:hover {
     box-shadow: 0 4px 12px $overlay-shadow-medium;
   }
-  
 }
 
 // Card Header
@@ -102,145 +103,29 @@
   }
 }
 
-// Chart Section
-.chart-container {
-  position: relative;
-  height: 128.5px;
-  border-left: 4px solid;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px -1px $overlay-shadow-dark, 0px 2px 4px -2px $overlay-shadow-dark;
-  overflow: hidden;
-  background-color: $bg-white;
-  
-  // Apply color based on border color (determined by card type)
-  // Green cards - Pastel green with subtle gradient and top band
-  &[style*="border-left-color: rgb(0, 188, 125)"],
-  &[style*="border-left-color: #00bc7d"] {
-    .chart-background {
-      // Base pastel green with gradient from lighter to darker
-      background: linear-gradient(180deg, 
-        $green-gradient-start 0%, 
-        $green-gradient-mid 15%, 
-        $green-gradient-end 100%
-      );
-      
-      // Add subtle top band effect
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 20%;
-        background: linear-gradient(180deg, 
-          $green-gradient-top 0%, 
-          transparent 100%
-        );
-      }
-    }
-    .curve {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 40px;
-        clip-path: polygon(-40% 0%, 130% 0%, 0% 70%);
-        background: $overlay-white;
-      }
-  }
-  
-  // Red cards - Pastel red with subtle gradient and top band
-  &[style*="border-left-color: rgb(251, 44, 54)"],
-  &[style*="border-left-color: #fb2c36"] {
-    .chart-background {
-      // Base pastel red with gradient from lighter to darker
-      background: linear-gradient(180deg, 
-        $red-gradient-start 0%, 
-        $red-gradient-mid 15%, 
-        $red-gradient-end 100%
-      );
-      
-      // Add subtle top band effect
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 20%;
-        background: linear-gradient(180deg, 
-          $red-gradient-top 0%, 
-          transparent 100%
-        );
-      }
-      .curve {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 40px;
-        clip-path: polygon(-40% 0%, 100% 0, 100% 70%);
-        background: $overlay-white;
-      }
-    }
-  }
-
+// Content Section
+.content-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.chart-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 10px;
-}
-
-.metric-display {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 1;
-}
-
-.value-container {
+.badge-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  margin-bottom: 10.5px;
-  margin-left: 100px;
-
-  .arrow-icon {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-.value {
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 24px;
-  letter-spacing: -0.31px;
-
-  &.negative {
-    color: $red-negative;
-  }
-
-  &.positive {
-    color: $green-positive;
-  }
 }
 
 .badge {
   display: inline-block;
-  padding: 3px 8px;
+  padding: 4px 20.644px 2px 9px;
   border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.00);
   font-weight: 500;
   font-size: 12px;
   line-height: 16px;
   color: white;
-  margin-bottom: 8px;
+  white-space: nowrap;
 
   &.negative {
     background-color: $red-badge;
@@ -258,99 +143,43 @@
   color: $text-secondary;
 }
 
-// Card Footer
-.card-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 1px;
+.large-value {
+  font-size: 27px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: -0.312px;
+
+  &.negative {
+    color: $red-negative;
+  }
+
+  &.positive {
+    color: $green-positive;
+  }
 }
 
-.footer-header {
+// Score Indicator
+.score-indicator {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  position: relative;
-  z-index: 1;
+  gap: 6px;
+  position: absolute;
+  bottom: 21px;
+  right: 21px;
 }
 
-.confidence-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.confidence-dot {
+.score-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  box-shadow: 0px 1px 3px 0px $overlay-shadow-dark, 0px 1px 2px -1px $overlay-shadow-dark;
+  display: inline-block;
 }
 
-.confidence-text {
+.score-text {
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
   color: $text-secondary;
-}
-
-.ask-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background-color: white;
-  border: 1px solid $primary-blue;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  position: relative;
-  z-index: 10;
-  pointer-events: auto;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-
-  &:hover {
-    background-color: $primary-blue-light-hover;
-  }
-
-  &:active {
-    background-color: $primary-blue-light-hover;
-  }
-
-  .sparkle-icon {
-    width: 16px;
-    height: 16px;
-    pointer-events: none;
-  }
-
-  .ask-text {
-    pointer-events: none;
-  }
-}
-
-.ask-text {
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.035px;
-  color: $primary-blue;
-}
-
-.divider {
-  width: 100%;
-  height: 1px;
-  background-color: $border-light;
-}
-
-.description {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: -0.15px;
-  color: $text-secondary;
-  margin: 0;
 }
 

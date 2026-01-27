@@ -133,15 +133,21 @@
     </div>
   </div>
   <!-- Treemap Visualization -->
-  <div class="reallocation-treemap-section">
-    <app-treemap
-      [selectedInvestorRegions]="selectedInvestorRegions"
-      [selectedProductTypes]="selectedProductTypes"
-      [selectedProductSubTypes]="selectedProductSubTypes"
-      [timeHorizon]="timeHorizon"
-      [timeHorizonStart]="timeHorizonStart"
-      [timeHorizonEnd]="timeHorizonEnd">
-    </app-treemap>
+  <div class="visualization-container">
+    <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="treemap-region-container">
+      <h3 class="treemap-region-title">{{ regionData.key }}</h3>
+      <div class="reallocation-treemap-section">
+        <app-treemap
+          [data]="regionData.data"
+          [selectedInvestorRegions]="regionData.investorRegions"
+          [selectedProductTypes]="cachedSelectedProductTypes"
+          [selectedProductSubTypes]="cachedSelectedProductSubTypes"
+          [timeHorizon]="timeHorizon"
+          [timeHorizonStart]="timeHorizonStart"
+          [timeHorizonEnd]="timeHorizonEnd">
+        </app-treemap>
+      </div>
+    </div>
   </div>
 </div>
 

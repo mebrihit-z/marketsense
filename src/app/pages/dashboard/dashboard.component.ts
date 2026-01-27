@@ -1,17 +1,20 @@
 /* eslint-disable */
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FiltersBarComponent, type FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
 import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
 import HeaderComponent from '../../shared/components/header/header.component';
-import { LineChartCardComponent } from '../../shared/components/charts/line-chart-card/line-chart-card.component';
+import { WelcomeSectionComponent } from '../../shared/components/welcome-section/welcome-section.component';
+import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [HeaderComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, LineChartCardComponent],
+  imports: [HeaderComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, WelcomeSectionComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -35,7 +38,10 @@ export default class DashboardComponent implements OnInit {
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  // Raw asset flows data
+  rawAssetFlowsData: AssetFlowRecord[] = [];
+
+  constructor(private cdr: ChangeDetectorRef, private http: HttpClient) {}
 
   marketFlowCards: MarketFlowCard[] = [
     // Historical -3 mo
@@ -434,7 +440,7 @@ export default class DashboardComponent implements OnInit {
       percentageColor: 'red',
       metricLabel: 'Projected Outflow',
       aiConfidence: 'medium',
-      description: 'Near-term forecast suggests continued but moderating pressure on commercial real estate.',
+      description: 'Small-cap equities see renewed investor appetite as easing inflation and improving earnings expectations support risk-on positioning in the U.S. domestic market.',
       chartColor: 'red',
       borderColor: '#fb2c36',
       timeHorizon: '+3 mo',
@@ -737,6 +743,19 @@ export default class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Dashboard component initialized');
+    this.loadAssetFlowsData();
+  }
+
+  private loadAssetFlowsData(): void {
+    this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
+      next: (data) => {
+        this.rawAssetFlowsData = data;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading asset flows data:', error);
+      }
+    });
   }
 
   onDataTypeChange(dataType: 'historical' | 'forecasted'): void {
@@ -832,57 +851,221 @@ export default class DashboardComponent implements OnInit {
   }
 
   get filteredMarketFlowCards(): MarketFlowCard[] {
+    // If no investor regions selected, return empty array
+    if (!this.selectedInvestorRegions || this.selectedInvestorRegions.length === 0) {
+      return [];
+    }
+
     // If no product sub-types selected, return empty array
     if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
       return [];
     }
 
-    // Get time horizon multiplier to vary values based on time horizon
-    const timeHorizonMultiplier = this.getTimeHorizonMultiplier(this.carouselTimeHorizon);
+    // If no data loaded yet, return empty array
+    if (!this.rawAssetFlowsData || this.rawAssetFlowsData.length === 0) {
+      return [];
+    }
 
-    // Generate cards dynamically based on selected product sub-types
-    // Each card title is the product sub-type name
-    const cards = this.selectedProductSubTypes.map((subType, index) => {
-      // Generate default card data for each product sub-type
-      // Use alternating colors for visual variety
-      const isPositive = index % 3 !== 0; // Every third card will be red/negative for variety
-      const valueColor: 'red' | 'green' = isPositive ? 'green' : 'red';
-      const percentageColor: 'red' | 'green' = isPositive ? 'green' : 'red';
-      const chartColor: 'red' | 'green' = isPositive ? 'green' : 'red';
-      const borderColor = isPositive ? '#00bc7d' : '#fb2c36';
+    // Filter data by selected investor regions and product types
+    // When "Global" is selected, include all investor regions and all product types (like sankey)
+    let filteredData = this.rawAssetFlowsData;
+    const hasGlobal = this.selectedInvestorRegions.includes('Global');
+    
+    // Filter by investor regions (if Global is selected, include all regions)
+    if (!hasGlobal) {
+      filteredData = filteredData.filter(record => 
+        this.selectedInvestorRegions.includes(record.Investor_Region)
+      );
+    }
+    
+    // Filter by selected product types (if Global is selected, include all product types)
+    if (!hasGlobal && this.selectedProductTypes && this.selectedProductTypes.length > 0) {
+      filteredData = filteredData.filter(record => 
+        this.selectedProductTypes.includes(record.Product_Type)
+      );
+    }
 
-      // Generate deterministic values based on index and time horizon for consistency
-      // Apply time horizon multiplier to make values change with time horizon
-      const baseValue = ((index % 5) + 1) * timeHorizonMultiplier; // Values scale with time horizon
-      const basePercentage = (((index % 4) + 0.5) * timeHorizonMultiplier).toFixed(1); // Percentages scale with time horizon
+    // Filter by time horizon (date range) - use the same timeHorizonRange as sankey
+    // This ensures cards and sankey use the same date filtering
+    if (this.timeHorizonRange && this.timeHorizonRange.start && this.timeHorizonRange.end) {
+      const startDate = this.convertTimeHorizonToDate(this.timeHorizonRange.start);
+      const endDate = this.convertTimeHorizonToDate(this.timeHorizonRange.end);
+      
+      if (startDate && endDate) {
+        filteredData = filteredData.filter(record => {
+          if (!record.Asset_Flow_Date) return false;
+          const recordDate = record.Asset_Flow_Date;
+          return recordDate >= startDate && recordDate <= endDate;
+        });
+      }
+    } else {
+      // Fallback: use getDateRangeForTimeHorizon if timeHorizonRange is not available
+      const dateRange = this.getDateRangeForTimeHorizon(this.carouselTimeHorizon, this.carouselDataType);
+      if (dateRange && dateRange.start && dateRange.end && dateRange.start !== dateRange.end) {
+        filteredData = filteredData.filter(record => {
+          if (!record.Asset_Flow_Date) return false;
+          const recordDate = record.Asset_Flow_Date;
+          return recordDate >= dateRange.start && recordDate <= dateRange.end;
+        });
+      }
+    }
 
-      // Generate unique ID based on sub-type, data type, and time horizon (without index for stability)
-      const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
-
-      // Format value with appropriate decimal places
-      const valueInt = Math.floor(baseValue);
-      const valueDecimal = Math.round((baseValue - valueInt) * 10);
-      const formattedValue = valueDecimal > 0 ? `${valueInt}.${valueDecimal}` : `${valueInt}`;
-
-      return {
-        id,
-        title: subType,
-        value: isPositive ? `$${formattedValue}B` : `-$${formattedValue}B`,
-        valueColor,
-        percentageChange: isPositive ? `+${basePercentage}%` : `-${basePercentage}%`,
-        percentageColor,
-        metricLabel: 'Net Flow',
-        aiConfidence: 'medium' as const,
-        description: `${subType} showing ${isPositive ? 'positive' : 'negative'} market flow trends for ${this.carouselTimeHorizon}.`,
-        chartColor,
-        borderColor,
-        timeHorizon: this.carouselTimeHorizon,
-        dataType: this.carouselDataType,
-        productSubType: subType
-      };
+    // Aggregate by product sub-type
+    // VALUE CALCULATION:
+    // 1. Filter records by: selected investor regions + selected product types + selected product sub-types + time horizon
+    // 2. For each Product_Sub_Type, sum all Asset_Flow_Value (which are in thousands)
+    // 3. Convert to billions: divide by 1,000,000
+    // 4. Result: Net flow = sum of all positive values - sum of all negative values (negative values are subtracted)
+    const aggregatedData = new Map<string, { total: number; count: number; positiveSum: number; negativeSum: number }>();
+    
+    filteredData.forEach(record => {
+      if (!this.selectedProductSubTypes.includes(record.Product_Sub_Type)) {
+        return; // Skip if not in selected product sub-types
+      }
+      
+      const existing = aggregatedData.get(record.Product_Sub_Type) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
+      // Asset_Flow_Value is in thousands, convert to billions
+      // Example: 1200000 (thousands) = 1.2 billion
+      const valueInBillions = record.Asset_Flow_Value / 1000000;
+      
+      // Handle positive and negative values explicitly
+      if (valueInBillions > 0) {
+        // Positive value: add to total
+        existing.total += valueInBillions;
+        existing.positiveSum += valueInBillions;
+      } else if (valueInBillions < 0) {
+        // Negative value: subtract from total (minus it)
+        existing.total += valueInBillions; // Adding negative = subtracting
+        existing.negativeSum += Math.abs(valueInBillions);
+      }
+      // If valueInBillions is 0, we don't need to do anything
+      
+      existing.count += 1;
+      aggregatedData.set(record.Product_Sub_Type, existing);
     });
 
-    // Sort cards: pinned cards first (in order of pinning), then others by absolute percentage value
+    // Calculate previous period data for percentage change
+    const previousDateRange = this.getPreviousPeriodDateRange(this.carouselTimeHorizon, this.carouselDataType);
+    const previousAggregatedData = new Map<string, number>();
+    
+    if (previousDateRange) {
+      let previousData = this.rawAssetFlowsData;
+      // Apply same filters as current period
+      // When "Global" is selected, include all investor regions and all product types (like sankey)
+      const hasGlobal = this.selectedInvestorRegions && this.selectedInvestorRegions.includes('Global');
+      
+      // Filter by investor regions (if Global is selected, include all regions)
+      if (!hasGlobal) {
+        previousData = previousData.filter(record => 
+          this.selectedInvestorRegions.includes(record.Investor_Region)
+        );
+      }
+      
+      // Filter by selected product types (if Global is selected, include all product types)
+      if (!hasGlobal && this.selectedProductTypes && this.selectedProductTypes.length > 0) {
+        previousData = previousData.filter(record => 
+          this.selectedProductTypes.includes(record.Product_Type)
+        );
+      }
+      
+      // Use same date filtering logic as current period
+      const prevStartDate = this.convertTimeHorizonToDate(previousDateRange.start);
+      const prevEndDate = this.convertTimeHorizonToDate(previousDateRange.end);
+      
+      if (prevStartDate && prevEndDate) {
+        previousData = previousData.filter(record => {
+          if (!record.Asset_Flow_Date) return false;
+          const recordDate = record.Asset_Flow_Date;
+          return recordDate >= prevStartDate && recordDate <= prevEndDate;
+        });
+      }
+
+      previousData.forEach(record => {
+        if (!this.selectedProductSubTypes.includes(record.Product_Sub_Type)) {
+          return;
+        }
+        const valueInBillions = record.Asset_Flow_Value / 1000000;
+        const existing = previousAggregatedData.get(record.Product_Sub_Type) || 0;
+        // Handle negative values: subtract them (minus them)
+        previousAggregatedData.set(record.Product_Sub_Type, existing + valueInBillions);
+      });
+    }
+
+    // Generate cards from aggregated data
+    // Include all selected product sub-types, even if they have no data (show as 0)
+    const cards = this.selectedProductSubTypes      .map((subType) => {
+        const data = aggregatedData.get(subType) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
+        const totalValue = data.total; // Net flow (sum of all positive and negative values)
+        const previousValue = previousAggregatedData.get(subType) || 0;
+        
+        // PERCENTAGE CHANGE CALCULATION:
+        // Formula: ((current - previous) / |previous|) * 100
+        // This shows the relative change from previous period
+        // The sign of percentage should match the sign of the current value
+        let percentageChange = 0;
+        const hasPreviousData = previousDateRange !== null && previousDateRange !== undefined;
+        
+        if (hasPreviousData && previousValue !== 0) {
+          // Standard calculation: change relative to previous period
+          const change = totalValue - previousValue;
+          const denominator = Math.abs(previousValue);
+          const calculatedPercentage = (change / denominator) * 100;
+          
+          // Ensure percentage sign matches the value sign
+          if (totalValue > 0) {
+            percentageChange = Math.abs(calculatedPercentage);
+          } else if (totalValue < 0) {
+            percentageChange = -Math.abs(calculatedPercentage);
+          } else {
+            percentageChange = calculatedPercentage;
+          }
+        } else if (hasPreviousData && previousValue === 0 && totalValue !== 0) {
+          // Edge case: previous was 0, now has value - show as 100% change
+          percentageChange = totalValue > 0 ? 100 : -100;
+        } else if (!hasPreviousData) {
+          // No previous period data - cannot calculate percentage change
+          percentageChange = 0;
+        }
+        // If both current and previous are 0, percentageChange remains 0
+
+        const isPositive = totalValue >= 0;
+        const valueColor: 'red' | 'green' = isPositive ? 'green' : 'red';
+        const percentageColor: 'red' | 'green' = percentageChange >= 0 ? 'green' : 'red';
+        const chartColor: 'red' | 'green' = isPositive ? 'green' : 'red';
+        const borderColor = isPositive ? '#00bc7d' : '#fb2c36';
+
+        // Generate unique ID
+        const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
+
+        // Format value
+        const absValue = Math.abs(totalValue);
+        const formattedValue = this.formatValue(absValue);
+
+        // Format percentage
+        const formattedPercentage = this.formatPercentage(Math.abs(percentageChange));
+
+        // Determine AI confidence based on data quality
+        const aiConfidence: 'high' | 'medium' | 'low' = data.count > 10 ? 'high' : data.count > 5 ? 'medium' : 'low';
+
+        return {
+          id,
+          title: subType,
+          value: isPositive ? `$${formattedValue}B` : `-$${formattedValue}B`,
+          valueColor,
+          percentageChange: percentageChange >= 0 ? `+${formattedPercentage}%` : `-${formattedPercentage}%`,
+          percentageColor,
+          metricLabel: 'Net Flow',
+          aiConfidence,
+          description: `${subType} showing ${isPositive ? 'positive' : 'negative'} market flow trends for ${this.carouselTimeHorizon}.`,
+          chartColor,
+          borderColor,
+          timeHorizon: this.carouselTimeHorizon,
+          dataType: this.carouselDataType,
+          productSubType: subType
+        };
+      });
+
+    // Sort cards: pinned cards first (in order of pinning), then others by absolute value
     return cards.sort((a, b) => {
       const aPinIndex = this.pinnedCardIds.indexOf(a.id);
       const bPinIndex = this.pinnedCardIds.indexOf(b.id);
@@ -896,39 +1079,177 @@ export default class DashboardComponent implements OnInit {
       // Only b is pinned: b comes first
       if (bPinIndex > -1) return 1;
       
-      // Neither pinned: sort by absolute percentage value (descending - highest first)
-      const aPercentage = this.getAbsolutePercentageValue(a.percentageChange);
-      const bPercentage = this.getAbsolutePercentageValue(b.percentageChange);
-      return bPercentage - aPercentage;
+      // Neither pinned: sort by absolute value (descending - highest first)
+      const aValue = this.parseValue(a.value);
+      const bValue = this.parseValue(b.value);
+      return Math.abs(bValue) - Math.abs(aValue);
     });
   }
 
   /**
-   * Gets a multiplier based on the time horizon to vary card values
+   * Gets date range for a time horizon
    * @param timeHorizon - The selected time horizon (e.g., "Today", "+3 mo", "-6 mo")
-   * @returns A multiplier value that scales with the time horizon
+   * @param dataType - 'historical' or 'forecasted'
+   * @returns Date range object with start and end dates in "YYYY-MM" format, or null if not applicable
    */
-  private getTimeHorizonMultiplier(timeHorizon: string): number {
-    // Map time horizons to multipliers
-    // For historical: longer periods (more negative) have larger absolute values
-    // For forecasted: longer periods (more positive) have larger values
-    const multiplierMap: Record<string, number> = {
-      // Historical
-      '-1 mo': 0.1,
-      '-3 mo': 0.3,
-      '-6 mo': 0.6,
-      '-12 mo': 1.2,
-      '-18 mo': 1.8,
-      'Today': 1.0,
-      // Forecasted
-      '+3 mo': 0.5,
-      '+6 mo': 0.8,
-      '+9 mo': 1.1,
-      '+12 mo': 1.4,
-      '+18 mo': 1.7
-    };
+  private getDateRangeForTimeHorizon(timeHorizon: string, dataType: 'historical' | 'forecasted'): { start: string; end: string } | null {
+    // Get all unique dates from the data to determine available range
+    const allDates = new Set<string>();
+    this.rawAssetFlowsData.forEach(record => {
+      if (record.Asset_Flow_Date) {
+        allDates.add(record.Asset_Flow_Date);
+      }
+    });
+    
+    if (allDates.size === 0) return null;
+    
+    const sortedDates = Array.from(allDates).sort();
+    
+    // For simplicity, if time horizon is "Today" or forecasted, use most recent dates
+    // For historical, use earlier dates
+    // Since we're aggregating, we'll include all dates that match the period
+    if (timeHorizon === 'Today' || (dataType === 'forecasted' && timeHorizon.startsWith('+'))) {
+      // Use the most recent date(s) - for now, use all available dates
+      // In a real scenario, you'd filter to specific months
+      const latestDate = sortedDates[sortedDates.length - 1];
+      return { start: latestDate, end: latestDate };
+    } else if (dataType === 'historical' && timeHorizon.startsWith('-')) {
+      // For historical, use earlier dates
+      // For simplicity, use all dates up to the most recent
+      const earliestDate = sortedDates[0];
+      const latestDate = sortedDates[sortedDates.length - 1];
+      return { start: earliestDate, end: latestDate };
+    }
+    
+    // Default: use all available dates
+    const earliestDate = sortedDates[0];
+    const latestDate = sortedDates[sortedDates.length - 1];
+    return { start: earliestDate, end: latestDate };
+  }
 
-    return multiplierMap[timeHorizon] || 1.0;
+  /**
+   * Gets the previous period date range for comparison
+   * @param timeHorizon - The current time horizon
+   * @param dataType - 'historical' or 'forecasted'
+   * @returns Previous period date range or null
+   */
+  private getPreviousPeriodDateRange(timeHorizon: string, dataType: 'historical' | 'forecasted'): { start: string; end: string } | null {
+    const currentRange = this.getDateRangeForTimeHorizon(timeHorizon, dataType);
+    if (!currentRange) return null;
+    
+    // Parse dates
+    const [startYear, startMonth] = currentRange.start.split('-').map(Number);
+    const [endYear, endMonth] = currentRange.end.split('-').map(Number);
+    
+    // Calculate period length in months
+    const periodLength = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+    
+    // Calculate previous period
+    const prevEndDate = new Date(startYear, startMonth - 1 - 1, 1); // One month before start
+    const prevStartDate = new Date(prevEndDate.getFullYear(), prevEndDate.getMonth() - periodLength + 1, 1);
+    
+    const prevStart = `${prevStartDate.getFullYear()}-${String(prevStartDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevEnd = `${prevEndDate.getFullYear()}-${String(prevEndDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    return { start: prevStart, end: prevEnd };
+  }
+
+  /**
+   * Formats a numeric value in billions with appropriate decimal places
+   * @param value - The value in billions
+   * @returns Formatted string (e.g., "124.8" or "5.2")
+   */
+  private formatValue(value: number): string {
+    if (value === 0) return '0';
+    if (value < 0.1) {
+      return value.toFixed(2);
+    } else if (value < 1) {
+      return value.toFixed(1);
+    } else {
+      return value.toFixed(1);
+    }
+  }
+
+  /**
+   * Converts time horizon string to target date in YYYY-MM format
+   * Returns null if time horizon is invalid
+   * Uses today's date as the base for calculations
+   * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo")
+   */
+  private convertTimeHorizonToDate(horizon: string): string | null {
+    // If it's already in YYYY-MM format, return it directly
+    if (/^\d{4}-\d{2}$/.test(horizon.trim())) {
+      return horizon.trim();
+    }
+    
+    // Use today's date as the base
+    const today = new Date();
+    const baseYear = today.getFullYear();
+    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    
+    if (horizon === 'Today') {
+      // For "Today", return the current month
+      const monthStr = String(baseMonth).padStart(2, '0');
+      return `${baseYear}-${monthStr}`;
+    }
+    
+    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
+    // Support both formats: with/without space and with/without + prefix
+    const normalized = horizon.trim().toLowerCase();
+    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
+    
+    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
+    if (!match) {
+      match = normalized.match(/^([+-]?)(\d+)$/);
+    }
+    
+    if (!match) {
+      console.warn('Could not parse time horizon:', horizon);
+      return null;
+    }
+    
+    const isNegative = match[1] === '-';
+    const months = parseInt(match[2], 10);
+    
+    // Calculate target date by adding/subtracting months from today
+    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
+    
+    if (isNegative) {
+      targetDate.setMonth(targetDate.getMonth() - months);
+    } else {
+      targetDate.setMonth(targetDate.getMonth() + months);
+    }
+    
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    const monthStr = String(targetMonth).padStart(2, '0');
+    
+    return `${targetYear}-${monthStr}`;
+  }
+
+  /**
+   * Formats a percentage value
+   * @param value - The percentage value
+   * @returns Formatted string (e.g., "12.3" or "5.1")
+   */
+  private formatPercentage(value: number): string {
+    if (value === 0) return '0.0';
+    if (value < 0.1) {
+      return value.toFixed(2);
+    } else {
+      return value.toFixed(1);
+    }
+  }
+
+  /**
+   * Parses a value string to a number
+   * @param valueStr - String like "$124.8B" or "-$98.4B"
+   * @returns Numeric value
+   */
+  private parseValue(valueStr: string): number {
+    const cleaned = valueStr.replace(/[$,B]/g, '').trim();
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
   }
 
   /**

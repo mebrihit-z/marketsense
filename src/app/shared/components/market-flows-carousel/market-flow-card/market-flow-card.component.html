@@ -1,59 +1,39 @@
-<div class="card">
+<div class="card" (click)="onCardClick()">
   <!-- Card Header -->
   <div class="card-header">
     <h3 class="card-title">{{ card.title }}</h3>
     <div class="card-actions">
       <!-- Pin Button -->
-      <button type="button" class="icon-btn" [class.pinned]="isPinned" (click)="onPin($event)" (mousedown)="onPin($event)" (touchstart)="onPin($event)" aria-label="Pin Button">
+      <button type="button" class="icon-btn" [class.pinned]="isPinned" (click)="onPin($event); $event.stopPropagation()" (mousedown)="onPin($event)" (touchstart)="onPin($event)" aria-label="Pin Button">
         <img src="assets/icons/pin-icon.svg" alt="Pin Button">
       </button>
-      <!-- Download Button -->
-      <button type="button" class="icon-btn" (click)="onDownload($event)" (mousedown)="onDownload($event)" (touchstart)="onDownload($event)" aria-label="Download">
-        <img src="assets/icons/download-icon.svg" alt="Download" class="download-icon">
-      </button>
       <!-- More Options Button -->
-      <!-- <button class="icon-btn" (click)="onMoreOptions()" aria-label="More Options">
+      <button type="button" class="icon-btn" (click)="onMoreOptions(); $event.stopPropagation()" aria-label="More Options">
         <img src="assets/icons/more-options-icon.svg" alt="More Options" class="more-options-icon">
-      </button> -->
+      </button>
     </div>
   </div>
 
-  <!-- Chart Section -->
-  <div class="chart-container" [style.border-left-color]="card.borderColor">
-    <!-- Background Chart (placeholder) -->
-    <div class="chart-background">
-      <div class="curve"></div>
-    </div>
-    <!-- Metric Display -->
-    <div class="metric-display">
-      <div class="value-container">
-        <img *ngIf="card.valueColor === 'green'" src="assets/icons/up-curved-arrow-icon.svg" alt="Arrow" class="arrow-icon">
-        <img *ngIf="card.valueColor === 'red'" src="assets/icons/down-curved-arrow-icon.svg" alt="Arrow" class="arrow-icon">
-        <span class="value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
-          {{ card.value }}
-        </span>
-      </div>
+  <!-- Content Section -->
+  <div class="content-section">
+    <!-- Badge and Label -->
+    <div class="badge-container">
       <div class="badge" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
         {{ card.percentageChange }}
       </div>
-      <div class="metric-label">{{ card.metricLabel }}</div>
+      <span class="metric-label">{{ card.metricLabel }}</span>
+    </div>
+
+    <!-- Large Value -->
+    <div class="large-value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
+      {{ card.value }}
     </div>
   </div>
 
-  <!-- Card Footer -->
-  <div class="card-footer">
-    <div class="footer-header">
-      <div class="confidence-indicator">
-        <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
-        <span class="confidence-text">AI Confidence</span>
-      </div>
-      <button type="button" class="ask-btn" (click)="onAskMarketSense($event)" (mousedown)="onAskMarketSense($event)" (touchstart)="onAskMarketSense($event)">
-        <img src="assets/icons/sparkle-icon.svg" alt="Sparkle" class="sparkle-icon">
-        <span class="ask-text">Ask MarketSense</span>
-      </button>
-    </div>
-    <div class="divider"></div>
-    <p class="description">{{ card.description }}</p>
+  <!-- Score Indicator -->
+  <div class="score-indicator">
+    <span class="score-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
+    <span class="score-text">Score</span>
   </div>
 </div>
 

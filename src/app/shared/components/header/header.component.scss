@@ -4,15 +4,13 @@
     align-items: center;
     justify-content: space-between;
     background-color: #0E2B73;
-    border-radius: 10px;
-    padding: 12px;
-    
+    padding: 24px 48px;
+
     @media (max-width: 768px) {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
         padding: 16px;
-        border-radius: 8px;
     }
 }  
 // brand description
@@ -35,6 +33,10 @@
     flex-direction: column;
     justify-content: end;
     align-items: center;
+    color: #D4EBFD;
+    font-size: 12px;
+
+
     
     @media (max-width: 768px) {
         width: 100%;
@@ -62,11 +64,12 @@
             align-items: center;
             border-radius: 8px;
             border: 1px solid $border-light;
-            background: $bg-white;
             cursor: pointer;
             transition: all 0.2s ease;
-            color:$text-primary;
-            touch-action: manipulation;
+            color: #D4EBFD;
+            line-height: 16px; /* 133.333% */;
+          
+            background: #13368F;
             
             @media (max-width: 768px) {
                 width: 40px;
@@ -74,8 +77,8 @@
             }
             
             &:hover {
-                background-color: $bg-gray-lightest;
-                border-color: $border-medium;
+                // background-color: $bg-gray-lightest;
+                // border-color: $border-medium;
             }
         }
     }

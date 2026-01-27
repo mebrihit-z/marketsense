@@ -691,6 +691,19 @@
     {
       "Model_Run_Date": "2025-05-01",
       "Model_Version": "V1.1",
+      "Investor_Region": "United States",
+      "Investor_Types": "Corporate",
+      "Plan_Type": "Retirement",
+      "Sec_Type": "DC",
+      "Product_Region": "United States",
+      "Product_Type": "Equity",
+      "Product_Sub_Type": "Large Cap Core",
+      "Asset_Flow_Date": "2026-02",
+      "Asset_Flow_Value": -98800000
+    },
+    {
+      "Model_Run_Date": "2025-05-01",
+      "Model_Version": "V1.1",
       "Investor_Region": "United Kingdom",
       "Investor_Types": "Corporate",
       "Plan_Type": "Retirement",

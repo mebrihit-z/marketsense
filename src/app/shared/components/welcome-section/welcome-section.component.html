@@ -1,0 +1,77 @@
+<div class="welcome-section">
+  <div class="welcome-content">
+    <!-- Left Side -->
+    <div class="welcome-left">
+      <h1 class="welcome-title">Hi {{ userName }}, welcome back!</h1>
+      <div class="welcome-meta">
+        <span class="last-login">Last login: {{ lastLogin }} • Viewing:</span>
+        <div class="viewing-filter-container" [class.open]="isViewingDropdownOpen">
+          <button 
+            #filterButton
+            type="button"
+            class="viewing-filter-btn"
+            (click)="toggleViewingDropdown()"
+            [attr.aria-expanded]="isViewingDropdownOpen">
+            <img src="assets/icons/saved-icon.svg" alt="Bookmark" class="bookmark-icon">
+            <span class="filter-text">{{ viewingFilter }}</span>
+            <img src="assets/icons/caret-down-icon.svg" alt="Dropdown" class="caret-icon">
+          </button>
+          <div 
+            class="viewing-dropdown" 
+            *ngIf="isViewingDropdownOpen"
+            [style.top.px]="dropdownPosition.top"
+            [style.left.px]="dropdownPosition.left">
+            <!-- Filter Presets Header -->
+            <div class="filter-presets-header">
+              <h3 class="filter-presets-title">Filter Presets</h3>
+            </div>
+            <!-- Filter Presets List -->
+            <div class="viewing-dropdown-content">
+              <div
+                *ngFor="let option of viewingOptions"
+                class="dropdown-option-card"
+                [class.active]="option.isActive"
+                (click)="selectViewingOption(option)">
+                <div class="option-content">
+                  <div class="option-header">
+                    <h4 class="option-title">{{ option.name }}</h4>
+                    <span class="active-badge" *ngIf="option.isActive">Active</span>
+                  </div>
+                  <p class="option-saved-date">Saved {{ option.savedDate }}</p>
+                  <div class="option-tags">
+                    <span class="option-tag" *ngFor="let tag of option.tags">{{ tag }}</span>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  class="delete-btn"
+                  (click)="deleteOption(option, $event)"
+                  aria-label="Delete preset">
+                  <img src="assets/icons/red-x-icon.svg" alt="Delete" class="delete-icon">
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side -->
+    <div class="welcome-right">
+      <button type="button" class="ask-ai-btn" (click)="onAskMarketSense()">
+        <img src="assets/icons/sparkle-icon.svg" alt="Sparkle" class="sparkle-icon">
+        <span class="ask-ai-text">Ask MarketSense AI</span>
+      </button>
+      <p class="ask-ai-subtitle">Get instant insights and explanations</p>
+    </div>
+  </div>
+
+  <!-- Ask MarketSense Modal -->
+  <app-ask-marketsense-modal
+    [isVisible]="showAskMarketSenseModal"
+    [card]="null"
+    (close)="onCloseModal()"
+    (sendMessage)="onSendMessage($event)">
+  </app-ask-marketsense-modal>
+</div>
+

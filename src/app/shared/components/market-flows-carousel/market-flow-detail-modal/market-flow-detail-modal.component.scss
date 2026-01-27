@@ -1,0 +1,409 @@
+@use '../../../../../_variables' as *;
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: $overlay-modal;
+  display: flex;
+  z-index: 100001;
+  animation: fadeIn 0.2s ease-out;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-container {
+  position: relative;
+  background-color: $bg-white;
+  width: 90%;
+  max-width: 620px;
+  min-width: 600px;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid $border-light;
+  padding:48px;
+  gap: 20px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// Window Controls
+.window-controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.window-btn {
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+ 
+  &:hover {
+    opacity: 0.6;
+  }
+}
+
+// Header
+.modal-header {
+  flex-shrink: 0;
+  text-align: left;
+  border-bottom: 1px solid $border-light;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.5px;
+  color: $text-primary-dark;
+  margin: 0;
+}
+
+.confidence-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 6px;
+}
+
+.confidence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.confidence-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: $text-secondary;
+}
+
+.info-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: help;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+  
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.info-icon {
+  width: 12px;
+  height: 12px;
+  color: $text-secondary;
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+  
+  .info-button:hover & {
+    opacity: 1;
+  }
+}
+
+// Main Content
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 20px;
+  min-height: 0; // Allows flex child to shrink
+}
+
+// Key Metrics Section
+.key-metrics-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.metric-box {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: none;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  
+  &.forecasted-value {
+    border: 1px solid #E5E7EB;
+    background: linear-gradient(135deg, #F9FAFB 0%, #FFF 100%);
+  }
+
+  &.expected-change {
+    &.positive {
+      background: rgba(0, 153, 102, 0.08);
+      border: 1px solid rgba(0, 153, 102, 0.15);
+    }
+    
+    &.negative {
+      background: rgba(231, 0, 11, 0.08);
+      border: 1px solid rgba(231, 0, 11, 0.15);
+    }
+  }
+  
+}
+
+.metric-label {
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: $text-secondary;
+}
+
+.metric-value {
+  font-size: 32px;
+  letter-spacing: -0.7px;
+  
+  &.positive {
+    color: $green-positive;
+  }
+  
+  &.negative {
+    color: $red-negative;
+  }
+}
+
+// Expected change box value styling
+.expected-change {
+  .metric-value {
+    color: $green-positive;
+  }
+  
+  &.negative .metric-value {
+    color: $red-negative;
+  }
+}
+
+// Description Section
+.description-section {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  border-top: 1px solid $border-light;
+  padding-top: 13px;
+  
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.section-title {
+  color: $text-primary;
+  font-family: Inter;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+  letter-spacing: -0.625px;
+  svg {
+    width: 18px;
+    height: 18px;
+    color: $orange-primary;
+    flex-shrink: 0;
+  }
+}
+
+.description-text {
+  color: $text-secondary;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px; /* 142.857% */
+  letter-spacing: -0.15px;
+}
+
+
+// Chart Section
+.chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-title-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
+}
+
+.chart-title {
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-primary;
+  font-style: normal;
+  font-weight: 500;
+
+}
+
+.chart-subtitle {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 20px;
+  color: $text-secondary;
+
+}
+
+.chart-container {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  padding: 0;
+  position: relative;
+
+  app-line-chart {
+    width: 100%;
+    max-width: 100%;
+    height: 250px;
+    display: block;
+    overflow: visible;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .modal-container {
+    width: 95%;
+    min-width: 500px;
+  }
+
+  .modal-header {
+    padding: 28px 32px 20px 32px;
+  }
+
+  .main-content {
+    padding: 28px 32px 32px 32px;
+    gap: 28px;
+  }
+
+  .key-metrics-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-container {
+    width: 100%;
+    min-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .window-controls {
+    top: 16px;
+    right: 16px;
+  }
+
+  .modal-header {
+    padding: 24px 24px 20px 24px;
+  }
+
+  .header-title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .main-content {
+    padding: 24px 24px 28px 24px;
+    gap: 24px;
+  }
+
+  .key-metrics-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .metric-box {
+    padding: 18px;
+  }
+
+  .metric-value {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .chart-container {
+    min-height: 260px;
+    height: auto;
+    padding: 0;
+    overflow: visible;
+
+    app-line-chart {
+      height: 220px;
+      max-width: 100%;
+    }
+  }
+
+  .description-section {
+    padding: 20px;
+  }
+}
+

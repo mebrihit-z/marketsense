@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import AskMarketsenseModalComponent from '../../market-flows-carousel/ask-marketsense-modal/ask-marketsense-modal.component';
+import AskMarketsenseModalComponent from '../../ask-marketsense-modal/ask-marketsense-modal.component';
 import type { MarketFlowCard } from '../../market-flows-carousel/market-flow-card/market-flow-card.component';
 
 export interface TreemapCellData {

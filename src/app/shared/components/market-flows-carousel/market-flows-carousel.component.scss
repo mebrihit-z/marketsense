@@ -247,16 +247,14 @@
 
 // Navigation Section
 .navigation-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
-  justify-content: flex-end;
   width: 100%;
   gap: 16px;
-  flex-wrap: wrap;
   
   @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: 1fr;
     gap: 12px;
   }
 }
@@ -264,12 +262,7 @@
 .pagination-info {
   display: flex;
   align-items: center;
-  margin-right: auto;
-  
-  @media (max-width: 768px) {
-    order: 3;
-    margin-right: 0;
-  }
+  justify-self: start;
 }
 
 .page-info-text {
@@ -277,54 +270,20 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-secondary;
+  color: $text-primary;
 }
 
 .pagination-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
-  justify-content: flex-end;
+  gap: 4px;
+  justify-self: center;
   
   @media (max-width: 768px) {
     width: 100%;
     justify-content: center;
+    justify-self: center;
   }
-}
-
-.pagination-dots {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  
-  @media (max-width: 768px) {
-    display: none;
-  }
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: $border-gray-dark;
-  cursor: pointer;
-  transition: background-color 0.2s, width 0.2s;
-
-  &.active {
-    background-color: $primary-blue;
-    width: 30px;
-    border-radius: 3px;
-  }
-
-  &:hover:not(&.active) {
-    background-color: $border-gray;
-  }
-}
-
-.pagination-numbers {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .page-numbers {
@@ -340,8 +299,8 @@
   align-items: center;
   justify-content: center;
   padding: 0 8px;
-  background-color: $bg-white;
-  border: 1px solid $border-gray-dark;
+  background-color: transparent;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 400;
@@ -349,23 +308,18 @@
   line-height: 20px;
   letter-spacing: -0.15px;
   color: $text-primary;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 
   &:hover:not(:disabled):not(.active) {
     background-color: $bg-gray-light;
-    border-color: $border-gray;
   }
 
   &.active {
-    background-color: $primary-blue;
-    border-color: $primary-blue;
-    color: $bg-white;
-    font-weight: 500;
+    color: $text-primary;
+    font-weight: 700;
   }
 
   &.ellipsis {
-    border: none;
-    background: none;
     cursor: default;
     min-width: auto;
     padding: 0 4px;
@@ -381,31 +335,29 @@
 }
 
 .page-btn {
-  width: 32px;
+  min-width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $bg-white;
-  border: 1px solid $border-gray-dark;
+  background-color: transparent;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-primary;
+  transition: background-color 0.2s, opacity 0.2s;
 
   &:hover:not(:disabled) {
     background-color: $bg-gray-light;
-    border-color: $border-gray;
   }
 
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-  }
-
-  svg {
-    width: 18px;
-    height: 18px;
-    color: $text-secondary;
   }
 }
 

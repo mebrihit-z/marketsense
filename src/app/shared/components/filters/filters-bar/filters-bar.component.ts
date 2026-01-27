@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
+import SaveFilterSetModalComponent from '../save-filter-set-modal/save-filter-set-modal.component';
 import { extractFilterOptionsFromExcel } from '../../../utils/excel-filter-options.util';
 import { extractFilterOptionsFromAssetFlows } from '../../../utils/asset-flows-filter-options.util';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
@@ -19,7 +20,7 @@ export interface FilterOptionTotals {
 @Component({
   selector: 'app-filters-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterDropdownComponent],
+  imports: [CommonModule, FormsModule, FilterDropdownComponent, SaveFilterSetModalComponent],
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss'
 })
@@ -151,8 +152,11 @@ export class FiltersBarComponent implements OnInit {
             options: group.subTypes.map(subType => ({ value: subType }))
           }));
           
-          // Set investor regions
-          this.investorRegionOptions = filterOptions.investorRegions.map(region => ({ value: region }));
+          // Set investor regions with "Global" option at the beginning
+          this.investorRegionOptions = [
+            { value: 'Global' },
+            ...filterOptions.investorRegions.map(region => ({ value: region }))
+          ];
           
           // Set investor types
           this.investorTypeOptions = filterOptions.investorTypes.map(type => ({ value: type }));
@@ -167,8 +171,8 @@ export class FiltersBarComponent implements OnInit {
           const allSubTypes = filterOptions.productSubTypes.flatMap(group => group.subTypes);
           this.state.productSubType = allSubTypes;
           
-          // Initialize investorRegion selection with all options selected
-          this.state.investorRegion = filterOptions.investorRegions;
+          // Initialize investorRegion selection with only "Global" selected by default
+          this.state.investorRegion = ['Global'];
           
           // Initialize investorType selection with all options selected
           this.state.investorType = filterOptions.investorTypes;
@@ -329,6 +333,9 @@ export class FiltersBarComponent implements OnInit {
   // Track which tooltip is open
   openTooltip: 'aiConfidence' | 'dataType' | 'timeHorizon' | null = null;
 
+  // Save filter set modal state
+  isSaveFilterSetModalOpen: boolean = false;
+
   /**
    * @param {keyof typeof this.state} key - The state key to update
    * @param {string[]} values - The new values to set for the state key
@@ -352,6 +359,8 @@ export class FiltersBarComponent implements OnInit {
     } else if (key === 'productRegion') {
       this.productRegionChange.emit(values);
     } else if (key === 'investorRegion') {
+      // Allow Global to be selected along with other regions
+      // The asset-flows component will show both Global Sankey and individual region Sankey diagrams
       this.investorRegionChange.emit(values);
     } else if (key === 'investorType') {
       this.investorTypeChange.emit(values);
@@ -516,6 +525,37 @@ export class FiltersBarComponent implements OnInit {
     this.productRegionChange.emit(this.state.productRegion);
     this.investorRegionChange.emit(this.state.investorRegion);
     this.investorTypeChange.emit(this.state.investorType);
+  }
+
+  /**
+   * @returns {void} Opens the save filter set modal.
+   */
+  saveFilterSet() {
+    this.isSaveFilterSetModalOpen = true;
+  }
+
+  /**
+   * @returns {void} Closes the save filter set modal.
+   */
+  onCloseSaveFilterSetModal(): void {
+    this.isSaveFilterSetModalOpen = false;
+  }
+
+  /**
+   * @param {string} filterSetName - The name for the filter set
+   * @returns {void} Saves the current filter set configuration with the given name.
+   */
+  onSaveFilterSet(filterSetName: string): void {
+    // TODO: Implement save filter set functionality (e.g., save to localStorage or API)
+    console.log('Save filter set:', {
+      name: filterSetName,
+      state: this.state,
+      dataType: this.dataType,
+      aiConfidenceRange: this.aiConfidenceRange,
+      timeHorizonRange: this.timeHorizonRange
+    });
+    // Close modal after saving
+    this.isSaveFilterSetModalOpen = false;
   }
 
   /**

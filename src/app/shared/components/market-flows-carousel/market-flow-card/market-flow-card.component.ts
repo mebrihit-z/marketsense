@@ -33,6 +33,7 @@ export class MarketFlowCardComponent {
   @Output() moreOptions = new EventEmitter<string>();
   @Output() askMarketSense = new EventEmitter<string>();
   @Output() pin = new EventEmitter<string>();
+  @Output() cardClick = new EventEmitter<string>();
 
   private askMarketSenseLastHandled = 0;
   private readonly ASK_MARKETSENSE_DEBOUNCE_MS = 300;
@@ -42,12 +43,8 @@ export class MarketFlowCardComponent {
   private readonly PIN_DEBOUNCE_MS = 300;
 
   getConfidenceColor(confidence: 'high' | 'medium' | 'low'): string {
-    switch (confidence) {
-      case 'high': return '#00bc7d';
-      case 'medium': return '#fe9a00';
-      case 'low': return '#d4183d';
-      default: return '#00bc7d';
-    }
+    // All scores are green for now
+    return '#00bc7d';
   }
 
   onDownload(event?: Event): void {
@@ -123,6 +120,11 @@ export class MarketFlowCardComponent {
     }
     
     this.pin.emit(this.card.id);
+  }
+
+  onCardClick(): void {
+    // Emit card click event
+    this.cardClick.emit(this.card.id);
   }
 }
 
