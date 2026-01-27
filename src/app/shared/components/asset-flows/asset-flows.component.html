@@ -32,100 +32,100 @@
     <div class="flow-dimensions-section">
       <h3 class="flow-dimensions-title">Flow Dimensions</h3>
       <p class="flow-dimensions-instruction">
-        Sankey diagram requires matching dimension levels. Drag and drop available dimensions for the nodes of the diagram.
+        Select three dimensions to organize asset flows in sankey diagram below. Each dimension controls a matching pair of nodes on the left (outflow) and right (inflow) sides of the diagram.
       </p>
       
-      <!-- Available Dimensions -->
-      <div class="available-dimensions-container">
-        <span class="available-dimensions-label">Available Dimensions</span>
-        <div class="available-dimensions-list">
-          <div 
-            *ngFor="let dimension of availableDimensions" 
-            class="available-dimension-chip"
-            [draggable]="true"
-            (dragstart)="onDimensionDragStart($event, dimension)">
-            <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-            <span class="dimension-chip-text">
-              {{ dimension.label }}
-              <ng-container *ngIf="getDimensionCountLabel(dimension) as countLabel">({{ countLabel }})</ng-container>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dimension Drop Zones -->
-      <div class="dimension-drop-zones">
-        <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 1</label>
-          <div 
-            class="drop-zone"
-            [class.has-dimension]="selectedDimension1"
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event, 'dimension1')"
-            (dragleave)="onDragLeave($event)">
-            <span *ngIf="!selectedDimension1" class="drop-zone-placeholder">Drop Dimension Here</span>
-            <div *ngIf="selectedDimension1" class="selected-dimension">
-              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-              <span class="dimension-chip-text">
-                {{ selectedDimension1.label }}
-                <ng-container *ngIf="getDimensionCountLabel(selectedDimension1) as countLabel">({{ countLabel }})</ng-container>
+      <!-- Dimension Selectors -->
+      <div class="dimension-selectors">
+        <div class="dimension-selector-container">
+          <label class="dimension-selector-label">Dimension 1</label>
+          <div class="custom-select-wrapper">
+            <button 
+              type="button"
+              class="custom-select-button"
+              [class.has-selection]="selectedDimension1"
+              (click)="toggleDropdown('dimension1', $event)">
+              <span class="custom-select-text">
+                {{ selectedDimension1 ? getDimensionOptionText(selectedDimension1) : 'Select a dimension' }}
               </span>
-              <!-- Remove Dimension Button -->
               <img 
-                src="assets/icons/remove-icon.svg" 
-                alt="Remove dimension" 
-                class="remove-icon"
-                (click)="removeDimension('dimension1'); $event.stopPropagation()">
+                src="assets/icons/caret-down-icon.svg" 
+                alt="Dropdown" 
+                class="custom-select-arrow"
+                [class.open]="openDropdown === 'dimension1'">
+            </button>
+            <div 
+              class="custom-select-dropdown"
+              [class.open]="openDropdown === 'dimension1'">
+              <div 
+                *ngFor="let dimension of getAvailableDimensionsForSelect('dimension1')"
+                class="custom-select-option"
+                [class.selected]="selectedDimension1?.id === dimension.id"
+                (click)="selectDimension(dimension, 'dimension1')">
+                {{ getDimensionOptionText(dimension) }}
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 2</label>
-          <div 
-            class="drop-zone"
-            [class.has-dimension]="selectedDimension2"
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event, 'dimension2')"
-            (dragleave)="onDragLeave($event)">
-            <span *ngIf="!selectedDimension2" class="drop-zone-placeholder">Drop Dimension Here</span>
-            <div *ngIf="selectedDimension2" class="selected-dimension">
-              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-              <span class="dimension-chip-text">
-                {{ selectedDimension2.label }}
-                <ng-container *ngIf="getDimensionCountLabel(selectedDimension2) as countLabel">({{ countLabel }})</ng-container>
+        <div class="dimension-selector-container">
+          <label class="dimension-selector-label">Dimension 2</label>
+          <div class="custom-select-wrapper">
+            <button 
+              type="button"
+              class="custom-select-button"
+              [class.has-selection]="selectedDimension2"
+              (click)="toggleDropdown('dimension2', $event)">
+              <span class="custom-select-text">
+                {{ selectedDimension2 ? getDimensionOptionText(selectedDimension2) : 'Select a dimension' }}
               </span>
-              <!-- Remove Dimension Button -->
               <img 
-                src="assets/icons/remove-icon.svg" 
-                alt="Remove dimension" 
-                class="remove-icon"
-                (click)="removeDimension('dimension2'); $event.stopPropagation()">
+                src="assets/icons/caret-down-icon.svg" 
+                alt="Dropdown" 
+                class="custom-select-arrow"
+                [class.open]="openDropdown === 'dimension2'">
+            </button>
+            <div 
+              class="custom-select-dropdown"
+              [class.open]="openDropdown === 'dimension2'">
+              <div 
+                *ngFor="let dimension of getAvailableDimensionsForSelect('dimension2')"
+                class="custom-select-option"
+                [class.selected]="selectedDimension2?.id === dimension.id"
+                (click)="selectDimension(dimension, 'dimension2')">
+                {{ getDimensionOptionText(dimension) }}
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="drop-zone-container">
-          <label class="drop-zone-label">Dimension 3</label>
-          <div 
-            class="drop-zone"
-            [class.has-dimension]="selectedDimension3"
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event, 'dimension3')"
-            (dragleave)="onDragLeave($event)">
-            <span *ngIf="!selectedDimension3" class="drop-zone-placeholder">Drop Dimension Here</span>
-            <div *ngIf="selectedDimension3" class="selected-dimension">
-              <img src="assets/icons/nimbus-drag-dots.svg" alt="Grid" class="grid-icon">
-              <span class="dimension-chip-text">
-                {{ selectedDimension3.label }}
-                <ng-container *ngIf="getDimensionCountLabel(selectedDimension3) as countLabel">({{ countLabel }})</ng-container>
+        <div class="dimension-selector-container">
+          <label class="dimension-selector-label">Dimension 3</label>
+          <div class="custom-select-wrapper">
+            <button 
+              type="button"
+              class="custom-select-button"
+              [class.has-selection]="selectedDimension3"
+              (click)="toggleDropdown('dimension3', $event)">
+              <span class="custom-select-text">
+                {{ selectedDimension3 ? getDimensionOptionText(selectedDimension3) : 'Select a dimension' }}
               </span>
-              <!-- Remove Dimension Button -->
               <img 
-                src="assets/icons/remove-icon.svg" 
-                alt="Remove dimension" 
-                class="remove-icon"
-                (click)="removeDimension('dimension3'); $event.stopPropagation()">
+                src="assets/icons/caret-down-icon.svg" 
+                alt="Dropdown" 
+                class="custom-select-arrow"
+                [class.open]="openDropdown === 'dimension3'">
+            </button>
+            <div 
+              class="custom-select-dropdown"
+              [class.open]="openDropdown === 'dimension3'">
+              <div 
+                *ngFor="let dimension of getAvailableDimensionsForSelect('dimension3')"
+                class="custom-select-option"
+                [class.selected]="selectedDimension3?.id === dimension.id"
+                (click)="selectDimension(dimension, 'dimension3')">
+                {{ getDimensionOptionText(dimension) }}
+              </div>
             </div>
           </div>
         </div>

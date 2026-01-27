@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core'
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
@@ -114,6 +114,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   // Currently dragged dimension
   private draggedDimension: FlowDimension | null = null;
+  
+  // Custom dropdown state
+  openDropdown: 'dimension1' | 'dimension2' | 'dimension3' | null = null;
   
   constructor(private http: HttpClient) {}
   
@@ -644,6 +647,146 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     }
 
     return total > 0 ? `${selected}/${total}` : `${selected}`;
+  }
+
+  /**
+   * Get formatted text for dimension option in select dropdown
+   */
+  getDimensionOptionText(dimension: FlowDimension): string {
+    const countLabel = this.getDimensionCountLabel(dimension);
+    return countLabel ? `${dimension.label} (${countLabel})` : dimension.label;
+  }
+
+  /**
+   * Get available dimensions for a specific select dropdown
+   * Excludes dimensions already selected in other dropdowns
+   */
+  getAvailableDimensionsForSelect(selectId: 'dimension1' | 'dimension2' | 'dimension3'): FlowDimension[] {
+    const selectedIds = new Set<string>();
+    
+    if (selectId !== 'dimension1' && this.selectedDimension1) {
+      selectedIds.add(this.selectedDimension1.id);
+    }
+    if (selectId !== 'dimension2' && this.selectedDimension2) {
+      selectedIds.add(this.selectedDimension2.id);
+    }
+    if (selectId !== 'dimension3' && this.selectedDimension3) {
+      selectedIds.add(this.selectedDimension3.id);
+    }
+    
+    return this.availableDimensions.filter(dim => !selectedIds.has(dim.id));
+  }
+
+  /**
+   * Handle dimension change from select dropdown
+   */
+  onDimensionChange(event: Event, selectId: 'dimension1' | 'dimension2' | 'dimension3'): void {
+    const selectElement = event.target as HTMLSelectElement;
+    const selectedId = selectElement.value;
+    
+    if (!selectedId) {
+      // Clear the selection
+      if (selectId === 'dimension1') {
+        this.selectedDimension1 = null;
+      } else if (selectId === 'dimension2') {
+        this.selectedDimension2 = null;
+      } else {
+        this.selectedDimension3 = null;
+      }
+      return;
+    }
+    
+    // Find the dimension by ID
+    const dimension = this.availableDimensions.find(d => d.id === selectedId);
+    if (!dimension) {
+      return;
+    }
+    
+    // Remove this dimension from other selects if it was selected there
+    if (selectId !== 'dimension1' && this.selectedDimension1?.id === selectedId) {
+      this.selectedDimension1 = null;
+    }
+    if (selectId !== 'dimension2' && this.selectedDimension2?.id === selectedId) {
+      this.selectedDimension2 = null;
+    }
+    if (selectId !== 'dimension3' && this.selectedDimension3?.id === selectedId) {
+      this.selectedDimension3 = null;
+    }
+    
+    // Set the dimension in the target select
+    if (selectId === 'dimension1') {
+      this.selectedDimension1 = dimension;
+    } else if (selectId === 'dimension2') {
+      this.selectedDimension2 = dimension;
+    } else {
+      this.selectedDimension3 = dimension;
+    }
+    
+    console.log('Dimension selected:', selectId, dimension);
+  }
+
+  /**
+   * Toggle custom dropdown open/closed state
+   */
+  toggleDropdown(selectId: 'dimension1' | 'dimension2' | 'dimension3', event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (this.openDropdown === selectId) {
+      this.openDropdown = null;
+    } else {
+      this.openDropdown = selectId;
+    }
+  }
+
+  /**
+   * Close custom dropdown
+   */
+  closeDropdown(selectId: 'dimension1' | 'dimension2' | 'dimension3'): void {
+    if (this.openDropdown === selectId) {
+      this.openDropdown = null;
+    }
+  }
+
+  /**
+   * Close dropdown when clicking outside
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.custom-select-wrapper')) {
+      this.openDropdown = null;
+    }
+  }
+
+  /**
+   * Select a dimension from custom dropdown
+   */
+  selectDimension(dimension: FlowDimension, selectId: 'dimension1' | 'dimension2' | 'dimension3'): void {
+    // Remove this dimension from other selects if it was selected there
+    if (selectId !== 'dimension1' && this.selectedDimension1?.id === dimension.id) {
+      this.selectedDimension1 = null;
+    }
+    if (selectId !== 'dimension2' && this.selectedDimension2?.id === dimension.id) {
+      this.selectedDimension2 = null;
+    }
+    if (selectId !== 'dimension3' && this.selectedDimension3?.id === dimension.id) {
+      this.selectedDimension3 = null;
+    }
+    
+    // Set the dimension in the target select
+    if (selectId === 'dimension1') {
+      this.selectedDimension1 = dimension;
+    } else if (selectId === 'dimension2') {
+      this.selectedDimension2 = dimension;
+    } else {
+      this.selectedDimension3 = dimension;
+    }
+    
+    // Close the dropdown
+    this.openDropdown = null;
+    
+    console.log('Dimension selected:', selectId, dimension);
   }
   
   /**
