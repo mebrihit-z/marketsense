@@ -48,24 +48,24 @@ export class MarketFlowCardComponent {
   }
 
   onDownload(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
+    
     const now = Date.now();
     
-    // Prevent double-firing from multiple event handlers (click + mousedown)
+    // Prevent double-firing from multiple event handlers (click + mousedown + touchstart)
     if (now - this.downloadLastHandled < this.DOWNLOAD_DEBOUNCE_MS) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
       return;
     }
     
     this.downloadLastHandled = now;
     
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
+    console.log('Download clicked for card:', this.card.id);
     
+    // Emit download event
     this.download.emit(this.card.id);
   }
 
@@ -114,11 +114,22 @@ export class MarketFlowCardComponent {
     if (event) {
       const target = event.target as HTMLElement;
       // Check if click originated from a button or its child
-      if (target.closest('button')) {
+      if (target.closest('button') || target.closest('.card-actions')) {
         return;
       }
     }
     // Emit card click event
+    this.cardClick.emit(this.card.id);
+  }
+
+  onCardTouchStart(event: TouchEvent): void {
+    // Handle touch events for VDI compatibility
+    const target = event.target as HTMLElement;
+    // Don't trigger card click if touching on action buttons
+    if (target.closest('button') || target.closest('.card-actions')) {
+      return;
+    }
+    // Convert touch to click for card
     this.cardClick.emit(this.card.id);
   }
 }
