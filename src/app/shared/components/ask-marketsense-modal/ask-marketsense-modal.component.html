@@ -33,11 +33,14 @@
     </div>
 
     <!-- Session History Message -->
-    <div class="session-history-message">
+    <div class="session-history-message" *ngIf="activeTab === 'new-question'">
       <p>Your session history will be available after your first question is answered.</p>
     </div>
+    <div class="session-history-message" *ngIf="activeTab === 'history'">
+      <p>Continue or refine a previous analysis.</p>
+    </div>
 
-    <!-- Main Content -->
+    <!-- Main Content - New Question -->
     <div class="main-content" *ngIf="activeTab === 'new-question'">
       <!-- Input Section -->
       <div class="input-section">
@@ -69,6 +72,51 @@
         <div class="example-questions">
           <p class="example-text">Example: "What are the top equity flows by region?"</p>
           <p class="example-text">Example: "Show alternatives performance for institutional clients"</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content - Session History -->
+    <div class="main-content session-history-content" *ngIf="activeTab === 'history'">
+      <!-- Section Header -->
+      <div class="history-section-header">
+        <h2>SELECT AN ANALYSIS TO CONTINUE</h2>
+      </div>
+
+      <!-- Analysis List -->
+      <div class="analysis-list">
+        <div 
+          class="analysis-item" 
+          *ngFor="let analysis of sessionHistory"
+          (click)="onSelectAnalysis(analysis.id)">
+          <div class="analysis-header">
+            <span class="analysis-title">{{ analysis.title }}</span>
+          </div>
+          <p class="analysis-question">{{ analysis.question }}</p>
+          <span class="analysis-timestamp">{{ analysis.timestamp }}</span>
+        </div>
+      </div>
+
+      <!-- Follow-up Input Section -->
+      <div class="input-section follow-up-section">
+        <div class="input-wrapper">
+          <textarea 
+            class="input-field" 
+            [(ngModel)]="followUpMessage"
+            (keydown.enter)="onSendFollowUp($event)"
+            rows="3"
+            placeholder="Refine, compare, or drill deeper into this analysis...">
+          </textarea>
+          <button 
+            class="ask-btn follow-up-btn" 
+            [disabled]="!followUpMessage.trim()" 
+            (click)="onSendFollowUp()"
+            aria-label="Ask Follow-up Question">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <span>Ask Follow-up Question</span>
+          </button>
         </div>
       </div>
     </div>

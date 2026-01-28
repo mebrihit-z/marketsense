@@ -166,6 +166,10 @@
   overflow-y: auto;
 }
 
+.session-history-content {
+  padding: 24px 40px 32px 40px;
+}
+
 // Input Section
 .input-section {
   margin-bottom: 32px;
@@ -275,8 +279,7 @@
   font-size: 14px;
   line-height: 20px;
   color: $text-secondary;
-  width: 50%;
-  text-align: center;
+  margin: 0 0 32px 0;
 }
 
 .example-questions {
@@ -295,6 +298,82 @@
   color: $text-secondary;
   margin: 0;
   font-style: italic;
+}
+
+// Session History Styles
+.history-section-header {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+
+  h2 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #374151;
+    margin: 0;
+  }
+}
+
+.analysis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  min-height: 0;
+}
+
+.analysis-item {
+  background-color: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: #DBEAFE;
+    border-color: #BFDBFE;
+  }
+
+  .analysis-header {
+    margin-bottom: 8px;
+  }
+
+  .analysis-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #1C398E;
+    text-transform: uppercase;
+  }
+
+  .analysis-question {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #162456;
+    margin: 0 0 8px 0;
+  }
+
+  .analysis-timestamp {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    color: #9CA3AF;
+  }
+}
+
+.follow-up-section {
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 // Responsive adjustments

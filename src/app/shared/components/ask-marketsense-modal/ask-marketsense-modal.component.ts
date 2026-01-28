@@ -18,7 +18,24 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   @Output() sendMessage = new EventEmitter<string>();
 
   userMessage: string = '';
+  followUpMessage: string = '';
   activeTab: 'new-question' | 'history' = 'new-question';
+  
+  // Sample session history data
+  sessionHistory = [
+    {
+      id: 1,
+      title: 'ANALYSIS 1',
+      question: 'What trends do we see in the increase or decrease of these inflows and outflows when comparing the last 12, 24, and 36 months? (3M)',
+      timestamp: 'Today at 07:12 PM'
+    },
+    {
+      id: 2,
+      title: 'ANALYSIS 2',
+      question: 'Which client types account for the largest share of net inflows by asset class, and where is client concentration increasing or decreasing?',
+      timestamp: 'Today at 03:27 PM'
+    }
+  ];
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible']) {
@@ -57,6 +74,35 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (this.userMessage.trim()) {
       this.sendMessage.emit(this.userMessage.trim());
       this.userMessage = '';
+    }
+  }
+
+  onSendFollowUp(event?: Event | KeyboardEvent): void {
+    // Type guard to check if it's a KeyboardEvent
+    const keyboardEvent = event as KeyboardEvent | undefined;
+    
+    // If Enter key is pressed with Shift, allow new line (don't send)
+    if (keyboardEvent && keyboardEvent.key === 'Enter' && keyboardEvent.shiftKey) {
+      return;
+    }
+    
+    // If Enter key is pressed without Shift, prevent default and send
+    if (keyboardEvent && keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
+      keyboardEvent.preventDefault();
+    }
+    
+    // Send follow-up message if there's content
+    if (this.followUpMessage.trim()) {
+      this.sendMessage.emit(this.followUpMessage.trim());
+      this.followUpMessage = '';
+    }
+  }
+
+  onSelectAnalysis(analysisId: number): void {
+    // Handle analysis selection
+    const analysis = this.sessionHistory.find(a => a.id === analysisId);
+    if (analysis) {
+      this.followUpMessage = '';
     }
   }
 }
