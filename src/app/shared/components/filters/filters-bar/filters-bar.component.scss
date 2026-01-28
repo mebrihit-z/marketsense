@@ -281,7 +281,6 @@
     margin: 0;
     letter-spacing: -0.1504px;
     padding: 0;
-    font-family: 'Inter', sans-serif;
    
 }
 
@@ -457,7 +456,6 @@
 }
 
 .ai-confidence-label {
-    font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 400;
     line-height: 20px;
@@ -475,7 +473,6 @@
 }
 
 .slider-label {
-    font-family: 'Noto Sans', sans-serif;
     font-size: 12px;
     font-weight: 500;
     line-height: 20px;
@@ -626,7 +623,6 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
@@ -653,7 +649,6 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
@@ -684,7 +679,6 @@
     background:none; 
     border:none;  
     cursor:pointer; 
-    font-family: Inter;
     color: $text-secondary;
     font-size: 14px;
     font-style: normal;
@@ -780,7 +774,6 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
     color: $primary-blue;
     font-size: 14px;
     font-style: normal;
@@ -1211,7 +1204,6 @@
 }
 
 .ai-confidence-label-condensed {
-    font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 400;
     line-height: 16px;
@@ -1241,7 +1233,6 @@
 }
 
 .slider-label-condensed {
-    font-family: 'Noto Sans', sans-serif;
     font-size: 12px;
     font-weight: 500;
     line-height: 20px;
@@ -1371,7 +1362,6 @@
 }
 
 .toggle-label-condensed {
-    font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 400;
     line-height: 16px;
@@ -1572,14 +1562,12 @@
     color: rgba(0, 0, 0, 0.65);
     white-space: nowrap;
     letter-spacing: 0.03px;
-    font-family: 'Noto Sans', sans-serif;
     line-height: 20px;
     text-align: center;
     top: 0;
     
     &.active {
         font-weight: 500;
-        font-family: 'Noto Sans', sans-serif;
     }
 }
 
