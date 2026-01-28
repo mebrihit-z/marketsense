@@ -17,7 +17,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   @Output() close = new EventEmitter<void>();
   @Output() sendMessage = new EventEmitter<string>();
 
-  userMessage: string = 'What are the largest inflows and outflows by asset class over the last 12 months, broken down by client type, and what percentage of total assets do they represent?';
+  userMessage: string = '';
   activeTab: 'new-question' | 'history' = 'new-question';
 
   ngOnChanges(changes: SimpleChanges): void {

@@ -51,7 +51,7 @@
             [(ngModel)]="userMessage"
             (keydown.enter)="onSendMessage($event)"
             rows="4"
-            placeholder="What are the largest inflows and outflows by asset class over the last 12 months, broken down by client type, and what percentage of total assets do they represent?">
+            placeholder="Ask a question about flows, trends, or signals…">
           </textarea>
           <button 
             class="ask-btn" 
@@ -59,7 +59,7 @@
             (click)="onSendMessage()"
             aria-label="Ask Question">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14 2L7 9M14 2L10 14L7 9M14 2L2 6L7 9" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </svg>
             <span>Ask Question</span>
           </button>
@@ -68,7 +68,8 @@
 
       <!-- Empty State -->
       <div class="empty-state">
-        <p class="empty-state-text">No queries yet. Ask a question to get started.</p>
+        <p class="empty-state-text">No analysis yet. Ask a question to get started.</p>
+        <p class="ai-capability-text">MarketSense AI currently provides forecasted insights and forward-looking signals, not historical analysis.</p>
         <div class="example-questions">
           <p class="example-text">Example: "What are the top equity flows by region?"</p>
           <p class="example-text">Example: "Show alternatives performance for institutional clients"</p>

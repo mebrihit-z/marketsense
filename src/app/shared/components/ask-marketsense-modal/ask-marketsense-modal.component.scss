@@ -8,7 +8,7 @@
   bottom: 0;
   background-color: $overlay-modal;
   display: flex;
-  z-index: 1001;
+  z-index: 100001;
   animation: fadeIn 0.2s ease-out;
   justify-content: flex-end;
   align-items: stretch;
@@ -26,9 +26,6 @@
 .modal-container {
   position: relative;
   background-color: $bg-white;
-  width: 66.67%;
-  max-width: 900px;
-  min-width: 600px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -118,34 +115,36 @@
 // Tabs
 .tabs-container {
   display: flex;
-  gap: 0;
+  gap: 8px;
   padding: 0 40px;
-  border-bottom: 1px solid $border-light;
+  border-bottom: none;
   flex-shrink: 0;
 }
 
 .tab-btn {
-  background: none;
+  background-color: #F3F4F6;
   border: none;
-  padding: 12px 24px;
+  padding: 8px 16px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   color: $text-secondary;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
+  border-radius: 6px;
   transition: all 0.2s;
-  position: relative;
-  bottom: -1px;
 
   &:hover {
-    color: $text-primary;
+    background-color: #E5E7EB;
   }
 
   &.active {
-    color: #3B82F6;
-    border-bottom-color: #3B82F6;
+    background-color: $primary-blue;
+    color: white;
+    
+    &:hover {
+      background-color: $primary-blue-hover;
+    }
   }
 }
 
@@ -183,6 +182,7 @@
 .input-wrapper {
   position: relative;
   display: flex;
+  flex-direction: column;
   gap: 12px;
   align-items: flex-start;
   width: 100%;
@@ -201,9 +201,10 @@
   letter-spacing: -0.15px;
   color: $text-primary;
   resize: none;
-  min-height: 120px;
+  min-height: 80px;
   outline: none;
   transition: border-color 0.2s;
+  width: 100%;
 
   &::placeholder {
     color: $text-secondary;
@@ -220,27 +221,35 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background-color: #3B82F6;
+  background-color: #E5E7EB;
   border: none;
   border-radius: 8px;
-  cursor: pointer;
+  cursor: not-allowed;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
-  color: white;
-  transition: background-color 0.2s;
+  color: #fff;
+  transition: all 0.2s;
   flex-shrink: 0;
   align-self: flex-start;
   margin-top: 8px;
+  align-self: flex-end;
 
-  &:hover:not(:disabled) {
-    background-color: #2563EB;
+  &:not(:disabled) {
+    background-color: #3B82F6;
+    color: white;
+    cursor: pointer;
+    
+    &:hover {
+      background-color: #2563EB;
+    }
   }
 
   &:disabled {
+    background-color: #E5E7EB;
+    color: #fff;
     cursor: not-allowed;
-    opacity: 0.5;
   }
 
   svg {
@@ -255,8 +264,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
+  justify-content: center;
+  align-items: center;
   text-align: left;
   padding: 0;
 }
@@ -267,7 +276,17 @@
   font-size: 16px;
   line-height: 24px;
   color: $text-secondary;
-  margin: 0 0 32px 0;
+  margin: 0 0 8px 0;
+}
+
+.ai-capability-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-secondary;
+  width: 50%;
+  text-align: center;
 }
 
 .example-questions {
