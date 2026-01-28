@@ -219,97 +219,10 @@
   }
 }
 
-// Available Dimensions
-.available-dimensions-container {
+// Dimension Selectors
+.dimension-selectors {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    width: 100%;
-  }
-}
-
-.available-dimensions-label {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  color: $text-primary;
-  white-space: nowrap;
-  
-  @media (max-width: 768px) {
-    font-size: 13px;
-    line-height: 18px;
-  }
-}
-
-.available-dimensions-list {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    gap: 6px;
-  }
-}
-
-.available-dimension-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: $primary-blue;
-  border-radius: 120px;
-  cursor: move;
-  transition: opacity 0.2s, transform 0.2s;
-  user-select: none;
-
-  @media (max-width: 768px) {
-    padding: 8px 12px;
-    gap: 6px;
-    touch-action: manipulation;
-    width: 100%;
-  }
-
-  &:hover {
-    opacity: 0.9;
-    transform: scale(1.02);
-  }
-
-  .grid-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    
-    @media (max-width: 768px) {
-      width: 14px;
-      height: 14px;
-    }
-  }
-
-  .dimension-chip-text {
-    font-weight: 400;
-    font-size: 13px;
-    line-height: 16px;
-    letter-spacing: 0.0325px;
-    color: $bg-white;
-    
-    @media (max-width: 768px) {
-      font-size: 12px;
-      line-height: 16px;
-    }
-  }
-}
-
-// Dimension Drop Zones
-.dimension-drop-zones {
-  display: flex;
-  gap: 16px;
+  gap: 36px;
   align-items: flex-start;
   
   @media (max-width: 768px) {
@@ -319,11 +232,10 @@
   }
 }
 
-.drop-zone-container {
+.dimension-selector-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
   
   @media (max-width: 768px) {
     width: 100%;
@@ -331,11 +243,11 @@
   }
 }
 
-.drop-zone-label {
+.dimension-selector-label {
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: $text-primary;
+  color: $text-secondary;
   
   @media (max-width: 768px) {
     font-size: 13px;
@@ -343,111 +255,121 @@
   }
 }
 
-.drop-zone {
-  padding: 12px;
+// Custom Dropdown Styles
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-button {
+  width: 100%;
+  padding: 10px 12px;
   background-color: $bg-white;
   border: 1px solid $border-light;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-primary;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
-  min-height: 44px;
-
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  
   @media (max-width: 768px) {
     padding: 12px;
-    min-height: 48px;
-    touch-action: manipulation;
+    font-size: 13px;
+    line-height: 18px;
   }
 
-  &.drag-over {
+  &:hover {
     border-color: $primary-blue;
-    background-color: $bg-light-opacity;
   }
 
-  &.has-dimension {
-    border-color: $primary-blue;
-    background-color: $bg-light-opacity;
+  &.has-selection {
+    color: $text-primary;
   }
 
-  .drop-zone-placeholder {
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 20px;
-    color: $text-secondary;
-    text-align: center;
+  .custom-select-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .custom-select-arrow {
+    width: 12px;
+    height: 8px;
+    flex-shrink: 0;
+    margin-left: 8px;
+    transition: transform 0.2s;
     
-    @media (max-width: 768px) {
-      font-size: 13px;
-      line-height: 18px;
+    &.open {
+      transform: rotate(180deg);
     }
   }
+}
 
-  .selected-dimension {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background-color: $primary-blue;
-    border-radius: 120px;
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  display: none;
+  
+  &.open {
+    display: block;
+  }
+  
+  @media (max-width: 768px) {
+    max-height: 200px;
+  }
+}
 
-    @media (max-width: 768px) {
-      padding: 8px 12px;
-      gap: 6px;
-      width: 100%;
-      justify-content: space-between;
-    }
-
-    .grid-icon {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-      
-      @media (max-width: 768px) {
-        width: 14px;
-        height: 14px;
-      }
-    }
-
-    .dimension-chip-text {
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 16px;
-      letter-spacing: 0.0325px;
-      color: $bg-white;
-      flex: 1;
-      
-      @media (max-width: 768px) {
-        font-size: 12px;
-        line-height: 16px;
-      }
-    }
-
-    .remove-icon {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      margin-left: 4px;
-      touch-action: manipulation;
-      
-      @media (max-width: 768px) {
-        width: 18px;
-        height: 18px;
-        padding: 4px;
-        min-width: 18px;
-      }
-
-      &:hover {
-        opacity: 0.8;
-      }
-
-      &:active {
-        opacity: 0.6;
-      }
-    }
+.custom-select-option {
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  background-color: $bg-white;
+  
+  @media (max-width: 768px) {
+    padding: 12px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  
+  &:hover {
+    background-color: rgba(236, 236, 240, 0.3);
+  }
+  
+  &.selected {
+    background-color: rgba(236, 236, 240, 0.5);
+    color: $primary-blue;
+    font-weight: 500;
+  }
+  
+  &:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+  
+  &:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
   }
 }
 
