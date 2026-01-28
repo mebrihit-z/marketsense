@@ -7,9 +7,9 @@
       <button type="button" class="icon-btn" [class.pinned]="isPinned" (click)="onPin($event); $event.stopPropagation()" (mousedown)="onPin($event)" (touchstart)="onPin($event)" aria-label="Pin Button">
         <img src="assets/icons/pin-icon.svg" alt="Pin Button">
       </button>
-      <!-- More Options Button -->
-      <button type="button" class="icon-btn" (click)="onMoreOptions(); $event.stopPropagation()" aria-label="More Options">
-        <img src="assets/icons/more-options-icon.svg" alt="More Options" class="more-options-icon">
+      <!-- Download Button -->
+      <button type="button" class="icon-btn" (click)="onDownload($event); $event.stopPropagation()" aria-label="Download">
+        <img src="assets/icons/download-icon.svg" alt="download icon" class="more-options-icon">
       </button>
     </div>
   </div>
