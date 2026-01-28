@@ -1,14 +1,17 @@
 <div class="modal-overlay" (click)="onClose()" *ngIf="isVisible">
-  <div class="modal-container" (click)="$event.stopPropagation()">
-    <!-- Window Controls -->
+  <div class="modal-container" [class.collapsed]="isCollapsed" (click)="$event.stopPropagation()">
+    <!-- Window Controls - Always visible -->
     <div class="window-controls">
-      <button class="window-btn maximize-btn" aria-label="Maximize">
+      <button class="window-btn maximize-btn" (click)="toggleCollapse()" [attr.aria-label]="isCollapsed ? 'Expand' : 'Collapse'">
         <img src="assets/icons/maximize-icon.svg" alt="Maximize" />
       </button>
       <button class="window-btn close-btn" (click)="onClose()" aria-label="Close">
         <img src="assets/icons/close-icon.svg" alt="Close" />
       </button>
     </div>
+
+    <!-- Content - Hidden when collapsed -->
+    <div class="modal-content-wrapper" *ngIf="!isCollapsed">
 
     <!-- Header -->
     <div class="modal-header">
@@ -119,6 +122,7 @@
           </button>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </div>

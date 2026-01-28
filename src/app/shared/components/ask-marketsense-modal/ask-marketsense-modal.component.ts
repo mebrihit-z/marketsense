@@ -20,6 +20,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   userMessage: string = '';
   followUpMessage: string = '';
   activeTab: 'new-question' | 'history' = 'new-question';
+  isCollapsed: boolean = false;
   
   // Sample session history data
   sessionHistory = [
@@ -104,6 +105,10 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (analysis) {
       this.followUpMessage = '';
     }
+  }
+
+  toggleCollapse(): void {
+    this.isCollapsed = !this.isCollapsed;
   }
 }
 
