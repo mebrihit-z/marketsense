@@ -3,14 +3,10 @@
     <!-- Window Controls -->
     <div class="window-controls">
       <button class="window-btn maximize-btn" aria-label="Maximize">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 2H10V10H2V2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <img src="assets/icons/maximize-icon.svg" alt="Maximize" />
       </button>
       <button class="window-btn close-btn" (click)="onClose()" aria-label="Close">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <img src="assets/icons/close-icon.svg" alt="Close" />
       </button>
     </div>
 
@@ -50,8 +46,8 @@
             class="input-field" 
             [(ngModel)]="userMessage"
             (keydown.enter)="onSendMessage($event)"
-            rows="4"
-            placeholder="Ask a question about flows, trends, or signals…">
+            rows="3"
+            placeholder="Ask a question about flows, trends, or signals...">
           </textarea>
           <button 
             class="ask-btn" 

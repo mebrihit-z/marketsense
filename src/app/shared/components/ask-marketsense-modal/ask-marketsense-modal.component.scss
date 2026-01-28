@@ -26,6 +26,7 @@
 .modal-container {
   position: relative;
   background-color: $bg-white;
+  width: 700px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -134,17 +135,9 @@
   border-radius: 6px;
   transition: all 0.2s;
 
-  &:hover {
-    background-color: #E5E7EB;
-  }
-
   &.active {
     background-color: $primary-blue;
     color: white;
-    
-    &:hover {
-      background-color: $primary-blue-hover;
-    }
   }
 }
 
@@ -237,13 +230,10 @@
   align-self: flex-end;
 
   &:not(:disabled) {
-    background-color: #3B82F6;
+    background-color: $primary-blue;
     color: white;
     cursor: pointer;
     
-    &:hover {
-      background-color: #2563EB;
-    }
   }
 
   &:disabled {
@@ -310,8 +300,9 @@
 // Responsive adjustments
 @media (max-width: 1024px) {
   .modal-container {
-    width: 80%;
-    min-width: 500px;
+    width: 600px;
+    min-width: 600px;
+    max-width: 600px;
   }
 }
 
@@ -319,6 +310,7 @@
   .modal-container {
     width: 100%;
     min-width: 100%;
+    max-width: 100%;
   }
 
   .modal-header {
