@@ -4,8 +4,17 @@
     <h3 class="card-title">{{ card.title }}</h3>
     <div class="card-actions" (click)="$event.stopPropagation()" (touchstart)="$event.stopPropagation()">
       <!-- Pin Button -->
-      <button type="button" class="icon-btn" [class.pinned]="isPinned" (click)="onPin($event)" (touchstart)="onPin($event)" (mousedown)="onPin($event)" aria-label="Pin Button">
-        <img src="assets/icons/pin-icon.svg" alt="Pin Button">
+      <button
+        type="button"
+        class="icon-btn"
+        [class.pinned]="isPinned"
+        (click)="onPin($event)"
+        (touchstart)="onPin($event)"
+        (mousedown)="onPin($event)"
+        aria-label="Pin Button">
+        <img
+          [src]="isPinned ? 'assets/icons/pined-pin-icon.svg' : 'assets/icons/pin-icon.svg'"
+          alt="Pin Button">
       </button>
       <!-- Download Button -->
       <button type="button" class="icon-btn" (click)="onDownload($event)" (touchstart)="onDownload($event)" (mousedown)="onDownload($event)" aria-label="Download">
