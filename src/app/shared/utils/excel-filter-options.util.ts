@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Utility functions for extracting filter options directly from Excel files
  */

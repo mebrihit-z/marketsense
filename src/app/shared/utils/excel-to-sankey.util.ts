@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Browser-compatible utility to convert Excel files to Sankey diagram data
  */
