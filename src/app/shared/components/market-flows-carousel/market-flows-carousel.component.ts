@@ -88,18 +88,42 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   }
   
   sortCards(cards: MarketFlowCard[]): MarketFlowCard[] {
+    // First apply the selected sort option to get a base ordering
     switch (this.selectedSortOption) {
       case 'value-high':
-        return cards.sort((a, b) => Math.abs(this.parseValue(b.value)) - Math.abs(this.parseValue(a.value)));
+        cards.sort((a, b) => Math.abs(this.parseValue(b.value)) - Math.abs(this.parseValue(a.value)));
+        break;
       case 'value-low':
-        return cards.sort((a, b) => Math.abs(this.parseValue(a.value)) - Math.abs(this.parseValue(b.value)));
+        cards.sort((a, b) => Math.abs(this.parseValue(a.value)) - Math.abs(this.parseValue(b.value)));
+        break;
       case 'change-high':
-        return cards.sort((a, b) => Math.abs(this.parsePercentage(b.percentageChange)) - Math.abs(this.parsePercentage(a.percentageChange)));
+        cards.sort((a, b) => Math.abs(this.parsePercentage(b.percentageChange)) - Math.abs(this.parsePercentage(a.percentageChange)));
+        break;
       case 'change-low':
-        return cards.sort((a, b) => Math.abs(this.parsePercentage(a.percentageChange)) - Math.abs(this.parsePercentage(b.percentageChange)));
+        cards.sort((a, b) => Math.abs(this.parsePercentage(a.percentageChange)) - Math.abs(this.parsePercentage(b.percentageChange)));
+        break;
       default:
-        return cards;
+        // Leave original order
+        break;
     }
+
+    // Then move pinned cards to the front while preserving their relative order
+    if (!this.pinnedCardIds || this.pinnedCardIds.length === 0) {
+      return cards;
+    }
+
+    const pinned: MarketFlowCard[] = [];
+    const unpinned: MarketFlowCard[] = [];
+
+    for (const card of cards) {
+      if (this.isCardPinned(card.id)) {
+        pinned.push(card);
+      } else {
+        unpinned.push(card);
+      }
+    }
+
+    return [...pinned, ...unpinned];
   }
   
   parseValue(valueStr: string): number {
@@ -326,6 +350,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   }
 
   onPin(cardId: string): void {
+    console.log('Carousel received pin event for card:', cardId);
     // Emit pin event to parent component
     // The ngOnChanges will handle resetting to first slide when pinnedCardIds changes
     this.pinCard.emit(cardId);

@@ -64,7 +64,6 @@ export class MarketFlowCardComponent {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation();
     }
     
     this.download.emit(this.card.id);
@@ -92,37 +91,33 @@ export class MarketFlowCardComponent {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation();
     }
     
     // Emit the event
     this.askMarketSense.emit(this.card.id);
   }
 
-  onPin(event?: Event): void {
-    const now = Date.now();
+  onPin(event: Event): void {
+    // Stop event propagation to prevent card click
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
     
-    // Prevent double-firing from multiple event handlers (click + mousedown)
-    if (now - this.pinLastHandled < this.PIN_DEBOUNCE_MS) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      return;
-    }
+    console.log('Pin clicked for card:', this.card.id);
     
-    this.pinLastHandled = now;
-    
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-    }
-    
+    // Emit pin event
     this.pin.emit(this.card.id);
   }
 
-  onCardClick(): void {
+  onCardClick(event?: Event): void {
+    // Don't trigger card click if clicking on action buttons
+    if (event) {
+      const target = event.target as HTMLElement;
+      // Check if click originated from a button or its child
+      if (target.closest('button')) {
+        return;
+      }
+    }
     // Emit card click event
     this.cardClick.emit(this.card.id);
   }
