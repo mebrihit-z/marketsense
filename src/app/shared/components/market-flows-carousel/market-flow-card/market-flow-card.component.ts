@@ -122,6 +122,18 @@ export class MarketFlowCardComponent {
     this.cardClick.emit(this.card.id);
   }
 
+  onCardMouseDown(event?: Event): void {
+    // VDI/remote desktop often doesn't synthesize 'click' - only mousedown/mouseup.
+    // Handle mousedown so the detail modal opens in those environments.
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (target.closest('button') || target.closest('.card-actions')) {
+        return;
+      }
+    }
+    this.cardClick.emit(this.card.id);
+  }
+
   onCardTouchStart(event: TouchEvent): void {
     // Handle touch events for VDI compatibility
     const target = event.target as HTMLElement;
