@@ -61,16 +61,30 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return '#0b41ad';
   }
 
+  /** Template for fallback mock data; length is adjusted to match x-axis labels. */
+  private static readonly FALLBACK_CHART_DATA_TEMPLATE = [10, 12, 18, 25, 35];
+
+  /** Returns fallback chart data with length equal to getXAxisLabels() so x-axis never shows raw indices (e.g. "4"). */
+  private getFallbackChartData(): number[] {
+    const labelCount = this.getXAxisLabels().length;
+    const template = MarketFlowDetailModalComponent.FALLBACK_CHART_DATA_TEMPLATE;
+    if (labelCount <= template.length) {
+      return template.slice(0, labelCount);
+    }
+    // Pad: repeat last value so every tick has a label
+    const last = template[template.length - 1] ?? 35;
+    return [...template, ...Array(labelCount - template.length).fill(last)];
+  }
+
   getChartData(): number[] {
     if (!this.card || !this.rawAssetFlowsData || this.rawAssetFlowsData.length === 0) {
-      // Fallback to mock data if no real data available
-      return [10, 12, 15, 14, 18, 22, 25, 28, 32, 30, 35, 38, 40];
+      return this.getFallbackChartData();
     }
 
     // Filter data by product sub-type
     const productSubType = this.card.productSubType;
     if (!productSubType) {
-      return [10, 12, 15, 14, 18, 22, 25, 28, 32, 30, 35, 38, 40];
+      return this.getFallbackChartData();
     }
 
     // Filter by product sub-type
@@ -121,7 +135,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     // Sort dates and create data points
     const sortedDates = Array.from(dateMap.keys()).sort();
     if (sortedDates.length === 0) {
-      return [10, 12, 15, 14, 18, 22, 25, 28, 32, 30, 35, 38, 40];
+      return this.getFallbackChartData();
     }
 
     // Generate data points aligned with time horizon labels
@@ -169,29 +183,28 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       }
     }
 
-    // Fallback: use cumulative values from actual data points
+    // Fallback: use cumulative values from actual data points; align length with x-axis labels
     let cumulativeValue = 0;
-    const data = sortedDates.map(date => {
+    const rawData = sortedDates.map(date => {
       const dateValue = dateMap.get(date) || 0;
       cumulativeValue += dateValue;
       return cumulativeValue;
     });
-    
-    // If we have fewer than 5 data points, pad with zeros or use what we have
-    if (data.length < 5) {
-      return data;
-    } else if (data.length > 5) {
-      // Sample to get 5 points
-      const step = Math.floor(data.length / 5);
-      const sampled: number[] = [];
-      for (let i = 0; i < 5; i++) {
-        const index = Math.min(i * step, data.length - 1);
-        sampled.push(data[index]);
-      }
-      return sampled;
+    const targetLength = Math.max(1, this.getXAxisLabels().length);
+    if (rawData.length === targetLength) {
+      return rawData;
     }
-    
-    return data;
+    if (rawData.length < targetLength) {
+      // Pad with last value so chart and axis stay in sync
+      const last = rawData[rawData.length - 1] ?? 0;
+      return [...rawData, ...Array(targetLength - rawData.length).fill(last)];
+    }
+    // Sample evenly to target length
+    const step = (rawData.length - 1) / (targetLength - 1);
+    return Array.from({ length: targetLength }, (_, i) => {
+      const index = i === targetLength - 1 ? rawData.length - 1 : Math.min(Math.round(i * step), rawData.length - 1);
+      return rawData[index];
+    });
   }
 
   /**
@@ -320,7 +333,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Generates time horizon labels from start to end with intermediate points
+   * Generates time horizon labels from start to end with distinct intermediate points (no duplicates).
+   * Uses evenly spaced integer months so we never get duplicate labels like "+2mo", "+2mo".
    */
   private generateTimeHorizonLabels(start: string, end: string): string[] {
     const startMonths = this.parseTimeHorizonToMonths(start);
@@ -330,14 +344,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
     }
 
+    const maxPoints = 5;
+    const span = endMonths - startMonths;
+    // Use distinct integer month steps: at most maxPoints, and at most (span + 1) points
+    const numDistinctMonths = Math.min(maxPoints, Math.max(1, Math.abs(span) + 1));
+    const step = span === 0 ? 0 : span / (numDistinctMonths - 1);
+    const seenMonths = new Set<number>();
     const labels: string[] = [];
-    const numPoints = 5; // Number of points to show on x-axis
 
-    // Generate labels from start to end
-    for (let i = 0; i < numPoints; i++) {
-      const progress = i / (numPoints - 1);
-      const months = Math.round(startMonths + (endMonths - startMonths) * progress);
-      
+    for (let i = 0; i < numDistinctMonths; i++) {
+      const months = span === 0 ? startMonths : Math.round(startMonths + step * i);
+      if (seenMonths.has(months)) continue;
+      seenMonths.add(months);
+
       if (months === 0) {
         labels.push('Today');
       } else if (months > 0) {
@@ -347,7 +366,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       }
     }
 
-    return labels;
+    return labels.length > 0 ? labels : ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
   }
 
   /**
