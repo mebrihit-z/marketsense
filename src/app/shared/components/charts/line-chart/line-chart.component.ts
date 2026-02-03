@@ -87,43 +87,42 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
     // Calculate domain for Y axis
-    const actualDataMin = d3.min(this.data) || 0;
-    const actualDataMax = d3.max(this.data) || 100;
+    const actualDataMin = d3.min(this.data) ?? 0;
+    const actualDataMax = d3.max(this.data) ?? 100;
     
     // Check if we have negative values in the actual data (not just the domain)
     const hasNegativeValues = actualDataMin < 0;
-    
-    // If data has negatives, ensure domain includes 0 (or goes below it)
-    // Override yAxisMin if it would cut off negative values
-    let dataMin = this.yAxisMin !== undefined ? this.yAxisMin : actualDataMin;
-    if (hasNegativeValues && dataMin > 0) {
-      dataMin = Math.min(0, actualDataMin);
-    }
-    
-    const dataMax = this.yAxisMax !== undefined ? this.yAxisMax : actualDataMax;
-    
-    // Use smaller padding for negative values to prevent the chart from looking compressed
-    const paddingPercent = hasNegativeValues ? 0.05 : 0.1; // 5% padding for negatives, 10% for positives
-    const range = dataMax - dataMin;
-    const yPadding = range * paddingPercent;
-    let yMin = dataMin - yPadding;
-    let yMax = dataMax + yPadding;
-    
-    // Handle negative values: ensure 0 is in domain for x-axis positioning, but minimize empty space
-    if (hasNegativeValues) {
-      if (actualDataMin < 0 && actualDataMax > 0) {
-        // Data spans zero - ensure 0 is in domain with balanced padding
-        if (yMin > 0) yMin = 0;
-        if (yMax < 0) yMax = 0;
-      } else if (actualDataMax <= 0) {
-        // All values are negative - include 0 but with minimal padding above it
-        // Use a small fixed padding above 0 instead of percentage-based
-        const smallPadding = Math.abs(actualDataMax) * 0.05; // Small padding above 0
-        yMin = actualDataMin - yPadding; // Keep normal padding below
-        yMax = Math.max(0, actualDataMax + smallPadding); // Minimal padding above, but at least 0
-      } else if (actualDataMin >= 0) {
-        // All values are positive but hasNegativeValues is true (shouldn't happen, but handle it)
-        // This case shouldn't occur, but if it does, treat as normal positive values
+    const explicitDomain = this.yAxisMin !== undefined && this.yAxisMax !== undefined;
+
+    let yMin: number;
+    let yMax: number;
+
+    if (explicitDomain) {
+      // Parent provided min/max (e.g. data-driven from modal): use them so the axis fits the data
+      yMin = Math.min(this.yAxisMin!, this.yAxisMax!);
+      yMax = Math.max(this.yAxisMin!, this.yAxisMax!);
+    } else {
+      // Compute domain from data
+      let dataMin = this.yAxisMin !== undefined ? this.yAxisMin : actualDataMin;
+      if (hasNegativeValues && dataMin > 0) {
+        dataMin = Math.min(0, actualDataMin);
+      }
+      const dataMax = this.yAxisMax !== undefined ? this.yAxisMax : actualDataMax;
+      const paddingPercent = hasNegativeValues ? 0.05 : 0.1;
+      const range = dataMax - dataMin;
+      const yPadding = range * paddingPercent;
+      yMin = dataMin - yPadding;
+      yMax = dataMax + yPadding;
+
+      if (hasNegativeValues) {
+        if (actualDataMin < 0 && actualDataMax > 0) {
+          if (yMin > 0) yMin = 0;
+          if (yMax < 0) yMax = 0;
+        } else if (actualDataMax <= 0) {
+          const smallPadding = Math.abs(actualDataMax) * 0.05;
+          yMin = actualDataMin - yPadding;
+          yMax = Math.max(0, actualDataMax + smallPadding);
+        }
       }
     }
 
@@ -135,7 +134,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     const yScale = d3.scaleLinear()
       .domain([yMin, yMax])
-      .range([innerHeight, 0]);
+      .range([innerHeight, 0])
+      .nice(5); // Round domain to nice values and use chart space properly
 
     // Create line generator - use linear interpolation for straight lines
     const line = d3.line<number>()
@@ -144,8 +144,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .curve(d3.curveLinear);
 
     // Create area generator (if needed)
-    // Use y=0 as baseline when there are negative values, otherwise use bottom
-    const zeroY = hasNegativeValues ? yScale(0) : innerHeight;
+    // Use y=0 as baseline only when 0 is in the domain (data spans zero); otherwise use bottom
+    const [scaleYMin, scaleYMax] = yScale.domain();
+    const zeroInDomain = scaleYMin <= 0 && scaleYMax >= 0;
+    const zeroY = (hasNegativeValues && zeroInDomain) ? yScale(0) : innerHeight;
     const area = d3.area<number>()
       .x((d, i) => xScale(i))
       .y0(zeroY)
@@ -155,7 +157,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Draw grid lines (if enabled) - solid light gray lines
     if (this.showGrid) {
       // Horizontal grid lines - show all Y-axis ticks
-      const yTicks = yScale.ticks(10);
+      const yTicks = yScale.ticks(5);
       const gridLines = g.selectAll('.grid-line-horizontal')
         .data(yTicks)
         .enter()
@@ -433,12 +435,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             .on('mouseleave', handleMouseLeave);
 
     // X Axis - show exactly one tick per data point
-    // Position at y=0 when there are negative values, otherwise at bottom
-    const xAxisYPosition = hasNegativeValues ? yScale(0) : innerHeight;
+    // When y values are negative, put x-axis on top; otherwise at bottom
+    const useTopAxis = hasNegativeValues;
+    const xAxisYPosition = useTopAxis ? 0 : innerHeight;
     const xTickValues = d3.range(0, this.data.length);
-    
-    // Use axisTop if y=0 is in the upper half (more negative values), otherwise axisBottom
-    const useTopAxis = hasNegativeValues && xAxisYPosition < innerHeight / 2;
     const xAxis = (useTopAxis ? d3.axisTop(xScale) : d3.axisBottom(xScale))
       .tickValues(xTickValues)
       .tickFormat((d, i) => {
@@ -490,7 +490,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // Y Axis - show more ticks (10) and format as plain numbers
     const yAxis = d3.axisLeft(yScale)
-      .ticks(10)
+      .ticks(5)
       .tickFormat(d => {
         const value = Number(d);
         // Format as plain numbers (85, 90, etc.) not currency

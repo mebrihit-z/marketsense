@@ -399,15 +399,22 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const data = this.getChartData();
     if (data.length === 0) return undefined;
     const min = Math.min(...data);
-    // Allow negative values - don't force minimum to 0
-    return min * 0.9; // 10% padding below
+    const max = Math.max(...data);
+    // For all-negative data: axis bottom = most negative - padding; top = least negative + padding
+    if (max <= 0) return min * 1.1; // extend downward (e.g. -98 -> -107.8)
+    // For positive or mixed: allow negative, 10% padding below
+    return min * 0.9;
   }
 
   getYAxisMax(): number | undefined {
     const data = this.getChartData();
     if (data.length === 0) return undefined;
+    const min = Math.min(...data);
     const max = Math.max(...data);
-    return max * 1.1; // 10% padding above
+    // For all-negative data: axis top = least negative + padding (e.g. -98 -> -88.2)
+    if (min < 0 && max <= 0) return max * 0.9;
+    // For positive or mixed: 10% padding above
+    return max * 1.1;
   }
 
   getChartWidth(): number {
