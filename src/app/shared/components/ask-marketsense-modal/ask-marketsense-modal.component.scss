@@ -224,13 +224,14 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  letter-spacing: -0.15px;
   color: $text-primary;
   resize: none;
   min-height: 80px;
   outline: none;
   transition: border-color 0.2s;
   width: 100%;
+  font-style: normal;
+  font-family: 'Inter', sans-serif;
 
   &::placeholder {
     color: $text-secondary;
@@ -323,7 +324,6 @@
   line-height: 20px;
   color: $text-secondary;
   margin: 0;
-  font-style: italic;
 }
 
 // Session History Styles
