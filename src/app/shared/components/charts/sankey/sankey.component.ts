@@ -55,7 +55,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
   @Input() showLegend: boolean = true;
-  
+  /** When set to 'Global', node labels will have the "Global" prefix removed for display. */
+  @Input() regionKey?: string;
+
   // Getter to ensure TypeScript recognizes the input
   get shouldShowLegend(): boolean {
     return this.showLegend;
@@ -186,6 +188,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       // Replace "United States" with "U.S" and "United Kingdom" with "U.K"
       let formatted = name.replace(/United States/g, 'U.S');
       formatted = formatted.replace(/United Kingdom/g, 'U.K');
+      // Remove (Source) and (Destination) from display to give labels more space
+      formatted = formatted.replace(/\s*\(Source\)\s*$/, '');
+      formatted = formatted.replace(/\s*\(Destination\)\s*$/, '');
+      // On global sankey only, remove "Global" prefix from labels (title already says Global)
+      if (this.regionKey === 'Global') {
+        formatted = formatted.replace(/^Global\s*:\s*/, '').replace(/^Global\s*-\s*/, '').replace(/^Global\s+/, '').trim();
+      }
       return formatted;
     }
 
@@ -348,7 +357,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     const leftMargin = 150; // Space for Super Start node and labels
     const rightMargin = 150; // Space for Super End node and labels
-    const topMargin = 35; // Increased to accommodate "Outflows" and "Inflows" labels
+    const topMargin = 55; // Space for "Outflows" and "Inflows" labels plus margin below them
     const bottomMargin = 50;
     const legendTopMargin = 70;// Space between chart and legend
     const legendBottomOffset = 15; // Space from legend to bottom of SVG

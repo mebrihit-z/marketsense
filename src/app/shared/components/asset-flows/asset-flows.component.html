@@ -19,10 +19,6 @@
       <button class="more-options-btn" aria-label="More options">
         <img src="assets/icons/download-icon.svg" alt="More options">
       </button>
-      <!-- More Options Button -->
-      <!-- <button class="more-options-btn" aria-label="More options">
-        <img src="assets/icons/more-options-icon.svg" alt="More options">
-      </button> -->
     </div>
   </div>
 
@@ -139,6 +135,7 @@
       <h3 class="sankey-region-title">{{ regionData.key }}</h3>
       <app-sankey
         [data]="regionData.data"
+        [regionKey]="regionData.key"
         [selectedInvestorRegions]="regionData.investorRegions"
         [selectedProductTypes]="cachedSelectedProductTypes"
         [selectedProductSubTypes]="cachedSelectedProductSubTypes"
