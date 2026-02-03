@@ -1,7 +1,41 @@
+// Scoped palette so Sankey looks identical on VDI and local (avoids theme/global CSS differences)
+:host {
+  --text-primary: #0A0A0A;
+  --red-link: #DC2626;
+  --green-link: #059669;
+  --blue-link: rgba(0, 100, 200, 0.7);
+  --default-gray: #999999;
+  --orange-primary: #f59e0b;
+  --orange-primary-dark: #d97706;
+  --orange-primary-hover: #fbbf24;
+  --green-dark: #10b981;
+  --green-darker: #059669;
+  --green-hover: #34d399;
+  --blue-primary: #3b82f6;
+  --blue-primary-dark: #2563eb;
+  --blue-primary-hover: #60a5fa;
+  --purple-primary: #8b5cf6;
+  --purple-primary-dark: #7c3aed;
+  --purple-primary-hover: #a78bfa;
+  --cyan-primary: #06b6d4;
+  --cyan-primary-dark: #0891b2;
+  --cyan-primary-hover: #22d3ee;
+  --gray-medium: #6b7280;
+  --gray-dark: #4b5563;
+  --gray-light: #9ca3af;
+  --overlay-darker: rgba(0, 0, 0, 0.85);
+  --bg-white: #ffffff;
+  --red-primary: #ef4444;
+  --green-primary: #22c55e;
+  --red-primary-dark: #dc2626;
+  --green-primary-dark: #16a34a;
+}
+
 .sankey-container {
   position: relative;
   width: 100%;
   height: 900px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .regional-sankey {

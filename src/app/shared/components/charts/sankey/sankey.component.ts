@@ -171,11 +171,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     ) as RegionalSankeyData;
   }
 
-    // Helper function to get CSS variable value
+    // Helper: read CSS variable from component host first (scoped palette for VDI/local consistency), then :root
     private getCssVariable(name: string): string {
-      return getComputedStyle(document.documentElement)
-        .getPropertyValue(name)
-        .trim();
+      const el = this.el?.nativeElement;
+      if (el) {
+        const value = getComputedStyle(el).getPropertyValue(name).trim();
+        if (value) return value;
+      }
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     }
 
     // Helper function to format node name for display
@@ -246,7 +249,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('color', bgWhite || 'white')
       .style('padding', '8px 12px')
       .style('border-radius', '4px')
-      .style('font-size', '12px')
+      .style('font-size', '14px')
       .style('pointer-events', 'none')
       .style('opacity', 0)
       .style('z-index', 10000)
@@ -298,7 +301,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .append('svg')
       .attr('width', width)
       .attr('height', height)
-      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('viewBox', `0 0 ${width} ${height-50}`)
       .attr('preserveAspectRatio', 'none')
       .style('display', 'block')
       .style('width', '100%')
@@ -347,11 +350,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const rightMargin = 150; // Space for Super End node and labels
     const topMargin = 35; // Increased to accommodate "Outflows" and "Inflows" labels
     const bottomMargin = 50;
+    const legendTopMargin = 70;// Space between chart and legend
+    const legendBottomOffset = 15; // Space from legend to bottom of SVG
     
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(20)
       .nodePadding(10)
-      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
+      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin - legendTopMargin - legendBottomOffset]]);
 
     const graph = sankeyGen(graphData);
 
@@ -498,11 +503,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         
         // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
         if (isSubassetLink && link.date) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 11px; opacity: 0.9;">Date: ${link.date}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Date: ${link.date}</div>`;
         } else {
           const timeInfo = component.formatTimeInfo();
           if (timeInfo) {
-            tooltipHtml += `<div style="margin-top: 4px; font-size: 11px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
           }
         }
         
@@ -861,7 +866,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              const itemsToShow = aggregatedSubassets.slice(0, maxItemsToShow);
              const remainingCount = aggregatedSubassets.length - maxItemsToShow;
              
-             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px;">';
+             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 13px;">';
              subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
@@ -878,12 +883,12 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
                  } else {
                    dateStr = `${subasset.dates[0]} - ${subasset.dates[subasset.dates.length - 1]} (${subasset.dates.length} dates)`;
                  }
-                 subassetLine += ` <span style="opacity: 0.75; font-size: 10px;">(${dateStr})</span>`;
+                 subassetLine += ` <span style="opacity: 0.75; font-size: 12px;">(${dateStr})</span>`;
                }
                subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
              });
              if (remainingCount > 0) {
-               subassetHtml += `<div style="margin-top: 4px; font-style: italic; opacity: 0.7; font-size: 10px;">... and ${remainingCount} more</div>`;
+               subassetHtml += `<div style="margin-top: 4px; font-style: italic; opacity: 0.7; font-size: 12px;">... and ${remainingCount} more</div>`;
              }
              subassetHtml += '</div></div>';
            }
@@ -894,12 +899,12 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(node.name)}</strong></div>
           <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
-          <div style="margin-top: 2px; font-size: 11px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
-          <div style="font-size: 11px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
+          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
+          <div style="font-size: 13px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
         `;
         
         if (timeInfo) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 11px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
         }
         
         tooltipHtml += subassetHtml;
@@ -988,8 +993,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return 'middle';
       })
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '12px')
-      .style('font-weight', '500')
+      .style('font-size', '14px')
+      .style('font-weight', '600')
       .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
       .style('pointer-events', 'none')
       .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)');
@@ -997,10 +1002,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Add label text
     nodeLabels.append('tspan')
       .text(d => {
+        // Use short label for Reallocation Pool to avoid overlap
+        if (d.name.includes('Reallocation Pool')) {
+          return 'Realloc:';
+        }
         // Format the name (replace United States with U.S and United Kingdom with U.K)
         const formattedName = this.formatNodeName(d.name);
-        // Truncate long labels
-        const maxLength = 25;
+        // Truncate long labels (slightly longer for readability)
+        const maxLength = 28;
         const label = formattedName.length > maxLength ? formattedName.substring(0, maxLength) + '...' : formattedName;
         return label + ':';
       });
@@ -1037,7 +1046,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         .attr('y', labelY)
         .attr('text-anchor', 'middle')
         .attr('alignment-baseline', 'middle')
-        .style('font-size', '16px')
+        .style('font-size', '18px')
         .style('font-weight', 'bold')
         .style('fill', this.getCssVariable('--red-link') || '#DC2626')
         .style('pointer-events', 'none')
@@ -1050,7 +1059,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         .attr('y', labelY)
         .attr('text-anchor', 'middle')
         .attr('alignment-baseline', 'middle')
-        .style('font-size', '16px')
+        .style('font-size', '18px')
         .style('font-weight', 'bold')
         .style('fill', this.getCssVariable('--green-link') || '#059669')
         .style('pointer-events', 'none')
@@ -1116,9 +1125,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       })
       .attr('text-anchor', 'middle')
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '11px')
+      .style('font-size', '14px')
       .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
-      .style('font-weight', '600')
+      .style('font-weight', '700')
       .style('pointer-events', 'none')
       .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)')
       .text(d => {
@@ -1227,14 +1236,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       { label: 'New Capital', color: getCssVar('--blue-link', 'rgba(0,100,200,0.7)') }
     );
 
-    // Calculate legend width based on text length
-    const legendItemWidth = 130; // Increased width to prevent overlap
+    // Spacing: more room per item and between square and label so legend doesn't look crowded
+    const legendSquareSize = 12;
+    const gapBetweenSquareAndLabel = 10;
+    const legendItemWidth = 165; // Horizontal space per entry
     const totalLegendWidth = legendData.length * legendItemWidth;
     const legendStartX = Math.max(10, (width - totalLegendWidth) / 2);
     
     const legend = svg.append('g')
       .attr('class', 'legend')
-      .attr('transform', `translate(${80}, ${height -15})`);
+      .attr('transform', `translate(${80}, ${height - bottomMargin - legendBottomOffset})`);
 
     const legendItems = legend.selectAll('.legend-item')
       .data(legendData)
@@ -1247,8 +1258,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Add colored rectangles
     legendItems.append('rect')
-      .attr('width', 12)
-      .attr('height', 12)
+      .attr('width', legendSquareSize)
+      .attr('height', legendSquareSize)
       .attr('x', 0)
       .attr('y', 0)
       .attr('fill', d => d.color)
@@ -1274,19 +1285,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       })
       .attr('stroke-width', 1);
 
-    // Add labels with better spacing
+    // Add labels – match chart label styling; position after square with comfortable gap
     legendItems.append('text')
-      .attr('x', 16)
-      .attr('y', 9)
+      .attr('x', legendSquareSize + gapBetweenSquareAndLabel)
+      .attr('y', legendSquareSize / 2)
       .attr('alignment-baseline', 'middle')
-      .style('font-size', '11px')
+      .style('font-size', '15x')
       .style('font-weight', '500')
       .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
       .style('white-space', 'nowrap')
       .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)')
+      .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif')
       .text(d => {
         // Truncate long labels if needed
-        const maxLength = 15;
+        const maxLength = 18;
         return d.label.length > maxLength ? d.label.substring(0, maxLength) + '...' : d.label;
       });
     }
