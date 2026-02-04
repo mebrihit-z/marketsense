@@ -1,7 +1,13 @@
-/* eslint-disable */
 import { Component, Input, HostListener, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
+
+export interface ViewingOption {
+  name: string;
+  savedDate: string;
+  tags: string[];
+  isActive: boolean;
+}
 
 @Component({
   selector: 'app-welcome-section',
@@ -10,7 +16,7 @@ import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsen
   templateUrl: './welcome-section.component.html',
   styleUrls: ['./welcome-section.component.scss']
 })
-export class WelcomeSectionComponent implements AfterViewInit {
+export default class WelcomeSectionComponent implements AfterViewInit {
   @Input() userName: string = 'Sofia';
   @Input() lastLogin: string = 'Yesterday at 4:32 PM';
   @Input() viewingFilter: string = 'High-confidence Equities';
@@ -21,7 +27,7 @@ export class WelcomeSectionComponent implements AfterViewInit {
   dropdownPosition = { top: 0, left: 0 };
   showAskMarketSenseModal: boolean = false;
 
-  viewingOptions = [
+  viewingOptions: ViewingOption[] = [
     {
       name: 'High-confidence Equities',
       savedDate: '2 days',
@@ -43,7 +49,9 @@ export class WelcomeSectionComponent implements AfterViewInit {
   ];
 
   ngAfterViewInit(): void {
-    // Initial setup if needed
+    if (this.filterButton?.nativeElement) {
+      this.updateDropdownPosition();
+    }
   }
 
   toggleViewingDropdown(): void {
@@ -79,37 +87,44 @@ export class WelcomeSectionComponent implements AfterViewInit {
     }
   }
 
-  selectViewingOption(option: any): void {
+  /**
+   * @param {ViewingOption} option - Selected viewing option
+   */
+  selectViewingOption(option: ViewingOption): void {
     this.viewingFilter = option.name;
-    // Update active state
-    this.viewingOptions.forEach(opt => opt.isActive = false);
-    option.isActive = true;
+    this.viewingOptions = this.viewingOptions.map(o => ({
+      ...o,
+      isActive: o === option
+    }));
     this.isViewingDropdownOpen = false;
   }
 
-  deleteOption(option: any, event: Event): void {
-    event.stopPropagation(); // Prevent triggering selectViewingOption
+  /**
+   * @param {ViewingOption} option - Option to remove
+   * @param {Event} event - DOM event (used to stop propagation)
+   */
+  deleteOption(option: ViewingOption, event: Event): void {
+    event.stopPropagation();
     const index = this.viewingOptions.findIndex(opt => opt === option);
-    if (index !== -1) {
-      // If deleting the active option, set the first remaining option as active
-      if (option.isActive && this.viewingOptions.length > 1) {
-        const nextOption = this.viewingOptions[index === 0 ? 1 : 0];
-        this.viewingFilter = nextOption.name;
-        nextOption.isActive = true;
-      }
-      this.viewingOptions.splice(index, 1);
-      
-      // If no options remain, reset the viewing filter
-      if (this.viewingOptions.length === 0) {
-        this.viewingFilter = 'No presets';
-      }
+    if (index === -1) return;
+    const wasActive = option.isActive;
+    const hadMultiple = this.viewingOptions.length > 1;
+    this.viewingOptions = this.viewingOptions.filter((_, i) => i !== index);
+    if (this.viewingOptions.length === 0) {
+      this.viewingFilter = 'No presets';
+    } else if (wasActive && hadMultiple) {
+      this.viewingFilter = this.viewingOptions[0].name;
+      this.viewingOptions = this.viewingOptions.map((o, i) => ({
+        ...o,
+        isActive: i === 0
+      }));
     }
   }
 
   onSaveCurrent(): void {
-    // Handle save current filter preset
-    console.log('Save current filter preset');
-    // Here you would typically save the current filter configuration
+    if (this.viewingFilter) {
+      // Placeholder: save current filter configuration (inject a service and persist this.viewingFilter)
+    }
   }
 
   onAskMarketSense(): void {
@@ -120,12 +135,18 @@ export class WelcomeSectionComponent implements AfterViewInit {
     this.showAskMarketSenseModal = false;
   }
 
+  /**
+   * @param {string} message - Message to send
+   */
   onSendMessage(message: string): void {
-    // Handle sending message to AI
-    console.log('Message sent:', message);
-    // Here you would typically send the message to an AI service
+    if (this.showAskMarketSenseModal && message) {
+      // Placeholder: send message to AI service
+    }
   }
 
+  /**
+   * @param {Event} event - Document click event
+   */
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
     if (this.isViewingDropdownOpen) {

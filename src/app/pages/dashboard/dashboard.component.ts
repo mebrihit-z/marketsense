@@ -8,7 +8,7 @@ import { MarketFlowCard } from '../../shared/components/market-flows-carousel/ma
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
 import HeaderComponent from '../../shared/components/header/header.component';
-import { WelcomeSectionComponent } from '../../shared/components/welcome-section/welcome-section.component';
+import WelcomeSectionComponent from '../../shared/components/welcome-section/welcome-section.component';
 import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
 
 @Component({

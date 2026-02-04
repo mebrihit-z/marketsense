@@ -26,12 +26,19 @@ export interface Profile {
   templateUrl: './profile-modal.component.html',
   styleUrl: './profile-modal.component.scss'
 })
-export default class ProfileModalComponent implements OnChanges {
+export class ProfileModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Input() profiles: Profile[] = [];
   @Input() currentProfileId: string = '';
   @Output() close = new EventEmitter<void>();
   @Output() profileSwitch = new EventEmitter<Profile>();
+
+  /** Exposed for template: static methods are not callable on component instance. */
+  readonly getInitials = ProfileModalComponent.getInitials;
+  /** Exposed for template. */
+  readonly getFullName = ProfileModalComponent.getFullName;
+  /** Exposed for template. */
+  readonly onModalClick = ProfileModalComponent.onModalClick;
 
   /**
    * @param {import("@angular/router").Router} router - Angular Router for navigation
@@ -123,3 +130,4 @@ export default class ProfileModalComponent implements OnChanges {
   }
 }
 
+export default ProfileModalComponent;
