@@ -73,8 +73,7 @@ export default class ProfileModalComponent implements OnChanges {
    * @param {ProfileJsDoc} profile - Profile to get initials for
    * @returns {string} Uppercase two-letter initials
    */
-  // eslint-disable-next-line class-methods-use-this -- pure formatter, no instance state needed
-  getInitials(profile: Profile): string {
+  static getInitials(profile: Profile): string {
     return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
   }
 
@@ -83,8 +82,7 @@ export default class ProfileModalComponent implements OnChanges {
    * @param {ProfileJsDoc} profile - Profile to get full name for
    * @returns {string} First and last name concatenated
    */
-  // eslint-disable-next-line class-methods-use-this -- pure formatter, no instance state needed
-  getFullName(profile: Profile): string {
+  static getFullName(profile: Profile): string {
     return `${profile.firstName} ${profile.lastName}`;
   }
 
@@ -120,8 +118,7 @@ export default class ProfileModalComponent implements OnChanges {
    * Stops click propagation when clicking inside the modal.
    * @param {Event} event - DOM click event
    */
-  // eslint-disable-next-line class-methods-use-this -- event handler only uses event param
-  onModalClick(event: Event): void {
+  static onModalClick(event: Event): void {
     event.stopPropagation();
   }
 }

@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -41,11 +40,18 @@ export default class HeaderComponent {
 
   currentProfileId = '1';
 
+  /**
+   * @returns {import("../profile-modal/profile-modal.component").Profile | undefined} The currently selected profile, or undefined
+   */
   get currentProfile(): Profile | undefined {
     return this.profiles.find(p => p.id === this.currentProfileId);
   }
 
-  getInitials(profile: Profile): string {
+  /**
+   * @param {import("../profile-modal/profile-modal.component").Profile} profile - Profile to get initials for
+   * @returns {string} Uppercase two-letter initials
+   */
+  static getInitials(profile: Profile): string {
     return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
   }
 
@@ -57,11 +63,13 @@ export default class HeaderComponent {
     this.isProfileModalOpen = false;
   }
 
+  /**
+   * @param {import("../profile-modal/profile-modal.component").Profile} profile - Profile switched to
+   */
   onProfileSwitch(profile: Profile): void {
     this.currentProfileId = profile.id;
     // Here you can add logic to switch the actual user profile
     // For example, call an authentication service to switch context
-    console.log('Switched to profile:', profile);
   }
 }
  
