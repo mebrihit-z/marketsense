@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
