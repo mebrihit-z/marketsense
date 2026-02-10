@@ -1,0 +1,19 @@
+<div class="title-block" [class]="class">
+  @switch (level) {
+    @case ('h1') {
+      <h1 class="title title--h1">{{ title }}</h1>
+    }
+    @case ('h2') {
+      <h2 class="title title--h2">{{ title }}</h2>
+    }
+    @case ('h3') {
+      <h3 class="title title--h3">{{ title }}</h3>
+    }
+    @case ('h4') {
+      <h4 class="title title--h4">{{ title }}</h4>
+    }
+  }
+  @if (subtitle) {
+    <p class="subtitle">{{ subtitle }}</p>
+  }
+</div>
