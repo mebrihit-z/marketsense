@@ -2,11 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
+import TitleComponent from '../title/title.component';
 
 @Component({
   selector: 'app-ask-marketsense-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, AskMarketsenseModalComponent],
+  imports: [CommonModule, FormsModule, AskMarketsenseModalComponent, TitleComponent],
   templateUrl: './ask-marketsense-section.component.html',
   styleUrl: './ask-marketsense-section.component.scss'
 })

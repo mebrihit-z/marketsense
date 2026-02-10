@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import TitleComponent from '../../title/title.component';
 
 export interface MarketFlowCard {
   id: string;
@@ -22,7 +23,7 @@ export interface MarketFlowCard {
 @Component({
   selector: 'app-market-flow-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TitleComponent],
   templateUrl: './market-flow-card.component.html',
   styleUrl: './market-flow-card.component.scss'
 })

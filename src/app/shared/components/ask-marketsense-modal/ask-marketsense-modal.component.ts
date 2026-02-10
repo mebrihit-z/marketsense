@@ -3,11 +3,12 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/market-flow-card.component';
+import TitleComponent from '../title/title.component';
 
 @Component({
   selector: 'app-ask-marketsense-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TitleComponent],
   templateUrl: './ask-marketsense-modal.component.html',
   styleUrl: './ask-marketsense-modal.component.scss'
 })

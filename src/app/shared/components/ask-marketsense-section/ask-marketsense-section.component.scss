@@ -68,20 +68,20 @@ $input-placeholder: #9ca3af;
   filter: brightness(0) saturate(100%) invert(76%) sepia(40%) saturate(600%) hue-rotate(3deg) brightness(0.95) contrast(0.95);
 }
 
-.title-block {
+// Style app-title when used in section header
+.header ::ng-deep app-title .title-block {
   flex: 1;
   min-width: 0;
 }
 
-.title {
+.header ::ng-deep app-title .title {
   font-weight: 600;
   font-size: 16px;
   line-height: 24px;
   color: $section-text;
-
 }
 
-.subtitle {
+.header ::ng-deep app-title .subtitle {
   color: #C7EAFF;
   font-size: 13px;
   font-style: normal;

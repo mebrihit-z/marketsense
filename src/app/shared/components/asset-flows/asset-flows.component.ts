@@ -3,6 +3,7 @@ import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChange
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
+import TitleComponent from '../title/title.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 import { 
@@ -41,7 +42,7 @@ export interface AssetFlowData {
 @Component({
   selector: 'app-asset-flows',
   standalone: true,
-  imports: [CommonModule, SankeyComponent],
+  imports: [CommonModule, SankeyComponent, TitleComponent],
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })

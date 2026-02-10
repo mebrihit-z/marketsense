@@ -569,7 +569,8 @@
   padding: 20px 8px 32px 8px;
 }
 
-.sankey-region-title {
+// Style the title component when used as sankey region heading
+.sankey-region-container ::ng-deep app-title .title {
   color: #0A0A0A;
   font-size: 18px;
   font-weight: 600;

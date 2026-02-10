@@ -2,7 +2,7 @@
   <div class="welcome-content">
     <!-- Left: Welcome + Last login -->
     <div class="welcome-left">
-      <h2 class="welcome-title">Welcome back, <span class="welcome-name">{{ userName }}</span></h2>
+      <app-title [title]="'Welcome back, ' + userName" level="h2" class="welcome-title"></app-title>
       <div class="welcome-meta">
         <img src="assets/icons/clock-icon.svg" alt="" class="clock-icon" />
         <span class="last-login">Last login: {{ lastLogin }}</span>
@@ -28,7 +28,7 @@
           [style.top.px]="dropdownPosition.top"
           [style.left.px]="dropdownPosition.left">
           <div class="filter-presets-header">
-            <h3 class="filter-presets-title">Filter Presets</h3>
+            <app-title title="Filter Presets" level="h3" class="filter-presets-title"></app-title>
           </div>
           <div class="viewing-dropdown-content">
             <div
@@ -38,7 +38,7 @@
               (click)="selectViewingOption(option)">
               <div class="option-content">
                 <div class="option-header">
-                  <h4 class="option-title">{{ option.name }}</h4>
+                  <app-title [title]="option.name" level="h4" class="option-title"></app-title>
                   <span class="active-badge" *ngIf="option.isActive">Active</span>
                 </div>
                 <p class="option-saved-date">Saved {{ option.savedDate }}</p>

@@ -5,6 +5,7 @@ import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import ExportModalComponent from './export-modal/export-modal.component';
 import MarketFlowDetailModalComponent from './market-flow-detail-modal/market-flow-detail-modal.component';
+import TitleComponent from '../title/title.component';
 import { type AssetFlowRecord } from '../../utils/asset-flows-to-sankey.util';
 
 // Re-export for convenience
@@ -13,7 +14,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
 @Component({
   selector: 'app-featured-market-flows-carousel',
   standalone: true,
-  imports: [CommonModule, MarketFlowCardComponent, AskMarketsenseModalComponent, ExportModalComponent, MarketFlowDetailModalComponent],
+  imports: [CommonModule, MarketFlowCardComponent, AskMarketsenseModalComponent, ExportModalComponent, MarketFlowDetailModalComponent, TitleComponent],
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })

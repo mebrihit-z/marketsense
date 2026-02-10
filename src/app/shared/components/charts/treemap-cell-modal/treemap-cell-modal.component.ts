@@ -2,6 +2,7 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import AskMarketsenseModalComponent from '../../ask-marketsense-modal/ask-marketsense-modal.component';
+import TitleComponent from '../../title/title.component';
 import type { MarketFlowCard } from '../../market-flows-carousel/market-flow-card/market-flow-card.component';
 
 export interface TreemapCellData {
@@ -16,7 +17,7 @@ export interface TreemapCellData {
 @Component({
   selector: 'app-treemap-cell-modal',
   standalone: true,
-  imports: [CommonModule, AskMarketsenseModalComponent],
+  imports: [CommonModule, AskMarketsenseModalComponent, TitleComponent],
   templateUrl: './treemap-cell-modal.component.html',
   styleUrl: './treemap-cell-modal.component.scss'
 })

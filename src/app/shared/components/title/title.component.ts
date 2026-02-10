@@ -22,4 +22,9 @@ export default class TitleComponent {
 
   /** Optional CSS class for custom styling */
   @Input() class = '';
+
+  /** Classes for the title block wrapper (title-block + optional class) */
+  get titleBlockClasses(): string[] {
+    return this.class ? ['title-block', this.class] : ['title-block'];
+  }
 }

@@ -5,7 +5,7 @@
       <!-- Left: Title and Button -->
       <div class="title-container">
         <div class="title-row">
-          <h2 class="title">Asset Flows</h2>
+          <app-title title="Asset Flows" level="h2"></app-title>
         </div>
       </div>
 
@@ -128,7 +128,7 @@
   <!-- Regional Sankey Diagram Visualization -->
   <div class="visualization-container">
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="sankey-region-container">
-      <h3 class="sankey-region-title">{{ regionData.key }}</h3>
+      <app-title [title]="regionData.key" level="h3"></app-title>
       <app-sankey
         [data]="regionData.data"
         [regionKey]="regionData.key"

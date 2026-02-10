@@ -2,11 +2,12 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import TitleComponent from '../../title/title.component';
 
 @Component({
   selector: 'app-save-filter-set-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TitleComponent],
   templateUrl: './save-filter-set-modal.component.html',
   styleUrl: './save-filter-set-modal.component.scss'
 })

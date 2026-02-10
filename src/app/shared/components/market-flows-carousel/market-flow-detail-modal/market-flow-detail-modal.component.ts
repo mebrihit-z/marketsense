@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import type { MarketFlowCard } from '../market-flow-card/market-flow-card.component';
 import { LineChartComponent } from '../../charts/line-chart/line-chart.component';
 import ExportModalComponent from '../export-modal/export-modal.component';
+import TitleComponent from '../../title/title.component';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import * as detailModalUtil from './market-flow-detail-modal.util';
 
 @Component({
   selector: 'app-market-flow-detail-modal',
   standalone: true,
-  imports: [CommonModule, LineChartComponent, ExportModalComponent],
+  imports: [CommonModule, LineChartComponent, ExportModalComponent, TitleComponent],
   templateUrl: './market-flow-detail-modal.component.html',
   styleUrl: './market-flow-detail-modal.component.scss'
 })

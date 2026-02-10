@@ -1,4 +1,4 @@
-<div class="title-block" [class]="class">
+<div [ngClass]="titleBlockClasses">
   @switch (level) {
     @case ('h1') {
       <h1 class="title title--h1">{{ title }}</h1>

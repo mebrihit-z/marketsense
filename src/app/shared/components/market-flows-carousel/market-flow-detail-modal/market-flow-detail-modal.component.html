@@ -13,7 +13,7 @@
     <!-- Header -->
     <div class="modal-header" *ngIf="card">
       <div class="header-content">
-        <h1 class="header-title">{{ card.title }}</h1>
+        <app-title [title]="card.title" level="h1" class="header-title"></app-title>
         <div class="confidence-indicator">
           <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
           <span class="confidence-text">Confidence Score: {{ getConfidenceLabel(card.aiConfidence) }}</span>
@@ -45,8 +45,7 @@
       <div class="chart-section">
         <div class="chart-header">
           <div class="chart-title-group">
-            <h3 class="chart-title">Forecast Trajectory</h3>
-            <span class="chart-subtitle">{{ getTimeHorizonDisplay()}} Projection</span>
+            <app-title title="Forecast Trajectory" [subtitle]="getTimeHorizonDisplay() + ' Projection'" level="h3" class="chart-title"></app-title>
           </div>
         </div>
         <div class="chart-container">

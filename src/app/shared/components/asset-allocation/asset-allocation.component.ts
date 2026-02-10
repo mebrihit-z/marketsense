@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
+import TitleComponent from '../title/title.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
 import { 
   aggregateSankeyDataByGlobal, 
@@ -43,7 +44,7 @@ export interface FlowDimension {
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule, TreemapCellModalComponent, TreemapComponent],
+  imports: [CommonModule, TreemapCellModalComponent, TreemapComponent, TitleComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })
