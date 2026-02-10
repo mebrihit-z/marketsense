@@ -9,12 +9,14 @@ import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-f
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
 import HeaderComponent from '../../shared/components/header/header.component';
 import WelcomeSectionComponent from '../../shared/components/welcome-section/welcome-section.component';
+import AskMarketsenseSectionComponent from '../../shared/components/ask-marketsense-section/ask-marketsense-section.component';
+import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
 import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [HeaderComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, WelcomeSectionComponent],
+  imports: [HeaderComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, WelcomeSectionComponent, AskMarketsenseSectionComponent, AskMarketsenseStickyButtonComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -37,6 +39,8 @@ export default class DashboardComponent implements OnInit {
   pinnedCardIds: string[] = [];
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
+  forceCloseFiltersDropdown = 0;
+  forceCloseDimensionDropdown = 0;
 
   // Raw asset flows data
   rawAssetFlowsData: AssetFlowRecord[] = [];
@@ -136,6 +140,14 @@ export default class DashboardComponent implements OnInit {
 
   onAssetFlowsPinToggle(): void {
     this.isAssetFlowsPinned = !this.isAssetFlowsPinned;
+  }
+
+  onFilterDropdownOpened(): void {
+    this.forceCloseDimensionDropdown += 1;
+  }
+
+  onDimensionDropdownOpened(): void {
+    this.forceCloseFiltersDropdown += 1;
   }
 
   onPinCard(cardId: string): void {
@@ -300,15 +312,25 @@ export default class DashboardComponent implements OnInit {
 
     // Generate cards from aggregated data
     // Include all selected product sub-types, even if they have no data (show as 0)
-    const cards = this.selectedProductSubTypes      .map((subType) => {
+    // First, find the maximum absolute total across all selected sub-types for normalization
+    const maxAbsTotalAcrossSubTypes = this.selectedProductSubTypes.reduce((max, subType) => {
+      const data = aggregatedData.get(subType);
+      if (!data) return max;
+      const absTotal = Math.abs(data.total);
+      return absTotal > max ? absTotal : max;
+    }, 0);
+
+    const cards = this.selectedProductSubTypes.map((subType) => {
         const data = aggregatedData.get(subType) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
         const totalValue = data.total; // Net flow (sum of all positive and negative values)
         const previousValue = previousAggregatedData.get(subType) || 0;
         
         // PERCENTAGE CHANGE CALCULATION:
-        // Formula: ((current - previous) / |previous|) * 100
-        // This shows the relative change from previous period
-        // The sign of percentage should match the sign of the current value
+        // Primary formula when we have a non-zero previous period:
+        //   ((current - previous) / |previous|) * 100
+        // Fallback when previous period is zero or unavailable:
+        //   Normalize current value against the max absolute value across sub-types
+        //   so cards show different percentage magnitudes instead of all being 100%
         let percentageChange = 0;
         const hasPreviousData = previousDateRange !== null && previousDateRange !== undefined;
         
@@ -327,11 +349,27 @@ export default class DashboardComponent implements OnInit {
             percentageChange = calculatedPercentage;
           }
         } else if (hasPreviousData && previousValue === 0 && totalValue !== 0) {
-          // Edge case: previous was 0, now has value - show as 100% change
-          percentageChange = totalValue > 0 ? 100 : -100;
-        } else if (!hasPreviousData) {
-          // No previous period data - cannot calculate percentage change
-          percentageChange = 0;
+          // Edge case: previous was 0, now has value.
+          // Instead of a flat 100%, scale based on how large this sub-type is
+          // relative to the largest sub-type in the current period.
+          if (maxAbsTotalAcrossSubTypes > 0) {
+            let normalized = (Math.abs(totalValue) / maxAbsTotalAcrossSubTypes) * 100;
+            // Avoid showing an exact 100% so the largest sub-type isn't displayed as a hard 100
+            if (normalized > 99.9) normalized = 99.9;
+            percentageChange = totalValue > 0 ? normalized : -normalized;
+          } else {
+            percentageChange = 0;
+          }
+        } else if (!hasPreviousData && totalValue !== 0) {
+          // No previous period data - normalize against the max absolute total
+          if (maxAbsTotalAcrossSubTypes > 0) {
+            let normalized = (Math.abs(totalValue) / maxAbsTotalAcrossSubTypes) * 100;
+            // Avoid showing an exact 100% in this fallback case as well
+            if (normalized > 99.9) normalized = 99.9;
+            percentageChange = totalValue > 0 ? normalized : -normalized;
+          } else {
+            percentageChange = 0;
+          }
         }
         // If both current and previous are 0, percentageChange remains 0
 

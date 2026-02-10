@@ -61,7 +61,9 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() timeHorizon: string = '+9 mo';
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
+  @Input() forceCloseDimensionDropdown = 0;
   @Output() pinToggle = new EventEmitter<void>();
+  @Output() dimensionDropdownOpened = new EventEmitter<void>();
   
   // View state
   viewMode: 'treemap' | 'packing-circles' = 'treemap';
@@ -170,6 +172,9 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['forceCloseDimensionDropdown'] && (changes['forceCloseDimensionDropdown'].currentValue as number) > 0) {
+      this.openDropdown = null;
+    }
     if (changes['selectedProductTypes'] || changes['selectedProductRegions'] || changes['selectedProductSubTypes'] ||
         changes['selectedInvestorRegions'] || changes['selectedInvestorTypes'] ||
         changes['totalProductTypes'] || changes['totalProductSubTypes'] ||
@@ -272,11 +277,10 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Get formatted text for dimension option in select dropdown
+   * Get formatted text for dimension option in select dropdown (label only, no count badge)
    */
   getDimensionOptionText(dimension: FlowDimension): string {
-    const countLabel = this.getDimensionCountLabel(dimension);
-    return countLabel ? `${dimension.label} (${countLabel})` : dimension.label;
+    return dimension.label;
   }
 
   /**
@@ -310,6 +314,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       this.openDropdown = null;
     } else {
       this.openDropdown = selectId;
+      this.dimensionDropdownOpened.emit();
     }
   }
 

@@ -1,0 +1,56 @@
+@use '../../../../_variables' as *;
+
+:host {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: block;
+}
+
+.sticky-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(18, 32, 64, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.25s ease, visibility 0.25s ease;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  width: 40px;
+  height: 40px;
+  background-color: $primary-blue;
+
+  
+  
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(18, 32, 64, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px $bg-white, 0 4px 12px rgba(18, 32, 64, 0.35);
+  }
+}
+
+.sparkle-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: block;
+}

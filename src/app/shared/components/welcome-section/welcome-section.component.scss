@@ -2,76 +2,89 @@
 
 .welcome-section {
   width: 100%;
-  padding: 32px 48px;
-  margin-top: 16px;
-  border: 1px solid $border-gray-medium;
-  background: linear-gradient(135deg, #D4EBFD 0%, #F7F3EF 100%);
+  padding-top: 16px;
   position: relative;
   overflow: visible;
-  
-  
+  margin-bottom: -16px;
+
   @media (max-width: 1200px) {
-    padding: 24px 32px;
+    padding: 24px 32px 0;
   }
-  
+
   @media (max-width: 768px) {
-    padding: 20px 16px;
+    padding: 20px 16px 0;
   }
 }
 
 .welcome-content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 32px;
-  max-width: 100%;
+  gap: 24px;
   position: relative;
   overflow: visible;
-  
+  margin-left:auto;
+  margin-right:auto;
+  padding: 0 48px;
+
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 24px;
+    align-items: flex-start;
+    gap: 16px;
   }
 }
 
 .welcome-left {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
   flex: 1;
+  min-width: 0;
   position: relative;
   overflow: visible;
 }
 
 .welcome-title {
   font-weight: 600;
-  font-size: 28px;
-  line-height: 36px;
-  letter-spacing: -0.5px;
+  font-size: 20px;
+  line-height: 28px;
   color: $text-primary;
   margin: 0;
   
   @media (max-width: 768px) {
-    font-size: 24px;
-    line-height: 32px;
+    font-size: 20px;
+    line-height: 28px;
   }
+}
+
+.welcome-name {
 }
 
 .welcome-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   position: relative;
   overflow: visible;
 }
 
+.clock-icon {
+  flex-shrink: 0;
+  color: $text-secondary;
+}
+
 .last-login {
   font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: -0.15px;
-  color: $text-secondary;
+  font-size: 12px;
+  line-height: 16px;
+  color:#35342F;
+}
+
+.saved-views-wrap {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 99999;
 }
 
 .viewing-filter-container {
@@ -80,21 +93,21 @@
   z-index: 99999;
 }
 
-.viewing-filter-btn {
+.saved-views-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: transparent;
+  gap: 8px;
+  padding: 5px 14px;
+  background-color: #C7EAFF;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s, opacity 0.2s;
-  
+  transition: background-color 0.2s, border-color 0.2s;
+
   &:hover {
-    background-color: rgba(212, 235, 253, 0.5);
+    background-color: $bg-gray-medium;
+    border-color: $border-gray;
   }
-  
+
   &:focus {
     outline: none;
     box-shadow: 0 0 0 2px rgba(14, 43, 115, 0.2);
@@ -105,19 +118,14 @@
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  // Filter to make SVG dark blue (#0E2B73)
   filter: brightness(0) saturate(100%) invert(9%) sepia(45%) saturate(2000%) hue-rotate(200deg) brightness(0.9) contrast(1.1);
 }
 
-.filter-text {
+.saved-views-text {
   font-weight: 500;
   font-size: 14px;
-  line-height: 20px;
-  letter-spacing: -0.15px;
-  color: $primary-blue;
-  font-style: normal;
-  line-height: 20px; /* 142.857% */
-  letter-spacing: -0.15px;
+  line-height: 16px;
+  color: #00113F
 }
 
 .caret-icon {
@@ -125,7 +133,6 @@
   height: 12px;
   flex-shrink: 0;
   transition: transform 0.2s;
-  // Filter to make SVG dark blue (#0E2B73)
   filter: brightness(0) saturate(100%) invert(9%) sepia(45%) saturate(2000%) hue-rotate(200deg) brightness(0.9) contrast(1.1);
 }
 
@@ -133,6 +140,13 @@
   &.open .caret-icon {
     transform: rotate(180deg);
   }
+}
+
+.welcome-divider {
+  height: 1px;
+  background: $border-gray-medium;
+  margin-top: 12px;
+  width: 100%;
 }
 
 .viewing-dropdown {

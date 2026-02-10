@@ -5,21 +5,6 @@
   --green-link: #059669;
   --blue-link: rgba(0, 100, 200, 0.7);
   --default-gray: #999999;
-  --orange-primary: #f59e0b;
-  --orange-primary-dark: #d97706;
-  --orange-primary-hover: #fbbf24;
-  --green-dark: #10b981;
-  --green-darker: #059669;
-  --green-hover: #34d399;
-  --blue-primary: #3b82f6;
-  --blue-primary-dark: #2563eb;
-  --blue-primary-hover: #60a5fa;
-  --purple-primary: #8b5cf6;
-  --purple-primary-dark: #7c3aed;
-  --purple-primary-hover: #a78bfa;
-  --cyan-primary: #06b6d4;
-  --cyan-primary-dark: #0891b2;
-  --cyan-primary-hover: #22d3ee;
   --gray-medium: #6b7280;
   --gray-dark: #4b5563;
   --gray-light: #9ca3af;
@@ -35,7 +20,249 @@
   position: relative;
   width: 100%;
   height: 900px;
+  display: flex;
+  flex-direction: column;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.sankey-container > .regional-sankey {
+  flex: 1;
+  min-height: 0;
+}
+
+// Outflows / Inflows labels above the chart (outside SVG)
+.sankey-flow-labels {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 12px;
+  width: 100%;
+  box-sizing: border-box;
+
+  .sankey-label-outflows {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    color: var(--red-link, #dc2626);
+  }
+
+  .sankey-label-inflows {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    color: var(--green-link, #059669);
+  }
+}
+
+// Legend inside chart area (bottom of container) so it’s always visible
+.sankey-legend {
+  flex-shrink: 0;
+  display: block;
+  min-height: 72px;
+  padding: 16px 0 8px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 32px;
+
+  .sankey-legend-section {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    margin-bottom: 12px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .sankey-legend-header {
+    color: #0A0A0A;
+    font-family: Inter;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 16px; /* 133.333% */
+  }
+
+  .sankey-legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 24px;
+  }
+
+  .sankey-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #0A0A0A;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .sankey-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.swatch-equity { background-color: #FFD581; }
+    &.swatch-fixed-income { background-color: #A7D888; }
+    &.swatch-cash { background-color: #D9A7FF; }
+    &.swatch-private-markets { background-color: #C5730B; }
+    &.swatch-other-specialized { background-color: #2A6907; }
+    &.swatch-multi-asset { background-color: #841DD9; }
+    &.swatch-alternatives { background-color: #FFB70E; }
+    &.swatch-regions { background-color: #00113F; }
+    &.swatch-net-new-capital { background-color: #77B1FF; }
+    &.swatch-capital-withdrawn { background-color: #0C42FE; }
+    &.swatch-reallocation-pool { background-color: #6f6e6a; }
+    &.swatch-outflow { background-color: #DC2626; }
+    &.swatch-inflow { background-color: #059669; }
+  }
+}
+
+// Tooltip is appended to body by D3 – styles applied inline in TS (component CSS does not apply to body)
+
+// SVG root – fill container
+.sankey-container .regional-sankey ::ng-deep .sankey-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+// Interactive elements (nodes and links)
+.sankey-container ::ng-deep .sankey-node-rect,
+.sankey-container ::ng-deep .sankey-link {
+  cursor: pointer;
+}
+
+// Node colors (design palette) – stroke matches fill
+.sankey-container ::ng-deep {
+  .sankey-node-reallocation-pool { fill: #6f6e6a; stroke: #6f6e6a; }
+  .sankey-node-reallocation-pool.sankey-node-hovered { fill: #6f6e6a; stroke: #4a7ed9; stroke-width: 3; }
+
+  .sankey-node-net-new-capital { fill: #77B1FF; stroke: #77B1FF; }
+  .sankey-node-net-new-capital.sankey-node-hovered { fill: #94c4f5; stroke: #94c4f5; stroke-width: 3; }
+
+  .sankey-node-regions { fill: #00113F; stroke: #00113F; }
+  .sankey-node-regions.sankey-node-hovered { fill: #1e3a7a; stroke: #1e3a7a; stroke-width: 3; }
+
+  .sankey-node-equity { fill: #FFD581; stroke: #FFD581; }
+  .sankey-node-equity.sankey-node-hovered { fill: #fce089; stroke: #fce089; stroke-width: 3; }
+
+  .sankey-node-fixed-income { fill: #A7D888; stroke: #A7D888; }
+  .sankey-node-fixed-income.sankey-node-hovered { fill: #afd994; stroke: #afd994; stroke-width: 3; }
+
+  .sankey-node-cash { fill: #D9A7FF; stroke: #D9A7FF; }
+  .sankey-node-cash.sankey-node-hovered { fill: #e2ccec; stroke: #e2ccec; stroke-width: 3; }
+
+  .sankey-node-multi-asset { fill: #841DD9; stroke: #841DD9; }
+  .sankey-node-multi-asset.sankey-node-hovered { fill: #a34dd4; stroke: #a34dd4; stroke-width: 3; }
+
+  .sankey-node-private-markets { fill: #C5730B; stroke: #C5730B; }
+  .sankey-node-private-markets.sankey-node-hovered { fill: #cd9a4a; stroke: #cd9a4a; stroke-width: 3; }
+
+  .sankey-node-other-specialized { fill: #2A6907; stroke: #2A6907; }
+  .sankey-node-other-specialized.sankey-node-hovered { fill: #4d994d; stroke: #4d994d; stroke-width: 3; }
+
+  .sankey-node-alternatives { fill: #FFB70E; stroke: #FFB70E; }
+  .sankey-node-alternatives.sankey-node-hovered { fill: #FFB70E; stroke: #FFB70E; stroke-width: 3; }
+
+  .sankey-node-capital-withdrawn { fill: #0C42FE; stroke: #0C42FE; }
+  .sankey-node-capital-withdrawn.sankey-node-hovered { fill: #3d6afe; stroke: #3d6afe; stroke-width: 3; }
+
+  .sankey-node-source-destination,
+  .sankey-node-default {
+    fill: var(--gray-medium, #6b7280);
+    stroke: var(--gray-medium, #6b7280);
+  }
+  .sankey-node-source-destination.sankey-node-hovered,
+  .sankey-node-default.sankey-node-hovered {
+    fill: var(--gray-light, #9ca3af);
+    stroke: var(--gray-light, #9ca3af);
+    stroke-width: 3;
+  }
+}
+
+// Legend rect colors (stroke matches fill)
+.sankey-container ::ng-deep {
+  .sankey-legend-rect-reallocation-pool { fill: #6f6e6a; stroke: #6f6e6a; }
+  .sankey-legend-rect-net-new-capital { fill: #76B1F2; stroke: #76B1F2; }
+  .sankey-legend-rect-regions { fill: #14285B; stroke: #14285B; }
+  .sankey-legend-rect-equity { fill: #FBD872; stroke: #FBD872; }
+  .sankey-legend-rect-fixed-income { fill: #9BCD7A; stroke: #9BCD7A; }
+  .sankey-legend-rect-cash { fill: #D8B8E6; stroke: #D8B8E6; }
+  .sankey-legend-rect-multi-asset { fill: #8D31CC; stroke: #8D31CC; }
+  .sankey-legend-rect-private-markets { fill: #C28834; stroke: #C28834; }
+  .sankey-legend-rect-other-specialized { fill: #2A6907; stroke: #2A6907; }
+  .sankey-legend-rect-alternatives { fill: #6366f1; stroke: #6366f1; }
+  .sankey-legend-rect-capital-withdrawn { fill: #0C42FE; stroke: #0C42FE; }
+  .sankey-legend-rect-source { fill: var(--red-primary, #ef4444); stroke: var(--red-primary, #ef4444); }
+  .sankey-legend-rect-destination { fill: var(--green-primary, #22c55e); stroke: var(--green-primary, #22c55e); }
+  .sankey-legend-rect-outflow { fill: var(--red-link, #DC2626); stroke: var(--red-link, #DC2626); }
+  .sankey-legend-rect-reallocation { fill: var(--green-link, #059669); stroke: var(--green-link, #059669); }
+  .sankey-legend-rect-new-capital { fill: var(--blue-link, rgba(0, 100, 200, 0.7)); stroke: var(--blue-link, rgba(0, 100, 200, 0.7)); }
+}
+
+// Sankey node and link labels – readable typography
+.sankey-container ::ng-deep {
+  .sankey-node-label {
+    font-size: 15px !important;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    word-spacing: 0.05em;
+    fill: var(--text-primary, #1f2937);
+    pointer-events: none;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
+  }
+
+  .sankey-node-label-name {
+    letter-spacing: 0.03em;
+    word-spacing: 0.08em;
+  }
+
+  .sankey-node-label-value {
+    font-weight: bold;
+    letter-spacing: 0.02em;
+  }
+
+  .sankey-link-value-label {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    fill: var(--text-primary, #1f2937);
+    pointer-events: none;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
+  }
+
+  .sankey-label-outflows {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    fill: var(--red-link, #dc2626);
+    pointer-events: none;
+    text-shadow: none;
+  }
+
+  .sankey-label-inflows {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    fill: var(--green-link, #059669);
+    pointer-events: none;
+    text-shadow: none;
+  }
+
+  .sankey-legend-label {
+    font-size: 15px;
+    font-weight: 500;
+    fill: var(--text-primary, #1f2937);
+    white-space: nowrap;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
 }
 
 .regional-sankey {

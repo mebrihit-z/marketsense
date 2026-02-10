@@ -1,0 +1,17 @@
+<button
+  type="button"
+  class="sticky-btn"
+  [class.visible]="showButton || showModal"
+  (click)="onOpenModal()"
+  aria-label="Ask MarketSense AI"
+  [attr.aria-hidden]="!(showButton || showModal)">
+  <img src="assets/icons/sparkle-gold-icon.svg" alt="" class="sparkle-icon" aria-hidden="true">
+</button>
+
+<app-ask-marketsense-modal
+  [isVisible]="showModal"
+  [card]="null"
+  [initialMessage]="initialMessage"
+  (close)="onCloseModal()"
+  (sendMessage)="onSendMessage($event)">
+</app-ask-marketsense-modal>

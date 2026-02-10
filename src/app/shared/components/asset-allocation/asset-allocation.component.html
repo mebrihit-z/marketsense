@@ -6,7 +6,6 @@
       <div class="title-row">
         <h2 class="title">Asset Allocation</h2>
       </div>
-      <p class="subtitle">Three-level drill-down view across selected categories</p>
     </div>
 
     <!-- Right: Controls -->
@@ -19,10 +18,6 @@
       <button class="more-options-btn" aria-label="More options">
         <img src="assets/icons/download-icon.svg" alt="More options">
       </button>
-       <!-- More Options Button -->
-      <!-- <button class="more-options-btn" aria-label="More options">
-        <img src="assets/icons/more-options-icon.svg" alt="More options">
-      </button> -->
     </div>
   </div>
 
@@ -30,101 +25,96 @@
   <div class="dimensions-section">
     <!-- Flow Dimensions Section -->
     <div class="flow-dimensions-section">
-      <h3 class="flow-dimensions-title">Flow Dimensions</h3>
-      <p class="flow-dimensions-instruction">
-        Select three dimensions to drill down through the treemap. Dimension 1 shows the top-level grouping, Dimension 2 breaks it down further, and Dimension 3 reveals the deepest level.
-      </p>
-      
-      <!-- Dimension Selectors -->
-      <div class="dimension-selectors">
-        <div class="dimension-selector-container">
-          <label class="dimension-selector-label">Dimension 1</label>
-          <div class="custom-select-wrapper">
-            <button 
-              type="button"
-              class="custom-select-button"
-              [class.has-selection]="selectedDimension1"
-              (click)="toggleDropdown('dimension1', $event)">
-              <span class="custom-select-text">
-                {{ selectedDimension1 ? getDimensionOptionText(selectedDimension1) : 'Select a dimension' }}
-              </span>
-              <img 
-                src="assets/icons/caret-down-icon.svg" 
-                alt="Dropdown" 
-                class="custom-select-arrow"
+      <!-- Hierarchy: cascading dimension selectors (same as Asset Flows) -->
+      <div class="dimension-selectors hierarchy-selectors">
+        <span class="dimension-selector-label">Dimensions:</span>
+        <div class="hierarchy-chain">
+          <div class="dimension-selector-container">
+            <div class="custom-select-wrapper">
+              <button 
+                type="button"
+                class="custom-select-button hierarchy-dropdown"
+                [class.has-selection]="selectedDimension1"
+                (click)="toggleDropdown('dimension1', $event)">
+                <span class="custom-select-text">
+                  {{ selectedDimension1 ? getDimensionOptionText(selectedDimension1) : 'Select a dimension' }}
+                </span>
+                <img 
+                  src="assets/icons/caret-down-icon.svg" 
+                  alt="Dropdown" 
+                  class="custom-select-arrow"
+                  [class.open]="openDropdown === 'dimension1'">
+              </button>
+              <div 
+                class="custom-select-dropdown"
                 [class.open]="openDropdown === 'dimension1'">
-            </button>
-            <div 
-              class="custom-select-dropdown"
-              [class.open]="openDropdown === 'dimension1'">
-              <div 
-                *ngFor="let dimension of getAvailableDimensionsForSelect('dimension1')"
-                class="custom-select-option"
-                [class.selected]="selectedDimension1?.id === dimension.id"
-                (click)="selectDimension(dimension, 'dimension1')">
-                {{ getDimensionOptionText(dimension) }}
+                <div 
+                  *ngFor="let dimension of getAvailableDimensionsForSelect('dimension1')"
+                  class="custom-select-option"
+                  [class.selected]="selectedDimension1?.id === dimension.id"
+                  (click)="selectDimension(dimension, 'dimension1')">
+                  {{ getDimensionOptionText(dimension) }}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="dimension-selector-container">
-          <label class="dimension-selector-label">Dimension 2</label>
-          <div class="custom-select-wrapper">
-            <button 
-              type="button"
-              class="custom-select-button"
-              [class.has-selection]="selectedDimension2"
-              (click)="toggleDropdown('dimension2', $event)">
-              <span class="custom-select-text">
-                {{ selectedDimension2 ? getDimensionOptionText(selectedDimension2) : 'Select a dimension' }}
-              </span>
-              <img 
-                src="assets/icons/caret-down-icon.svg" 
-                alt="Dropdown" 
-                class="custom-select-arrow"
+          <span class="hierarchy-arrow" aria-hidden="true">→</span>
+          <div class="dimension-selector-container">
+            <div class="custom-select-wrapper">
+              <button 
+                type="button"
+                class="custom-select-button hierarchy-dropdown"
+                [class.has-selection]="selectedDimension2"
+                (click)="toggleDropdown('dimension2', $event)">
+                <span class="custom-select-text">
+                  {{ selectedDimension2 ? getDimensionOptionText(selectedDimension2) : 'Select a dimension' }}
+                </span>
+                <img 
+                  src="assets/icons/caret-down-icon.svg" 
+                  alt="Dropdown" 
+                  class="custom-select-arrow"
+                  [class.open]="openDropdown === 'dimension2'">
+              </button>
+              <div 
+                class="custom-select-dropdown"
                 [class.open]="openDropdown === 'dimension2'">
-            </button>
-            <div 
-              class="custom-select-dropdown"
-              [class.open]="openDropdown === 'dimension2'">
-              <div 
-                *ngFor="let dimension of getAvailableDimensionsForSelect('dimension2')"
-                class="custom-select-option"
-                [class.selected]="selectedDimension2?.id === dimension.id"
-                (click)="selectDimension(dimension, 'dimension2')">
-                {{ getDimensionOptionText(dimension) }}
+                <div 
+                  *ngFor="let dimension of getAvailableDimensionsForSelect('dimension2')"
+                  class="custom-select-option"
+                  [class.selected]="selectedDimension2?.id === dimension.id"
+                  (click)="selectDimension(dimension, 'dimension2')">
+                  {{ getDimensionOptionText(dimension) }}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="dimension-selector-container">
-          <label class="dimension-selector-label">Dimension 3</label>
-          <div class="custom-select-wrapper">
-            <button 
-              type="button"
-              class="custom-select-button"
-              [class.has-selection]="selectedDimension3"
-              (click)="toggleDropdown('dimension3', $event)">
-              <span class="custom-select-text">
-                {{ selectedDimension3 ? getDimensionOptionText(selectedDimension3) : 'Select a dimension' }}
-              </span>
-              <img 
-                src="assets/icons/caret-down-icon.svg" 
-                alt="Dropdown" 
-                class="custom-select-arrow"
-                [class.open]="openDropdown === 'dimension3'">
-            </button>
-            <div 
-              class="custom-select-dropdown"
-              [class.open]="openDropdown === 'dimension3'">
+          <span class="hierarchy-arrow" aria-hidden="true">→</span>
+          <div class="dimension-selector-container">
+            <div class="custom-select-wrapper">
+              <button 
+                type="button"
+                class="custom-select-button hierarchy-dropdown"
+                [class.has-selection]="selectedDimension3"
+                (click)="toggleDropdown('dimension3', $event)">
+                <span class="custom-select-text">
+                  {{ selectedDimension3 ? getDimensionOptionText(selectedDimension3) : 'Select a dimension' }}
+                </span>
+                <img 
+                  src="assets/icons/caret-down-icon.svg" 
+                  alt="Dropdown" 
+                  class="custom-select-arrow"
+                  [class.open]="openDropdown === 'dimension3'">
+              </button>
               <div 
-                *ngFor="let dimension of getAvailableDimensionsForSelect('dimension3')"
-                class="custom-select-option"
-                [class.selected]="selectedDimension3?.id === dimension.id"
-                (click)="selectDimension(dimension, 'dimension3')">
-                {{ getDimensionOptionText(dimension) }}
+                class="custom-select-dropdown"
+                [class.open]="openDropdown === 'dimension3'">
+                <div 
+                  *ngFor="let dimension of getAvailableDimensionsForSelect('dimension3')"
+                  class="custom-select-option"
+                  [class.selected]="selectedDimension3?.id === dimension.id"
+                  (click)="selectDimension(dimension, 'dimension3')">
+                  {{ getDimensionOptionText(dimension) }}
+                </div>
               </div>
             </div>
           </div>
@@ -135,7 +125,6 @@
   <!-- Treemap Visualization -->
   <div class="visualization-container">
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="treemap-region-container">
-      <h3 class="treemap-region-title">{{ regionData.key }}</h3>
       <div class="reallocation-treemap-section">
         <app-treemap
           [data]="regionData.data"

@@ -34,6 +34,7 @@ export class MarketFlowCardComponent {
   @Output() askMarketSense = new EventEmitter<string>();
   @Output() pin = new EventEmitter<string>();
   @Output() cardClick = new EventEmitter<string>();
+  @Output() viewMore = new EventEmitter<string>();
 
   private askMarketSenseLastHandled = 0;
   private readonly ASK_MARKETSENSE_DEBOUNCE_MS = 300;
@@ -109,12 +110,19 @@ export class MarketFlowCardComponent {
     this.pin.emit(this.card.id);
   }
 
+  onViewMore(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    this.viewMore.emit(this.card.id);
+  }
+
   onCardClick(event?: Event): void {
-    // Don't trigger card click if clicking on action buttons
+    // Don't trigger card click if clicking on action buttons or view more link
     if (event) {
       const target = event.target as HTMLElement;
-      // Check if click originated from a button or its child
-      if (target.closest('button') || target.closest('.card-actions')) {
+      if (target.closest('button') || target.closest('.card-actions') || target.closest('.view-more-link')) {
         return;
       }
     }
@@ -127,7 +135,7 @@ export class MarketFlowCardComponent {
     // Handle mousedown so the detail modal opens in those environments.
     if (event) {
       const target = event.target as HTMLElement;
-      if (target.closest('button') || target.closest('.card-actions')) {
+      if (target.closest('button') || target.closest('.card-actions') || target.closest('.view-more-link')) {
         return;
       }
     }
@@ -137,8 +145,7 @@ export class MarketFlowCardComponent {
   onCardTouchStart(event: TouchEvent): void {
     // Handle touch events for VDI compatibility
     const target = event.target as HTMLElement;
-    // Don't trigger card click if touching on action buttons
-    if (target.closest('button') || target.closest('.card-actions')) {
+    if (target.closest('button') || target.closest('.card-actions') || target.closest('.view-more-link')) {
       return;
     }
     // Convert touch to click for card

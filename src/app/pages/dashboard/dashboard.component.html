@@ -5,9 +5,13 @@
       [class.asset-flows-pinned]="isAssetFlowsPinned">
     <!-- Welcome Section -->
     <app-welcome-section></app-welcome-section>
+
+    <!-- Ask MarketSense AI Section -->
+    <app-ask-marketsense-section></app-ask-marketsense-section>
     
     <!-- Filters Bar -->
     <app-filters-bar
+      [forceCloseDropdown]="forceCloseFiltersDropdown"
       (dataTypeChange)="onDataTypeChange($event)"
       (timeHorizonChange)="onTimeHorizonChange($event)"
       (timeHorizonRangeChange)="onTimeHorizonRangeChange($event)"
@@ -16,7 +20,8 @@
       (productRegionChange)="onProductRegionChange($event)"
       (investorRegionChange)="onInvestorRegionChange($event)"
       (investorTypeChange)="onInvestorTypeChange($event)"
-      (filterOptionTotalsChange)="onFilterOptionTotalsChange($event)">
+      (filterOptionTotalsChange)="onFilterOptionTotalsChange($event)"
+      (filterDropdownOpened)="onFilterDropdownOpened()">
     </app-filters-bar>
 
     <!-- Featured Market Flows Carousel -->
@@ -56,7 +61,9 @@
         [timeHorizon]="carouselTimeHorizon"
         [timeHorizonStart]="timeHorizonRange?.start"
         [timeHorizonEnd]="timeHorizonRange?.end"
-        (pinToggle)="onAssetFlowsPinToggle()">
+        [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
+        (pinToggle)="onAssetFlowsPinToggle()"
+        (dimensionDropdownOpened)="onDimensionDropdownOpened()">
       </app-asset-flows>
     </div>
     <!-- Asset Allocation Section -->
@@ -75,8 +82,13 @@
         [timeHorizon]="carouselTimeHorizon"
         [timeHorizonStart]="timeHorizonRange?.start"
         [timeHorizonEnd]="timeHorizonRange?.end"
-        (pinToggle)="onAssetAllocationPinToggle()">
+        [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
+        (pinToggle)="onAssetAllocationPinToggle()"
+        (dimensionDropdownOpened)="onDimensionDropdownOpened()">
       </app-asset-allocation>
     </div>
   </div>
+
+  <!-- Sticky Ask MarketSense AI button (fixed bottom-right when scrolling) -->
+  <app-ask-marketsense-sticky-button></app-ask-marketsense-sticky-button>
 </div>

@@ -3,11 +3,8 @@
 .asset-flows-container {
   background-color: $bg-white;
   border: 1px solid $border-light;
-  border-radius: 14px;
-  padding: 25px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
   width: 100%;
   overflow-x: hidden;
   overflow-y: hidden;
@@ -19,13 +16,25 @@
     padding-bottom: 60px;
   }
 }
-
+.top-section {
+  display: flex;
+  flex-direction: column;
+  gap:8px;
+  padding:25px 25px 2px 25px;
+  margin-bottom: 4px;
+}
+.horizontal-line {
+  height: 1px;
+  background: $border-gray-medium;
+  margin-top: 12px;
+  width: 100%;
+}
 .visualization-container {
+  padding: 16px 12px;
   width: 100%;
   overflow-x: hidden;
   overflow-y: hidden;
   margin: 0;
-  padding: 0;
   min-height: 0;
   
   // Ensure regional sankey uses full width
@@ -33,6 +42,12 @@
     display: block;
     width: 100%;
   }
+}
+.horizontal-line {
+  height: 1px;
+  background: $border-gray-medium;
+  margin-top: 12px;
+  width: 100%;
 }
 
 // Header Section
@@ -217,10 +232,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px;
-  border-radius: 4px;
-  background: linear-gradient(0deg, rgba(236, 236, 240, 0.3) 0%, rgba(236, 236, 240, 0.3) 100%), #ffffff;
-  margin-bottom: 36px;
   
   @media (max-width: 768px) {
     padding: 16px;
@@ -269,13 +280,52 @@
   }
 }
 
+// Hierarchy layout: "Hierarchy:" label + dropdown → dropdown → dropdown
+.hierarchy-selectors {
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.hierarchy-chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+}
+
+.hierarchy-arrow {
+  color: $text-secondary;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
 .dimension-selector-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 120px;
   
   @media (max-width: 768px) {
     width: 100%;
+    min-width: unset;
     flex: none;
   }
 }
@@ -285,6 +335,7 @@
   font-size: 14px;
   line-height: 20px;
   color: $text-secondary;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     font-size: 13px;
@@ -300,18 +351,17 @@
 
 .custom-select-button {
   width: 100%;
-  padding: 10px 12px;
+  padding: 4px 12px;
   background-color: $bg-white;
   border: 1px solid $border-light;
-  border-radius: 8px;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 20px;
   color: $text-primary;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
   display: flex;
-  gap:22px;
+  gap: 22px;
   align-items: center;
   justify-content: space-between;
   text-align: left;
@@ -347,6 +397,22 @@
     &.open {
       transform: rotate(180deg);
     }
+  }
+}
+
+// Hierarchy dropdowns: white bg, light gray border, dark blue selected text, gray chevron
+.custom-select-button.hierarchy-dropdown {
+  background-color: $bg-white;
+  border: 1px solid $border-gray-medium;
+  min-width: 120px;
+
+  &.has-selection .custom-select-text {
+    color: $primary-blue;
+    font-weight: 500;
+  }
+
+  .custom-select-arrow {
+    opacity: 0.55;
   }
 }
 
@@ -500,11 +566,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 20px 32px 20px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: #FFF;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 20px 8px 32px 8px;
 }
 
 .sankey-region-title {

@@ -3,8 +3,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: #0E2B73;
-    padding: 24px 48px;
+    background-color: $primary-blue;
+    padding: 16px 48px;
 
     @media (max-width: 768px) {
         flex-direction: column;
@@ -66,10 +66,10 @@
             border: 1px solid $border-light;
             cursor: pointer;
             transition: all 0.2s ease;
-            color: #D4EBFD;
+            color: #00113F;
             line-height: 16px; /* 133.333% */;
           
-            background: #13368F;
+            background: #C7EAFF;
             
             @media (max-width: 768px) {
                 width: 40px;

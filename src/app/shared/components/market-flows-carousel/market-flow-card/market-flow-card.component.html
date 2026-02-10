@@ -25,24 +25,37 @@
 
   <!-- Content Section -->
   <div class="content-section">
-    <!-- Badge and Label -->
-    <div class="badge-container">
-      <div class="badge" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
-        {{ card.percentageChange }}
+    <!-- Badge, Label and Score row -->
+    <div class="metrics-row">
+      <div class="badge-container">
+        <div class="badge" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
+          {{ card.percentageChange }}
+        </div>
+        <span class="metric-label">{{ card.metricLabel }}</span>
       </div>
-      <span class="metric-label">{{ card.metricLabel }}</span>
+      <!-- Score Indicator -->
+      <div class="score-indicator">
+        <span class="score-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
+        <span class="score-text">Score</span>
+      </div>
     </div>
 
-    <!-- Large Value -->
-    <div class="large-value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
-      {{ card.value }}
+    <!-- Large Value and View More row -->
+    <div class="bottom-row">
+      <div class="large-value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
+        {{ card.value }}
+      </div>
+      <a
+        href="#"
+        class="view-more-link"
+        (click)="onViewMore($event)"
+        (touchstart)="onViewMore($event)"
+        (mousedown)="onViewMore($event)"
+        aria-label="View more">
+        View More
+        <img src="assets/icons/view-more-icon.svg" alt="" class="view-more-chevron">
+      </a>
     </div>
-  </div>
-
-  <!-- Score Indicator -->
-  <div class="score-indicator">
-    <span class="score-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
-    <span class="score-text">Score</span>
   </div>
 </div>
 

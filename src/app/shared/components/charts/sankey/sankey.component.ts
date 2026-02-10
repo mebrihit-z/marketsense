@@ -236,34 +236,30 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
                           element.offsetWidth || 
                           this.el.nativeElement.clientWidth || 
                           this.el.nativeElement.offsetWidth ||
-                          window.innerWidth || 2400;
-    // Increase the width for better spacing - use container width or minimum 2400px
-    const width = Math.max(baseContainerWidth, 2400);
+                          window.innerWidth || 2800;
+    // Increase the width for better spacing - use container width or minimum 2800px
+    const width = Math.max(baseContainerWidth, 2800);
     const height = 900; // Increased height to reduce crowding
 
-    // Get CSS variable values
-    const overlayDarker = this.getCssVariable('--overlay-darker');
-    const bgWhite = this.getCssVariable('--bg-white');
-
-    // Create tooltip (append to body for better positioning and to avoid overflow issues)
-    // Use unique ID to prevent conflicts with multiple Sankey instances
-    // Remove any existing tooltip with this ID first, then create a new one
+    // Create tooltip (append to body for positioning; inline styles required because body is outside component)
     d3.select('body').select(`#${this.tooltipId}`).remove();
+    const overlayDarker = this.getCssVariable('--overlay-darker') || 'rgba(0, 0, 0, 0.85)';
+    const bgWhite = this.getCssVariable('--bg-white') || '#ffffff';
     const tooltip = d3.select('body')
       .append('div')
       .attr('id', this.tooltipId)
       .attr('class', 'sankey-tooltip')
       .style('position', 'absolute')
-      .style('background-color', overlayDarker || 'rgba(0, 0, 0, 0.85)')
-      .style('color', bgWhite || 'white')
+      .style('background-color', overlayDarker)
+      .style('color', bgWhite)
       .style('padding', '8px 12px')
       .style('border-radius', '4px')
       .style('font-size', '14px')
       .style('pointer-events', 'none')
-      .style('opacity', 0)
-      .style('z-index', 10000)
+      .style('z-index', '10000')
       .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)')
       .style('max-width', '300px')
+      .style('opacity', '0')
       .style('display', 'none');
 
     // -----------------------------------------
@@ -308,13 +304,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // -----------------------------------------
     const svg = d3.select(element)
       .append('svg')
+      .attr('class', 'sankey-svg')
       .attr('width', width)
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height-50}`)
-      .attr('preserveAspectRatio', 'none')
-      .style('display', 'block')
-      .style('width', '100%')
-      .style('height', height + 'px');
+      .attr('preserveAspectRatio', 'none');
 
     // Create a group for all zoomable content
     const zoomGroup = svg.append('g')
@@ -357,15 +351,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     const leftMargin = 150; // Space for Super Start node and labels
     const rightMargin = 150; // Space for Super End node and labels
-    const topMargin = 55; // Space for "Outflows" and "Inflows" labels plus margin below them
+    const topMargin = 15; // Small padding at top (Outflows/Inflows labels are outside chart)
     const bottomMargin = 50;
-    const legendTopMargin = 70;// Space between chart and legend
-    const legendBottomOffset = 15; // Space from legend to bottom of SVG
-    
+
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(20)
       .nodePadding(10)
-      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin - legendTopMargin - legendBottomOffset]]);
+      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
 
     const graph = sankeyGen(graphData);
 
@@ -387,7 +379,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           nodeParentTypeMap.set(target.name, 'Multi-Asset');
         } else if (source.name.includes('Alternatives')) {
           nodeParentTypeMap.set(target.name, 'Alternatives');
-        } else if (source.name.includes('Other / Specialized')) {
+        } else if (source.name.includes('Other / Specialized') || source.name.includes('Other/Specialized')) {
           nodeParentTypeMap.set(target.name, 'Other / Specialized');
         } else if (source.name.includes('Private Markets')) {
           nodeParentTypeMap.set(target.name, 'Private Markets');
@@ -406,7 +398,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           nodeParentTypeMap.set(source.name, 'Multi-Asset');
         } else if (target.name.includes('Alternatives')) {
           nodeParentTypeMap.set(source.name, 'Alternatives');
-        } else if (target.name.includes('Other / Specialized')) {
+        } else if (target.name.includes('Other / Specialized') || target.name.includes('Other/Specialized')) {
           nodeParentTypeMap.set(source.name, 'Other / Specialized');
         } else if (target.name.includes('Private Markets')) {
           nodeParentTypeMap.set(source.name, 'Private Markets');
@@ -439,10 +431,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return;
       }
       
-      // Check if link is connected to Capital Withdrawn - make it orange
+      // Check if link is connected to Capital Withdrawn - same color as Net New Capital
       if ((source.name && source.name.includes('Capital Withdrawn')) || 
           (target.name && target.name.includes('Capital Withdrawn'))) {
-        linkExtra.color = '#ff7f0e'; // Orange color matching treemap
+        linkExtra.color = this.getCssVariable('--blue-link') || 'rgba(0,100,200,0.7)';
         return;
       }
       
@@ -458,7 +450,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const midX = (minX + maxX) / 2;
         const sourceX = source.x0 !== undefined ? source.x0 : (source.x1 || 0);
         linkExtra.color = sourceX < midX 
-          ? (this.getCssVariable('--red-link') || '#DC2626')
+          ? 'rgba(245, 189, 189, 0.8)'
           : (this.getCssVariable('--green-link') || '#059669');
         return;
       }
@@ -470,10 +462,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       // Link is green if source or target is to the right of Reallocation Pool
       if (sourceX > reallocationPoolX || targetX > reallocationPoolX) {
         // Links to the right of Reallocation Pool are green
-        linkExtra.color = this.getCssVariable('--green-link') || '#059669';
+        // linkExtra.color = this.getCssVariable('--green-link') || '#059669';
+        linkExtra.color = 'rgba(104, 188, 102, 0.8)';
       } else {
-        // Links to the left of Reallocation Pool are red
-        linkExtra.color = this.getCssVariable('--red-link') || '#DC2626';
+        // Links to the left of Reallocation Pool are outflow (negative flows)
+        linkExtra.color = 'rgba(238, 152, 153, 0.8)';
       }
     });
 
@@ -493,7 +486,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('stroke-width', d => Math.max(1, (d as SankeyLinkExtra).width || 1))
       .attr('fill', 'none')
       .attr('opacity', 0.45)
-      .style('cursor', 'pointer')
+      .attr('class', 'sankey-link')
       .on('mouseover', function(event, d) {
         const link = d as SankeyLinkExtra;
         const source = link.source as SankeyNodeExtra;
@@ -521,7 +514,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
         
         tooltip
-          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .style('opacity', '1')
           .style('display', 'block')
           .html(tooltipHtml);
         
@@ -545,9 +540,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('top', (event.pageY - 10) + 'px');
       })
       .on('mouseout', function() {
-        tooltip
-          .style('opacity', 0)
-          .style('display', 'none');
+        tooltip.style('opacity', '0').style('display', 'none');
         d3.select(this)
           .attr('opacity', 0.45)
           .attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
@@ -584,189 +577,39 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     });
 
     // -----------------------------------------
-    // 6. Color mapping function for nodes
+    // 6. Node color class (colors defined in sankey.component.scss)
     // -----------------------------------------
     const getCssVar = (name: string, fallback: string) => {
       const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
       return value || fallback;
     };
-    
-    const getNodeColor = (nodeName: string): { fill: string; stroke: string; hoverFill: string; hoverStroke: string } => {
-      // Reallocation Pool
-      if (nodeName.includes('Reallocation Pool')) {
-        return {
-          fill: getCssVar('--orange-primary', '#f59e0b'),
-          stroke: getCssVar('--orange-primary-dark', '#d97706'),
-          hoverFill: getCssVar('--orange-primary-hover', '#fbbf24'),
-          hoverStroke: getCssVar('--orange-primary', '#f59e0b')
-        };
-      }
-      // Net New Capital
-      if (nodeName.includes('Net New Capital')) {
-        return {
-          fill: getCssVar('--green-dark', '#10b981'),
-          stroke: getCssVar('--green-darker', '#059669'),
-          hoverFill: getCssVar('--green-hover', '#34d399'),
-          hoverStroke: getCssVar('--green-dark', '#10b981')
-        };
-      }
-      // Capital Withdrawn
-      if (nodeName.includes('Capital Withdrawn')) {
-        return {
-          fill: '#ff7f0e', // Orange color matching treemap
-          stroke: '#e6730c',
-          hoverFill: '#ff9933',
-          hoverStroke: '#ff7f0e'
-        };
-      }
-      // Super Start/End
-      if (nodeName.includes('Super Start') || nodeName.includes('Super End')) {
-        return {
-          fill: getCssVar('--blue-primary', '#3b82f6'),
-          stroke: getCssVar('--blue-primary-dark', '#2563eb'),
-          hoverFill: getCssVar('--blue-primary-hover', '#60a5fa'),
-          hoverStroke: getCssVar('--blue-primary', '#3b82f6')
-        };
-      }
-      
-      // Source/Destination nodes - match parent node colors
+
+    const getNodeColorClass = (nodeName: string): string => {
+      if (nodeName.includes('Reallocation Pool')) return 'reallocation-pool';
+      if (nodeName.includes('Net New Capital')) return 'net-new-capital';
+      if (nodeName.includes('Capital Withdrawn')) return 'capital-withdrawn';
+      if (nodeName.includes('Super Start') || nodeName.includes('Super End')) return 'regions';
       const parentType = nodeParentTypeMap.get(nodeName);
       if (parentType) {
-        if (parentType === 'Equity') {
-          return {
-            fill: '#5093b3',
-            stroke: '#0284c7',
-            hoverFill: '#38bdf8',
-            hoverStroke: '#5093b3'
-          };
-        }
-        if (parentType === 'Fixed Income') {
-          return {
-            fill: getCssVar('--purple-primary', '#8b5cf6'),
-            stroke: getCssVar('--purple-primary-dark', '#7c3aed'),
-            hoverFill: getCssVar('--purple-primary-hover', '#a78bfa'),
-            hoverStroke: getCssVar('--purple-primary', '#8b5cf6')
-          };
-        }
-        if (parentType === 'Cash') {
-          return {
-            fill: getCssVar('--cyan-primary', '#06b6d4'),
-            stroke: getCssVar('--cyan-primary-dark', '#0891b2'),
-            hoverFill: getCssVar('--cyan-primary-hover', '#22d3ee'),
-            hoverStroke: getCssVar('--cyan-primary', '#06b6d4')
-          };
-        }
-        if (parentType === 'Multi-Asset') {
-          return {
-            fill: '#ec4899',
-            stroke: '#db2777',
-            hoverFill: '#f472b6',
-            hoverStroke: '#ec4899'
-          };
-        }
-        if (parentType === 'Alternatives') {
-          return {
-            fill: '#6366f1',
-            stroke: '#4f46e5',
-            hoverFill: '#818cf8',
-            hoverStroke: '#6366f1'
-          };
-        }
-        if (parentType === 'Other / Specialized') {
-          return {
-            fill: '#f59e0b',
-            stroke: '#d97706',
-            hoverFill: '#fbbf24',
-            hoverStroke: '#f59e0b'
-          };
-        }
-        if (parentType === 'Private Markets') {
-          return {
-            fill: '#14b8a6',
-            stroke: '#0d9488',
-            hoverFill: '#2dd4bf',
-            hoverStroke: '#14b8a6'
-          };
-        }
+        if (parentType === 'Equity') return 'equity';
+        if (parentType === 'Fixed Income') return 'fixed-income';
+        if (parentType === 'Cash') return 'cash';
+        if (parentType === 'Multi-Asset') return 'multi-asset';
+        if (parentType === 'Other / Specialized') return 'other-specialized';
+        if (parentType === 'Private Markets') return 'private-markets';
+        if (parentType === 'Alternatives') return 'alternatives';
       }
-      
-      // Start/End nodes (Parent nodes) - each with distinct colors
       if (nodeName.includes('(Start)') || nodeName.includes('(End)')) {
-        if (nodeName.includes('Equity')) {
-          return {
-            fill: '#5093b3', // Sky Blue - bright and distinct
-            stroke: '#0284c7',
-            hoverFill: '#38bdf8',
-            hoverStroke: '#5093b3'
-          };
-        }
-        if (nodeName.includes('Fixed Income')) {
-          return {
-            fill: getCssVar('--purple-primary', '#8b5cf6'),
-            stroke: getCssVar('--purple-primary-dark', '#7c3aed'),
-            hoverFill: getCssVar('--purple-primary-hover', '#a78bfa'),
-            hoverStroke: getCssVar('--purple-primary', '#8b5cf6')
-          };
-        }
-        if (nodeName.includes('Cash')) {
-          return {
-            fill: getCssVar('--cyan-primary', '#06b6d4'),
-            stroke: getCssVar('--cyan-primary-dark', '#0891b2'),
-            hoverFill: getCssVar('--cyan-primary-hover', '#22d3ee'),
-            hoverStroke: getCssVar('--cyan-primary', '#06b6d4')
-          };
-        }
-        if (nodeName.includes('Multi-Asset')) {
-          return {
-            fill: '#ec4899', // Pink
-            stroke: '#db2777',
-            hoverFill: '#f472b6',
-            hoverStroke: '#ec4899'
-          };
-        }
-        if (nodeName.includes('Alternatives')) {
-          return {
-            fill: '#6366f1', // Indigo
-            stroke: '#4f46e5',
-            hoverFill: '#818cf8',
-            hoverStroke: '#6366f1'
-          };
-        }
-        if (nodeName.includes('Other / Specialized')) {
-          return {
-            fill: '#f59e0b', // Amber
-            stroke: '#d97706',
-            hoverFill: '#fbbf24',
-            hoverStroke: '#f59e0b'
-          };
-        }
-        if (nodeName.includes('Private Markets')) {
-          return {
-            fill: '#14b8a6', // Teal
-            stroke: '#0d9488',
-            hoverFill: '#2dd4bf',
-            hoverStroke: '#14b8a6'
-          };
-        }
+        if (nodeName.includes('Equity')) return 'equity';
+        if (nodeName.includes('Fixed Income')) return 'fixed-income';
+        if (nodeName.includes('Cash')) return 'cash';
+        if (nodeName.includes('Multi-Asset')) return 'multi-asset';
+        if (nodeName.includes('Other / Specialized') || nodeName.includes('Other/Specialized')) return 'other-specialized';
+        if (nodeName.includes('Private Markets')) return 'private-markets';
+        if (nodeName.includes('Alternatives')) return 'alternatives';
       }
-      
-      // Default color for Source/Destination nodes that weren't mapped
-      if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) {
-        return {
-          fill: getCssVar('--gray-medium', '#6b7280'),
-          stroke: getCssVar('--gray-dark', '#4b5563'),
-          hoverFill: getCssVar('--gray-light', '#9ca3af'),
-          hoverStroke: getCssVar('--gray-medium', '#6b7280')
-        };
-      }
-      
-      // Default color
-      return {
-        fill: getCssVar('--gray-medium', '#6b7280'),
-        stroke: getCssVar('--gray-dark', '#4b5563'),
-        hoverFill: getCssVar('--gray-light', '#9ca3af'),
-        hoverStroke: getCssVar('--gray-medium', '#6b7280')
-      };
+      if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) return 'source-destination';
+      return 'default';
     };
 
     // -----------------------------------------
@@ -781,30 +624,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('y', d => d.y0!)
       .attr('height', d => d.y1! - d.y0!)
       .attr('width', d => d.x1! - d.x0!)
-      .attr('fill', d => {
-        const colors = getNodeColor(d.name);
-        return colors.fill;
-      })
-      .attr('stroke', d => {
-        const colors = getNodeColor(d.name);
-        return colors.stroke;
-      })
-      .attr('data-original-fill', d => {
-        const colors = getNodeColor(d.name);
-        return colors.fill;
-      })
-      .attr('data-original-stroke', d => {
-        const colors = getNodeColor(d.name);
-        return colors.stroke;
-      })
-      .style('cursor', 'pointer')
+      .attr('class', d => `sankey-node-rect sankey-node-${getNodeColorClass(d.name)}`)
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
         const value = nodeValues.get(node) || 0;
         const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
         const incoming = nodeIncoming.get(node) || 0;
         const outgoing = nodeOutgoing.get(node) || 0;
-        const colors = getNodeColor(node.name);
         
          // Check if this is a parent node (Start/End) and collect subasset information
          let subassetHtml = '';
@@ -919,14 +745,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         tooltipHtml += subassetHtml;
         
         tooltip
-          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+          .style('opacity', '1')
           .style('display', 'block')
           .html(tooltipHtml);
         
-        // Highlight the hovered node
+        // Highlight the hovered node (hover styles in SCSS)
         d3.select(this)
-          .attr('fill', colors.hoverFill)
-          .attr('stroke', colors.hoverStroke)
+          .classed('sankey-node-hovered', true)
           .attr('stroke-width', 3)
           .raise(); // Bring to front
         
@@ -962,17 +789,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('top', (event.pageY - 10) + 'px');
       })
       .on('mouseout', function() {
-        tooltip
-          .style('opacity', 0)
-          .style('display', 'none');
-        const originalFill = d3.select(this).attr('data-original-fill');
-        const originalStroke = d3.select(this).attr('data-original-stroke');
+        tooltip.style('opacity', '0').style('display', 'none');
         d3.select(this)
-          .attr('fill', originalFill)
-          .attr('stroke', originalStroke)
+          .classed('sankey-node-hovered', false)
           .attr('stroke-width', 1);
-        
-        // Restore all nodes and links opacity
         zoomGroup.selectAll('rect').attr('opacity', 1);
         zoomGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
       });
@@ -981,35 +801,45 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // 8. Node Labels (with values inline)
     // -----------------------------------------
     const nodeLabels = zoomGroup.append('g')
+      .attr('class', 'sankey-node-labels')
       .selectAll('text')
       .data(graph.nodes)
       .enter()
       .append('text')
+      .attr('class', 'sankey-node-label')
       .attr('x', d => {
-        // Position labels based on node type
+        // Position labels based on node type and side (outflow vs inflow)
         if (d.name.includes('(Source)')) {
           return d.x1! + 12;
-        } else if (d.name.includes('(Destination)')) {
-          return d.x0! - 12;
-        } else {
-          return (d.x0! + d.x1!) / 2;
         }
+        if (d.name.includes('(Destination)')) {
+          return d.x0! - 12;
+        }
+        // Positive/inflow side (right of Reallocation Pool): label to the left of the node
+        if (reallocationPoolX !== null && d.x0! > reallocationPoolX) {
+          return d.x0! - 12;
+        }
+        // Negative/outflow side (left of Reallocation Pool): label to the right of the node
+        if (reallocationPoolX !== null && d.x1! < reallocationPoolX) {
+          return d.x1! + 12;
+        }
+        return (d.x0! + d.x1!) / 2;
       })
       .attr('y', d => (d.y0! + d.y1!) / 2)
       .attr('text-anchor', d => {
         if (d.name.includes('(Source)')) return 'start';
         if (d.name.includes('(Destination)')) return 'end';
+        // Positive/inflow side: anchor at end so text sits to the left of the node
+        if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return 'end';
+        // Negative/outflow side: anchor at start so text sits to the right of the node
+        if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return 'start';
         return 'middle';
       })
-      .attr('alignment-baseline', 'middle')
-      .style('font-size', '14px')
-      .style('font-weight', '600')
-      .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
-      .style('pointer-events', 'none')
-      .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)');
+      .attr('alignment-baseline', 'middle');
     
     // Add label text
     nodeLabels.append('tspan')
+      .attr('class', 'sankey-node-label-name')
       .text(d => {
         // Use short label for Reallocation Pool to avoid overlap
         if (d.name.includes('Reallocation Pool')) {
@@ -1025,8 +855,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     
     // Add value text as tspan on the same row
     nodeLabels.append('tspan')
-      .attr('dx', '4px')
-      .style('font-weight', 'bold')
+      .attr('class', 'sankey-node-label-value')
+      .attr('dx', '8px')
       .text(d => {
         const value = nodeValues.get(d) || 0;
         const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
@@ -1037,280 +867,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return '$' + sign + formattedValue + 'B';
       });
 
-    // -----------------------------------------
-    // 8.5. Add "Outflows" and "Inflows" labels above the chart
-    // -----------------------------------------
-    if (reallocationPoolNode && reallocationPoolX !== null) {
-      const labelY = 20; // Position above the chart area, within the top margin
-      const reallocationX1 = reallocationPoolNode.x1 || reallocationPoolX;
-      const reallocationCenterX = (reallocationPoolX + reallocationX1) / 2;
-      
-      // Calculate positions: left side for Outflows, right side for Inflows
-      const leftSideCenter = leftMargin + (reallocationCenterX - leftMargin) / 2;
-      const rightSideCenter = reallocationCenterX + (width - rightMargin - reallocationCenterX) / 2;
-      
-      // Add "Outflows" label on the left side above the chart
-      zoomGroup.append('text')
-        .attr('x', leftSideCenter)
-        .attr('y', labelY)
-        .attr('text-anchor', 'middle')
-        .attr('alignment-baseline', 'middle')
-        .style('font-size', '18px')
-        .style('font-weight', 'bold')
-        .style('fill', this.getCssVariable('--red-link') || '#DC2626')
-        .style('pointer-events', 'none')
-        .style('text-shadow', '0 0 3px rgba(255,255,255,0.8), 0 0 3px rgba(255,255,255,0.8)')
-        .text('Outflows');
-      
-      // Add "Inflows" label on the right side above the chart
-      zoomGroup.append('text')
-        .attr('x', rightSideCenter)
-        .attr('y', labelY)
-        .attr('text-anchor', 'middle')
-        .attr('alignment-baseline', 'middle')
-        .style('font-size', '18px')
-        .style('font-weight', 'bold')
-        .style('fill', this.getCssVariable('--green-link') || '#059669')
-        .style('pointer-events', 'none')
-        .style('text-shadow', '0 0 3px rgba(255,255,255,0.8), 0 0 3px rgba(255,255,255,0.8)')
-        .text('Inflows');
-    }
+    // Link values are not drawn – only node labels show values (next to each node)
 
-    // -----------------------------------------
-    // 9. Link Values (on the links) - Only show for larger flows to avoid crowding
-    // -----------------------------------------
-    // Filter links to only show values for significant flows to reduce crowding
-    // Sort by value and only show top links to avoid overlap
-    const sortedLinks = [...graph.links].sort((a, b) => (b as SankeyLinkExtra).value - (a as SankeyLinkExtra).value);
-    
-    // Only show values for links with value >= 20.0, and limit to top 8 to avoid crowding
-    // This significantly reduces visual clutter while keeping only the most important flows visible
-    const significantLinks = sortedLinks
-      .filter(link => (link as SankeyLinkExtra).value >= 20.0)
-      .slice(0, 8);
-
-    // Function to check if a link value position would be too close to a node label
-    const isTooCloseToNode = (link: any, node: SankeyNodeExtra, threshold: number = 25): boolean => {
-      const linkX = ((link.source as SankeyNodeExtra).x1! + (link.target as SankeyNodeExtra).x0!) / 2;
-      const linkY = (((link.source as SankeyNodeExtra).y0! + (link.source as SankeyNodeExtra).y1!) / 2 + 
-                    ((link.target as SankeyNodeExtra).y0! + (link.target as SankeyNodeExtra).y1!) / 2) / 2;
-      
-      // Check distance from link center to node edges
-      const distToNodeX = Math.min(
-        Math.abs(linkX - node.x0!),
-        Math.abs(linkX - node.x1!)
-      );
-      const distToNodeY = Math.min(
-        Math.abs(linkY - node.y0!),
-        Math.abs(linkY - node.y1!)
-      );
-      
-      // If link is very close to a node (within threshold), skip showing the value
-      return distToNodeX < threshold || distToNodeY < threshold;
-    };
-
-    // Filter out links that are too close to nodes to avoid overlap with labels
-    const displayableLinks = significantLinks.filter(link => {
-      const source = link.source as SankeyNodeExtra;
-      const target = link.target as SankeyNodeExtra;
-      // Skip if too close to source or target node
-      return !isTooCloseToNode(link, source, 30) && !isTooCloseToNode(link, target, 30);
-    });
-
-    zoomGroup.append('g')
-      .selectAll('text')
-      .data(displayableLinks)
-      .enter()
-      .append('text')
-      .attr('x', d => {
-        const sourceX = (d.source as SankeyNodeExtra).x1!;
-        const targetX = (d.target as SankeyNodeExtra).x0!;
-        return (sourceX + targetX) / 2;
-      })
-      .attr('y', d => {
-        const sourceY = ((d.source as SankeyNodeExtra).y0! + (d.source as SankeyNodeExtra).y1!) / 2;
-        const targetY = ((d.target as SankeyNodeExtra).y0! + (d.target as SankeyNodeExtra).y1!) / 2;
-        return (sourceY + targetY) / 2;
-      })
-      .attr('text-anchor', 'middle')
-      .attr('alignment-baseline', 'middle')
-      .style('font-size', '14px')
-      .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
-      .style('font-weight', '700')
-      .style('pointer-events', 'none')
-      .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)')
-      .text(d => {
-        const value = (d as SankeyLinkExtra).value;
-        return value >= 0.1 ? value.toFixed(1) + 'B' : value.toFixed(2) + 'B';
-      });
-
-    // -----------------------------------------
-    // 10. Legend
-    // -----------------------------------------
-    // Only show legend if showLegend input is true
-    if (this.showLegend) {
-      // Build legend data based on node types in the diagram
-      const legendData: Array<{ label: string; color: string }> = [];
-
-    // Always include special nodes
-    legendData.push(
-      { label: 'Reallocation Pool', color: getCssVar('--orange-primary', '#f59e0b') },
-      { label: 'Net New Capital', color: getCssVar('--green-dark', '#10b981') }
-    );
-
-    // Check if Capital Withdrawn nodes are present
-    const hasCapitalWithdrawn = graph.nodes.some(node => 
-      node.name && node.name.includes('Capital Withdrawn')
-    );
-    if (hasCapitalWithdrawn) {
-      legendData.push({ label: 'Capital Withdrawn', color: '#ff7f0e' });
-    }
-
-    // Add node type categories
-    const nodeTypeMap: Record<string, string> = {
-      'Super Start': getCssVar('--blue-primary', '#3b82f6'),
-      'Super End': getCssVar('--blue-primary', '#3b82f6'),
-      'Equity (Start)': getCssVar('--blue-primary', '#3b82f6'),
-      'Equity (End)': getCssVar('--blue-primary', '#3b82f6'),
-      'Fixed Income (Start)': getCssVar('--purple-primary', '#8b5cf6'),
-      'Fixed Income (End)': getCssVar('--purple-primary', '#8b5cf6'),
-      'Cash (Start)': getCssVar('--cyan-primary', '#06b6d4'),
-      'Cash (End)': getCssVar('--cyan-primary', '#06b6d4'),
-      '(Source)': getCssVar('--red-primary', '#ef4444'),
-      '(Destination)': getCssVar('--green-primary', '#22c55e')
-    };
-
-    // Check which node types are present
-    const presentTypes = new Set<string>();
-    graph.nodes.forEach(node => {
-      if (node.name.includes('Super Start') || node.name.includes('Super End')) {
-        presentTypes.add('Super Start/End');
-      } else if (node.name.includes('Equity (Start)') || node.name.includes('Equity (End)')) {
-        presentTypes.add('Equity');
-      } else if (node.name.includes('Fixed Income (Start)') || node.name.includes('Fixed Income (End)')) {
-        presentTypes.add('Fixed Income');
-      } else if (node.name.includes('Cash (Start)') || node.name.includes('Cash (End)')) {
-        presentTypes.add('Cash');
-      } else if (node.name.includes('Multi-Asset (Start)') || node.name.includes('Multi-Asset (End)')) {
-        presentTypes.add('Multi-Asset');
-      } else if (node.name.includes('Alternatives (Start)') || node.name.includes('Alternatives (End)')) {
-        presentTypes.add('Alternatives');
-      } else if (node.name.includes('Other / Specialized (Start)') || node.name.includes('Other / Specialized (End)')) {
-        presentTypes.add('Other / Specialized');
-      } else if (node.name.includes('Private Markets (Start)') || node.name.includes('Private Markets (End)')) {
-        presentTypes.add('Private Markets');
-      } else if (node.name.includes('(Source)')) {
-        presentTypes.add('Source');
-      } else if (node.name.includes('(Destination)')) {
-        presentTypes.add('Destination');
-      }
-    });
-
-    // Add present types to legend
-    if (presentTypes.has('Super Start/End')) {
-      legendData.push({ label: 'Super Start/End', color: getCssVar('--blue-primary', '#3b82f6') });
-    }
-    if (presentTypes.has('Equity')) {
-      legendData.push({ label: 'Equity', color: '#5093b3' });
-    }
-    if (presentTypes.has('Fixed Income')) {
-      legendData.push({ label: 'Fixed Income', color: getCssVar('--purple-primary', '#8b5cf6') });
-    }
-    if (presentTypes.has('Cash')) {
-      legendData.push({ label: 'Cash', color: getCssVar('--cyan-primary', '#06b6d4') });
-    }
-    if (presentTypes.has('Multi-Asset')) {
-      legendData.push({ label: 'Multi-Asset', color: '#ec4899' });
-    }
-    if (presentTypes.has('Alternatives')) {
-      legendData.push({ label: 'Alternatives', color: '#6366f1' });
-    }
-    if (presentTypes.has('Other / Specialized')) {
-      legendData.push({ label: 'Other / Specialized', color: '#f59e0b' });
-    }
-    if (presentTypes.has('Private Markets')) {
-      legendData.push({ label: 'Private Markets', color: '#14b8a6' });
-    }
-    if (presentTypes.has('Source')) {
-      legendData.push({ label: 'Source', color: getCssVar('--red-primary', '#ef4444') });
-    }
-    if (presentTypes.has('Destination')) {
-      legendData.push({ label: 'Destination', color: getCssVar('--green-primary', '#22c55e') });
-    }
-
-    // Add link type colors
-    legendData.push(
-      { label: 'Outflow', color: getCssVar('--red-link', '#DC2626') },
-      { label: 'Reallocation', color: getCssVar('--green-link', '#059669') },
-      { label: 'New Capital', color: getCssVar('--blue-link', 'rgba(0,100,200,0.7)') }
-    );
-
-    // Spacing: more room per item and between square and label so legend doesn't look crowded
-    const legendSquareSize = 12;
-    const gapBetweenSquareAndLabel = 10;
-    const legendItemWidth = 165; // Horizontal space per entry
-    const totalLegendWidth = legendData.length * legendItemWidth;
-    const legendStartX = Math.max(10, (width - totalLegendWidth) / 2);
-    
-    const legend = svg.append('g')
-      .attr('class', 'legend')
-      .attr('transform', `translate(${80}, ${height - bottomMargin - legendBottomOffset})`);
-
-    const legendItems = legend.selectAll('.legend-item')
-      .data(legendData)
-      .enter()
-      .append('g')
-      .attr('class', 'legend-item')
-      .attr('transform', (d, i) => {
-        return `translate(${i * legendItemWidth}, 0)`;
-      });
-
-    // Add colored rectangles
-    legendItems.append('rect')
-      .attr('width', legendSquareSize)
-      .attr('height', legendSquareSize)
-      .attr('x', 0)
-      .attr('y', 0)
-      .attr('fill', d => d.color)
-      .attr('stroke', d => {
-        // Use darker stroke for better visibility
-        if (d.label === 'Reallocation Pool') return getCssVar('--orange-primary-dark', '#d97706');
-        if (d.label === 'Net New Capital') return getCssVar('--green-darker', '#059669');
-        if (d.label === 'Capital Withdrawn') return '#e6730c';
-        if (d.label === 'Super Start/End') return getCssVar('--blue-primary-dark', '#2563eb');
-        if (d.label === 'Equity') return '#0284c7';
-        if (d.label === 'Fixed Income') return getCssVar('--purple-primary-dark', '#7c3aed');
-        if (d.label === 'Cash') return getCssVar('--cyan-primary-dark', '#0891b2');
-        if (d.label === 'Multi-Asset') return '#db2777';
-        if (d.label === 'Alternatives') return '#4f46e5';
-        if (d.label === 'Other / Specialized') return '#d97706';
-        if (d.label === 'Private Markets') return '#0d9488';
-        if (d.label === 'Source') return getCssVar('--red-primary-dark', '#dc2626');
-        if (d.label === 'Destination') return getCssVar('--green-primary-dark', '#16a34a');
-        if (d.label === 'Outflow') return getCssVar('--red-link', '#DC2626');
-        if (d.label === 'Reallocation') return getCssVar('--green-link', '#059669');
-        if (d.label === 'New Capital') return getCssVar('--blue-link', 'rgba(0,100,200,0.7)');
-        return getCssVar('--gray-dark', '#4b5563');
-      })
-      .attr('stroke-width', 1);
-
-    // Add labels – match chart label styling; position after square with comfortable gap
-    legendItems.append('text')
-      .attr('x', legendSquareSize + gapBetweenSquareAndLabel)
-      .attr('y', legendSquareSize / 2)
-      .attr('alignment-baseline', 'middle')
-      .style('font-size', '15x')
-      .style('font-weight', '500')
-      .style('fill', this.getCssVariable('--text-primary') || '#1f2937')
-      .style('white-space', 'nowrap')
-      .style('text-shadow', '0 0 3px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.9)')
-      .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif')
-      .text(d => {
-        // Truncate long labels if needed
-        const maxLength = 18;
-        return d.label.length > maxLength ? d.label.substring(0, maxLength) + '...' : d.label;
-      });
-    }
+    // Legend is rendered in template (outside chart) – see sankey.component.html
   }
 
   // -----------------------------------------

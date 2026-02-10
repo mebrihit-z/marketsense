@@ -16,10 +16,10 @@
 .filters-bar-container {
     padding: 24px 48px;
     border-bottom: 1px solid $primary-blue;
-    background: $bg-white;
     display: flex;
     flex-direction: column;
     position: relative;
+    background-color: #F8F6F1;
     &.condensed {
         padding: 0px 13px 0px 13px;
     }
@@ -28,8 +28,6 @@
     }
 }
 .filters-root {
-    background: $bg-white;
-    
     overflow: visible;
     min-width: 0;
     
@@ -430,7 +428,6 @@
     align-items: flex-start;
     background: $bg-white;
     border: 1px solid $border-light;
-    border-radius: 8px;
     padding: 8px 13px;
     margin-left: 75px;
     margin-top: 4px;
@@ -921,9 +918,7 @@
 
 .toggle-buttons {
     display: flex;
-    border: 1px solid $border-gray;
-    border-radius: 6px;
-    padding: 1px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     background-color: $bg-white;
     overflow: hidden;
 
@@ -941,7 +936,6 @@
     color: $text-primary;
     background-color: $bg-white;
     border: none;
-    border-right: 1px solid $border-medium;
     padding: 11px 8px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -1219,7 +1213,6 @@
     align-items: center;
     background: $bg-white;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
     padding: 4px 13px;
     height: 28px;
     width: 100%;
@@ -1373,12 +1366,9 @@
 .toggle-buttons-condensed {
     display: flex;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
-    padding: 1px;
     background-color: $bg-white;
     overflow: hidden;
     height: 28px;
-    width: 152px;
     
     @media (max-width: 768px) {
         width: 100%;

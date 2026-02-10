@@ -749,14 +749,21 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       return;
     }
 
-    console.log('ReallocationTreemap: Hierarchy built with', hierarchy.children.length, 'superparents');
+    const numRegions = hierarchy.children.length;
+    console.log('ReallocationTreemap: Hierarchy built with', numRegions, 'superparents');
 
     // Get container dimensions or use defaults
     const containerWidth = container.parentElement?.clientWidth || container.offsetWidth || 1800;
     const width = Math.max(containerWidth - 40, 800); // Account for padding
-    const height = Math.round(width * (1050 / 1800) + 400); // Maintain aspect ratio
+    // Scale height by number of investor regions so all data values are visible: 1 region = compact, 2 = medium, 3+ = larger
+    const baseHeight = Math.round(width * (380 / 1800) + 200);   // ~580px at 1800 width for 1 region
+    const perRegionExtra = Math.round(width * (220 / 1800) + 120); // ~340px extra per additional region
+    const height = Math.min(
+      Math.max(420, baseHeight + (numRegions - 1) * perRegionExtra),
+      1600
+    ); // min 420, cap 1600
 
-    console.log('ReallocationTreemap: Creating treemap with dimensions', width, height);
+    console.log('ReallocationTreemap: Creating treemap with dimensions', width, height, '(regions:', numRegions, ')');
 
     const root = d3.hierarchy(hierarchy)
       .sum(d => (d && !d.children && (d.value != null)) ? this.sizeWeight(d) : 0);
@@ -847,7 +854,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         return 'hidden';
       })
       .style('border', d => {
-        if (d.depth === 3) return '2px solid #000';
+        if (d.depth === 3) return '2px solid #F5F1EB';
         return '1px solid rgba(0,0,0,0.12)';
       })
       .style('display', 'flex')
@@ -857,7 +864,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('top', d => (d as TreemapHierarchyNode).y0 + 'px')
       .style('width', d => Math.max(0, (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0) + 'px')
       .style('height', d => Math.max(0, (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0) + 'px')
-      .style('z-index', d => 1000 - d.depth)
+      .style('z-index', d => 1000 + d.depth) // inner cells on top so hover hits the actual cell
       .style('background', d => {
         const colorStr = this.nodeColor(d as TreemapHierarchyNode, root);
         const c = d3.color(colorStr) || d3.color('#999');
@@ -938,8 +945,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
         const isSmall = w < 60 || h < 25;
         
-        // Allow wrapping for product type (depth 3) nodes with children
-        if (d.depth === 3 && d.children && d.children.length > 0) return 'normal';
+        // Truncate product type (group/parent) labels to fit cell
+        if (d.depth === 2 || d.depth === 3) return 'nowrap';
         // For small leaf nodes, allow wrapping to show at least part of the label
         if (!d.children && isSmall) return 'normal';
         return 'nowrap';
@@ -959,8 +966,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
         const isSmall = w < 60 || h < 25;
         
-        // Use clip instead of ellipsis when wrapping is allowed
-        if (d.depth === 3 && d.children && d.children.length > 0) return 'clip';
+        // Truncate product type (group/parent) labels with ellipsis when longer than cell
+        if (d.depth === 2 || d.depth === 3) return 'ellipsis';
         // For small nodes, don't use ellipsis to ensure text shows
         if (!d.children && isSmall) return 'clip';
         return 'ellipsis';
@@ -1098,11 +1105,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           return '1px';
         })
         .style('border-color', () => {
-          if (d.depth === 3) return '#000';
+          if (d.depth === 3) return '#F5F1EB';
           return 'rgba(0,0,0,0.12)';
         })
         .style('box-shadow', 'none')
-        .style('z-index', () => String(1000 - d.depth));
+        .style('z-index', () => String(1000 + d.depth));
     });
   }
 }

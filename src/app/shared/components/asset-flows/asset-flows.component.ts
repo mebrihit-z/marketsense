@@ -60,7 +60,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() timeHorizon: string = 'Today';
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
+  @Input() forceCloseDimensionDropdown = 0;
   @Output() pinToggle = new EventEmitter<void>();
+  @Output() dimensionDropdownOpened = new EventEmitter<void>();
   @Output() filterOptionsChange = new EventEmitter<FilterOptions>();
   @Output() filterOptionTotalsChange = new EventEmitter<{
     productTypeTotal: number;
@@ -437,6 +439,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['forceCloseDimensionDropdown'] && (changes['forceCloseDimensionDropdown'].currentValue as number) > 0) {
+      this.openDropdown = null;
+    }
     if (changes['selectedProductTypes'] || changes['selectedProductSubTypes'] || 
         changes['selectedInvestorRegions'] || changes['selectedInvestorTypes'] ||
         changes['selectedProductRegions'] ||
@@ -650,11 +655,10 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Get formatted text for dimension option in select dropdown
+   * Get formatted text for dimension option in select dropdown (label only, no count badge)
    */
   getDimensionOptionText(dimension: FlowDimension): string {
-    const countLabel = this.getDimensionCountLabel(dimension);
-    return countLabel ? `${dimension.label} (${countLabel})` : dimension.label;
+    return dimension.label;
   }
 
   /**
@@ -736,6 +740,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       this.openDropdown = null;
     } else {
       this.openDropdown = selectId;
+      this.dimensionDropdownOpened.emit();
     }
   }
 

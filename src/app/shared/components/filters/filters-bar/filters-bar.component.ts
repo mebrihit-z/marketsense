@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, HostListener, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -24,7 +24,8 @@ export interface FilterOptionTotals {
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss'
 })
-export class FiltersBarComponent implements OnInit {
+export class FiltersBarComponent implements OnInit, OnChanges {
+  @Input() forceCloseDropdown = 0;
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('timeHorizonSliderContainer', { static: false }) timeHorizonSliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
@@ -51,8 +52,15 @@ export class FiltersBarComponent implements OnInit {
   @Output() investorRegionChange = new EventEmitter<string[]>();
   @Output() investorTypeChange = new EventEmitter<string[]>();
   @Output() filterOptionTotalsChange = new EventEmitter<FilterOptionTotals>();
+  @Output() filterDropdownOpened = new EventEmitter<void>();
 
   constructor(private http: HttpClient) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['forceCloseDropdown'] && changes['forceCloseDropdown'].currentValue > 0) {
+      this.openDropdown = null;
+    }
+  }
   
   aiConfidenceRange = { min: 50, max: 100 };
   isDragging = false;
@@ -451,8 +459,17 @@ export class FiltersBarComponent implements OnInit {
    */
   onDropdownOpenChange(dropdownKey: string, isOpen: boolean): void {
     if (isOpen) {
+      // Close the filters-bar information box (AI Confidence / Data Type / Time Horizon) when opening a dropdown
+      this.openTooltip = null;
+      // Close info tooltips on all filter dropdowns when opening any dropdown (so only one UI is open at a time)
+      this.closeAllFilterDropdownTooltips = true;
+      setTimeout(() => {
+        this.closeAllFilterDropdownTooltips = false;
+      }, 0);
+      this.openFilterDropdownTooltip = null;
       // Close all other dropdowns when one opens
       this.openDropdown = dropdownKey;
+      this.filterDropdownOpened.emit();
     } else {
       // Clear the open dropdown if this one is closing
       if (this.openDropdown === dropdownKey) {
@@ -1088,6 +1105,8 @@ export class FiltersBarComponent implements OnInit {
     if (isOpen) {
       // Close filters-bar tooltips when a filter dropdown tooltip opens
       this.openTooltip = null;
+      // Close whichever dropdown option list is open so we don't have dropdown list + info open at once
+      this.openDropdown = null;
       // Track which dropdown has an open tooltip
       this.openFilterDropdownTooltip = dropdownTitle;
     } else {

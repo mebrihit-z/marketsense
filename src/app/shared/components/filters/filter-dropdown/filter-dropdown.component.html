@@ -21,7 +21,7 @@
       <img src="assets/icons/caret-down-icon.svg" alt="Caret Down" class="caret-down-icon">
     </button>
 
-    <div class="panel" *ngIf="open" (click)="$event.stopPropagation()">
+    <div class="panel" *ngIf="open" (click)="onPanelClick($event)">
       <div class="panel-header">
         <div class="panel-title">Select {{ title | lowercase }}</div>
         <button class="select-all" (click)="toggleSelectAll($event)">

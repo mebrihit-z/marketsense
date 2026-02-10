@@ -141,6 +141,11 @@ export default class FilterDropdownComponent {
     if (willBeOpen) {
       // Initialize pending map when opening
       this.initializePendingMap();
+      // Close info tooltip when opening the dropdown
+      if (this.isTooltipOpen) {
+        this.isTooltipOpen = false;
+        this.tooltipOpenChange.emit({ title: this.title, isOpen: false });
+      }
     } else {
       // Reset pending map when closing without applying
       this.pendingMap = {};
@@ -298,10 +303,26 @@ export default class FilterDropdownComponent {
    */
   onInfoClick(ev: Event): void {
     ev.stopPropagation();
+    // Close the dropdown option list when opening the info tooltip so only one is visible at a time
+    if (this.isOpen) {
+      this.openChange.emit(false);
+    }
     const wasOpen = this.isTooltipOpen;
     this.isTooltipOpen = !wasOpen;
     // Emit to parent so it can close other tooltips
     this.tooltipOpenChange.emit({ title: this.title, isOpen: this.isTooltipOpen });
+  }
+
+  /**
+   * Handles click on the dropdown panel. Closes the info tooltip when clicking
+   * anywhere in the panel (options, Select All, Done) so the tooltip doesn't stay open.
+   */
+  onPanelClick(ev: Event): void {
+    ev.stopPropagation();
+    if (this.isTooltipOpen) {
+      this.isTooltipOpen = false;
+      this.tooltipOpenChange.emit({ title: this.title, isOpen: false });
+    }
   }
 
   /**

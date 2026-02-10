@@ -9,6 +9,7 @@
   --text-secondary: #{$text-secondary};
   --text-medium: #{$text-medium};
   --bg-white: #{$bg-white};
+  --bg-cream: #{$bg-cream};
   --green-link: #{$green-link};
   --red-link: #{$red-link};
   --blue-link: #{$blue-link};
@@ -53,7 +54,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: $bg-white;
+  // background-color: $bg-white;
+  background-color: $bg-cream;
 }
 
 // Ensure main content doesn't overlap with sticky header

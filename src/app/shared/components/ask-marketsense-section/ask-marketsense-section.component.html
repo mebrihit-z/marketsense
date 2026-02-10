@@ -1,0 +1,52 @@
+<section class="ask-marketsense-section">
+  <div class="section-inner">
+    <div class="section-content">
+      <div class="header">
+        <div class="logo-wrap">
+          <img src="assets/icons/sparkle-icon.svg" alt="" class="logo" />
+        </div>
+        <div class="title-block">
+          <h2 class="title">Ask MarketSense AI</h2>
+          <p class="subtitle">Your AI-powered market intelligence assistant by Mercer.</p>
+        </div>
+      </div>
+      <div class="input-wrap">
+        <img src="assets/icons/input-icon.svg" alt="" class="input-icon" />
+        <input
+          type="text"
+          class="input"
+          [(ngModel)]="query"
+          (keydown.enter)="onSubmit()"
+          placeholder="Ask about market trends, asset flows, client insights, or allocation strategies..."
+          aria-label="Ask MarketSense AI" />
+        <button type="button" class="submit-btn" (click)="onSubmit()" [disabled]="!query.trim()">
+          <span>Let's Go</span>
+          <svg class="arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="try-asking">
+        <div class="suggestions">
+          <span class="try-asking-label">TRY ASKING:</span>
+          <button
+            *ngFor="let suggestion of tryAskingSuggestions"
+            type="button"
+            class="suggestion-btn"
+            (click)="onSuggestionClick(suggestion)">
+            {{ suggestion }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-ask-marketsense-modal
+    [isVisible]="showModal"
+    [card]="null"
+    [initialMessage]="initialMessage"
+    (close)="onCloseModal()"
+    (sendMessage)="onSendMessage($event)">
+  </app-ask-marketsense-modal>
+</section>

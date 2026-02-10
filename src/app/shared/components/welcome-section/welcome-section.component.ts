@@ -18,9 +18,13 @@ export interface ViewingOption {
 })
 export default class WelcomeSectionComponent implements AfterViewInit {
   @Input() userName: string = 'Sofia';
-  @Input() lastLogin: string = 'Yesterday at 4:32 PM';
+  @Input() lastLogin: string = 'Today, 9:42 AM';
   @Input() viewingFilter: string = 'High-confidence Equities';
   @Input() isViewingDropdownOpen: boolean = false;
+
+  get savedViewsCount(): number {
+    return this.viewingOptions?.length ?? 0;
+  }
 
   @ViewChild('filterButton', { static: false }) filterButton!: ElementRef<HTMLButtonElement>;
   

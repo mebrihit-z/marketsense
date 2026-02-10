@@ -14,6 +14,8 @@ import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/m
 export default class AskMarketsenseModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Input() card: MarketFlowCard | null = null;
+  /** When opening, optionally pre-fill the question input (e.g. from Ask MarketSense section). */
+  @Input() initialMessage: string = '';
   @Output() close = new EventEmitter<void>();
   @Output() sendMessage = new EventEmitter<string>();
 
@@ -42,9 +44,15 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (changes['isVisible']) {
       if (this.isVisible) {
         document.body.style.overflow = 'hidden';
+        if (this.initialMessage?.trim()) {
+          this.userMessage = this.initialMessage.trim();
+        }
       } else {
         document.body.style.overflow = '';
       }
+    }
+    if (changes['initialMessage'] && this.isVisible && this.initialMessage?.trim()) {
+      this.userMessage = this.initialMessage.trim();
     }
   }
 
