@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -83,6 +83,11 @@ export class FiltersBarComponent implements OnInit, OnChanges {
   // Scroll state for condensed layout
   isScrolled = false;
   scrollThreshold = 50; // Pixels to scroll before showing condensed layout
+
+  /** When true, host gets class 'condensed' so the bar can use position: fixed and stay at top. */
+  @HostBinding('class.condensed') get hostCondensed(): boolean {
+    return this.isScrolled;
+  }
 
   /**
    * @returns {void} Initializes filter state and time horizon defaults.

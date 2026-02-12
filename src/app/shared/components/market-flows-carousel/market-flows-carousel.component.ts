@@ -61,7 +61,6 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   selectedCard: MarketFlowCard | null = null;
   showExportModal: boolean = false;
   selectedCardForExport: MarketFlowCard | null = null;
-  showDetailModal: boolean = false;
   selectedCardForDetail: MarketFlowCard | null = null;
   
   // Sort dropdown state
@@ -269,6 +268,9 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
       event.preventDefault();
       event.stopPropagation();
     }
+    if (this.selectedCardForDetail) {
+      this.onCloseDetailModal();
+    }
     if (this.currentSlideIndex > 0 && this.totalSlides > 0) {
       this.currentSlideIndex--;
     }
@@ -279,6 +281,9 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
       event.preventDefault();
       event.stopPropagation();
     }
+    if (this.selectedCardForDetail) {
+      this.onCloseDetailModal();
+    }
     const maxSlideIndex = this.totalSlides - 1;
     if (this.currentSlideIndex < maxSlideIndex && this.totalSlides > 0) {
       this.currentSlideIndex++;
@@ -286,6 +291,9 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   }
   
   goToSlide(index: number): void {
+    if (this.selectedCardForDetail) {
+      this.onCloseDetailModal();
+    }
     this.currentSlideIndex = index;
   }
   
@@ -358,17 +366,21 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   }
 
   onCardClick(cardId: string): void {
-    // Find the card by ID and show detail modal
+    // Find the card by ID and show inline detail (left) + stacked cards (right)
     const card = this.cards.find(c => c.id === cardId);
     if (card) {
       this.selectedCardForDetail = card;
-      this.showDetailModal = true;
     }
   }
 
   onCloseDetailModal(): void {
-    this.showDetailModal = false;
     this.selectedCardForDetail = null;
+  }
+
+  /** Cards to show in the right column when a card is selected (all except the selected one). */
+  get stackedCards(): MarketFlowCard[] {
+    if (!this.selectedCardForDetail) return [];
+    return this.filteredCards.filter(c => c.id !== this.selectedCardForDetail!.id);
   }
 
   isCardPinned(cardId: string): boolean {

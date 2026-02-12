@@ -64,7 +64,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
   
   private loadedData?: RegionalSankeyData;
-  private currentZoom: any;
   private lastDataHash: string = '';
   private lastFiltersHash: string = '';
   private tooltipId: string;
@@ -104,7 +103,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.lastFiltersHash = this.getFiltersHash();
       setTimeout(() => {
         this.createSankey();
-        this.setupZoomControls();
       }, 0);
     } else {
       
@@ -142,7 +140,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (shouldRecreate && this.el?.nativeElement) {
       setTimeout(() => {
         this.createSankey();
-        this.setupZoomControls();
       }, 0);
     }
   }
@@ -229,17 +226,18 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const nativeRect = this.el.nativeElement.getBoundingClientRect();
     const elementRect = element.getBoundingClientRect();
     
-    // Get the full container width, ensuring we use 100% of available space
+    // Use container width; enforce minimum so chart is readable and scrolls horizontally when container is small (like treemap)
+    const MIN_CHART_WIDTH = 1200;
     const baseContainerWidth = elementRect.width > 0 ? elementRect.width : 
                           nativeRect.width > 0 ? nativeRect.width : 
                           element.clientWidth || 
                           element.offsetWidth || 
                           this.el.nativeElement.clientWidth || 
                           this.el.nativeElement.offsetWidth ||
-                          window.innerWidth || 2800;
-    // Increase the width for better spacing - use container width or minimum 2800px
-    const width = Math.max(baseContainerWidth, 2800);
-    const height = 900; // Increased height to reduce crowding
+                          window.innerWidth || MIN_CHART_WIDTH;
+    const width = Math.max(baseContainerWidth, MIN_CHART_WIDTH);
+    const baseHeight = elementRect.height > 0 ? elementRect.height : nativeRect.height > 0 ? nativeRect.height : 900;
+    const height = Math.max(baseHeight, 600);
 
     // Create tooltip (append to body for positioning; inline styles required because body is outside component)
     d3.select('body').select(`#${this.tooltipId}`).remove();
@@ -300,7 +298,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     };
 
     // -----------------------------------------
-    // 3. Create SVG with Zoom
+    // 3. Create SVG (no zoom – chart at fixed scale for readable labels)
     // -----------------------------------------
     const svg = d3.select(element)
       .append('svg')
@@ -310,48 +308,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('viewBox', `0 0 ${width} ${height-50}`)
       .attr('preserveAspectRatio', 'none');
 
-    // Create a group for all zoomable content
-    const zoomGroup = svg.append('g')
-      .attr('class', 'zoom-group');
+    // Chart group – no zoom/pan so labels stay readable
+    const chartGroup = svg.append('g')
+      .attr('class', 'sankey-chart-group');
 
-    // Calculate generous translate extents to allow panning to see all parts when zoomed
-    // When zoomed to 3x, we need to allow panning to see content that's up to 3x the viewport
-    // We make it generous: allow panning up to 4x the dimensions in each direction
-    const maxZoom = 3;
-    const panBoundary = Math.max(width, height) * maxZoom;
-    const translateExtent: [[number, number], [number, number]] = [
-      [-panBoundary, -panBoundary], // Minimum translate (far left and up)
-      [panBoundary, panBoundary]     // Maximum translate (far right and down)
-    ];
-
-    // Define zoom behavior
-    const zoom = d3.zoom()
-      .scaleExtent([0.5, maxZoom]) // Allow zoom from 50% to 300%
-      .translateExtent(translateExtent) // Allow panning within generous bounds
-      .extent([[0, 0], [width, height]]) // Zoom extent is the full SVG
-      .filter((event: any) => {
-        // Only allow zoom with mouse wheel when holding Ctrl/Cmd/Shift
-        // This allows normal page scrolling when not holding modifier keys
-        // Allow all other interactions (drag, touch, buttons) normally
-        if (event.type === 'wheel') {
-          return event.ctrlKey || event.metaKey || event.shiftKey;
-        }
-        // Allow all other event types (mousedown, mousemove, touchstart, etc.)
-        return true;
-      })
-      .on('zoom', (event) => {
-        zoomGroup.attr('transform', event.transform);
-      });
-
-    // Apply zoom to SVG
-    svg.call(zoom as any);
-    
-    // Store zoom behavior for button controls
-    this.currentZoom = { zoom, svg };
-
-    const leftMargin = 150; // Space for Super Start node and labels
-    const rightMargin = 150; // Space for Super End node and labels
-    const topMargin = 15; // Small padding at top (Outflows/Inflows labels are outside chart)
+    const leftMargin = 8;   // Minimal padding so edge labels aren’t clipped
+    const rightMargin = 8;
+    const topMargin = 15;   // Small padding at top (Outflows/Inflows labels are outside chart)
     const bottomMargin = 50;
 
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
@@ -476,7 +439,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Capture component reference for use in callbacks
     const component = this;
     
-    zoomGroup.append('g')
+    chartGroup.append('g')
       .selectAll('path')
       .data(graph.links)
       .enter()
@@ -530,7 +493,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .raise(); // Bring to front
         
         // Dim other links slightly
-        zoomGroup.selectAll('path')
+        chartGroup.selectAll('path')
           .filter(function() { return this !== d3.select(event.currentTarget).node(); })
           .attr('opacity', 0.2);
       })
@@ -546,7 +509,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
         
         // Restore all links opacity
-        zoomGroup.selectAll('path').attr('opacity', 0.45);
+        chartGroup.selectAll('path').attr('opacity', 0.45);
       });
 
     // -----------------------------------------
@@ -615,7 +578,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // -----------------------------------------
     // 7. Draw Nodes
     // -----------------------------------------
-    zoomGroup.append('g')
+    chartGroup.append('g')
       .selectAll('rect')
       .data(graph.nodes)
       .enter()
@@ -762,7 +725,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           (link.source as SankeyNodeExtra) === node || (link.target as SankeyNodeExtra) === node
         );
         
-        zoomGroup.selectAll('path')
+        chartGroup.selectAll('path')
           .filter(function(link: any) {
             return nodeLinks.includes(link as SankeyLinkExtra);
           })
@@ -773,11 +736,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           });
         
         // Dim other nodes and links
-        zoomGroup.selectAll('rect')
+        chartGroup.selectAll('rect')
           .filter(function() { return this !== d3.select(event.currentTarget).node(); })
           .attr('opacity', 0.3);
         
-        zoomGroup.selectAll('path')
+        chartGroup.selectAll('path')
           .filter(function(link: any) {
             return !nodeLinks.includes(link as SankeyLinkExtra);
           })
@@ -793,14 +756,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         d3.select(this)
           .classed('sankey-node-hovered', false)
           .attr('stroke-width', 1);
-        zoomGroup.selectAll('rect').attr('opacity', 1);
-        zoomGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
+        chartGroup.selectAll('rect').attr('opacity', 1);
+        chartGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
       });
 
     // -----------------------------------------
     // 8. Node Labels (with values inline)
     // -----------------------------------------
-    const nodeLabels = zoomGroup.append('g')
+    const nodeLabels = chartGroup.append('g')
       .attr('class', 'sankey-node-labels')
       .selectAll('text')
       .data(graph.nodes)
@@ -872,37 +835,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Legend is rendered in template (outside chart) – see sankey.component.html
   }
 
-  // -----------------------------------------
-  // Setup Zoom Controls
-  // -----------------------------------------
-  private setupZoomControls(): void {
-    const container = this.el.nativeElement.querySelector('.sankey-container');
-    if (!container) return;
-
-    const zoomInBtn = container.querySelector('.zoom-in');
-    const zoomOutBtn = container.querySelector('.zoom-out');
-    const zoomResetBtn = container.querySelector('.zoom-reset');
-
-    if (!this.currentZoom || !zoomInBtn || !zoomOutBtn || !zoomResetBtn) return;
-
-    const { zoom, svg } = this.currentZoom;
-
-    // Zoom in button
-    zoomInBtn.addEventListener('click', () => {
-      svg.transition().duration(300).call(zoom.scaleBy, 1.3);
-    });
-
-    // Zoom out button
-    zoomOutBtn.addEventListener('click', () => {
-      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
-    });
-
-    // Reset zoom button
-    zoomResetBtn.addEventListener('click', () => {
-      svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
-    });
-  }
-  
   ngOnDestroy(): void {
     // Clean up tooltip when component is destroyed
     d3.select('body').select(`#${this.tooltipId}`).remove();

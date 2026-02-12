@@ -12,7 +12,7 @@ import * as d3 from 'd3';
 export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   // Input properties for chart configuration
   @Input() data: number[] = [];
-  @Input() color: string = '#22C55E';
+  @Input() color: string = '#00113F'; // $primary-colors-midnight-blue
   @Input() width: number = 400;
   @Input() height: number = 250;
   @Input() showGrid: boolean = true;

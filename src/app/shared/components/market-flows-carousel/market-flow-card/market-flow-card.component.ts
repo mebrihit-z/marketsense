@@ -46,7 +46,7 @@ export class MarketFlowCardComponent {
 
   getConfidenceColor(confidence: 'high' | 'medium' | 'low'): string {
     // All scores are green for now
-    return '#00bc7d';
+    return '#2A6907';
   }
 
   onDownload(event?: Event): void {

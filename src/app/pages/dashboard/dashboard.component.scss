@@ -41,7 +41,12 @@
         min-height: auto;
     }
 }
-
+.dashboard-top-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    background: rgba(199, 234, 255, 0.40);
+}
 .dashboard-content {
     display: flex;
     flex-direction: column;

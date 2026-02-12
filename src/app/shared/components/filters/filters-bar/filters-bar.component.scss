@@ -7,19 +7,35 @@
     z-index: 999;
     width: 100%;
     background-color: transparent;
+
+    // When condensed, use fixed so the bar stays at top even inside dashboard-top-content
+    // (sticky is broken there by the parent layout)
+    &.condensed {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #ceecff;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+    }
     
     @media (max-width: 1024px) {
         position: relative;
         top: auto;
+
+        &.condensed {
+            position: relative;
+            left: auto;
+            right: auto;
+        }
     }
 }
 .filters-bar-container {
-    padding: 24px 48px;
-    border-bottom: 1px solid $primary-blue;
+    padding: 0px 48px 24px 48px;
     display: flex;
     flex-direction: column;
     position: relative;
-    background-color: #F8F6F1;
+    border-bottom: 1px solid $secondary-colors-gold-750;
     &.condensed {
         padding: 0px 13px 0px 13px;
     }
@@ -43,7 +59,7 @@
     }
     
     &.condensed {
-        padding: 7px 13px 8px 13px;
+        padding: 24px 13px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         
         @media (max-width: 1400px) {
@@ -106,7 +122,6 @@
     }
     
     &.condensed-layout {
-        align-items: flex-end;
         gap: 16px;
         flex-wrap: nowrap;
         min-width: 0;
@@ -142,7 +157,7 @@
     transition: height 0.2s ease, align-items 0.2s ease;
     flex-shrink: 0;
 
-    color: $text-secondary;
+    color: $text-primary-midnight-blue;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
@@ -157,9 +172,10 @@
     }
     
     .filters-root.condensed & {
-        height: 51px;
         align-items: center;
         justify-content: center;
+        height: 51px;
+        flex-shrink: 0;
         
         @media (max-width: 768px) {
             height: auto;
@@ -223,7 +239,7 @@
     display: flex;
     gap: 16px;
     flex-wrap: nowrap;
-    align-items: flex-end;
+    align-items: center;
     
     @media (max-width: 1400px) {
         gap: 12px;
@@ -272,13 +288,12 @@
 }
 
 .filter-group-label {
-    font-size: 10px;
+    color: $primary-colors-midnight-blue;
+    font-size: 14px;
+    font-style: normal;
     font-weight: 400;
-    line-height: 16px;
-    color: rgba(10, 10, 10, 0.5);
-    margin: 0;
-    letter-spacing: -0.1504px;
-    padding: 0;
+    line-height: 16px; /* 114.286% */
+    letter-spacing: -0.15px;
    
 }
 
@@ -456,7 +471,7 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 20px;
-    color: $text-primary-dark;
+    color: $text-primary-midnight-blue;
     margin: 0;
     white-space: nowrap;
     flex-shrink: 0;
@@ -473,7 +488,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 20px;
-    color: rgba(0, 0, 0, 0.65);
+    color: $text-primary-midnight-blue;
     text-align: center;
     white-space: nowrap;
     letter-spacing: 0.03px;
@@ -508,7 +523,7 @@
     position: absolute;
     width: 2px;
     height: 2px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     top: 0;
 }
@@ -547,7 +562,7 @@
     position: absolute;
     top: 0;
     height: 2px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     pointer-events: none;
 }
@@ -556,7 +571,7 @@
     position: absolute;
     width: 12px;
     height: 12px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 6px;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.15);
     cursor: grab;
@@ -623,7 +638,7 @@
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color:$primary-blue;
+    color:$primary-colors-midnight-blue;
     letter-spacing: -0.1504px;
     padding: 0 5px;
     white-space: nowrap;
@@ -649,7 +664,7 @@
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color: $primary-blue;
+    color: $primary-colors-midnight-blue;
     letter-spacing: -0.1504px;
     padding: 0 5px;
     white-space: nowrap;
@@ -705,7 +720,7 @@
 // Toggles Section
 .toggles-container {
     display: flex;
-    gap: 40px;
+    gap: 18px;
     align-items: center;
     margin-top: 12px;
     width: 100%;
@@ -771,7 +786,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: $primary-blue;
+    color: $primary-colors-midnight-blue;
     font-size: 14px;
     font-style: normal;
     font-weight: 500;
@@ -806,8 +821,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    background-color: $bg-white;
+    padding: 6px 8px;
     @media (max-width: 1024px) and (min-width: 769px) {
-        margin-left: 75px;
+        // margin-left: 75px;
     }
     @media (max-width: 768px) {
         width: 100%;
@@ -822,7 +839,7 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 20px;
-    color: $text-secondary;
+    color: $primary-colors-midnight-blue;
     white-space: nowrap;
 }
 
@@ -848,7 +865,7 @@
     }
     
     &:focus {
-        outline: 2px solid $primary-blue;
+        outline: 2px solid $primary-colors-midnight-blue;
         outline-offset: 2px;
         border-radius: 2px;
     }
@@ -875,7 +892,7 @@
     white-space: normal;
     
     .tooltip-content {
-        background: $gray-darker;
+        background: #374151;
         border: none;
         border-radius: 6px;
         padding: 12px;
@@ -896,7 +913,7 @@
         height: 0;
         border-left: 6px solid transparent;
         border-right: 6px solid transparent;
-        border-bottom: 6px solid $gray-darker;
+        border-bottom: 6px solid #374151;
     }
 }
 
@@ -918,10 +935,8 @@
 
 .toggle-buttons {
     display: flex;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid $primary-colors-midnight-blue;
     background-color: $bg-white;
-    overflow: hidden;
-
     &.time-horizon {
         @media (max-width: 768px) {
             flex-wrap: wrap;
@@ -933,10 +948,10 @@
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color: $text-primary;
+    color: $text-primary-midnight-blue;
     background-color: $bg-white;
     border: none;
-    padding: 11px 8px;
+    padding: 4px 8px;
     cursor: pointer;
     transition: background-color 0.2s;
     white-space: nowrap;
@@ -950,8 +965,8 @@
     }
 
     &.active {
-        background-color: $overlay-gray;
-        color: $text-primary-dark;
+        background-color: $primary-colors-midnight-blue;
+        color: $white;
     }
 }
 
@@ -961,9 +976,11 @@
     align-items: center;
     gap: 24px;
     min-width: 0;
-    flex: 1 1 auto;
     max-width: 100%;
-    
+    width: 560px;
+    background-color: $bg-white;
+    z-index: -1;
+    padding-left: 8px;
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-direction: column;
         align-items: flex-start;
@@ -1048,7 +1065,7 @@
     position: absolute;
     width: 2px;
     height: 2px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     top: 0;
     transform: translateX(-50%);
@@ -1064,6 +1081,7 @@
     background: rgba(11, 65, 173, 0.4); // Light blue track (matching image)
     border-radius: 2px;
     pointer-events: none;
+    z-index: -1;
     
     @media (max-width: 768px) {
         width: calc(100% - 12px);
@@ -1076,7 +1094,7 @@
     position: absolute;
     top: 0;
     height: 2px;
-    background: $primary-blue; // Darker blue active segment
+    background: $primary-colors-midnight-blue; // Darker blue active segment
     border-radius: 2px;
     pointer-events: none;
 }
@@ -1085,7 +1103,7 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    background: $primary-blue; // Dark blue handle
+    background: $primary-colors-midnight-blue; // Dark blue handle
     border-radius: 50%;
     cursor: grab;
     transform: translateX(-50%);
@@ -1127,7 +1145,7 @@
     position: absolute;
     font-size: 12px;
     font-weight: 400;
-    color: $text-secondary;
+    color: $text-primary-midnight-blue;
     white-space: nowrap;
     top: 0;
     transform: translateX(-50%);
@@ -1198,13 +1216,12 @@
 }
 
 .ai-confidence-label-condensed {
-    font-size: 10px;
+    color: $text-primary-midnight-blue;
+    font-size: 14px;
+    font-style: normal;
     font-weight: 400;
-    line-height: 16px;
-    color: rgba(10, 10, 10, 0.5);
-    margin: 0;
-    white-space: nowrap;
-    letter-spacing: -0.1504px;
+    line-height: 16px; /* 114.286% */
+    letter-spacing: -0.15px;
 }
 
 .slider-wrapper-condensed {
@@ -1229,7 +1246,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 20px;
-    color: rgba(0, 0, 0, 0.65);
+    color: $text-primary-midnight-blue;
     text-align: center;
     white-space: nowrap;
     letter-spacing: 0.03px;
@@ -1280,7 +1297,7 @@
     position: absolute;
     width: 2px;
     height: 2px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     top: 0;
 }
@@ -1317,7 +1334,7 @@
     position: absolute;
     top: 0;
     height: 2px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     pointer-events: none;
     // Left and width are set dynamically via inline styles
@@ -1329,7 +1346,6 @@
     flex-direction: column;
     gap: 6px;
     align-items: flex-start;
-    width: 154px;
     height: 51px;
     flex-shrink: 0;
     position: relative;
@@ -1355,19 +1371,18 @@
 }
 
 .toggle-label-condensed {
-    font-size: 10px;
+    color: $primary-colors-midnight-blue;
+    font-size: 14px;
+    font-style: normal;
     font-weight: 400;
-    line-height: 16px;
-    color: rgba(10, 10, 10, 0.5);
-    white-space: nowrap;
-    letter-spacing: -0.1504px;
+    line-height: 16px; /* 114.286% */
+    letter-spacing: -0.15px;
 }
 
 .toggle-buttons-condensed {
     display: flex;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+ 
     background-color: $bg-white;
-    overflow: hidden;
     height: 28px;
     
     @media (max-width: 768px) {
@@ -1380,10 +1395,9 @@
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color: $text-primary;
+    color: $text-primary-midnight-blue;
     background-color: $bg-white;
-    border: none;
-    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    border: 1px solid $primary-colors-midnight-blue;
     padding: 11px 8px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -1410,8 +1424,8 @@
     }
     
     &.active {
-        background-color: rgba(86, 86, 86, 0.1);
-        color: #030213;
+        background-color: $primary-colors-midnight-blue;
+        color: $white;
     }
 }
 
@@ -1421,8 +1435,9 @@
     flex-direction: column;
     gap: 6px;
     align-items: flex-start;
-    width: 259px;
     height: 51px;
+    min-height: 51px;
+    max-height: 51px;
     flex-shrink: 0;
     position: relative;
     
@@ -1454,9 +1469,13 @@
 .time-horizon-slider-wrapper-condensed {
     display: flex;
     flex-direction: column;
-    width: 252px;
-    height: 24px;
-    margin-left: 16px;
+    justify-content: center;
+    background-color: $bg-white;
+    width: 300px;
+    height: 28px;
+    min-height: 28px;
+    flex-shrink: 0;
+    position: relative;
     
     @media (max-width: 768px) {
         width: 100%;
@@ -1465,12 +1484,14 @@
 }
 
 .time-horizon-slider-container-condensed {
-    position: relative;
+    position: absolute;
+    left: 20px;
+    top: 0;
     width: 252px;
     height: 12px;
     
     @media (max-width: 768px) {
-        width: 100%;
+        width: calc(100% - 40px);
     }
 }
 
@@ -1499,13 +1520,13 @@
     position: absolute;
     width: 2px;
     height: 2px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     top: 0.5px;
     transform: translateX(-50%);
     
     &.active {
-        background: $primary-blue;
+        background: $primary-colors-midnight-blue;
     }
 }
 
@@ -1529,7 +1550,7 @@
     position: absolute;
     top: 4px;
     height: 3px;
-    background: $primary-blue;
+    background: $primary-colors-midnight-blue;
     border-radius: 2px;
     pointer-events: none;
 }
@@ -1537,8 +1558,10 @@
 .time-horizon-labels-condensed {
     position: relative;
     width: 253px;
-    height: 28px;
-    top: 6.5px;
+    height: 16px;
+    margin-left: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
     
     @media (max-width: 768px) {
         width: 100%;
@@ -1547,12 +1570,12 @@
 
 .time-horizon-label-condensed {
     position: absolute;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
-    color: rgba(0, 0, 0, 0.65);
+    color: $text-primary-midnight-blue;
     white-space: nowrap;
     letter-spacing: 0.03px;
-    line-height: 20px;
+    line-height: 16px;
     text-align: center;
     top: 0;
     

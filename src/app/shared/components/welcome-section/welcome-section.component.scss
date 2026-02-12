@@ -48,7 +48,7 @@
   font-weight: 600;
   font-size: 20px;
   line-height: 28px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   margin: 0;
   
   @media (max-width: 768px) {
@@ -78,19 +78,17 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color:#35342F;
+  color: $text-primary-midnight-blue;
 }
 
 .saved-views-wrap {
   flex-shrink: 0;
   position: relative;
-  z-index: 99999;
 }
 
 .viewing-filter-container {
   position: relative;
   display: inline-block;
-  z-index: 99999;
 }
 
 .saved-views-btn {
@@ -98,10 +96,9 @@
   align-items: center;
   gap: 8px;
   padding: 5px 14px;
-  background-color: #C7EAFF;
+  background-color: #ffff;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
 
   &:hover {
     background-color: $bg-gray-medium;
@@ -118,7 +115,6 @@
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  filter: brightness(0) saturate(100%) invert(9%) sepia(45%) saturate(2000%) hue-rotate(200deg) brightness(0.9) contrast(1.1);
 }
 
 .saved-views-text {
@@ -129,11 +125,6 @@
 }
 
 .caret-icon {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  transition: transform 0.2s;
-  filter: brightness(0) saturate(100%) invert(9%) sepia(45%) saturate(2000%) hue-rotate(200deg) brightness(0.9) contrast(1.1);
 }
 
 .viewing-filter-container {
@@ -153,9 +144,9 @@
   position: fixed !important;
   min-width: 318px;
   width: max-content;
+  max-width: calc(100vw - 32px); /* prevent right-edge cut-off */
   background: $bg-white !important;
   border: 1px solid $border-gray-medium;
-  border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
   z-index: 2147483647 !important; /* Maximum z-index value */
   padding: 0;
@@ -173,7 +164,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-bottom: 1px solid $border-gray-medium;
+  border-bottom: 1px solid $secondary-colors-gold-750;
   flex-shrink: 0;
 }
 
@@ -182,7 +173,7 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: -0.2px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   margin: 0;
 }
 
@@ -251,7 +242,6 @@
   padding: 12px 13px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
   gap: 8px;
@@ -261,8 +251,10 @@
   }
   
   &.active {
-    background-color: #EFF6FF;
-    border-color: #BEDBFF;
+    background-color:$neutral-colors-neutral-250;
+    .option-tag{
+      padding: 8px;
+    }
   }
 }
 
@@ -286,7 +278,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   margin: 0;
   flex: 1;
   min-width: 0;
@@ -297,12 +289,11 @@
   align-items: center;
   padding: 0 8px;
   height: 20px;
-  background-color: #155DFC;
-  border-radius: 9999px;
+  background-color: $secondary-colors-gold-750;
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: $bg-white;
+  color: $primary-colors-midnight-blue;
   flex-shrink: 0;
 }
 
@@ -310,7 +301,7 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: $text-secondary;
+  color: $neutral-colors-neutral-1000;
   margin: 0;
   height: 16px;
 }
@@ -327,14 +318,12 @@
 .option-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0 6px;
   height: 20px;
-  background-color: #F3F4F6;
-  border-radius: 4px;
+  background-color: $white;
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #4A5565;
+  color: $text-primary-midnight-blue;
   flex-shrink: 0;
 }
 
@@ -354,13 +343,12 @@
   opacity: 0.7;
   
   &:hover {
-    background-color: rgba(220, 38, 38, 0.1);
+    background-color: rgba($neutral-colors-neutral-1000, 0.1);
     opacity: 1;
   }
   
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
   }
   
   svg {
@@ -414,7 +402,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $primary-blue;
+  color: $primary-colors-midnight-blue;
 }
 
 .ask-ai-subtitle {

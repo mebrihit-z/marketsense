@@ -95,7 +95,6 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: $text-primary;
   opacity: 0.7;
   display: flex;
   align-items: center;
@@ -116,33 +115,16 @@
 
 // Header
 .modal-header {
-  padding: 24px 40px 20px 40px;
+  padding: 16px 24px;
   flex-shrink: 0;
   text-align: left;
-}
-
-.header-title {
-  font-weight: 600;
-  font-size: 24px;
-  line-height: 32px;
-  letter-spacing: -0.3px;
-  color: $text-primary;
-  margin: 0 0 4px 0;
-}
-
-.header-subtitle {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  color: $text-secondary;
-  margin: 0;
 }
 
 // Tabs
 .tabs-container {
   display: flex;
   gap: 8px;
-  padding: 0 40px;
+  padding: 0 24px;
   border-bottom: none;
   flex-shrink: 0;
 }
@@ -154,20 +136,19 @@
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
-  color: $text-secondary;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 
   &.active {
-    background-color: $primary-blue;
+    background-color: $primary-colors-midnight-blue;
     color: white;
   }
 }
 
 // Session History Message
 .session-history-message {
-  padding: 12px 40px;
+  padding: 12px 24px;
   flex-shrink: 0;
   border-bottom: 1px solid $border-light;
 
@@ -175,7 +156,6 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
-    color: $text-secondary;
     margin: 0;
   }
 }
@@ -185,7 +165,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 32px 40px;
+  padding: 32px 24px;
   overflow-y: auto;
 }
 
@@ -217,16 +197,16 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: $text-primary;
   resize: none;
   min-height: 80px;
   outline: none;
   transition: border-color 0.2s;
   width: 100%;
   font-style: normal;
+  font-family: 'Noto Sans', sans-serif;
 
   &::placeholder {
-    color: $text-secondary;
+    color: $neutral-colors-neutral-750
   }
 
   &:focus {
@@ -255,7 +235,7 @@
   align-self: flex-end;
 
   &:not(:disabled) {
-    background-color: $primary-blue;
+    background-color: $primary-colors-midnight-blue;
     color: white;
     cursor: pointer;
     
@@ -283,13 +263,13 @@
   align-items: center;
   text-align: left;
   padding: 0;
+  color: $neutral-colors-neutral-750;
 }
 
 .empty-state-text {
   font-weight: 400;
   font-size: 16px;
   line-height: 24px;
-  color: $text-secondary;
   margin: 0 0 8px 0;
 }
 
@@ -297,7 +277,6 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: $text-secondary;
   width: 65%;
   text-align: center;
 }
@@ -314,7 +293,6 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: $text-secondary;
   margin: 0;
 }
 
@@ -329,7 +307,6 @@
     line-height: 16px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: #374151;
     margin: 0;
   }
 }
@@ -365,7 +342,6 @@
     font-weight: 600;
     font-size: 14px;
     line-height: 20px;
-    color: #1C398E;
     text-transform: uppercase;
   }
 
@@ -373,7 +349,6 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
-    color: #162456;
     margin: 0 0 8px 0;
   }
 
@@ -381,7 +356,6 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 16px;
-    color: #9CA3AF;
   }
 }
 

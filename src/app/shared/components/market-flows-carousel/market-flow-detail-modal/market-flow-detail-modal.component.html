@@ -1,19 +1,19 @@
-<div class="modal-overlay" (click)="onClose()" *ngIf="isVisible">
+<div class="modal-overlay" (click)="onClose()" *ngIf="isVisible && !inline">
   <div class="modal-container" (click)="$event.stopPropagation()">
     <!-- Window Controls -->
     <div class="window-controls">
       <button class="window-btn download-btn" (click)="onDownload()" aria-label="Download">
-        <img src="assets/icons/blue-download-icon.svg" alt="Download">
+        <img src="assets/icons/download-icon.svg" alt="Download">
       </button>
       <button class="window-btn close-btn" (click)="onClose()" aria-label="Close">
-        <img src="assets/icons/blue-close-icon.svg" alt="Close">
+        <img src="assets/icons/x-icon.svg" alt="Close">
       </button>
     </div>
 
     <!-- Header -->
     <div class="modal-header" *ngIf="card">
       <div class="header-content">
-        <app-title [title]="card.title" level="h1" class="header-title"></app-title>
+        <app-title [title]="card.title" level="h3" class="header-title"></app-title>
         <div class="confidence-indicator">
           <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
           <span class="confidence-text">Confidence Score: {{ getConfidenceLabel(card.aiConfidence) }}</span>
@@ -29,18 +29,28 @@
 
     <!-- Main Content -->
     <div class="main-content" *ngIf="card">
-      <!-- Key Metrics Section -->
-      <div class="key-metrics-section">
-        <div class="metric-box forecasted-value">
-          <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
-          <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
+      <div class="content-container">
+        <!-- Key Metrics Section -->
+        <div class="key-metrics-section">
+          <div class="metric-box forecasted-value">
+            <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
+            <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
+          </div>
+          <div class="metric-box expected-change" [class.positive]="card.percentageColor === 'green'" [class.negative]="card.percentageColor === 'red'">
+            <div class="metric-label">EXPECTED CHANGE</div>
+            <div class="metric-value">{{ card.percentageChange }}</div>
+          </div>
         </div>
-        <div class="metric-box expected-change" [class.positive]="card.percentageColor === 'green'" [class.negative]="card.percentageColor === 'red'">
-          <div class="metric-label">EXPECTED CHANGE</div>
-          <div class="metric-value">{{ card.percentageChange }}</div>
+        <!-- AI Summary Section -->
+        <div class="description-section" *ngIf="card.description">
+          <h3 class="section-title">
+            <img _ngcontent-ng-c1529385673="" src="assets/icons/sparkle-blue-icon.svg" alt="Sparkle" class="sparkle-icon">
+            AI Summary
+          </h3>
+          <!-- <p class="description-text">{{ card.description }}</p> -->
+          <p class="description-text">Capital outflows driven by weaker local currencies and cautious investor sentiment amid rising geopolitical tensions. Flight to quality continues as developed market alternatives appear more attractive.
         </div>
       </div>
-
       <!-- Forecast Trajectory Chart -->
       <div class="chart-section">
         <div class="chart-header">
@@ -64,16 +74,6 @@
           </app-line-chart>
         </div>
       </div>
-
-      <!-- AI Summary Section -->
-      <div class="description-section" *ngIf="card.description">
-        <h3 class="section-title">
-          <img _ngcontent-ng-c1529385673="" src="assets/icons/sparkle-icon.svg" alt="Sparkle" class="sparkle-icon">
-          AI Summary
-        </h3>
-        <!-- <p class="description-text">{{ card.description }}</p> -->
-        <p class="description-text">Capital outflows driven by weaker local currencies and cautious investor sentiment amid rising geopolitical tensions. Flight to quality continues as developed market alternatives appear more attractive.
-      </div>
     </div>
   </div>
 
@@ -86,3 +86,81 @@
   </app-export-modal>
 </div>
 
+<!-- Inline panel (no overlay) for carousel left column -->
+<div class="modal-container inline-panel" *ngIf="inline && card">
+  <div class="window-controls">
+    <button class="window-btn download-btn" (click)="onDownload()" aria-label="Download">
+      <img src="assets/icons/download-icon.svg" alt="Download">
+    </button>
+    <button class="window-btn close-btn" (click)="onClose()" aria-label="Close">
+      <img src="assets/icons/x-icon.svg" alt="Close">
+    </button>
+  </div>
+  <div class="modal-header">
+    <div class="header-content">
+      <app-title [title]="card.title" level="h3" class="header-title"></app-title>
+      <div class="confidence-indicator">
+        <span class="confidence-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
+        <span class="confidence-text">Confidence Score: {{ getConfidenceLabel(card.aiConfidence) }}</span>
+        <button class="info-button" type="button" aria-label="Confidence Score Information">
+          <svg class="info-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M7 4V7M7 10H7.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="content-container">
+      <div class="key-metrics-section">
+        <div class="metric-box forecasted-value">
+          <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
+          <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
+        </div>
+        <div class="metric-box expected-change" [class.positive]="card.percentageColor === 'green'" [class.negative]="card.percentageColor === 'red'">
+          <div class="metric-label">EXPECTED CHANGE</div>
+          <div class="metric-value">{{ card.percentageChange }}</div>
+        </div>
+      </div>
+      <div class="description-section" *ngIf="card.description">
+        <h3 class="section-title">
+          <img src="assets/icons/sparkle-blue-icon.svg" alt="Sparkle" class="sparkle-icon">
+          AI Summary
+        </h3>
+        <p class="description-text">Capital outflows driven by weaker local currencies and cautious investor sentiment amid rising geopolitical tensions. Flight to quality continues as developed market alternatives appear more attractive.</p>
+      </div>
+    </div>
+    <div class="chart-section">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <app-title title="Forecast Trajectory" [subtitle]="getTimeHorizonDisplay() + ' Projection'" level="h3" class="chart-title"></app-title>
+        </div>
+      </div>
+      <div class="chart-container">
+        <app-line-chart
+          [data]="getChartData()"
+          [color]="getChartColor()"
+          [width]="getChartWidth()"
+          [height]="250"
+          [showGrid]="true"
+          [showArea]="false"
+          [xAxisLabels]="getXAxisLabels()"
+          [yAxisMin]="getYAxisMin()"
+          [yAxisMax]="getYAxisMax()"
+          [yAxisLabel]="'Billions (USD)'"
+          [xAxisLabel]="'Time Horizon'">
+        </app-line-chart>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal (also used when inline) -->
+<app-export-modal
+  *ngIf="inline"
+  [isVisible]="showExportModal"
+  (close)="onCloseExportModal()"
+  (exportXLS)="onExportXLS()"
+  (exportPDF)="onExportPDF()">
+</app-export-modal>

@@ -14,7 +14,6 @@ $input-placeholder: #9ca3af;
   width: 100%;
   padding: 0 48px;
   margin-bottom: 0;
-  background-color: #f5f1eb;
 
   @media (max-width: 1200px) {
     padding: 0 32px;
@@ -39,33 +38,24 @@ $input-placeholder: #9ca3af;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 56rem;
-  margin-left: 181px;
+  width: 63.5rem;
+  margin-left: auto;
   margin-right: auto;
 }
 .header {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 2px;
 }
 
 .logo-wrap {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  background-color: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self:center;
+ margin-left: -20px;
 }
 
 .logo {
   width: 22px;
   height: 22px;
   display: block;
-  // Gold/yellow tint for sparkle
-  filter: brightness(0) saturate(100%) invert(76%) sepia(40%) saturate(600%) hue-rotate(3deg) brightness(0.95) contrast(0.95);
 }
 
 // Style app-title when used in section header
@@ -82,7 +72,7 @@ $input-placeholder: #9ca3af;
 }
 
 .header ::ng-deep app-title .subtitle {
-  color: #C7EAFF;
+  color: $primary-colors-sky-blue;
   font-size: 13px;
   font-style: normal;
   font-weight: 400;
@@ -103,7 +93,7 @@ $input-placeholder: #9ca3af;
 }
 
 .input-wrap .input-icon {
-  color: $input-placeholder;
+  color: $primary-colors-midnight-blue;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,7 +109,6 @@ $input-placeholder: #9ca3af;
   background: none;
   font-size: 14px;
   line-height: normal;
-  color: #6F6E6A;
   outline: none;
   &::placeholder {
     color: $input-placeholder;
@@ -136,8 +125,8 @@ $input-placeholder: #9ca3af;
   justify-content: center;
   gap: 8px;
   padding: 8px 18px;
-  background-color: $section-gold;
-  color: #00113F;
+  background-color: $secondary-colors-gold-750;
+  color: $text-primary-midnight-blue;
   border: none;
   border-radius: 0;
   font-weight: 600;
@@ -180,7 +169,7 @@ $input-placeholder: #9ca3af;
   font-size: 12px;
   line-height: 16px;
   letter-spacing: 0.5px;
-  color:#C7EAFF;
+  color:$primary-colors-sky-blue;
   align-self: center;
 }
 
@@ -191,10 +180,9 @@ $input-placeholder: #9ca3af;
 }
 
 .suggestion-btn {
-  padding: 4px 16px;
-  background: rgba(12, 66, 254, 0.48);
+  background: transparent;
   color: $section-text;
-  border: none;
+  padding: 8px 16px;
   font-weight: 400;
   font-size: 13px;
   line-height: 18px;
@@ -202,11 +190,12 @@ $input-placeholder: #9ca3af;
   transition: background-color 0.2s, opacity 0.2s;
   text-align: left;
   max-width: 100%;
+  border: solid 1px #F5F1EB;
 
 
 
   &:hover {
-    background-color: lighten($section-bg-suggestions, 6%);
+   
   }
 
   &:focus {

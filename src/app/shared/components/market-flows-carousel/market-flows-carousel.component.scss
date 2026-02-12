@@ -55,7 +55,7 @@
   font-size: 20px;
   line-height: 28px;
   letter-spacing: -0.76px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   margin: 0;
   
   @media (max-width: 768px) {
@@ -71,7 +71,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
 }
 
 .sort-dropdown {
@@ -86,13 +86,12 @@
   padding: 8px 12px;
   background: $bg-white;
   border: 1px solid $border-gray-dark;
-  border-radius: 8px;
   cursor: pointer;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   transition: border-color 0.2s, background-color 0.2s;
   min-width: 160px;
   justify-content: space-between;
@@ -104,7 +103,7 @@
 
   &:focus {
     outline: none;
-    border-color: $primary-blue;
+    border-color: $primary-colors-midnight-blue;
   }
 }
 
@@ -132,7 +131,6 @@
   min-width: 230px;
   background: $bg-white;
   border: 1px solid $border-gray-medium;
-  border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
   z-index: 100;
   padding: 8px;
@@ -155,14 +153,13 @@
   padding: 10px 12px;
   background: none;
   border: none;
-  border-radius: 8px;
   cursor: pointer;
   text-align: left;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   transition: background-color 0.2s;
   position: relative;
 
@@ -171,7 +168,7 @@
   }
 
   &.active {
-    background-color: $primary-blue-light;
+    background-color: $neutral-colors-neutral-250;
   }
 }
 
@@ -189,7 +186,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: $primary-blue;
+  background-color: $primary-colors-midnight-blue;
   flex-shrink: 0;
 }
 
@@ -213,7 +210,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $primary-blue;
+  color: $primary-colors-midnight-blue;
 }
 
 .arrow-icon {
@@ -225,6 +222,46 @@
 .carousel-container {
   width: 100%;
   overflow: hidden;
+}
+
+// Two-column layout: detail on left, stacked cards on right (when a card is selected)
+.detail-and-cards-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  width: 100%;
+  align-items: start;
+  min-height: 400px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 280px;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.detail-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.stacked-cards-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding-right: 4px;
+
+  @media (max-width: 768px) {
+    max-height: 50vh;
+    order: -1; // Stack above detail on small screens if desired, or remove to keep detail first
+  }
 }
 
 .cards-grid {
@@ -272,7 +309,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
 }
 
 .pagination-controls {
@@ -309,7 +346,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   transition: background-color 0.2s, color 0.2s;
 
   &:hover:not(:disabled):not(.active) {
@@ -317,7 +354,7 @@
   }
 
   &.active {
-    color: $text-primary;
+    color: $text-primary-midnight-blue;
     font-weight: 700;
   }
 
@@ -350,7 +387,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.15px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   transition: background-color 0.2s, opacity 0.2s;
 
   &:hover:not(:disabled) {

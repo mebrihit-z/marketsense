@@ -16,6 +16,8 @@ import * as detailModalUtil from './market-flow-detail-modal.util';
 })
 export default class MarketFlowDetailModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
+  /** When true, render only the content (no overlay) for inline use in carousel. */
+  @Input() inline: boolean = false;
   @Input() card: MarketFlowCard | null = null;
   @Input() rawAssetFlowsData: AssetFlowRecord[] = [];
   @Input() timeHorizonRange: { start: string; end: string } | null = null;
@@ -35,7 +37,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @param {import("@angular/core").SimpleChanges} changes - Current and previous property values
    */
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isVisible']) {
+    if (changes['isVisible'] && !this.inline) {
       if (this.isVisible) {
         document.body.style.overflow = 'hidden';
       } else {
@@ -75,9 +77,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {string} Hex color for the chart line
    */
   getChartColor(): string {
-    if (!this.card) return '#0b41ad'; // Blue color to match the image
-    // Use blue for both positive and negative to match the design
-    return '#0b41ad';
+    if (!this.card) return '#00113F'; // $primary-colors-midnight-blue
+    return '#00113F';
   }
 
   /** Template for fallback mock data; length is adjusted to match x-axis labels. */

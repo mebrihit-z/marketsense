@@ -1,7 +1,7 @@
 <div class="card" (click)="onCardClick($event)" (mousedown)="onCardMouseDown($event)" (touchstart)="onCardTouchStart($event)">
   <!-- Card Header -->
   <div class="card-header">
-    <app-title [title]="card.title" level="h3" class="card-title"></app-title>
+    <app-title [title]="card.title" level="h4" class="card-title"></app-title>
     <div class="card-actions" (click)="$event.stopPropagation()" (touchstart)="$event.stopPropagation()">
       <!-- Pin Button -->
       <button

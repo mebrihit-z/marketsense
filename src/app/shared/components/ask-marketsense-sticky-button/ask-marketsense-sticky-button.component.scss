@@ -20,9 +20,12 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  width: 40px;
+  width: auto;
   height: 40px;
-  background-color: $primary-blue;
+  background-color: $primary-colors-midnight-blue;
+  color: $white;
+  padding: 10px 16px;
+  gap: 8px;
 
   
   

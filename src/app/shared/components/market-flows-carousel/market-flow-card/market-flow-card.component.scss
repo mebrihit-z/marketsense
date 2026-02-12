@@ -30,7 +30,7 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: -0.31px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   margin: 0;
   flex: 1;
 }
@@ -71,7 +71,7 @@
 
   &:hover {
     background-color: $overlay-light;
-    color: $text-primary-dark;
+    color: $text-primary-midnight-blue;
   }
 
   &:active {
@@ -90,7 +90,7 @@
 
   &.pinned {
     &:hover {
-      background-color: $primary-blue-light;
+      background-color: $primary-colors-midnight-blue;
     }
   }
 }
@@ -131,7 +131,7 @@
   }
 
   &.positive {
-    background-color: $green-positive;
+    background-color: $secondary-colors-green-1000;
   }
 }
 
@@ -161,7 +161,7 @@
   }
 
   &.positive {
-    color: $green-positive;
+    color: $secondary-colors-green-1000;
   }
 }
 
@@ -171,19 +171,18 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: #0B41AD;
+  color: $text-primary-midnight-blue;
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
 
   &:hover {
-    color: $blue-primary-dark;
     text-decoration: underline;
   }
 
   &:focus-visible {
-    outline: 2px solid $primary-blue;
+    outline: 2px solid $primary-colors-midnight-blue;
     outline-offset: 2px;
   }
 }

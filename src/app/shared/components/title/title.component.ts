@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type TitleLevel = 'h1' | 'h2' | 'h3' | 'h4';
+export type TitleLevel = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
 @Component({
   selector: 'app-title',
@@ -17,7 +17,7 @@ export default class TitleComponent {
   /** Optional subtitle shown below the title */
   @Input() subtitle?: string;
 
-  /** Semantic heading level: h1, h2, h3, or h4 */
+  /** Semantic heading level: h1–h6 */
   @Input() level: TitleLevel = 'h2';
 
   /** Optional CSS class for custom styling */

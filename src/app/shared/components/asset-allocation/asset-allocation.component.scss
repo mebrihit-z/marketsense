@@ -15,7 +15,13 @@
     gap: 24px;
   }
 }
-
+.top-section {
+  display: flex;
+  flex-direction: column;
+  gap:20px;
+  padding:25px 25px 2px 25px;
+  margin-bottom: 4px;
+}
 // Header Section
 .header-section {
   display: flex;
@@ -42,7 +48,6 @@
   font-size: 20px;
   line-height: 30px;
   letter-spacing: -0.45px;
-  color: $text-primary;
   margin: 0;
 }
 
@@ -52,7 +57,7 @@
   gap: 8px;
   padding: 8px 12px;
   background-color: $bg-light-opacity;
-  border: 1px solid $primary-blue;
+  border: 1px solid $primary-colors-midnight-blue;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -62,7 +67,6 @@
     font-size: 14px;
     line-height: 20px;
     letter-spacing: 0.035px;
-    color: $primary-blue;
   }
 
   .circles-icon {
@@ -71,7 +75,7 @@
   }
 
   &:hover {
-    background-color: $primary-blue-hover;
+    background-color: $primary-colors-midnight-blue;
   }
 }
 
@@ -120,7 +124,6 @@
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color: $text-primary-dark;
     cursor: pointer;
     transition: background-color 0.2s;
     white-space: nowrap;
@@ -163,8 +166,8 @@
 // Dimensions Section
 .dimensions-section {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
 }
 
 // Flow Dimensions Section
@@ -185,7 +188,6 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: $text-primary;
   margin: 0;
   
   @media (max-width: 768px) {
@@ -198,7 +200,6 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: $text-secondary;
   margin: 0;
   margin-top: -4px;
   
@@ -249,7 +250,7 @@
 }
 
 .hierarchy-arrow {
-  color: $text-secondary;
+  color: $primary-colors-midnight-blue;
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
@@ -274,9 +275,9 @@
 
 .dimension-selector-label {
   font-weight: 400;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 20px;
-  color: $text-secondary;
+  color: $text-primary-midnight-blue;
   flex-shrink: 0;
   
   @media (max-width: 768px) {
@@ -290,17 +291,14 @@
   position: relative;
   width: 100%;
 }
-
 .custom-select-button {
   width: 100%;
-  padding: 10px 12px;
+  padding: 4px 12px;
   background-color: $bg-white;
   border: 1px solid $border-light;
-  border-radius: 8px;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 20px;
-  color: $text-primary;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
   display: flex;
@@ -316,11 +314,11 @@
   }
 
   &:hover {
-    border-color: $primary-blue;
+    border-color: $primary-colors-midnight-blue;
   }
 
   &.has-selection {
-    color: $text-primary;
+    color: $text-primary-midnight-blue;
   }
 
   .custom-select-text {
@@ -331,11 +329,7 @@
   }
 
   .custom-select-arrow {
-    width: 12px;
-    height: 8px;
-    flex-shrink: 0;
     margin-left: 8px;
-    transition: transform 0.2s;
     
     &.open {
       transform: rotate(180deg);
@@ -343,20 +337,18 @@
   }
 }
 
-// Hierarchy dropdowns: white bg, light gray border, dark blue selected text, gray chevron (same as Asset Flows)
+// Hierarchy dropdowns: white bg, light gray border, dark blue selected text, gray chevron
 .custom-select-button.hierarchy-dropdown {
   background-color: $bg-white;
   border: 1px solid $border-gray-medium;
-  border-radius: 6px;
   min-width: 120px;
 
   &.has-selection .custom-select-text {
-    color: $primary-blue;
+    color: $primary-colors-midnight-blue;
     font-weight: 500;
   }
 
   .custom-select-arrow {
-    opacity: 0.55;
   }
 }
 
@@ -388,7 +380,6 @@
   font-weight: 500;
   font-size: 14px;
   line-height: 16px;
-  color: $text-primary;
   cursor: pointer;
   transition: background-color 0.15s;
   background-color: $bg-white;
@@ -405,7 +396,7 @@
   
   &.selected {
     background-color: rgba(236, 236, 240, 0.5);
-    color: $primary-blue;
+    color: $primary-colors-midnight-blue;
     font-weight: 500;
   }
   
@@ -450,7 +441,7 @@
     height: 0;
 
     &:checked + .slider {
-      background-color: $primary-blue;
+      background-color: $primary-colors-midnight-blue;
     }
 
     &:checked + .slider:before {
@@ -488,7 +479,6 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: 0.08px;
-  color: $text-light;
 }
 
 // Treemap Container
@@ -544,7 +534,6 @@
   font-weight: 600;
   font-size: 18px;
   line-height: 24px;
-  color: $text-primary;
   margin: 0;
 }
 
@@ -626,7 +615,7 @@
   border-radius: 4px;
 
   &.inflow {
-    background-color: $green-light;
+    background-color: $secondary-colors-green-750;
   }
 
   &.neutral {

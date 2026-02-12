@@ -17,7 +17,6 @@
   right: 0;
   background-color: $bg-white;
   border: 1px solid $border-light;
-  border-radius: 8px;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 280px;
   max-width: 360px;
@@ -121,11 +120,11 @@
   }
 
   &.avatar-blue {
-    background-color: $primary-blue;
+    background-color: $primary-colors-midnight-blue;
   }
 
   &.avatar-green {
-    background-color: $green-dark;
+    background-color: $secondary-colors-green-1000;
   }
 
   &.avatar-red {
@@ -162,7 +161,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -183,7 +182,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: $primary-blue;
+  background-color: $primary-colors-midnight-blue;
   flex-shrink: 0;
 }
 
@@ -205,7 +204,7 @@
   border: none;
   font-size: 14px;
   font-weight: 400;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   text-align: left;
   cursor: pointer;
   transition: background-color 0.2s ease;

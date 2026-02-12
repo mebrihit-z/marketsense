@@ -27,9 +27,6 @@
 .modal-container {
   position: relative;
   background-color: $bg-white;
-  width: 90%;
-  max-width: 620px;
-  min-width: 600px;
   max-height: 95vh;
   display: flex;
   flex-direction: column;
@@ -38,8 +35,67 @@
   border-radius: 14px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid $border-light;
-  padding:48px;
+  padding: 24px;
   gap: 20px;
+
+  &.inline-panel {
+    max-height: none;
+    animation: none;
+    box-shadow: none;
+    border-radius: 0;
+    background: transparent;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px 24px;
+    align-items: start;
+  }
+}
+.content-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 50%;
+}
+
+// Inline: metrics + AI Summary on the left, chart on the same row (right)
+.inline-panel .content-container {
+  width: 45%;
+  min-width: 280px;
+}
+
+.inline-panel .main-content {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.inline-panel .chart-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-panel .window-controls {
+  position: static;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.inline-panel .modal-header {
+  grid-column: 1;
+  grid-row: 1;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .inline-panel .main-content {
+    flex-direction: column;
+  }
+  .inline-panel .content-container {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 @keyframes slideIn {
@@ -59,7 +115,6 @@
   top: 20px;
   right: 20px;
   display: flex;
-  gap: 8px;
   z-index: 10;
 }
 
@@ -95,7 +150,7 @@
   font-size: 18px;
   line-height: 24px;
   letter-spacing: -0.5px;
-  color: $text-primary-dark;
+  color: $text-primary-midnight-blue;
   margin: 0;
 }
 
@@ -152,9 +207,7 @@
 
 // Main Content
 .main-content {
-  flex: 1;
   display: flex;
-  flex-direction: column;
   overflow-y: auto;
   gap: 20px;
   min-height: 0; // Allows flex child to shrink
@@ -209,7 +262,7 @@
   letter-spacing: -0.7px;
   
   &.positive {
-    color: $green-positive;
+    color: $secondary-colors-green-1000;
   }
   
   &.negative {
@@ -220,20 +273,22 @@
 // Expected change box value styling
 .expected-change {
   .metric-value {
-    color: $green-positive;
+    color: $secondary-colors-green-1000;
   }
   
   &.negative .metric-value {
     color: $red-negative;
   }
 }
-
+.sparkle-icon {
+  width: 16px;
+  height: 16px;
+}
 // Description Section
 .description-section {
   display: flex;
   flex-direction: column;
   gap: 13px;
-  border-top: 1px solid $border-light;
   padding-top: 13px;
   
 
@@ -243,7 +298,7 @@
 }
 
 .section-title {
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   font-size: 16px;
   font-style: normal;
   font-weight: 400;
@@ -292,7 +347,7 @@
 .chart-title {
   font-size: 14px;
   line-height: 20px;
-  color: $text-primary;
+  color: $text-primary-midnight-blue;
   font-style: normal;
   font-weight: 500;
 
@@ -328,8 +383,8 @@
 // Responsive adjustments
 @media (max-width: 1024px) {
   .modal-container {
-    width: 95%;
-    min-width: 500px;
+    // width: 95%;
+    // min-width: 500px;
   }
 
   .modal-header {
@@ -348,8 +403,8 @@
 
 @media (max-width: 768px) {
   .modal-container {
-    width: 100%;
-    min-width: 100%;
+    // width: 100%;
+    // min-width: 100%;
     max-height: 100vh;
     border-radius: 0;
   }

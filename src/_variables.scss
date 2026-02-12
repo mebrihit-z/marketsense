@@ -2,54 +2,7 @@
 // COLOR VARIABLES
 // ============================================
 
-// Primary Colors
-$primary-blue: #122040;
-$primary-blue-hover: rgba(11, 65, 173, 0.1);
-$primary-blue-light: rgba(11, 65, 173, 0.05);
 
-// Text Colors
-$text-primary: #0A0A0A;
-$text-primary-dark: #030213;
-$text-secondary: #717182;
-$text-dark: #333333;
-$text-medium: #666666;
-$text-light: rgba(0, 0, 0, 0.85);
-
-// Background Colors
-$bg-white: #ffffff;
-$bg-light: #ececf0;
-$bg-cream: #F8F6F1;
-$bg-light-opacity: rgba(236, 236, 240, 0.3);
-$bg-light-opacity-50: rgba(236, 236, 240, 0.5);
-$bg-gray-light: #f9fafb;
-$bg-gray-lighter: #ECEEF2;
-$bg-gray-lightest: #F3F3F5;
-$bg-gray-medium: #e5e7eb;
-$bg-gray-dark: #6b7280;
-$bg-gray-darker: #4b5563;
-$bg-neutral: #e8e9eb;
-
-// Border Colors
-$border-light: rgba(0, 0, 0, 0.1);
-$border-medium: rgba(0, 0, 0, 0.12);
-$border-gray: #b3b3b3;
-$border-gray-light: #c4c4c4;
-$border-gray-medium: #d1d5dc;
-$border-gray-dark: #e5e7eb;
-
-// Green Colors (Positive/Inflow)
-$green-light: #86efac;
-$green: #4ade80;
-$green-dark: #10b981;
-$green-darker: #059669;
-$green-hover: #34d399;
-$green-link: #6EE7B7;
-$green-accent: #00bc7d;
-$green-positive: #009966;
-$green-gradient-start: rgba(5, 150, 105, 0.15);
-$green-gradient-mid: rgba(5, 150, 105, 0.20);
-$green-gradient-end: rgba(5, 150, 105, 0.18);
-$green-gradient-top: rgba(5, 150, 105, 0.08);
 
 // Red Colors (Negative/Outflow)
 $red-light: #fca5a5;
@@ -122,4 +75,94 @@ $overlay-shadow-dark: rgba(0, 0, 0, 0.1);
 $default-gray: #999999;
 $blue-focus-outline: rgba(30, 64, 175, 0.25);
 $primary-blue-light-hover: rgba(11, 65, 173, 0.05);
+
+// ===============BRAND COLORS=============================
+
+// Primary colors
+$primary-colors-midnight-blue: #00113F;
+$primary-colors-sky-blue: #C7EAFF;
+$white: #FFFFFF;
+// Secondary - Gold
+$secondary-colors-gold-1000: #C5730B;
+$secondary-colors-gold-750: #FFB70E;
+$secondary-colors-gold-500: #FFD581;
+$secondary-colors-gold-250: #FFF1D4;
+
+// Secondary - Blue
+$secondary-colors-blue-750: #0C42FE;
+$secondary-colors-blue-500: #77B1FF;
+
+// Secondary Green
+$secondary-colors-green-1000: #2A6907;
+$secondary-colors-green-750: #5FB62C;
+$secondary-colors-green-500: #A7D888;
+$secondary-colors-green-250: #DAE8D2;
+
+// Secondary Purple
+$secondary-colors-purple-1000: #540472;
+$secondary-colors-purple-750: #841DD9;
+$secondary-colors-purple-500: #D9A7FF;
+$secondary-colors-purple-250: #F4E5FF;
+
+// Neutral Colors
+$neutral-colors-neutral-1000: #35342F;
+$neutral-colors-neutral-750: #6F6E6A;
+$neutral-colors-neutral-500: #B1ADA8;
+$neutral-colors-neutral-250: #F5F1EB;
+
+// Traffic colors
+$traffic-success-green: #14853D;
+$traffic-danger-crimson: #C53532;
+$traffic-warning-yellow: #FFBE00;
+
+// ===============PALETTE COLORS=============================
+
+
+// Purple palette
+$purple-1000: #5E017F;
+$purple-750: #8F20DE;
+$purple-500: #DEB1FF;
+$purple-250: #F5E8FF;
+
+// Neutral colors
+$neutral-1000: #3D3C37;
+$neutral-750: #7B7974;
+$neutral-500: #B9B6B1;
+$neutral-250: #F7F3EE;
+
+// Traffic colors
+$traffic-success-green: #14853D;
+$traffic-danger-crimson: #C53532;
+$traffic-warning-yellow: #FFBE00;
+
+// Background Colors
+$bg-white: #ffffff;
+$bg-light: #ececf0;
+$bg-cream: #F8F6F1;
+$bg-light-opacity: rgba(236, 236, 240, 0.3);
+$bg-light-opacity-50: rgba(236, 236, 240, 0.5);
+$bg-gray-light: #f9fafb;
+$bg-gray-lighter: #ECEEF2;
+$bg-gray-lightest: #F3F3F5;
+$bg-gray-medium: #e5e7eb;
+$bg-gray-dark: #6b7280;
+$bg-gray-darker: #4b5563;
+$bg-neutral: #e8e9eb;
+
+// Text Colors
+$text-primary-midnight-blue: #00113F;
+$text-primary: #0A0A0A;
+$text-primary-dark: #030213;
+$text-secondary: #717182;
+$text-dark: #333333;
+$text-medium: #666666;
+$text-light: rgba(0, 0, 0, 0.85);
+
+// Border Colors
+$border-light: rgba(0, 0, 0, 0.1);
+$border-medium: rgba(0, 0, 0, 0.12);
+$border-gray: #b3b3b3;
+$border-gray-light: #c4c4c4;
+$border-gray-medium: #d1d5dc;
+$border-gray-dark: #e5e7eb;
 

@@ -14,16 +14,7 @@
           [attr.aria-expanded]="sortDropdownOpen"
           aria-haspopup="true">
           <span class="sort-dropdown-text">{{ selectedSortDisplayLabel }}</span>
-          <svg 
-            class="sort-dropdown-icon" 
-            [class.open]="sortDropdownOpen"
-            width="16" 
-            height="16" 
-            viewBox="0 0 16 16" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <img src="assets/icons/caret-down-icon.svg" alt="Sort" class="sort-dropdown-icon">
         </button>
         <div class="sort-dropdown-menu" *ngIf="sortDropdownOpen" (click)="$event.stopPropagation()">
           <button
@@ -41,8 +32,8 @@
     </div>
   </div>
 
-  <!-- Carousel Cards -->
-  <div class="carousel-container">
+  <!-- Carousel: grid when no selection, two-column (detail left + stacked cards right) when a card is selected -->
+  <div class="carousel-container" *ngIf="!selectedCardForDetail">
     <div class="cards-grid">
       <app-market-flow-card
         *ngFor="let card of visibleCards"
@@ -58,8 +49,74 @@
     </div>
   </div>
 
-  <!-- Carousel Navigation -->
-  <div class="navigation-container">
+  <!-- Two-column layout: selected detail on left, stacked cards on right -->
+  <div class="detail-and-cards-layout" *ngIf="selectedCardForDetail">
+    <div class="detail-column">
+      <app-market-flow-detail-modal
+        [inline]="true"
+        [isVisible]="true"
+        [card]="selectedCardForDetail"
+        [rawAssetFlowsData]="rawAssetFlowsData"
+        [timeHorizonRange]="timeHorizonRange"
+        [selectedInvestorRegions]="selectedInvestorRegions"
+        [selectedProductTypes]="selectedProductTypes"
+        (close)="onCloseDetailModal()">
+      </app-market-flow-detail-modal>
+      <!-- Pagination below detail (same as image) -->
+      <div class="navigation-container">
+        <div class="pagination-info">
+          <span class="page-info-text">Viewing {{ viewingRangeStart }}-{{ viewingRangeEnd }} of {{ totalCardsCount }} items</span>
+        </div>
+        <div class="pagination-controls">
+          <button
+            class="page-btn prev"
+            [disabled]="currentSlideIndex === 0 || totalSlides === 0"
+            (click)="previousSlide($event)"
+            type="button"
+            aria-label="Previous page">
+            <img src="assets/icons/previous-icon.svg" alt="Previous page" class="page-btn-icon">
+          </button>
+          <div class="page-numbers">
+            <button
+              *ngFor="let page of visiblePageNumbers"
+              type="button"
+              class="page-number"
+              [class.active]="page === currentPage"
+              [class.ellipsis]="page === -1"
+              [disabled]="page === -1"
+              (click)="page !== -1 && goToSlide(page - 1)">
+              <span *ngIf="page !== -1">{{ page }}</span>
+              <span *ngIf="page === -1">...</span>
+            </button>
+          </div>
+          <button
+            class="page-btn next"
+            [disabled]="currentSlideIndex >= totalSlides - 1 || totalSlides === 0"
+            (click)="nextSlide($event)"
+            type="button"
+            aria-label="Next page">
+            <img src="assets/icons/next-icon.svg" alt="Next page" class="page-btn-icon">
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="stacked-cards-column">
+      <app-market-flow-card
+        *ngFor="let card of stackedCards | slice:0:3"
+        [card]="card"
+        [isPinned]="isCardPinned(card.id)"
+        (download)="onDownload($event)"
+        (moreOptions)="onMoreOptions($event)"
+        (askMarketSense)="onAskMarketSense($event)"
+        (pin)="onPin($event)"
+        (cardClick)="onCardClick($event)"
+        (viewMore)="onCardClick($event)">
+      </app-market-flow-card>
+    </div>
+  </div>
+
+  <!-- Carousel Navigation (when no card selected) -->
+  <div class="navigation-container" *ngIf="!selectedCardForDetail">
     <div class="pagination-info">
       <span class="page-info-text">Viewing {{ viewingRangeStart }}-{{ viewingRangeEnd }} of {{ totalCardsCount }} items</span>
     </div>
@@ -112,15 +169,5 @@
     (exportPDF)="onExportPDF()">
   </app-export-modal>
 
-  <!-- Market Flow Detail Modal -->
-  <app-market-flow-detail-modal
-    [isVisible]="showDetailModal"
-    [card]="selectedCardForDetail"
-    [rawAssetFlowsData]="rawAssetFlowsData"
-    [timeHorizonRange]="timeHorizonRange"
-    [selectedInvestorRegions]="selectedInvestorRegions"
-    [selectedProductTypes]="selectedProductTypes"
-    (close)="onCloseDetailModal()">
-  </app-market-flow-detail-modal>
 </div>
 

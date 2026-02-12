@@ -3,7 +3,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: $primary-blue;
+    background-color: $primary-colors-midnight-blue;
     padding: 16px 48px;
 
     @media (max-width: 768px) {
@@ -62,14 +62,13 @@
             height: 36px;
             justify-content: center;
             align-items: center;
-            border-radius: 8px;
             border: 1px solid $border-light;
             cursor: pointer;
             transition: all 0.2s ease;
             color: #00113F;
             line-height: 16px; /* 133.333% */;
           
-            background: #C7EAFF;
+            background: #ffff;
             
             @media (max-width: 768px) {
                 width: 40px;
@@ -86,13 +85,12 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: $text-secondary;
         font-size: 12px;
         font-style: normal;
         font-weight: 400;
         line-height: 16px;
-        margin-top: 2px;
-        color: #fff;
+        margin-top: 6px;
+        color: $white;
         
         @media (max-width: 768px) {
             font-size: 11px;

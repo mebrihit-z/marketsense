@@ -68,12 +68,18 @@ export default class WelcomeSectionComponent implements AfterViewInit {
     }
   }
 
+  /** Min width of the dropdown (must match .viewing-dropdown min-width in SCSS). */
+  private readonly dropdownMinWidth = 318;
+  private readonly viewportPadding = 32;
+
   updateDropdownPosition(): void {
     if (this.filterButton?.nativeElement) {
       const rect = this.filterButton.nativeElement.getBoundingClientRect();
+      const maxLeft = window.innerWidth - this.dropdownMinWidth - this.viewportPadding;
+      const left = Math.max(this.viewportPadding, Math.min(rect.left, maxLeft));
       this.dropdownPosition = {
         top: rect.bottom + 8,
-        left: rect.left
+        left
       };
     }
   }
