@@ -76,13 +76,13 @@ app-treemap {
 
     &.superparent .label {
       font-size: 15px;
-      font-weight: 750;
+      font-weight: 600;
       line-height: 1.30;
     }
 
     &.group .label {
       font-size: 13px;
-      font-weight: 750;
+      font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -103,7 +103,7 @@ app-treemap {
 
     &.leaf .label {
       font-size: 10px;
-      font-weight: 650;
+      font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -133,21 +133,21 @@ app-treemap {
 
     &.group.leaf .label {
       font-size: 13px;
-      font-weight: 750;
+      font-weight: 600;
       white-space: normal;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     &.highlighted {
-      border-color: #0b41ad !important;
-      box-shadow: 0 0 8px rgba(11, 65, 173, 0.5) !important;
+      border-color: $primary-colors-midnight-blue !important;
+      box-shadow: 0 0 8px rgba($primary-colors-midnight-blue, 0.5) !important;
     }
   }
 
   .label {
     font-size: 13px;
-    font-weight: 650;
+    font-weight: 500;
     line-height: 1.25;
     padding: 4px 6px;
     margin: 2px;
@@ -170,7 +170,7 @@ app-treemap {
   .value {
     margin-top: auto;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 400;
     padding: 0 6px 6px 6px;
     color: rgba(0, 0, 0, 0.85);
     pointer-events: none;
