@@ -20,7 +20,7 @@
 .sankey-container {
   position: relative;
   width: 100%;
-  height: 900px;
+  height: 800px;
   display: flex;
   flex-direction: column;
 }
@@ -38,7 +38,7 @@
   min-width: 1200px; // Chart keeps readable width; scroll when container is smaller
   width: 100%;
   height: 100%;
-  min-height: 600px;
+  min-height: 400px;
 }
 
 // Outflows / Inflows labels above the chart (outside SVG)
@@ -218,11 +218,11 @@
 // Sankey node and link labels – readable typography
 .sankey-container ::ng-deep {
   .sankey-node-label {
-    font-size: 15px !important;
-    font-weight: 600;
+    font-size: 12px !important;
+    font-weight: 500;
     letter-spacing: 0.03em;
     word-spacing: 0.05em;
-    fill: var(--text-primary, #1f2937);
+    color: $text-primary-midnight-blue;
     pointer-events: none;
     text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
   }
@@ -238,16 +238,16 @@
   }
 
   .sankey-link-value-label {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
     letter-spacing: 0.02em;
-    fill: var(--text-primary, #1f2937);
+   color: $text-primary-midnight-blue;
     pointer-events: none;
     text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
   }
 
   .sankey-label-outflows {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     letter-spacing: 0.06em;
     fill: var(--red-link, #dc2626);
@@ -256,7 +256,7 @@
   }
 
   .sankey-label-inflows {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     letter-spacing: 0.06em;
     fill: var(--green-link, #059669);
@@ -265,9 +265,9 @@
   }
 
   .sankey-legend-label {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 500;
-    fill: var(--text-primary, #1f2937);
+    color: $text-primary-midnight-blue;
     white-space: nowrap;
     text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
   }

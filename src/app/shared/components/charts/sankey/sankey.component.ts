@@ -236,8 +236,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
                           this.el.nativeElement.offsetWidth ||
                           window.innerWidth || MIN_CHART_WIDTH;
     const width = Math.max(baseContainerWidth, MIN_CHART_WIDTH);
-    const baseHeight = elementRect.height > 0 ? elementRect.height : nativeRect.height > 0 ? nativeRect.height : 900;
-    const height = Math.max(baseHeight, 600);
+    const baseHeight = elementRect.height > 0 ? elementRect.height : nativeRect.height > 0 ? nativeRect.height : 800;
+    const height = Math.max(baseHeight, 400);
 
     // Create tooltip (append to body for positioning; inline styles required because body is outside component)
     d3.select('body').select(`#${this.tooltipId}`).remove();
