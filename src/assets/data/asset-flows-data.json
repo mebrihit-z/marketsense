@@ -1740,7 +1740,7 @@
       "Product_Type": "Cash",
       "Product_Sub_Type": "Money Market",
       "Asset_Flow_Date": "2026-11",
-      "Asset_Flow_Value": 990000000000000
+      "Asset_Flow_Value": 990000
     },
     {
       "Model_Run_Date": "2025-05-01",
