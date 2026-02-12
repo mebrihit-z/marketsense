@@ -15,7 +15,7 @@
         top: 0;
         left: 0;
         right: 0;
-        background-color: #ceecff;
+        background-color: #E9F7FF;
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
     }
     
@@ -37,7 +37,7 @@
     position: relative;
     border-bottom: 1px solid $secondary-colors-gold-750;
     &.condensed {
-        padding: 0px 13px 0px 13px;
+        padding: 0px 0px 0px 0px;
     }
     @media (max-width: 768px) {
         padding: 12px 24px;
@@ -63,11 +63,11 @@
         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         
         @media (max-width: 1400px) {
-            padding: 7px 10px 20px 10px;
+            padding: 24px 2px 24px 4px;
         }
         
         @media (max-width: 1200px) {
-            padding: 7px 8px 16px 8px;
+            
         }
         
         @media (max-width: 768px) {
@@ -130,10 +130,18 @@
             gap: 12px;
         }
         
-        @media (max-width: 1200px) {
-            gap: 8px;
+        // At 1280px (laptop): wrap so AI Confidence doesn't overlap dropdowns; hide info icons
+        @media (max-width: 1280px) {
             flex-wrap: wrap;
             align-items: flex-start;
+            gap: 12px;
+            .label-with-info-condensed .info-btn-wrapper {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            gap: 8px;
             
             .clear-all-container-condensed {
                 order: 999;
@@ -445,8 +453,11 @@
     border: 1px solid $border-light;
     padding: 8px 13px;
     margin-left: 75px;
-    margin-top: 4px;
     width: fit-content;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+    height: 40px;
+    align-items: center;
     
     @media (max-width: 768px) {
         margin-left: 0;
@@ -621,8 +632,9 @@
     margin-left: auto;
     white-space: nowrap;
     min-width: fit-content;
-    
-    @media (max-width: 768px) {
+
+    // Hide "Clear All Filters" and "Save Filter Set" in condensed bar when viewport < 1440px
+    @media (max-width: 1439px) {
         display: none !important;
     }
 }
@@ -722,7 +734,7 @@
     display: flex;
     gap: 18px;
     align-items: center;
-    margin-top: 12px;
+    margin-top: 20px;
     width: 100%;
     min-width: 0;
     overflow: hidden;
@@ -822,7 +834,11 @@
     align-items: center;
     gap: 8px;
     background-color: $bg-white;
-    padding: 6px 8px;
+    padding:8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+    height: 40px;
+    align-items: center;
     @media (max-width: 1024px) and (min-width: 769px) {
         // margin-left: 75px;
     }
@@ -981,6 +997,10 @@
     background-color: $bg-white;
     z-index: -1;
     padding-left: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+    height: 40px;
+    align-items: center;
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-direction: column;
         align-items: flex-start;
@@ -1019,6 +1039,8 @@
     height: 20px;
     min-width: 0;
     overflow: visible;
+    cursor: pointer;
+    user-select: none;
     
     @media (max-width: 768px) {
         width: 100%;
@@ -1234,6 +1256,7 @@
     height: 40px;
     width: 100%;
     flex-shrink: 0;
+    box-shadow: 0 2px 2px 0 $overlay-shadow-light;
     
     @media (max-width: 768px) {
         padding: 8px 12px;
@@ -1406,7 +1429,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    
+    box-shadow: 0 2px 2px 0 $overlay-shadow-light;
     @media (max-width: 768px) {
         font-size: 13px;
         line-height: 18px;
@@ -1416,7 +1439,7 @@
     }
     
     &:last-child {
-        border-right: none;
+
     }
     
     &:hover:not(&.active) {
@@ -1452,7 +1475,6 @@
     }
     
     @media (max-width: 1400px) {
-        width: 240px;
     }
     
     @media (max-width: 1200px) {
@@ -1476,7 +1498,7 @@
     min-height: 40px;
     flex-shrink: 0;
     position: relative;
-    
+    box-shadow: 0 2px 2px 0 $overlay-shadow-light;
     @media (max-width: 768px) {
         width: 100%;
         margin-left: 0;

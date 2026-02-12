@@ -256,8 +256,8 @@
               </div>
             </div>
             <div class="time-horizon-slider-wrapper-condensed">
-              <div class="time-horizon-slider-container-condensed" #timeHorizonSliderContainer
-                  (click)="onTimeHorizonTrackClick($event)"
+              <div class="time-horizon-slider-container-condensed" #timeHorizonSliderCondensed
+                  (mousedown)="onTimeHorizonTrackClick($event)"
                   (touchend)="onTimeHorizonTrackClick($event)">
                 <div class="time-horizon-slider-track-condensed">
                   <div class="time-horizon-dots-condensed">
@@ -420,9 +420,9 @@
               </div>
             </div>
             <div class="time-horizon-slider-wrapper">
-              <div class="time-horizon-slider-container" #timeHorizonSliderContainer
-                  (click)="onTimeHorizonTrackClick($event)"
-                  (touchend)="onTimeHorizonTrackClick($event)">
+              <div class="time-horizon-slider-container time-horizon-slider-container-full" #timeHorizonSliderFull
+                   (mousedown)="onTimeHorizonTrackClick($event)"
+                   (touchend)="onTimeHorizonTrackClick($event)">
                 <div class="time-horizon-slider-track">
                   <div class="time-horizon-dots">
                     <div class="dot" *ngFor="let horizon of timeHorizons; let i = index" 

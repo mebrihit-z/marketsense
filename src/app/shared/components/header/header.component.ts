@@ -17,8 +17,8 @@ export default class HeaderComponent {
   profiles: Profile[] = [
     {
       id: '1',
-      firstName: 'Sofia',
-      lastName: 'Fischer',
+      firstName: 'Mick',
+      lastName: '',
       role: 'Product Strategist',
       avatarColor: 'blue'
     },

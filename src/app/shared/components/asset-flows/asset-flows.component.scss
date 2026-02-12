@@ -290,7 +290,7 @@
 }
 
 .hierarchy-arrow {
-  color: $primary-colors-midnight-blue;
+  color: $secondary-colors-gold-750;
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
@@ -315,7 +315,7 @@
 
 .dimension-selector-label {
   font-weight: 400;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 20px;
   color: $text-primary-midnight-blue;
   flex-shrink: 0;
@@ -338,7 +338,7 @@
   background-color: $bg-white;
   border: 1px solid $border-light;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 20px;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
@@ -383,7 +383,8 @@
   background-color: $bg-white;
   border: 1px solid $border-gray-medium;
   min-width: 120px;
-
+  border: 1px solid $primary-colors-midnight-blue;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
   &.has-selection .custom-select-text {
     color: $primary-colors-midnight-blue;
     font-weight: 500;
@@ -771,6 +772,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: rgba(199, 234, 255, 0.40);
+  width: fit-content;
+  padding: 17px;
 }
 // Responsive Design
 @media (max-width: 1200px) {

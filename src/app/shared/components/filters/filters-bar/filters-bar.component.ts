@@ -27,7 +27,14 @@ export interface FilterOptionTotals {
 export class FiltersBarComponent implements OnInit, OnChanges {
   @Input() forceCloseDropdown = 0;
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
-  @ViewChild('timeHorizonSliderContainer', { static: false }) timeHorizonSliderContainer!: ElementRef<HTMLElement>;
+  @ViewChild('timeHorizonSliderFull', { static: false }) timeHorizonSliderContainerFull!: ElementRef<HTMLElement>;
+  @ViewChild('timeHorizonSliderCondensed', { static: false }) timeHorizonSliderContainerCondensed!: ElementRef<HTMLElement>;
+  /** Resolves to the currently visible time horizon slider (full or condensed). */
+  get timeHorizonSliderContainer(): ElementRef<HTMLElement> | null {
+    return this.isScrolled
+      ? (this.timeHorizonSliderContainerCondensed ?? null)
+      : (this.timeHorizonSliderContainerFull ?? null);
+  }
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
   @ViewChild('aiConfidenceInfoBtn', { static: false }) aiConfidenceInfoBtn!: ElementRef<HTMLButtonElement>;
@@ -74,6 +81,8 @@ export class FiltersBarComponent implements OnInit, OnChanges {
   isTimeHorizonDragging = false;
   timeHorizonDragType: 'start' | 'end' | null = null;
   timeHorizonHasDragged = false; // Track if user actually dragged vs just clicked
+  /** Container element when dragging (set from handle's parent so it works for both full and condensed). */
+  private timeHorizonDragContainer: HTMLElement | null = null;
   timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
   
   // Toggle state
@@ -624,6 +633,7 @@ export class FiltersBarComponent implements OnInit, OnChanges {
     if (this.isTimeHorizonDragging) {
       this.isTimeHorizonDragging = false;
       this.timeHorizonDragType = null;
+      this.timeHorizonDragContainer = null;
       // Reset drag flag after a brief delay to allow click handler to check it
       setTimeout(() => {
         this.timeHorizonHasDragged = false;
@@ -845,6 +855,9 @@ export class FiltersBarComponent implements OnInit, OnChanges {
     this.isTimeHorizonDragging = true;
     this.timeHorizonHasDragged = false;
     this.timeHorizonDragType = type;
+    // Store container from the handle's parent so drag works for both full and condensed sliders
+    const target = event.target as HTMLElement;
+    this.timeHorizonDragContainer = target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-condensed') ?? target?.parentElement ?? null;
     this.handleTimeHorizonDrag(event);
   }
 
@@ -853,15 +866,22 @@ export class FiltersBarComponent implements OnInit, OnChanges {
    * @returns {void} Moves the nearest time horizon handle to the clicked position when not dragging.
    */
   onTimeHorizonTrackClick(event: MouseEvent | TouchEvent) {
-    // Don't handle clicks if user was dragging
+    // Don't handle if user was dragging or is dragging
     if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
       return;
     }
-    
+    // Ignore if the event target is a handle (handle has its own mousedown for drag)
+    const target = event.target as HTMLElement;
+    if (target?.closest?.('.time-horizon-handle')) {
+      return;
+    }
+    event.preventDefault();
     event.stopPropagation();
-    if (!this.timeHorizonSliderContainer) return;
+    // Both full and condensed: handler is on the slider container, so currentTarget is the track container.
+    const container = event.currentTarget as HTMLElement;
+    if (!container) return;
 
-    const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+    const rect = container.getBoundingClientRect();
     let clientX: number;
     if ('touches' in event || 'changedTouches' in event) {
       const touchEvent = event as TouchEvent;
@@ -887,7 +907,8 @@ export class FiltersBarComponent implements OnInit, OnChanges {
       // Clamp to valid range
       xAdjusted = Math.max(0, Math.min(xAdjusted, trackWidth));
     } else {
-      trackWidth = this.timeHorizonSliderTrackWidth;
+      // Full (non-condensed) slider: use actual container width so it works like condensed
+      trackWidth = (rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth);
     }
     
     const percentage = Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100));
@@ -954,12 +975,14 @@ export class FiltersBarComponent implements OnInit, OnChanges {
    * @returns {void} Updates the time horizon range while the user drags a handle.
    */
   private handleTimeHorizonDrag(event: MouseEvent | TouchEvent) {
-    if (!this.timeHorizonDragType || !this.timeHorizonSliderContainer) return;
+    const container = this.timeHorizonDragContainer ?? this.timeHorizonSliderContainer?.nativeElement ?? null;
+    if (!this.timeHorizonDragType || !container) return;
 
-    const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
+    const rect = container.getBoundingClientRect();
     const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
     const x = clientX - rect.left;
-    const trackWidth = this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth;
+    // Use actual container width (works for both full and condensed)
+    const trackWidth = rect.width > 0 ? rect.width : (this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth);
     const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
     
     // Calculate which index this percentage corresponds to
@@ -1015,7 +1038,11 @@ export class FiltersBarComponent implements OnInit, OnChanges {
       return padding + (index / numSteps) * trackWidth;
     }
     
-    return (index / numSteps) * this.timeHorizonSliderTrackWidth;
+    // Full (non-condensed) desktop: use actual container width so handles match track
+    const trackWidth = this.timeHorizonSliderContainer?.nativeElement
+      ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
+      : this.timeHorizonSliderTrackWidth;
+    return (index / numSteps) * trackWidth;
   }
 
   /**
@@ -1044,7 +1071,11 @@ export class FiltersBarComponent implements OnInit, OnChanges {
       return padding + (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
     }
     
-    return (this.timeHorizonRange.startIndex / numSteps) * this.timeHorizonSliderTrackWidth;
+    // Full (non-condensed) desktop: use actual container width
+    const trackWidth = this.timeHorizonSliderContainer?.nativeElement
+      ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
+      : this.timeHorizonSliderTrackWidth;
+    return (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
   }
 
   /**
@@ -1073,7 +1104,11 @@ export class FiltersBarComponent implements OnInit, OnChanges {
       return (range / numSteps) * trackWidth;
     }
     
-    return (range / numSteps) * this.timeHorizonSliderTrackWidth;
+    // Full (non-condensed) desktop: use actual container width
+    const trackWidth = this.timeHorizonSliderContainer?.nativeElement
+      ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
+      : this.timeHorizonSliderTrackWidth;
+    return (range / numSteps) * trackWidth;
   }
 
   /**

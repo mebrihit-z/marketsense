@@ -28,7 +28,7 @@
       <div class="flow-dimensions-section">
         <!-- Hierarchy: cascading dimension selectors (same as Asset Flows) -->
         <div class="dimension-selectors hierarchy-selectors">
-          <span class="dimension-selector-label">Dimensions:</span>
+          <span class="dimension-selector-label">Hierarchy:</span>
           <div class="hierarchy-chain">
             <div class="dimension-selector-container">
               <div class="custom-select-wrapper">
@@ -59,7 +59,7 @@
                 </div>
               </div>
             </div>
-            <span class="hierarchy-arrow" aria-hidden="true">→</span>
+            <img src="assets/icons/glyphs-arrow-bold-icon.svg" alt="Arrow Right" class="hierarchy-arrow-icon">
             <div class="dimension-selector-container">
               <div class="custom-select-wrapper">
                 <button 
@@ -89,7 +89,7 @@
                 </div>
               </div>
             </div>
-            <span class="hierarchy-arrow" aria-hidden="true">→</span>
+            <img src="assets/icons/glyphs-arrow-bold-icon.svg" alt="Arrow Right" class="hierarchy-arrow-icon">
             <div class="dimension-selector-container">
               <div class="custom-select-wrapper">
                 <button 
@@ -124,7 +124,6 @@
       </div>
     </div>
   </div>
-  <div class="horizontal-line"></div>
   <!-- Treemap Visualization -->
   <div class="visualization-container">
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="treemap-region-container">

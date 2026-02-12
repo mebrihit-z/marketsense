@@ -18,7 +18,7 @@ export interface ViewingOption {
   styleUrls: ['./welcome-section.component.scss']
 })
 export default class WelcomeSectionComponent implements AfterViewInit {
-  @Input() userName: string = 'Sofia';
+  @Input() userName: string = 'Mick';
   @Input() lastLogin: string = 'Today, 9:42 AM';
   @Input() viewingFilter: string = 'High-confidence Equities';
   @Input() isViewingDropdownOpen: boolean = false;

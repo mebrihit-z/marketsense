@@ -222,6 +222,9 @@
 .carousel-container {
   width: 100%;
   overflow: hidden;
+  // Padding so card box-shadows are not clipped by overflow
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 // Two-column layout: detail on left, stacked cards on right (when a card is selected)
@@ -248,6 +251,7 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  padding-top: 12px;
 }
 
 .stacked-cards-column {
@@ -256,7 +260,8 @@
   gap: 12px;
   max-height: 80vh;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 12px 12px 12px 4px; // room for card box-shadows
+  box-sizing: border-box;
 
   @media (max-width: 768px) {
     max-height: 50vh;
@@ -332,15 +337,14 @@
 }
 
 .page-number {
-  min-width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 8px;
   background-color: transparent;
   border: none;
-  border-radius: 8px;
   cursor: pointer;
   font-weight: 400;
   font-size: 14px;
@@ -354,8 +358,10 @@
   }
 
   &.active {
+    background-color: $secondary-colors-gold-750; // orange-yellow highlight per design
     color: $text-primary-midnight-blue;
     font-weight: 700;
+  
   }
 
   &.ellipsis {

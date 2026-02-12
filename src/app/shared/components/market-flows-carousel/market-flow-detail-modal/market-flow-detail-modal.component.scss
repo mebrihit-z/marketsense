@@ -32,16 +32,13 @@
   flex-direction: column;
   animation: slideIn 0.3s ease-out;
   overflow: hidden;
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid $border-light;
-  padding: 24px;
+  padding: 24px 24px 32px 24px;
   gap: 20px;
 
+  border: 1px solid $primary-colors-midnight-blue;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
   &.inline-panel {
     max-height: none;
-    animation: none;
-    box-shadow: none;
     border-radius: 0;
     background: transparent;
     display: grid;
@@ -193,12 +190,7 @@
 }
 
 .info-icon {
-  width: 12px;
-  height: 12px;
-  color: $text-secondary;
-  opacity: 0.6;
-  flex-shrink: 0;
-  transition: opacity 0.2s ease;
+  
   
   .info-button:hover & {
     opacity: 1;
@@ -254,7 +246,7 @@
   line-height: 16px;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: $text-secondary;
+  color: $neutral-colors-neutral-750;
 }
 
 .metric-value {

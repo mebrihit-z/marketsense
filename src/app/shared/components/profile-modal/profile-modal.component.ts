@@ -81,7 +81,9 @@ export class ProfileModalComponent implements OnChanges {
    * @returns {string} Uppercase two-letter initials
    */
   static getInitials(profile: Profile): string {
-    return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
+    const first = profile.firstName?.charAt(0) ?? '';
+    const last = profile.lastName?.charAt(0) ?? '';
+    return (first + last).toUpperCase() || first.toUpperCase() || '?';
   }
 
   /**
@@ -90,7 +92,7 @@ export class ProfileModalComponent implements OnChanges {
    * @returns {string} First and last name concatenated
    */
   static getFullName(profile: Profile): string {
-    return `${profile.firstName} ${profile.lastName}`;
+    return [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
   }
 
   /**

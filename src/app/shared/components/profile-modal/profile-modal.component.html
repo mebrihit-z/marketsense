@@ -4,10 +4,10 @@
     <!-- Current Profile Section -->
     <div class="profile-section current-profile">
       <div class="profile-avatar" [class]="'avatar-' + (currentProfile?.avatarColor || 'blue')">
-        <span class="avatar-initials">{{ currentProfile ? getInitials(currentProfile) : 'SF' }}</span>
+        <span class="avatar-initials">{{ currentProfile ? getInitials(currentProfile) : 'M' }}</span>
       </div>
       <div class="profile-info">
-        <div class="profile-name">{{ currentProfile ? getFullName(currentProfile) : 'Sofia Fischer' }}</div>
+        <div class="profile-name">{{ currentProfile ? getFullName(currentProfile) : 'Mick' }}</div>
         <div class="profile-role">{{ currentProfile?.role || 'Product Strategist' }}</div>
       </div>
     </div>

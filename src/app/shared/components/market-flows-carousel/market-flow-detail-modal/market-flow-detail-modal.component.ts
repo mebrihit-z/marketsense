@@ -66,10 +66,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   static getConfidenceLabel(confidence: 'high' | 'medium' | 'low'): string {
     switch (confidence) {
-      case 'high': return 'High Confidence';
-      case 'medium': return 'Medium Confidence';
-      case 'low': return 'Low Confidence';
-      default: return 'High Confidence';
+      case 'high': return 'High';
+      case 'medium': return 'Medium';
+      case 'low': return 'High ';
+      default: return 'High';
     }
   }
 
