@@ -424,6 +424,7 @@
   cursor: pointer;
   transition: background-color 0.15s;
   background-color: $bg-white;
+  color: $text-primary-midnight-blue;
   
   @media (max-width: 768px) {
     padding: 12px;
