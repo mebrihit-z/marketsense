@@ -706,7 +706,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
       const inflowScale = d3.scaleLinear<string>()
         .domain([0, maxIn])
-        .range(['#c7e9c0', '#2ca02c'])
+        .range(['#c7e9c0', '#2A6907']) // concentrated cell: $secondary-colors-green-1000
         .clamp(true);
 
       if (g === 'Outflows') return outflowScale(mag);
@@ -714,7 +714,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     // Container nodes
-    if (g === 'Inflows') return '#2ca02c';
+    if (g === 'Inflows') return '#2A6907'; // $secondary-colors-green-1000
     if (g === 'Outflows') return '#d62728';
     if (g === 'Net New Capital') return '#1f77b4';
     if (g === 'Capital Withdrawn') return '#ff7f0e';
@@ -938,7 +938,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (!d.children && isSmall) return '1px';
         return '2px';
       })
-      .style('color', 'rgba(0, 0, 0, 0.92)')
+      .style('color', '#00113F') // $text-primary-midnight-blue
       .style('pointer-events', 'none')
       .style('white-space', d => {
         const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
