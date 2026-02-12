@@ -227,9 +227,10 @@
 
 // Hierarchy layout: "Hierarchy:" label + dropdown → dropdown → dropdown (same as Asset Flows)
 .hierarchy-selectors {
-  align-items: center;
+  align-items: flex-end; // align "Hierarchy:" with the dropdown row
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
   
   @media (max-width: 768px) {
     flex-direction: column;
@@ -265,13 +266,27 @@
 .dimension-selector-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 120px;
   
   @media (max-width: 768px) {
     width: 100%;
     min-width: unset;
     flex: none;
+  }
+}
+
+// Label above each hierarchy dropdown (Dimension 1, Dimension 2, Dimension 3)
+.dimension-number-label {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  color: $text-primary-midnight-blue;
+  display: block;
+  
+  @media (max-width: 768px) {
+    font-size: 11px;
+    line-height: 14px;
   }
 }
 
