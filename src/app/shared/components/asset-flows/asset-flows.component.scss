@@ -313,8 +313,9 @@
     flex: none;
   }
 }
-.hierarchy-arrow-icon{
-  align-items: flex-end;
+// Center arrow with the dropdown (dropdown ~28px tall: 4+20+4 from padding/line-height)
+.hierarchy-arrow-icon {
+  margin-top: 20px;
 }
 // Label above each hierarchy dropdown (Dimension 1, Dimension 2, Dimension 3)
 .dimension-number-label {
