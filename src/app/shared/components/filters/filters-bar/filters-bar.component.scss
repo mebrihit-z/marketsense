@@ -1032,6 +1032,12 @@
     }
 }
 
+/* Full layout: entire slider area shows hand on hover (over container and dots) */
+.time-horizon-slider-wrapper-full,
+.time-horizon-slider-wrapper:has(.time-horizon-slider-container-full) {
+    cursor: grab;
+}
+
 .time-horizon-slider-container {
     position: relative;
     width: 100%;
@@ -1039,8 +1045,9 @@
     height: 20px;
     min-width: 0;
     overflow: visible;
-    cursor: pointer;
+    cursor: grab !important;
     user-select: none;
+    touch-action: none; /* allow handle drag without browser scroll */
     
     @media (max-width: 768px) {
         width: 100%;
@@ -1058,7 +1065,8 @@
     width: 100%;
     max-width: 400px;
     height: 2px;
-    
+    pointer-events: none; /* so handles receive hover/drag; track clicks go to container */
+
     @media (max-width: 768px) {
         width: calc(100% - 12px);
         max-width: calc(100% - 12px);
@@ -1127,13 +1135,14 @@
     height: 10px;
     background: $primary-colors-midnight-blue; // Dark blue handle
     border-radius: 50%;
-    cursor: grab;
+    cursor: grab !important;
     transform: translateX(-50%);
     top: 5px; // Centered on track (track center at 10px, handle center = top + 5px)
     z-index: 2;
     user-select: none;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
-    touch-action: manipulation;
+    touch-action: none; /* allow drag without browser scroll */
+    pointer-events: auto;
     
     @media (max-width: 768px) {
         width: 12px;
@@ -1144,6 +1153,23 @@
     
     &:active {
         cursor: grabbing;
+    }
+}
+
+/* Full layout: larger hover hit area so hand shows when hovering over the dots (same as condensed) */
+.time-horizon-slider-container-full .time-horizon-handle {
+    cursor: grab !important;
+    &::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 28px;
+        height: 28px;
+        margin-left: -14px;
+        margin-top: -14px;
+        cursor: grab !important;
+        pointer-events: auto;
     }
 }
 
@@ -1511,7 +1537,8 @@
     top: 0;
     width: 252px;
     height: 12px;
-    
+    cursor: grab;
+
     @media (max-width: 768px) {
         width: calc(100% - 40px);
     }
@@ -1606,4 +1633,8 @@
     }
 }
 
+// Cursor during time horizon handle drag (full and condensed)
+::ng-deep body.time-horizon-dragging {
+    cursor: grabbing !important;
+}
 

@@ -365,6 +365,16 @@
     color: $primary-colors-midnight-blue;
     font-weight: 500;
   }
+  &:hover {
+    border-color: $border-gray;
+    background-color: $bg-gray-light;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-colors-midnight-blue;
+  }
+
 
   .custom-select-arrow {
   }

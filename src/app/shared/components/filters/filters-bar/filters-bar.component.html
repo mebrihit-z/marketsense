@@ -419,9 +419,10 @@
                 </div>
               </div>
             </div>
-            <div class="time-horizon-slider-wrapper">
+            <div class="time-horizon-slider-wrapper time-horizon-slider-wrapper-full">
               <div class="time-horizon-slider-container time-horizon-slider-container-full" #timeHorizonSliderFull
                    (mousedown)="onTimeHorizonTrackClick($event)"
+                   (click)="onTimeHorizonTrackClick($event)"
                    (touchend)="onTimeHorizonTrackClick($event)">
                 <div class="time-horizon-slider-track">
                   <div class="time-horizon-dots">

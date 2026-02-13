@@ -85,7 +85,8 @@
   gap: 8px;
   padding: 8px 12px;
   background: $bg-white;
-  border: 1px solid $border-gray-dark;
+  border: 1px solid $primary-colors-midnight-blue;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
   cursor: pointer;
   font-weight: 400;
   font-size: 14px;

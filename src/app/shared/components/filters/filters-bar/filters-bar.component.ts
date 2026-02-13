@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -24,7 +24,7 @@ export interface FilterOptionTotals {
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss'
 })
-export class FiltersBarComponent implements OnInit, OnChanges {
+export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @Input() forceCloseDropdown = 0;
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('timeHorizonSliderFull', { static: false }) timeHorizonSliderContainerFull!: ElementRef<HTMLElement>;
@@ -83,7 +83,11 @@ export class FiltersBarComponent implements OnInit, OnChanges {
   timeHorizonHasDragged = false; // Track if user actually dragged vs just clicked
   /** Container element when dragging (set from handle's parent so it works for both full and condensed). */
   private timeHorizonDragContainer: HTMLElement | null = null;
+  /** Timestamp of last mousedown on track, to avoid handling click twice for same gesture. */
+  private _lastTimeHorizonTrackMousedownAt: number | null = null;
   timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
+  /** Bound document capture listener for time horizon (so we can remove in ngOnDestroy). */
+  private _documentTimeHorizonCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentTimeHorizonCapture(e);
   
   // Toggle state
   dataType: 'historical' | 'forecasted' = 'forecasted';
@@ -116,9 +120,22 @@ export class FiltersBarComponent implements OnInit, OnChanges {
     
     // Initialize time horizon range based on selectedTimeHorizon
     this.initializeTimeHorizonRange();
+
+    // Document capture listeners for full time horizon (handle drag + track click); capture so they run first
+    if (typeof document !== 'undefined') {
+      document.addEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
+      document.addEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
+    }
     
     // Check initial scroll position
     this.checkScrollPosition();
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
+      document.removeEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
+    }
   }
   
   /**
@@ -614,6 +631,7 @@ export class FiltersBarComponent implements OnInit, OnChanges {
       this.handleDrag(event);
     }
     if (this.isTimeHorizonDragging) {
+      if (event.cancelable) event.preventDefault();
       this.handleTimeHorizonDrag(event);
     }
   }
@@ -634,6 +652,7 @@ export class FiltersBarComponent implements OnInit, OnChanges {
       this.isTimeHorizonDragging = false;
       this.timeHorizonDragType = null;
       this.timeHorizonDragContainer = null;
+      if (typeof document !== 'undefined' && document.body) document.body.classList.remove('time-horizon-dragging');
       // Reset drag flag after a brief delay to allow click handler to check it
       setTimeout(() => {
         this.timeHorizonHasDragged = false;
@@ -647,6 +666,51 @@ export class FiltersBarComponent implements OnInit, OnChanges {
    * @param event - The click event
    * @returns {void}
    */
+  /**
+   * Document mousedown/touchstart (capture): when full time horizon slider is visible, start handle drag
+   * or track click. Registered in ngOnInit with capture: true so it fires before child elements.
+   */
+  onDocumentTimeHorizonCapture(event: MouseEvent | TouchEvent): void {
+    if (this.isScrolled) return;
+    const container = this.timeHorizonSliderContainerFull?.nativeElement;
+    if (!container) return;
+    const clientX = 'touches' in event ? (event as TouchEvent).touches[0]?.clientX : (event as MouseEvent).clientX;
+    const clientY = 'touches' in event ? (event as TouchEvent).touches[0]?.clientY : (event as MouseEvent).clientY;
+    if (clientX == null || clientY == null) return;
+    const target = event.target as HTMLElement;
+    // Start drag when mousedown/touchstart is on a handle (by target or by hit-test)
+    let handleEl = target?.closest?.('.time-horizon-handle');
+    if (!handleEl) {
+      const startHandle = container.querySelector('.time-horizon-handle-start') as HTMLElement;
+      const endHandle = container.querySelector('.time-horizon-handle-end') as HTMLElement;
+      if (startHandle) {
+        const r = startHandle.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) handleEl = startHandle;
+      }
+      if (!handleEl && endHandle) {
+        const r = endHandle.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) handleEl = endHandle;
+      }
+    }
+    if (handleEl) {
+      const isStart = handleEl.classList.contains('time-horizon-handle-start');
+      this.startTimeHorizonDrag(event, isStart ? 'start' : 'end');
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (target?.closest?.('.time-horizon-labels')) return;
+    if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) return;
+    const rect = container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
+    this._lastTimeHorizonTrackMousedownAt = Date.now();
+    this.applyTimeHorizonTrackClick(event, container);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     // Don't close if we're dragging sliders
@@ -855,9 +919,14 @@ export class FiltersBarComponent implements OnInit, OnChanges {
     this.isTimeHorizonDragging = true;
     this.timeHorizonHasDragged = false;
     this.timeHorizonDragType = type;
-    // Store container from the handle's parent so drag works for both full and condensed sliders
-    const target = event.target as HTMLElement;
-    this.timeHorizonDragContainer = target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-condensed') ?? target?.parentElement ?? null;
+    if (typeof document !== 'undefined' && document.body) document.body.classList.add('time-horizon-dragging');
+    // Store container: for full layout use ViewChild so drag always works; for condensed use closest from handle
+    if (!this.isScrolled && this.timeHorizonSliderContainerFull?.nativeElement) {
+      this.timeHorizonDragContainer = this.timeHorizonSliderContainerFull.nativeElement;
+    } else {
+      const target = event.target as HTMLElement;
+      this.timeHorizonDragContainer = target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-full, .time-horizon-slider-container-condensed') ?? target?.parentElement ?? null;
+    }
     this.handleTimeHorizonDrag(event);
   }
 
@@ -870,67 +939,72 @@ export class FiltersBarComponent implements OnInit, OnChanges {
     if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
       return;
     }
-    // Ignore if the event target is a handle (handle has its own mousedown for drag)
     const target = event.target as HTMLElement;
+    // Ignore if the event target is a handle (handle has its own mousedown for drag)
     if (target?.closest?.('.time-horizon-handle')) {
       return;
     }
+    // Full layout: handler is on the wrapper; ignore clicks on labels (they have their own handler)
+    if (!this.isScrolled && target?.closest?.('.time-horizon-labels')) {
+      return;
+    }
+    // Avoid handling both mousedown and click for the same gesture (click fires after mousedown)
+    if (event.type === 'click' && (event as MouseEvent).detail === 1) {
+      const now = Date.now();
+      if (this._lastTimeHorizonTrackMousedownAt != null && now - this._lastTimeHorizonTrackMousedownAt < 300) {
+        return;
+      }
+    }
+    if (event.type === 'mousedown') {
+      this._lastTimeHorizonTrackMousedownAt = Date.now();
+    }
     event.preventDefault();
     event.stopPropagation();
-    // Both full and condensed: handler is on the slider container, so currentTarget is the track container.
-    const container = event.currentTarget as HTMLElement;
+    // Full layout: handler is on the container, so currentTarget is the container. Condensed: same.
+    const container = this.isScrolled
+      ? (event.currentTarget as HTMLElement)
+      : (this.timeHorizonSliderContainerFull?.nativeElement ?? (event.currentTarget as HTMLElement));
     if (!container) return;
+    this.applyTimeHorizonTrackClick(event, container);
+  }
 
+  /**
+   * Core logic: move time horizon range to the position of the event inside the given container.
+   */
+  private applyTimeHorizonTrackClick(event: MouseEvent | TouchEvent, container: HTMLElement): void {
     const rect = container.getBoundingClientRect();
     let clientX: number;
     if ('touches' in event || 'changedTouches' in event) {
       const touchEvent = event as TouchEvent;
-      clientX = touchEvent.changedTouches?.[0]?.clientX || touchEvent.touches?.[0]?.clientX || 0;
+      clientX = touchEvent.changedTouches?.[0]?.clientX ?? touchEvent.touches?.[0]?.clientX ?? 0;
     } else {
       clientX = (event as MouseEvent).clientX;
     }
-    
-    // Check if on mobile/tablet (screen width <= 1024px)
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-    
     const x = clientX - rect.left;
     let trackWidth: number;
     let xAdjusted = x;
-    
     if (this.isScrolled) {
-      trackWidth = 252; // Condensed track width
+      trackWidth = 252;
     } else if (isMobile) {
-      // On mobile, account for 6px padding on each side
       const padding = 6;
-      xAdjusted = x - padding; // Subtract padding offset
-      trackWidth = rect.width - (padding * 2); // Track width is container minus padding
-      // Clamp to valid range
+      xAdjusted = x - padding;
+      trackWidth = rect.width - padding * 2;
       xAdjusted = Math.max(0, Math.min(xAdjusted, trackWidth));
     } else {
-      // Full (non-condensed) slider: use actual container width so it works like condensed
-      trackWidth = (rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth);
+      trackWidth = rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth;
     }
-    
     const percentage = Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100));
-    
-    // Calculate which index this percentage corresponds to
     const numSteps = this.timeHorizons.length - 1;
     const stepIndex = Math.round((percentage / 100) * numSteps);
     const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
-    
-    // Determine which handle is closer to the click position
     const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
     const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
-    
-    // Move the closer handle, or start handle if equidistant
     if (startDistance <= endDistance) {
-      // Move start handle, but ensure it doesn't go past end
       this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex);
     } else {
-      // Move end handle, but ensure it doesn't go before start
       this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex);
     }
-    
     this.updateSelectedTimeHorizon();
   }
 
@@ -975,11 +1049,15 @@ export class FiltersBarComponent implements OnInit, OnChanges {
    * @returns {void} Updates the time horizon range while the user drags a handle.
    */
   private handleTimeHorizonDrag(event: MouseEvent | TouchEvent) {
-    const container = this.timeHorizonDragContainer ?? this.timeHorizonSliderContainer?.nativeElement ?? null;
+    const container = this.timeHorizonDragContainer
+      ?? this.timeHorizonSliderContainer?.nativeElement
+      ?? (this.timeHorizonSliderContainerFull?.nativeElement)
+      ?? null;
     if (!this.timeHorizonDragType || !container) return;
 
     const rect = container.getBoundingClientRect();
-    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+    const clientX = 'touches' in event ? event.touches[0]?.clientX : (event as MouseEvent).clientX;
+    if (clientX == null) return;
     const x = clientX - rect.left;
     // Use actual container width (works for both full and condensed)
     const trackWidth = rect.width > 0 ? rect.width : (this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth);

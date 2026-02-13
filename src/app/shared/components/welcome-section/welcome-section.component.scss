@@ -95,19 +95,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 14px;
+  padding: 8px 14px;
   background-color: #ffff;
   border: none;
   cursor: pointer;
+  border: 1px solid $primary-colors-midnight-blue;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
 
   &:hover {
-    background-color: $bg-gray-medium;
     border-color: $border-gray;
+    background-color: $bg-gray-light;
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(14, 43, 115, 0.2);
+    border-color: $primary-colors-midnight-blue;
   }
 }
 
