@@ -253,6 +253,8 @@
   gap: 16px;
   min-width: 0;
   padding-top: 12px;
+  position: relative;
+  z-index: 1; /* Ensure detail panel paints visibly on VDI/remote */
 }
 
 .stacked-cards-column {

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy, HostListener, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
@@ -18,7 +18,7 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
   templateUrl: './market-flows-carousel.component.html',
   styleUrl: './market-flows-carousel.component.scss'
 })
-export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
+export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() cards: MarketFlowCard[] = [];
   @Input() pinnedCardIds: string[] = [];
   @Input() showViewMoreCard: boolean = true;
@@ -29,13 +29,68 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnChanges {
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Output() pinCard = new EventEmitter<string>();
-  
+
+  /** Document capture listener: open detail on card pointer/mouse down (VDI often doesn't fire click). */
+  private _documentCardCaptureListener = (e: MouseEvent | PointerEvent | TouchEvent) => this.onDocumentCardCapture(e);
+
   currentSlideIndex: number = 0;
   
   cardsPerSlide = 4;
-  
+
+  constructor(
+    private carouselHost: ElementRef<HTMLElement>,
+    private cdr: ChangeDetectorRef
+  ) {}
+
   ngOnInit(): void {
     this.updateCardsPerSlide();
+    if (typeof document !== 'undefined') {
+      // Use bubble phase (false) so button/link handlers run first; we only open card if hit was on card body
+      document.addEventListener('mousedown', this._documentCardCaptureListener, false);
+      document.addEventListener('pointerdown', this._documentCardCaptureListener, false);
+      document.addEventListener('touchstart', this._documentCardCaptureListener, false);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('mousedown', this._documentCardCaptureListener, false);
+      document.removeEventListener('pointerdown', this._documentCardCaptureListener, false);
+      document.removeEventListener('touchstart', this._documentCardCaptureListener, false);
+    }
+  }
+
+  /**
+   * Capture-phase handler: when user activates a market-flow card (e.g. mousedown/pointerdown),
+   * open the detail. Used so the detail opens on VDI where click may not fire.
+   * Must not open when user hit a button/link so those controls still work on VDI.
+   */
+  onDocumentCardCapture(event: MouseEvent | PointerEvent | TouchEvent): void {
+    const targetEl = event.target as HTMLElement | null;
+    // Never open card if the event target is a control (VDI may only fire one event; we must not swallow it)
+    if (targetEl?.closest?.('[data-market-flow-action]')) {
+      return;
+    }
+    const clientX = 'touches' in event ? event.touches[0]?.clientX : (event as MouseEvent).clientX;
+    const clientY = 'touches' in event ? event.touches[0]?.clientY : (event as MouseEvent).clientY;
+    if (clientX == null || clientY == null) return;
+    const elAtPoint = typeof document !== 'undefined'
+      ? document.elementFromPoint(clientX, clientY)
+      : targetEl;
+    const hit = elAtPoint as HTMLElement | null;
+    // Also skip if hit-test says we're on a control (VDI elementFromPoint can be wrong the other way)
+    if (hit?.closest?.('[data-market-flow-action]')) return;
+    const cardEl = hit?.closest('app-market-flow-card') ?? targetEl?.closest?.('app-market-flow-card');
+    if (!cardEl || !this.carouselHost.nativeElement.contains(cardEl)) return;
+    const cardId = cardEl.getAttribute('data-card-id');
+    if (!cardId) return;
+    const card = this.cards.find(c => c.id === cardId);
+    if (card) {
+      this.selectedCardForDetail = card;
+      event.preventDefault();
+      event.stopPropagation();
+      this.cdr.detectChanges();
+    }
   }
   
   @HostListener('window:resize', ['$event'])

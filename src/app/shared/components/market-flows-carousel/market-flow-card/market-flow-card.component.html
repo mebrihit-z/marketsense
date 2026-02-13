@@ -1,14 +1,24 @@
-<div class="card" (click)="onCardClick($event)" (mousedown)="onCardMouseDown($event)" (touchstart)="onCardTouchStart($event)">
+<div class="card"
+     role="button"
+     tabindex="0"
+     (click)="onCardClick($event)"
+     (mousedown)="onCardMouseDown($event)"
+     (pointerdown)="onCardPointerDown($event)"
+     (touchstart)="onCardTouchStart($event)"
+     (keydown)="onCardKeyDown($event)"
+     [attr.aria-label]="'View details for ' + card.title">
   <!-- Card Header -->
   <div class="card-header">
     <app-title [title]="card.title" level="h4" class="card-title"></app-title>
-    <div class="card-actions" (click)="$event.stopPropagation()" (touchstart)="$event.stopPropagation()">
+    <div class="card-actions" data-market-flow-action="actions" (click)="$event.stopPropagation()" (touchstart)="$event.stopPropagation()" (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
       <!-- Pin Button -->
       <button
         type="button"
         class="icon-btn"
+        data-market-flow-action="pin"
         [class.pinned]="isPinned"
         (click)="onPin($event)"
+        (pointerdown)="onPin($event)"
         (touchstart)="onPin($event)"
         (mousedown)="onPin($event)"
         aria-label="Pin Button">
@@ -17,7 +27,7 @@
           alt="Pin Button">
       </button>
       <!-- Download Button -->
-      <button type="button" class="icon-btn" (click)="onDownload($event)" (touchstart)="onDownload($event)" (mousedown)="onDownload($event)" aria-label="Download">
+      <button type="button" class="icon-btn" data-market-flow-action="download" (click)="onDownload($event)" (pointerdown)="onDownload($event)" (touchstart)="onDownload($event)" (mousedown)="onDownload($event)" aria-label="Download">
         <img src="assets/icons/download-icon.svg" alt="download icon" class="more-options-icon">
       </button>
     </div>
@@ -48,7 +58,9 @@
       <a
         href="#"
         class="view-more-link"
+        data-market-flow-action="view-more"
         (click)="onViewMore($event)"
+        (pointerdown)="onViewMore($event)"
         (touchstart)="onViewMore($event)"
         (mousedown)="onViewMore($event)"
         aria-label="View more">

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import TitleComponent from '../../title/title.component';
 
@@ -30,6 +30,10 @@ export interface MarketFlowCard {
 export class MarketFlowCardComponent {
   @Input() card!: MarketFlowCard;
   @Input() isPinned: boolean = false;
+  /** Expose card id on host for VDI: carousel can open detail from document capture listener. */
+  @HostBinding('attr.data-card-id') get cardIdAttr(): string {
+    return this.card?.id ?? '';
+  }
   @Output() download = new EventEmitter<string>();
   @Output() moreOptions = new EventEmitter<string>();
   @Output() askMarketSense = new EventEmitter<string>();
@@ -43,6 +47,9 @@ export class MarketFlowCardComponent {
   private readonly DOWNLOAD_DEBOUNCE_MS = 300;
   private pinLastHandled = 0;
   private readonly PIN_DEBOUNCE_MS = 300;
+  /** Debounce card open so mousedown + click don't double-open (VDI may only send one). */
+  private cardClickLastEmitted = 0;
+  private readonly CARD_CLICK_DEBOUNCE_MS = 400;
 
   getConfidenceColor(confidence: 'high' | 'medium' | 'low'): string {
     // All scores are green for now
@@ -99,58 +106,70 @@ export class MarketFlowCardComponent {
     this.askMarketSense.emit(this.card.id);
   }
 
-  onPin(event: Event): void {
-    // Stop event propagation to prevent card click
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    
-    console.log('Pin clicked for card:', this.card.id);
-    
-    // Emit pin event
+  onPin(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
+    // Debounce: VDI may fire both pointerdown and click
+    const now = Date.now();
+    if (now - this.pinLastHandled < this.PIN_DEBOUNCE_MS) return;
+    this.pinLastHandled = now;
     this.pin.emit(this.card.id);
   }
+
+  private viewMoreLastHandled = 0;
+  private readonly VIEW_MORE_DEBOUNCE_MS = 400;
 
   onViewMore(event?: Event): void {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
+    const now = Date.now();
+    if (now - this.viewMoreLastHandled < this.VIEW_MORE_DEBOUNCE_MS) return;
+    this.viewMoreLastHandled = now;
     this.viewMore.emit(this.card.id);
   }
 
-  onCardClick(event?: Event): void {
-    // Don't trigger card click if clicking on action buttons or view more link
-    if (event) {
+  /** Shared: emit card click once per gesture (VDI may send only mousedown or only click). */
+  private emitCardClickIfAllowed(event?: Event, skipTargetCheck = false): void {
+    if (!skipTargetCheck && event) {
       const target = event.target as HTMLElement;
       if (target.closest('button') || target.closest('.card-actions') || target.closest('.view-more-link')) {
         return;
       }
     }
-    // Emit card click event
+    const now = Date.now();
+    if (now - this.cardClickLastEmitted < this.CARD_CLICK_DEBOUNCE_MS) return;
+    this.cardClickLastEmitted = now;
     this.cardClick.emit(this.card.id);
+  }
+
+  onCardClick(event?: Event): void {
+    this.emitCardClickIfAllowed(event);
   }
 
   onCardMouseDown(event?: Event): void {
     // VDI/remote desktop often doesn't synthesize 'click' - only mousedown/mouseup.
-    // Handle mousedown so the detail modal opens in those environments.
-    if (event) {
-      const target = event.target as HTMLElement;
-      if (target.closest('button') || target.closest('.card-actions') || target.closest('.view-more-link')) {
-        return;
-      }
-    }
-    this.cardClick.emit(this.card.id);
+    this.emitCardClickIfAllowed(event);
+  }
+
+  onCardPointerDown(event?: Event): void {
+    // Some VDIs use pointer events instead of mouse/touch.
+    this.emitCardClickIfAllowed(event);
   }
 
   onCardTouchStart(event: TouchEvent): void {
-    // Handle touch events for VDI compatibility
-    const target = event.target as HTMLElement;
-    if (target.closest('button') || target.closest('.card-actions') || target.closest('.view-more-link')) {
-      return;
-    }
-    // Convert touch to click for card
-    this.cardClick.emit(this.card.id);
+    this.emitCardClickIfAllowed(event as unknown as Event);
+  }
+
+  onCardKeyDown(event: KeyboardEvent): void {
+    // Keyboard open for VDI and accessibility: Enter or Space opens detail.
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.emitCardClickIfAllowed(undefined, true);
   }
 }
 
