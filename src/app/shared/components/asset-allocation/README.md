@@ -148,7 +148,6 @@ The component uses SCSS with the following key classes:
 
 ```typescript
 onNodeClick(node: TreemapNode): void {
-  console.log('Node clicked:', node);
   // Implement drill-down or detail view
 }
 ```

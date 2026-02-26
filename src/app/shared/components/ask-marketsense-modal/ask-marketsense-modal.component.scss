@@ -279,6 +279,9 @@
   text-align: center;
   color: #6A7282;
   width: 420px;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
 }
 
 .example-questions {

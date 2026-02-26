@@ -151,7 +151,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
-    console.log('Asset Allocation component initialized');
     this.updateDimensions();
     // Set default dimensions
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
@@ -187,12 +186,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     
     // Log time horizon changes for debugging
     if (timeHorizonChanged) {
-      console.log('AssetAllocation: Time horizon changed', {
-        timeHorizon: this.timeHorizon,
-        timeHorizonStart: this.timeHorizonStart,
-        timeHorizonEnd: this.timeHorizonEnd,
-        changes: Object.keys(changes)
-      });
     }
   }
 
@@ -265,12 +258,10 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   onPackingCirclesClick(): void {
-    console.log('Packing Circles view selected');
     this.viewMode = 'packing-circles';
   }
 
   onDimensionReorder(event: any): void {
-    console.log('Dimension reorder:', event);
     // TODO: Implement drag and drop reordering
   }
 
@@ -309,7 +300,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   onNodeClick(node: TreemapNode): void {
-    console.log('Node clicked:', node);
     // TODO: Implement drill-down functionality
   }
 
@@ -330,7 +320,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
 
   onAskAI(): void {
     // TODO: Implement AI chat functionality
-    console.log('Ask AI clicked for cell:', this.selectedCellData);
     // You can emit an event or navigate to AI chat here
   }
 
@@ -381,10 +370,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     if (hasGlobal) {
       const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
       this.treemapDataMap.set('Global', globalSankeyData);
-      console.log('Global Treemap created:', {
-        nodes: globalSankeyData.nodes?.length || 0,
-        links: globalSankeyData.links?.length || 0
-      });
     }
     
     // Create one combined treemap for all selected non-Global regions
@@ -398,15 +383,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       // Use a descriptive key that shows all selected regions
       const regionsKey = individualRegions.join(', ');
       this.treemapDataMap.set(regionsKey, combinedSankeyData);
-      console.log('Combined Treemap created for selected regions:', {
-        regions: individualRegions,
-        nodes: combinedSankeyData.nodes?.length || 0,
-        links: combinedSankeyData.links?.length || 0
-      });
     }
-    
-    console.log('Treemap data updated for regions:', Array.from(this.treemapDataMap.keys()));
-    
     // Update cached array for template
     this.updateRegionDataArray();
   }

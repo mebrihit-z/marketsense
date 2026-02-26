@@ -136,7 +136,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   };
 
   ngOnInit(): void {
-    console.log('Asset Flows component initialized');
     this.updateDimensions();
     // Set default dimensions
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
@@ -159,8 +158,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
           
           // Extract filter options from the raw data (before time horizon filtering)
           this.filterOptions = extractFilterOptionsFromAssetFlows(data);
-          console.log('Filter options extracted:', this.filterOptions);
-          
           // Emit filter options to parent component
           this.filterOptionsChange.emit(this.filterOptions);
           
@@ -211,9 +208,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       this.regionDataArray = [];
       return;
     }
-    
-    console.log('Updating Sankey data for time horizon:', this.timeHorizon, 'dataType:', this.dataType);
-    
     // Filter data based on time horizon
     const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
     
@@ -239,10 +233,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     if (hasGlobal) {
       const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
       this.sankeyDataMap.set('Global', globalSankeyData);
-      console.log('Global Sankey created:', {
-        nodes: globalSankeyData.nodes?.length || 0,
-        links: globalSankeyData.links?.length || 0
-      });
     }
     
     // Create one combined Sankey for all selected non-Global regions
@@ -256,15 +246,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       // Use a descriptive key that shows all selected regions
       const regionsKey = individualRegions.join(', ');
       this.sankeyDataMap.set(regionsKey, combinedSankeyData);
-      console.log('Combined Sankey created for selected regions:', {
-        regions: individualRegions,
-        nodes: combinedSankeyData.nodes?.length || 0,
-        links: combinedSankeyData.links?.length || 0
-      });
     }
-    
-    console.log('Sankey data updated for regions:', Array.from(this.sankeyDataMap.keys()));
-    
     // Update cached array for template (only when map actually changes)
     this.updateSelectedRegionsArray();
   }
@@ -331,21 +313,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     if (this.timeHorizonStart && this.timeHorizonEnd) {
       startDate = this.getTargetDateFromTimeHorizon(this.timeHorizonStart);
       endDate = this.getTargetDateFromTimeHorizon(this.timeHorizonEnd);
-      console.log('Time horizon range:', {
-        start: this.timeHorizonStart,
-        end: this.timeHorizonEnd,
-        startDate,
-        endDate
-      });
     } else {
       // Fallback to single time horizon for backward compatibility
       endDate = this.getTargetDateFromTimeHorizon(this.timeHorizon);
-      console.log('Time horizon (single):', this.timeHorizon, 'Target date:', endDate);
     }
     
     if (!endDate) {
       // If time horizon is invalid, return all data
-      console.log('No target date, returning all data');
       return data;
     }
     
@@ -367,7 +341,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     const rangeInfo = startDate && endDate 
       ? `range: ${startDate} to ${endDate}`
       : `target: ${endDate}`;
-    console.log(`Filtered ${filtered.length} records out of ${data.length} for time horizon ${rangeInfo}`);
     return filtered;
   }
   
@@ -424,7 +397,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
     const monthStr = String(targetMonth).padStart(2, '0');
     const result = `${targetYear}-${monthStr}`;
-    console.log(`Converted time horizon "${timeHorizonToUse}" from base ${baseYear}-${String(baseMonth).padStart(2, '0')} to date: ${result}`);
     return result;
   }
 
@@ -451,13 +423,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd'] || 
         changes['dataType'] || changes['selectedInvestorRegions']) {
       if (this.rawAssetFlowsData) {
-        console.log('Updating Sankey data due to changes:', {
-          timeHorizon: changes['timeHorizon'],
-          timeHorizonStart: changes['timeHorizonStart'],
-          timeHorizonEnd: changes['timeHorizonEnd'],
-          dataType: changes['dataType'],
-          selectedInvestorRegions: changes['selectedInvestorRegions']?.currentValue
-        });
         this.updateSankeyData();
       }
     }
@@ -497,7 +462,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   toggleProductSubTypes(): void {
     this.showProductSubTypes = !this.showProductSubTypes;
-    console.log('Show product sub-types:', this.showProductSubTypes);
     
     if (this.showProductSubTypes) {
       // Add "Product sub-types" to available dimensions if not already present
@@ -535,11 +499,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   }
 
   onStreamgraphClick(): void {
-    console.log('Streamgraph view selected');
   }
 
   onDimensionReorder(event: any): void {
-    console.log('Dimension reorder:', event);
     // TODO: Implement drag and drop reordering
   }
 

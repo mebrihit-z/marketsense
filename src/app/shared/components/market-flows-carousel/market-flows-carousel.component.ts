@@ -358,12 +358,10 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   
   onViewAll(): void {
     // Handle view all action
-    console.log('View all clicked');
   }
   
   onViewMore(): void {
     // Handle view more action
-    console.log('View more clicked');
   }
   
   onAskMarketSense(cardId: string): void {
@@ -382,7 +380,6 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   
   onSendMessage(message: string): void {
     // Handle sending message to AI
-    console.log('Message sent:', message);
     // Here you would typically send the message to an AI service
   }
   
@@ -402,23 +399,19 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
 
   onExportXLS(): void {
     // Handle XLS export
-    console.log('Export XLS for card:', this.selectedCardForExport?.id);
     // Here you would typically trigger the XLS export
   }
 
   onExportPDF(): void {
     // Handle PDF export
-    console.log('Export PDF for card:', this.selectedCardForExport?.id);
     // Here you would typically trigger the PDF export
   }
   
   onMoreOptions(cardId: string): void {
     // Handle more options action
-    console.log('More options clicked for card:', cardId);
   }
 
   onPin(cardId: string): void {
-    console.log('Carousel received pin event for card:', cardId);
     // Emit pin event to parent component
     // The ngOnChanges will handle resetting to first slide when pinnedCardIds changes
     this.pinCard.emit(cardId);

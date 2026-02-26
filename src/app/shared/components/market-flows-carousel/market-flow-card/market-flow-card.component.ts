@@ -69,11 +69,7 @@ export class MarketFlowCardComponent {
     if (now - this.downloadLastHandled < this.DOWNLOAD_DEBOUNCE_MS) {
       return;
     }
-    
     this.downloadLastHandled = now;
-    
-    console.log('Download clicked for card:', this.card.id);
-    
     // Emit download event
     this.download.emit(this.card.id);
   }
@@ -93,8 +89,6 @@ export class MarketFlowCardComponent {
       }
       return;
     }
-    
-    console.log('zere onAskMarketSense', this.card.id);
     this.askMarketSenseLastHandled = now;
     
     if (event) {

@@ -599,13 +599,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    */
   onSaveFilterSet(filterSetName: string): void {
     // TODO: Implement save filter set functionality (e.g., save to localStorage or API)
-    console.log('Save filter set:', {
-      name: filterSetName,
-      state: this.state,
-      dataType: this.dataType,
-      aiConfidenceRange: this.aiConfidenceRange,
-      timeHorizonRange: this.timeHorizonRange
-    });
     // Close modal after saving
     this.isSaveFilterSetModalOpen = false;
   }

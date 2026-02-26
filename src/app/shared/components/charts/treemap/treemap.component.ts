@@ -85,25 +85,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     
     if (filterChanged || timeHorizonChanged) {
       // If filters or time horizon changed, reapply filters and recreate treemap
-      console.log('ReallocationTreemap: Filters or time horizon changed', {
-        investorRegions: this.selectedInvestorRegions,
-        productTypes: this.selectedProductTypes,
-        productSubTypes: this.selectedProductSubTypes,
-        timeHorizon: this.timeHorizon,
-        timeHorizonStart: this.timeHorizonStart,
-        timeHorizonEnd: this.timeHorizonEnd,
-        hasRawData: !!this.rawAssetFlowsData,
-        hasOriginalData: !!this.originalData,
-        changes: Object.keys(changes)
-      });
-      
       // If time horizon changed and we have raw asset flows data, reload with new time horizon
       if (timeHorizonChanged && this.rawAssetFlowsData) {
-        console.log('ReallocationTreemap: Time horizon changed, converting with new filter');
         this.convertAssetFlowsWithTimeHorizonFilter();
       } else if (filterChanged && this.originalData) {
         // Apply filters if data is already loaded, otherwise filters will be applied when data loads
-        console.log('ReallocationTreemap: Filters changed, applying filters');
         this.applyFilters();
       } else if (timeHorizonChanged && !this.rawAssetFlowsData && this.originalData) {
         // If time horizon changed but we don't have raw data (maybe data was passed via @Input),
@@ -199,13 +185,6 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       console.warn('ReallocationTreemap: No raw asset flows data available');
       return;
     }
-    
-    console.log('ReallocationTreemap: Converting asset flows with time horizon filter', {
-      timeHorizon: this.timeHorizon,
-      timeHorizonStart: this.timeHorizonStart,
-      timeHorizonEnd: this.timeHorizonEnd
-    });
-    
     // Filter data based on time horizon
     const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
     
@@ -240,21 +219,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (this.timeHorizonStart && this.timeHorizonEnd) {
       startDate = this.getTargetDateFromTimeHorizon(this.timeHorizonStart);
       endDate = this.getTargetDateFromTimeHorizon(this.timeHorizonEnd);
-      console.log('ReallocationTreemap: Time horizon range:', {
-        start: this.timeHorizonStart,
-        end: this.timeHorizonEnd,
-        startDate,
-        endDate
-      });
     } else {
       // Fallback to single time horizon for backward compatibility
       endDate = this.getTargetDateFromTimeHorizon(this.timeHorizon);
-      console.log('ReallocationTreemap: Time horizon (single):', this.timeHorizon, 'Target date:', endDate);
     }
     
     if (!endDate) {
       // If time horizon is invalid, return all data
-      console.log('ReallocationTreemap: No target date, returning all data');
       return data;
     }
     
@@ -276,7 +247,6 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const rangeInfo = startDate && endDate 
       ? `range: ${startDate} to ${endDate}`
       : `target: ${endDate}`;
-    console.log(`ReallocationTreemap: Filtered ${filtered.length} records out of ${data.length} for time horizon ${rangeInfo}`);
     return filtered;
   }
 
@@ -333,23 +303,13 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
     const monthStr = String(targetMonth).padStart(2, '0');
     const result = `${targetYear}-${monthStr}`;
-    console.log(`ReallocationTreemap: Converted time horizon "${timeHorizonToUse}" from base ${baseYear}-${String(baseMonth).padStart(2, '0')} to date: ${result}`);
     return result;
   }
 
   private applyFilters(): void {
     if (!this.originalData) {
-      console.log('ReallocationTreemap: No original data available yet');
       return;
     }
-
-    console.log('ReallocationTreemap: Applying filters', {
-      investorRegions: this.selectedInvestorRegions,
-      productTypes: this.selectedProductTypes,
-      productSubTypes: this.selectedProductSubTypes,
-      originalNodesCount: this.originalData.nodes?.length || 0
-    });
-
     // Convert to SankeyData format for filtering
     const sankeyData: SankeyData = {
       nodes: this.originalData.nodes,
@@ -364,12 +324,6 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.selectedProductTypes,
       this.selectedProductSubTypes
     );
-
-    console.log('ReallocationTreemap: Filtered data', {
-      filteredNodesCount: filteredData.nodes?.length || 0,
-      filteredLinksCount: filteredData.links?.length || 0
-    });
-
     // Convert back to local format
     this.loadedData = {
       nodes: filteredData.nodes,
@@ -467,28 +421,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
    * @returns Formatted time horizon string (e.g., "+3 mo", "+3 mo to +9 mo", "Today")
    */
   private getTimeHorizonDisplayString(): string {
-    // Debug logging
-    console.log('ReallocationTreemap: getTimeHorizonDisplayString called', {
-      timeHorizon: this.timeHorizon,
-      timeHorizonStart: this.timeHorizonStart,
-      timeHorizonEnd: this.timeHorizonEnd,
-      hasStart: !!this.timeHorizonStart,
-      hasEnd: !!this.timeHorizonEnd,
-      startTrimmed: this.timeHorizonStart?.trim(),
-      endTrimmed: this.timeHorizonEnd?.trim()
-    });
-    
     // Prioritize range if both start and end are provided and not empty
     if (this.timeHorizonStart && this.timeHorizonEnd && 
         this.timeHorizonStart.trim() !== '' && this.timeHorizonEnd.trim() !== '') {
       // If we have a range, display both start and end
       const rangeDisplay = `${this.timeHorizonStart} to ${this.timeHorizonEnd}`;
-      console.log('ReallocationTreemap: Returning range display:', rangeDisplay);
       return rangeDisplay;
     } else {
       // Otherwise, just display the single time horizon
       const singleDisplay = this.timeHorizon || 'Today';
-      console.log('ReallocationTreemap: Returning single display:', singleDisplay);
       return singleDisplay;
     }
   }
@@ -750,8 +691,6 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     const numRegions = hierarchy.children.length;
-    console.log('ReallocationTreemap: Hierarchy built with', numRegions, 'superparents');
-
     // Get container dimensions or use defaults
     const containerWidth = container.parentElement?.clientWidth || container.offsetWidth || 1800;
     const width = Math.max(containerWidth - 40, 800); // Account for padding
@@ -762,8 +701,6 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       Math.max(420, baseHeight + (numRegions - 1) * perRegionExtra),
       1600
     ); // min 420, cap 1600
-
-    console.log('ReallocationTreemap: Creating treemap with dimensions', width, height, '(regions:', numRegions, ')');
 
     const root = d3.hierarchy(hierarchy)
       .sum(d => (d && !d.children && (d.value != null)) ? this.sizeWeight(d) : 0);

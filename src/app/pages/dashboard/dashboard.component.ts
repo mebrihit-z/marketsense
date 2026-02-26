@@ -48,7 +48,6 @@ export default class DashboardComponent implements OnInit {
   constructor(private cdr: ChangeDetectorRef, private http: HttpClient) {}
 
   ngOnInit(): void {
-    console.log('Dashboard component initialized');
     this.loadAssetFlowsData();
   }
 
@@ -151,19 +150,14 @@ export default class DashboardComponent implements OnInit {
   }
 
   onPinCard(cardId: string): void {
-    console.log('Dashboard received pin event for card:', cardId);
-    console.log('Current pinned cards:', this.pinnedCardIds);
-    
     // If card is already pinned, unpin it; otherwise, pin it
     const index = this.pinnedCardIds.indexOf(cardId);
     if (index > -1) {
       // Unpin: remove from pinned list (create new array reference for change detection)
       this.pinnedCardIds = this.pinnedCardIds.filter(id => id !== cardId);
-      console.log('Card unpinned. New pinned cards:', this.pinnedCardIds);
     } else {
       // Pin: add to the beginning of pinned list (create new array reference for change detection)
       this.pinnedCardIds = [cardId, ...this.pinnedCardIds];
-      console.log('Card pinned. New pinned cards:', this.pinnedCardIds);
     }
     // Force change detection to ensure the UI updates
     this.cdr.detectChanges();
