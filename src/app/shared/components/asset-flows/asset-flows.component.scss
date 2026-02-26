@@ -11,7 +11,6 @@
   
   @media (max-width: 768px) {
     padding: 16px;
-    border-radius: 12px;
     gap: 12px;
     padding-bottom: 60px;
   }
@@ -22,6 +21,9 @@
   gap:20px;
   padding:25px 25px 2px 25px;
   margin-bottom: 4px;
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 }
 
 .visualization-container {
@@ -36,6 +38,9 @@
   app-regional-sankey-diagram {
     display: block;
     width: 100%;
+  }
+  @media (max-width: 768px) {
+    padding: 0px 16px 24px 16px;
   }
 }
 
@@ -212,274 +217,6 @@
   }
 }
 
-// Flow Dimensions Section
-.flow-dimensions-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  
-  @media (max-width: 768px) {
-    padding: 16px;
-    gap: 16px;
-  }
-}
-
-.flow-dimensions-title {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  margin: 0;
-  
-  @media (max-width: 768px) {
-    font-size: 15px;
-    line-height: 22px;
-  }
-}
-
-.flow-dimensions-instruction {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  margin: 0;
-  margin-top: -4px;
-  
-  @media (max-width: 768px) {
-    font-size: 13px;
-    line-height: 18px;
-    margin-top: -2px;
-  }
-}
-
-// Dimension Selectors
-.dimension-selectors {
-  display: flex;
-  gap: 36px;
-  align-items: flex-start;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-  }
-}
-
-// Hierarchy layout: "Hierarchy:" label + dropdown → dropdown → dropdown
-.hierarchy-selectors {
-  align-items: flex-end; // align "Hierarchy:" with the dropdown row
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-.hierarchy-chain {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-}
-
-.hierarchy-arrow {
-  color: $secondary-colors-gold-750;
-  font-size: 14px;
-  line-height: 1;
-  flex-shrink: 0;
-  
-  @media (max-width: 768px) {
-    display: none;
-  }
-}
-
-.dimension-selector-container {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 120px;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    min-width: unset;
-    flex: none;
-  }
-}
-// Center arrow with the dropdown (dropdown ~28px tall: 4+20+4 from padding/line-height)
-.hierarchy-arrow-icon {
-  margin-top: 20px;
-}
-// Label above each hierarchy dropdown (Dimension 1, Dimension 2, Dimension 3)
-.dimension-number-label {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 16px;
-  color: $text-primary-midnight-blue;
-  display: block;
-  
-  @media (max-width: 768px) {
-    font-size: 11px;
-    line-height: 14px;
-  }
-}
-
-.dimension-selector-label {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  color: $text-primary-midnight-blue;
-  flex-shrink: 0;
-  
-  @media (max-width: 768px) {
-    font-size: 13px;
-    line-height: 18px;
-  }
-}
-
-// Custom Dropdown Styles
-.custom-select-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.custom-select-button {
-  width: 100%;
-  padding: 4px 12px;
-  background-color: $bg-white;
-  border: 1px solid $border-light;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  cursor: pointer;
-  transition: border-color 0.2s, background-color 0.2s;
-  display: flex;
-  gap: 22px;
-  align-items: center;
-  justify-content: space-between;
-  text-align: left;
-  
-  @media (max-width: 768px) {
-    padding: 12px;
-    font-size: 13px;
-    line-height: 18px;
-  }
-
-  &:hover {
-    border-color: $primary-colors-midnight-blue;
-  }
-
-  &.has-selection {
-    color: $text-primary-midnight-blue;
-  }
-
-  .custom-select-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .custom-select-arrow {
-    margin-left: 8px;
-    
-    &.open {
-      transform: rotate(180deg);
-    }
-  }
-}
-
-// Hierarchy dropdowns: white bg, light gray border, dark blue selected text, gray chevron
-.custom-select-button.hierarchy-dropdown {
-  background-color: $bg-white;
-  border: 1px solid $border-gray-medium;
-  min-width: 120px;
-  border: 1px solid $primary-colors-midnight-blue;
-  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
-  &.has-selection .custom-select-text {
-    color: $primary-colors-midnight-blue;
-    font-weight: 500;
-  }
-  &:hover {
-    border-color: $border-gray;
-    background-color: $bg-gray-light;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: $primary-colors-midnight-blue;
-  }
-  .custom-select-arrow {
-  }
-}
-
-.custom-select-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background-color: $bg-white;
-  border: 1px solid $border-light;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  max-height: 240px;
-  overflow-y: auto;
-  display: none;
-  
-  &.open {
-    display: block;
-  }
-  
-  @media (max-width: 768px) {
-    max-height: 200px;
-  }
-}
-
-.custom-select-option {
-  padding: 10px 12px;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 16px;
-  cursor: pointer;
-  transition: background-color 0.15s;
-  background-color: $bg-white;
-  color: $text-primary-midnight-blue;
-  
-  @media (max-width: 768px) {
-    padding: 12px;
-    font-size: 13px;
-    line-height: 18px;
-  }
-  
-  &:hover {
-    background-color: rgba(236, 236, 240, 0.3);
-  }
-  
-  &.selected {
-    background-color: rgba(236, 236, 240, 0.5); // Light gray background
-    color: $text-primary-midnight-blue; // Blue text
-    font-weight: 500; // Slightly bolder
-  }
-  
-  &:first-child {
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-  }
-  
-  &:last-child {
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-  }
-}
-
 // Toggle Section
 .toggle-section {
   display: flex;
@@ -570,6 +307,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 20px 8px 32px 8px;
+  @media (max-width: 768px) {
+    padding: 0px;
+  }
 }
 
 // Style the title component when used as sankey region heading
@@ -805,13 +545,8 @@
 // Responsive Design
 @media (max-width: 1200px) {
   .header-section {
-    flex-direction: column;
+    
   }
-
-  .controls-section {
-    flex-wrap: wrap;
-  }
-
   .time-horizon-group {
     flex-wrap: wrap;
   }
@@ -819,7 +554,7 @@
 
 @media (max-width: 768px) {
   .asset-flows-container {
-    padding: 16px;
+    padding: 0px;
   }
 
   .sankey-diagram {

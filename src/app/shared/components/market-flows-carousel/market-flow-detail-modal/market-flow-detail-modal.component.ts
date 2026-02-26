@@ -292,17 +292,21 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {number} Chart width in pixels (responsive to viewport)
    */
   getChartWidth(): number {
-    // Return responsive width based on container - fit without horizontal scroll
+    // Return responsive width based on viewport - fit without horizontal scroll
     if (typeof window !== 'undefined' && this.card) {
       const width = window.innerWidth;
-      if (width <= 768) {
-        return Math.min(width - 100, 400); // Mobile - ensure it fits
-      } else if (width <= 1024) {
-        return Math.min(width - 200, 450); // Tablet - ensure it fits
+      if (width <= 480) {
+        return Math.max(280, width - 32); // Small mobile: full width minus padding
       }
-      return Math.min(width - 300, 600); // Desktop - ensure it fits without scroll
+      if (width <= 768) {
+        return Math.max(300, width - 48); // Mobile: ensure it fits
+      }
+      if (width <= 1024) {
+        return Math.max(600, width - 64); // iPad/tablet: use most of viewport width
+      }
+      return Math.min(width - 220, 800); // Desktop: larger chart
     }
-    return 600;
+    return 800;
   }
 
 

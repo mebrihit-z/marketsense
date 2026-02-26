@@ -23,108 +23,17 @@
     </div>
     <!-- Flow Dimensions & Toggle Section -->
     <div class="dimensions-section">
-      <!-- Flow Dimensions Section -->
-      <app-title title="Flow Dimensions" subtitle="Select three dimensions to drill down through the treemap. Dimension 1 shows the top-level grouping, Dimension 2 breaks it down further, and Dimension 3 reveals the deepest level." level="h4"></app-title>
-      <div class="flow-dimensions-section">
-        <!-- Hierarchy: cascading dimension selectors (same as Asset Flows) -->
-        <div class="dimension-selectors hierarchy-selectors">
-          <span class="dimension-selector-label">Hierarchy:</span>
-          <div class="hierarchy-chain">
-            <div class="dimension-selector-container">
-              <span class="dimension-number-label">Dimension 1</span>
-              <div class="custom-select-wrapper">
-                <button 
-                  type="button"
-                  class="custom-select-button hierarchy-dropdown"
-                  [class.has-selection]="selectedDimension1"
-                  (click)="toggleDropdown('dimension1', $event)">
-                  <span class="custom-select-text">
-                    {{ selectedDimension1 ? getDimensionOptionText(selectedDimension1) : 'Select a dimension' }}
-                  </span>
-                  <img 
-                    src="assets/icons/caret-down-icon.svg" 
-                    alt="Dropdown" 
-                    class="custom-select-arrow"
-                    [class.open]="openDropdown === 'dimension1'">
-                </button>
-                <div 
-                  class="custom-select-dropdown"
-                  [class.open]="openDropdown === 'dimension1'">
-                  <div 
-                    *ngFor="let dimension of getAvailableDimensionsForSelect('dimension1')"
-                    class="custom-select-option"
-                    [class.selected]="selectedDimension1?.id === dimension.id"
-                    (click)="selectDimension(dimension, 'dimension1')">
-                    {{ getDimensionOptionText(dimension) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <img src="assets/icons/glyphs-arrow-bold-icon.svg" alt="Arrow Right" class="hierarchy-arrow-icon">
-            <div class="dimension-selector-container">
-              <span class="dimension-number-label">Dimension 2</span>
-              <div class="custom-select-wrapper">
-                <button 
-                  type="button"
-                  class="custom-select-button hierarchy-dropdown"
-                  [class.has-selection]="selectedDimension2"
-                  (click)="toggleDropdown('dimension2', $event)">
-                  <span class="custom-select-text">
-                    {{ selectedDimension2 ? getDimensionOptionText(selectedDimension2) : 'Select a dimension' }}
-                  </span>
-                  <img 
-                    src="assets/icons/caret-down-icon.svg" 
-                    alt="Dropdown" 
-                    class="custom-select-arrow"
-                    [class.open]="openDropdown === 'dimension2'">
-                </button>
-                <div 
-                  class="custom-select-dropdown"
-                  [class.open]="openDropdown === 'dimension2'">
-                  <div 
-                    *ngFor="let dimension of getAvailableDimensionsForSelect('dimension2')"
-                    class="custom-select-option"
-                    [class.selected]="selectedDimension2?.id === dimension.id"
-                    (click)="selectDimension(dimension, 'dimension2')">
-                    {{ getDimensionOptionText(dimension) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <img src="assets/icons/glyphs-arrow-bold-icon.svg" alt="Arrow Right" class="hierarchy-arrow-icon">
-            <div class="dimension-selector-container">
-              <span class="dimension-number-label">Dimension 3</span>
-              <div class="custom-select-wrapper">
-                <button 
-                  type="button"
-                  class="custom-select-button hierarchy-dropdown"
-                  [class.has-selection]="selectedDimension3"
-                  (click)="toggleDropdown('dimension3', $event)">
-                  <span class="custom-select-text">
-                    {{ selectedDimension3 ? getDimensionOptionText(selectedDimension3) : 'Select a dimension' }}
-                  </span>
-                  <img 
-                    src="assets/icons/caret-down-icon.svg" 
-                    alt="Dropdown" 
-                    class="custom-select-arrow"
-                    [class.open]="openDropdown === 'dimension3'">
-                </button>
-                <div 
-                  class="custom-select-dropdown"
-                  [class.open]="openDropdown === 'dimension3'">
-                  <div 
-                    *ngFor="let dimension of getAvailableDimensionsForSelect('dimension3')"
-                    class="custom-select-option"
-                    [class.selected]="selectedDimension3?.id === dimension.id"
-                    (click)="selectDimension(dimension, 'dimension3')">
-                    {{ getDimensionOptionText(dimension) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <app-flow-dimensions
+        title="Flow Dimensions"
+        subtitle="Select three dimensions to drill down through the treemap. Dimension 1 shows the top-level grouping, Dimension 2 breaks it down further, and Dimension 3 reveals the deepest level."
+        [availableDimensions]="availableDimensions"
+        [selectedDimension1]="selectedDimension1"
+        [selectedDimension2]="selectedDimension2"
+        [selectedDimension3]="selectedDimension3"
+        [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
+        (dimensionChange)="onFlowDimensionChange($event)"
+        (dimensionDropdownOpened)="dimensionDropdownOpened.emit()">
+      </app-flow-dimensions>
     </div>
   </div>
   <!-- Treemap Visualization -->

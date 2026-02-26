@@ -1,7 +1,7 @@
 <div class="filter-root">
     <button type="button" class="btn" (click)="toggle($event)">
       <span class="title">{{ title }}</span>
-      <div class="info-btn-wrapper">
+      <div class="info-btn-wrapper" *ngIf="showInfoTooltip">
         <button type="button" #infoButton class="info-btn" (click)="onInfoClick($event)" aria-label="Info">
           <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
         </button>

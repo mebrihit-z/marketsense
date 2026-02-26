@@ -1,10 +1,11 @@
 /* eslint-disable */
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
 import TitleComponent from '../title/title.component';
+import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
 import { 
   aggregateSankeyDataByGlobal, 
@@ -33,18 +34,10 @@ export interface TreemapRegion {
   children: TreemapNode[];
 }
 
-export interface FlowDimension {
-  id: string;
-  label: string;
-  count: number;
-  active: boolean;
-  total?: number;
-}
-
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule, TreemapCellModalComponent, TreemapComponent, TitleComponent],
+  imports: [CommonModule, TreemapCellModalComponent, TreemapComponent, TitleComponent, FlowDimensionsComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })
@@ -85,9 +78,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
 
-  // Dropdown state
-  openDropdown: 'dimension1' | 'dimension2' | 'dimension3' | null = null;
-  
   // Modal state
   showCellModal: boolean = false;
   selectedCellData: TreemapCellData | null = null;
@@ -173,9 +163,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['forceCloseDimensionDropdown'] && (changes['forceCloseDimensionDropdown'].currentValue as number) > 0) {
-      this.openDropdown = null;
-    }
     if (changes['selectedProductTypes'] || changes['selectedProductRegions'] || changes['selectedProductSubTypes'] ||
         changes['selectedInvestorRegions'] || changes['selectedInvestorTypes'] ||
         changes['totalProductTypes'] || changes['totalProductSubTypes'] ||
@@ -266,95 +253,8 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     }
   }
 
-  removeDimension(dropZone: 'dimension1' | 'dimension2' | 'dimension3'): void {
-    if (dropZone === 'dimension1') {
-      this.selectedDimension1 = null;
-    } else if (dropZone === 'dimension2') {
-      this.selectedDimension2 = null;
-    } else {
-      this.selectedDimension3 = null;
-    }
-    console.log('Dimension removed from:', dropZone);
-  }
-
-  /**
-   * Get formatted text for dimension option in select dropdown (label only, no count badge)
-   */
-  getDimensionOptionText(dimension: FlowDimension): string {
-    return dimension.label;
-  }
-
-  /**
-   * Get available dimensions for a specific select dropdown
-   * Excludes dimensions already selected in other dropdowns
-   */
-  getAvailableDimensionsForSelect(selectId: 'dimension1' | 'dimension2' | 'dimension3'): FlowDimension[] {
-    const selectedIds = new Set<string>();
-    
-    if (selectId !== 'dimension1' && this.selectedDimension1) {
-      selectedIds.add(this.selectedDimension1.id);
-    }
-    if (selectId !== 'dimension2' && this.selectedDimension2) {
-      selectedIds.add(this.selectedDimension2.id);
-    }
-    if (selectId !== 'dimension3' && this.selectedDimension3) {
-      selectedIds.add(this.selectedDimension3.id);
-    }
-    
-    return this.availableDimensions.filter(dim => !selectedIds.has(dim.id));
-  }
-
-  /**
-   * Toggle custom dropdown open/closed state
-   */
-  toggleDropdown(selectId: 'dimension1' | 'dimension2' | 'dimension3', event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    if (this.openDropdown === selectId) {
-      this.openDropdown = null;
-    } else {
-      this.openDropdown = selectId;
-      this.dimensionDropdownOpened.emit();
-    }
-  }
-
-  /**
-   * Close custom dropdown
-   */
-  closeDropdown(selectId: 'dimension1' | 'dimension2' | 'dimension3'): void {
-    if (this.openDropdown === selectId) {
-      this.openDropdown = null;
-    }
-  }
-
-  /**
-   * Close dropdown when clicking outside
-   */
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.custom-select-wrapper')) {
-      this.openDropdown = null;
-    }
-  }
-
-  /**
-   * Select a dimension from custom dropdown
-   */
-  selectDimension(dimension: FlowDimension, selectId: 'dimension1' | 'dimension2' | 'dimension3'): void {
-    // Remove this dimension from other selects if it was selected there
-    if (selectId !== 'dimension1' && this.selectedDimension1?.id === dimension.id) {
-      this.selectedDimension1 = null;
-    }
-    if (selectId !== 'dimension2' && this.selectedDimension2?.id === dimension.id) {
-      this.selectedDimension2 = null;
-    }
-    if (selectId !== 'dimension3' && this.selectedDimension3?.id === dimension.id) {
-      this.selectedDimension3 = null;
-    }
-    
-    // Set the dimension in the target select
+  onFlowDimensionChange(event: { selectId: 'dimension1' | 'dimension2' | 'dimension3'; dimension: FlowDimension | null }): void {
+    const { selectId, dimension } = event;
     if (selectId === 'dimension1') {
       this.selectedDimension1 = dimension;
     } else if (selectId === 'dimension2') {
@@ -362,14 +262,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     } else {
       this.selectedDimension3 = dimension;
     }
-    
-    // Close the dropdown
-    this.openDropdown = null;
-    
-    console.log('Dimension selected:', selectId, dimension);
   }
-
-
 
   onPackingCirclesClick(): void {
     console.log('Packing Circles view selected');
@@ -423,17 +316,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   onPinClick(): void {
     this.isPinned = !this.isPinned;
     this.pinToggle.emit();
-  }
-
-  getDimensionCountLabel(dimension: FlowDimension): string | null {
-    const selected = dimension.count ?? 0;
-    const total = dimension.total ?? 0;
-
-    if (selected === 0 && total === 0) {
-      return null;
-    }
-
-    return total > 0 ? `${selected}/${total}` : `${selected}`;
   }
 
   onTreemapCellClick(cellData: TreemapCellData): void {

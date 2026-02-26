@@ -3,6 +3,11 @@
   position: relative; 
   display: inline-block;
 }
+.filters-and-toggles-content-inner{
+    @media (max-width: 768px) {
+       width:100%;
+    }
+}
 .btn {
     display:flex;
     align-items:center;
@@ -17,9 +22,15 @@
     font-weight: 400;
     line-height: 20px; /* 142.857% */
     letter-spacing: -0.15px;
-    height: 40px;
-
-
+    height: $filters-height-desktop;
+    &:hover {
+        background-color: $filter-hover-background;
+    }
+    @media (max-width: 768px) {
+        height: $filters-height-mobile;
+        padding: 10px 12px;
+        width:100%;
+    }
 }
 .right { 
   display:flex; 
@@ -34,21 +45,46 @@
     padding:2px 8px; 
     border-radius:8px; 
     font-size:12px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
+}
+.caret-down-icon {
+    @media (max-width: 1024px) and (min-width: 769px) {
+        margin-left: auto;
+    }
+    @media (max-width: 768px) {
+        margin-left: auto;
+    }
 }
 .panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
     width: 260px;
-    background: $bg-white; 
+    max-width: calc(100vw - 32px);
+    background: $bg-white;
     border: 1px solid $bg-gray-medium;
-    padding: 12px; 
+    padding: 12px;
     box-shadow: 0 6px 18px $overlay-shadow-medium;
     z-index: 1000;
+    @media (max-width: 1024px) and (min-width: 769px) {
+        max-height: min(70vh, 480px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .options {
+            flex: 1;
+            min-height: 0;
+        }
+    }
+    @media (max-width: 480px) {
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(260px, calc(100vw - 32px));
+    }
 }
 .panel-header { 
   display:flex; 
@@ -64,11 +100,12 @@
   letter-spacing: -0.15px;
 }
 .title {
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
   letter-spacing: -0.15px;
+  white-space: nowrap;
 }
 .info-btn-wrapper {
   position: relative;
@@ -102,18 +139,24 @@
   }
 }
 
-// Hide info icon when dropdown is in condensed filters bar at 1280px laptop width
-@media (max-width: 1440px) {
-  :host-context(.condensed-layout) .info-btn-wrapper {
-    display: none;
-  }
+// Condensed layout: shorter dropdown button
+:host-context(.condensed-layout) .btn {
+  height: 45px;
+  padding: 6px 10px;
 }
+
 
 .info-icon {
   width: 16px;
   height: 16px;
   display: block;
 }
+
+// Condensed filters-bar: hide dropdown info tooltip on all screen sizes (section title tooltips stay)
+:host-context(.condensed-layout) .info-btn-wrapper {
+  display: none;
+}
+
 .info-tooltip {
   position: absolute;
   top: calc(100% + 16px);
@@ -188,7 +231,7 @@
   gap:8px; 
   cursor:pointer; 
   font-size:14px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   line-height: 14px; /* 100% */
   letter-spacing: -0.15px;
   

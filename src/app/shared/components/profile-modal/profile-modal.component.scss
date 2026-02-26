@@ -67,7 +67,7 @@
 
 // Switch Profile Section
 .switch-profile-section {
-  padding: 12px 0;
+  padding: 12px 8px;
 }
 
 .section-header {
@@ -94,11 +94,11 @@
   position: relative;
 
   &:hover {
-    background-color: $bg-gray-lightest;
+    background-color: $dropdown-hover-background;
   }
 
   &.selected {
-    background-color: $bg-gray-lightest;
+    background-color: $neutral-colors-neutral-250;
   }
 }
 
@@ -131,21 +131,6 @@
     background-color: $red-dark;
   }
 
-  &.avatar-orange {
-    background-color: $orange-primary;
-  }
-
-  &.avatar-purple {
-    background-color: $purple-primary;
-  }
-
-  &.avatar-pink {
-    background-color: $pink-primary;
-  }
-
-  &.avatar-teal {
-    background-color: $teal-primary;
-  }
 }
 
 // Profile Info
@@ -161,7 +146,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -204,7 +189,7 @@
   border: none;
   font-size: 14px;
   font-weight: 400;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   text-align: left;
   cursor: pointer;
   transition: background-color 0.2s ease;

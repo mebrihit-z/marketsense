@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: $overlay-modal;
+  background-color: $modal-overlay-background;
   display: flex;
   z-index: 100001;
   animation: fadeIn 0.2s ease-out;
@@ -26,9 +26,9 @@
 .modal-container {
   position: relative;
   background-color: $bg-white;
-  width: 600px;
-  min-width: 600px;
-  max-width: 600px;
+  width: 700px;
+  min-width: 700px;
+  max-width: 700px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -86,6 +86,7 @@
     justify-content: center;
     padding: 16px 8px;
     gap: 8px;
+    border-bottom: 1px solid $secondary-colors-gold-750;
   }
 }
 
@@ -95,7 +96,6 @@
   background: none;
   border: none;
   cursor: pointer;
-  opacity: 0.7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,27 +130,27 @@
 }
 
 .tab-btn {
-  background-color: #F3F4F6;
+  background-color: $bg-sky-blue;
   border: none;
   padding: 8px 16px;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   cursor: pointer;
-  border-radius: 6px;
   transition: all 0.2s;
+  color: $text-midnight-blue;
 
   &.active {
-    background-color: $primary-colors-midnight-blue;
-    color: white;
+    background-color: $bg-midnight-blue;
+    color: $text-primary-sky-blue;
   }
 }
 
 // Session History Message
 .session-history-message {
-  padding: 12px 24px;
+  padding: 12px 24px 0 24px;
   flex-shrink: 0;
-  border-bottom: 1px solid $border-light;
+  color: $text-neutral-750;
 
   p {
     font-weight: 400;
@@ -165,7 +165,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 32px 24px;
+  padding: 5px 24px 32px 24px;
   overflow-y: auto;
 }
 
@@ -191,8 +191,7 @@
 .input-field {
   flex: 1;
   background-color: $bg-white;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  border: 1px solid #D1D5DC;
   padding: 16px;
   font-weight: 400;
   font-size: 14px;
@@ -204,13 +203,14 @@
   width: 100%;
   font-style: normal;
   font-family: 'Noto Sans', sans-serif;
+  color: $black;
 
   &::placeholder {
     color: $neutral-colors-neutral-750
   }
 
   &:focus {
-    border-color: #D1D5DB;
+    border-color: $primary-colors-midnight-blue;
     box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
   }
 }
@@ -220,14 +220,13 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background-color: #E5E7EB;
+  background-color: $button-background-primary;
   border: none;
-  border-radius: 8px;
   cursor: not-allowed;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
   line-height: 20px;
-  color: #fff;
+  color: $button-color-primary;
   transition: all 0.2s;
   flex-shrink: 0;
   align-self: flex-start;
@@ -235,15 +234,14 @@
   align-self: flex-end;
 
   &:not(:disabled) {
-    background-color: $primary-colors-midnight-blue;
-    color: white;
+    background-color: $button-background-primary;
+    color: $button-color-primary;
     cursor: pointer;
     
   }
 
   &:disabled {
-    background-color: #E5E7EB;
-    color: #fff;
+    opacity: $button-disabled-opacity;
     cursor: not-allowed;
   }
 
@@ -271,21 +269,23 @@
   font-size: 16px;
   line-height: 24px;
   margin: 0 0 8px 0;
+  color: #6A7282;;
 }
 
 .ai-capability-text {
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  width: 65%;
   text-align: center;
+  color: #6A7282;
+  width: 420px;
 }
 
 .example-questions {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
   margin-top: 16px;
 }
 
@@ -294,6 +294,7 @@
   font-size: 14px;
   line-height: 20px;
   margin: 0;
+  color: #99A1AF;
 }
 
 // Session History Styles
@@ -321,9 +322,7 @@
 }
 
 .analysis-item {
-  background-color: #EFF6FF;
-  border: 1px solid #DBEAFE;
-  border-radius: 8px;
+  background-color: $neutral-colors-neutral-250;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s;
@@ -343,6 +342,7 @@
     font-size: 14px;
     line-height: 20px;
     text-transform: uppercase;
+    color: $text-midnight-blue;
   }
 
   .analysis-question {
@@ -350,12 +350,14 @@
     font-size: 14px;
     line-height: 20px;
     margin: 0 0 8px 0;
+    color:$text-midnight-blue
   }
 
   .analysis-timestamp {
     font-weight: 400;
     font-size: 12px;
     line-height: 16px;
+    color:$text-neutral-750
   }
 }
 
@@ -403,7 +405,7 @@
   }
 
   .main-content {
-    padding: 24px;
+    padding: 16px;
   }
 
   .input-wrapper {

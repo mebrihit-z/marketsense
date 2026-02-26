@@ -10,8 +10,9 @@ app-treemap {
     align-items: center;
     padding: 32px 20px;
     background: #FFF;
-    
-
+    @media (max-width: 768px) {
+      padding: 0px 16px 24px 16px;
+    }
     .legend-container {
       display: flex;
       flex-direction: row;
@@ -22,6 +23,11 @@ app-treemap {
       width: 100%;
       max-width: 1800px;
       border-top: 1px solid #E5E7EB;
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
 
       .legend-item {
         display: flex;
@@ -38,7 +44,7 @@ app-treemap {
         .legend-label {
           font-size: 13px;
           font-weight: 500;
-          color: $text-primary-midnight-blue;
+          color: $text-midnight-blue;
           white-space: nowrap;
         }
       }
@@ -151,7 +157,7 @@ app-treemap {
     line-height: 1.25;
     padding: 4px 6px;
     margin: 2px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     pointer-events: none;
     text-shadow: none;
     white-space: normal;

@@ -27,6 +27,7 @@ export default class FilterDropdownComponent {
   @Input() selected: string[] = []; // parent's array reference
   @Input() isOpen = false; // Controlled by parent
   @Input() infoTooltip?: string; // Optional tooltip text
+  @Input() showInfoTooltip = true; // When false, hides the info icon (e.g. in condensed layout)
   @Input() isTooltipOpenExternal = false; // Controlled by parent to close tooltip
   @Output() selectedChange = new EventEmitter<string[]>();
   @Output() openChange = new EventEmitter<boolean>(); // Emit when open state should change

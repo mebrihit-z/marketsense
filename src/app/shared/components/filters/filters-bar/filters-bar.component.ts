@@ -43,6 +43,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('aiConfidenceTooltip', { static: false }) aiConfidenceTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('dataTypeTooltip', { static: false }) dataTypeTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('timeHorizonTooltip', { static: false }) timeHorizonTooltip!: ElementRef<HTMLDivElement>;
+  @ViewChild('investorGroupInfoBtn', { static: false }) investorGroupInfoBtn!: ElementRef<HTMLButtonElement>;
+  @ViewChild('investorGroupTooltip', { static: false }) investorGroupTooltip!: ElementRef<HTMLDivElement>;
+  @ViewChild('productGroupInfoBtn', { static: false }) productGroupInfoBtn!: ElementRef<HTMLButtonElement>;
+  @ViewChild('productGroupTooltip', { static: false }) productGroupTooltip!: ElementRef<HTMLDivElement>;
   
   // Track which filter dropdown has an open tooltip
   openFilterDropdownTooltip: string | null = null;
@@ -370,7 +374,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   showSelectAll: boolean = false;
 
   // Track which tooltip is open
-  openTooltip: 'aiConfidence' | 'dataType' | 'timeHorizon' | null = null;
+  openTooltip: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup' | null = null;
 
   // Save filter set modal state
   isSaveFilterSetModalOpen: boolean = false;
@@ -744,6 +748,12 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       } else if (this.openTooltip === 'timeHorizon') {
         clickedInside = this.timeHorizonTooltip?.nativeElement?.contains(target) ||
                        this.timeHorizonInfoBtn?.nativeElement?.contains(target);
+      } else if (this.openTooltip === 'investorGroup') {
+        clickedInside = this.investorGroupTooltip?.nativeElement?.contains(target) ||
+                       this.investorGroupInfoBtn?.nativeElement?.contains(target);
+      } else if (this.openTooltip === 'productGroup') {
+        clickedInside = this.productGroupTooltip?.nativeElement?.contains(target) ||
+                       this.productGroupInfoBtn?.nativeElement?.contains(target);
       }
 
       if (!clickedInside) {
@@ -1195,7 +1205,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param ev - The event object to stop propagation
    * @returns {void}
    */
-  onInfoClick(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon', ev: Event): void {
+  onInfoClick(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup', ev: Event): void {
     ev.stopPropagation();
     if (this.openTooltip === tooltipType) {
       this.openTooltip = null;
@@ -1241,7 +1251,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param tooltipType - The type of tooltip to check
    * @returns {boolean} True if the tooltip is open
    */
-  isTooltipOpen(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon'): boolean {
+  isTooltipOpen(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup'): boolean {
     return this.openTooltip === tooltipType;
   }
 
@@ -1250,7 +1260,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param tooltipType - The type of tooltip
    * @returns {string} The tooltip text
    */
-  getTooltipText(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon'): string {
+  getTooltipText(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup'): string {
     // switch (tooltipType) {
     //   case 'aiConfidence':
     //     return 'AI Confidence indicates the reliability of the forecasted data. Higher values represent more confident predictions.';
@@ -1268,6 +1278,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         return 'Switch between observed market data and AI-driven forward-looking estimates.';
       case 'timeHorizon':
         return 'Adjust the time window to analyze short-term trends or long-term capital movements.';
+      case 'investorGroup':
+        return 'Filter by the source of capital: select investor region (e.g., U.S., Europe, Global) and investor type (e.g., Institutional, Retail, Corporate) to understand where money is coming from and who is investing.';
+      case 'productGroup':
+        return 'Filter by the destination of investments: product region, asset class (e.g., Equity, Fixed Income, Alternatives), and sub-categories for detailed analysis of where capital is flowing.';
       default:
         return '';
     }

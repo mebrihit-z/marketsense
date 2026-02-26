@@ -11,6 +11,7 @@
   justify-content: center;
   z-index: 10000;
   animation: fadeIn 0.2s ease-out;
+  background-color: $modal-overlay-background;
 }
 
 @keyframes fadeIn {
@@ -76,7 +77,7 @@
   font-size: 16px;
   line-height: 24px;
   letter-spacing: -0.3125px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   margin: 0;
 }
 
@@ -98,7 +99,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,7 +135,7 @@
   font-size: 14px;
   line-height: normal;
   letter-spacing: -0.1504px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   background-color: $bg-white;
   outline: none;
   box-sizing: border-box;
@@ -166,7 +167,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.1504px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   cursor: pointer;
   border-radius: 10px;
   transition: background-color 0.2s;
@@ -179,13 +180,13 @@
 .btn-save {
   height: 36px;
   padding: 0 16px;
-  background-color: $secondary-colors-gold-750;
+  background-color: $button-background-primary;
   border: none;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.1504px;
-  color: $bg-white;
+  color: $button-color-primary;
   cursor: pointer;
   transition: opacity 0.2s, background-color 0.2s;
   min-width: 63.75px;
@@ -196,7 +197,7 @@
 
   &.disabled,
   &:disabled {
-    opacity: 0.5;
+    opacity: $button-disabled-opacity;
     cursor: not-allowed;
   }
 }

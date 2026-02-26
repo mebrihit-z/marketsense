@@ -4,23 +4,28 @@
       <div class="header">
         <div class="logo-wrap">
           <img src="assets/icons/sparkle-icon.svg" alt="" class="logo" />
+          <app-title
+            title="Ask MarketSense AI"
+            level="h2">
+          </app-title>
         </div>
         <app-title
-          title="Ask MarketSense AI"
           subtitle="Your AI-powered market intelligence assistant by Mercer."
           level="h2">
         </app-title>
       </div>
       <div class="input-wrap">
-        <img src="assets/icons/input-icon.svg" alt="" class="input-icon" />
-        <input
-          type="text"
-          class="input"
-          [(ngModel)]="query"
-          (keydown.enter)="onSubmit()"
-          placeholder="Ask about market trends, asset flows, client insights, or allocation strategies..."
-          aria-label="Ask MarketSense AI" />
-        <button type="button" class="submit-btn" (click)="onSubmit()" [disabled]="!query.trim()">
+        <div class="input-wrap-inner">
+          <img src="assets/icons/input-icon.svg" alt="input-icon" class="input-icon" />
+          <input
+            type="text"
+            class="input"
+            [(ngModel)]="query"
+            (keydown.enter)="onSubmit()"
+            placeholder="Ask about market trends, asset flows, client insights, or allocation strategies..."
+            aria-label="Ask MarketSense AI" />
+        </div>
+        <button type="button" class="submit-btn" (click)="onSubmit()">
           <span>Let's Go</span>
           <svg class="arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

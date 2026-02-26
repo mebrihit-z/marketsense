@@ -29,6 +29,15 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   private margin = { top: 50, right: 20, bottom: 50, left: 55 }; // Increased top margin for axisTop labels, bottom for x-axis label
   private tooltip: any = null;
 
+  /** Effective margin: larger bottom on mobile so x-axis labels are not cut off */
+  private getEffectiveMargin(): { top: number; right: number; bottom: number; left: number } {
+    if (typeof window === 'undefined') return this.margin;
+    const w = window.innerWidth;
+    if (w <= 480) return { ...this.margin, bottom: 80 };
+    if (w <= 768) return { ...this.margin, bottom: 72 };
+    return this.margin;
+  }
+
   ngAfterViewInit(): void {
     this.renderChart();
   }
@@ -66,6 +75,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     d3.select(this.chartElement.nativeElement).select('svg').remove();
 
     const element = this.chartElement.nativeElement;
+    const margin = this.getEffectiveMargin();
     // Use container width if available, otherwise use provided width, with a max fallback
     const containerWidth = element.clientWidth || element.parentElement?.clientWidth || 0;
     // Ensure width fits within container to prevent horizontal scrolling
@@ -73,8 +83,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     const actualWidth = Math.min(this.width || maxWidth, maxWidth);
     const actualHeight = this.height || 250;
 
-    const innerWidth = actualWidth - this.margin.left - this.margin.right;
-    const innerHeight = actualHeight - this.margin.top - this.margin.bottom;
+    const innerWidth = actualWidth - margin.left - margin.right;
+    const innerHeight = actualHeight - margin.top - margin.bottom;
 
     // Create SVG with overflow visible to prevent clipping
     this.svg = d3.select(element)
@@ -84,7 +94,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .style('overflow', 'visible');
 
     const g = this.svg.append('g')
-      .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
     // Calculate domain for Y axis
     const actualDataMin = d3.min(this.data) ?? 0;
@@ -286,8 +296,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       if (!svgElement) return;
       
       const svgRect = svgElement.getBoundingClientRect();
-      const pointX = svgRect.left + component.margin.left + xPos;
-      const pointY = svgRect.top + component.margin.top + yPos;
+      const pointX = svgRect.left + margin.left + xPos;
+      const pointY = svgRect.top + margin.top + yPos;
       
       // Get tooltip node first
       const tooltipNode = component.tooltip.node() as HTMLElement;
@@ -453,8 +463,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .attr('transform', `translate(0,${xAxisYPosition})`)
       .call(xAxis);
     
+    const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 768;
     xAxisGroup.selectAll('text')
-      .style('font-size', '12px')
+      .style('font-size', isNarrow ? '10px' : '12px')
       .style('fill', '#949294')
       .style('font-weight', '400');
     
@@ -476,9 +487,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         // Position the label about 35px above the axis line to avoid overlap
         labelY = xAxisYPosition - 35;
         // Ensure it's within the top margin area
-        labelY = Math.max(-this.margin.top + 5, labelY);
+        labelY = Math.max(-margin.top + 5, labelY);
       } else {
-        labelY = innerHeight + this.margin.bottom - 10;
+        labelY = innerHeight + margin.bottom - 10;
       }
       g.append('text')
         .attr('transform', `translate(${innerWidth / 2}, ${labelY})`)
@@ -518,7 +529,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.yAxisLabel) {
       g.append('text')
         .attr('transform', 'rotate(-90)')
-        .attr('y', 0 - this.margin.left + 5) // Positioned further left to avoid y-axis values
+        .attr('y', 0 - margin.left + 5) // Positioned further left to avoid y-axis values
         .attr('x', 0 - (innerHeight / 2))
         .attr('dy', '1em')
         .style('text-anchor', 'middle')

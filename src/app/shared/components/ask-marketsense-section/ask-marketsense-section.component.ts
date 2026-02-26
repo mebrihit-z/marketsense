@@ -23,12 +23,9 @@ export default class AskMarketsenseSectionComponent {
   ];
 
   onSubmit(): void {
-    const text = this.query.trim();
-    if (text) {
-      this.initialMessage = text;
-      this.showModal = true;
-      this.query = '';
-    }
+    this.initialMessage = this.query.trim();
+    this.showModal = true;
+    this.query = '';
   }
 
   /**

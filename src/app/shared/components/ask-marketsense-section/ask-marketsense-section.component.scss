@@ -1,15 +1,5 @@
 @use '../../../../_variables' as *;
 
-// Dark blue theme to match design
-$section-bg: #122040;
-$section-bg-suggestions: #2E3A52;
-$section-gold: #F5B31A;
-$section-gold-hover: #e4b963;
-$section-text: #ffffff;
-$section-text-muted: rgba(255, 255, 255, 0.85);
-$input-bg: #ffffff;
-$input-placeholder: #9ca3af;
-
 .ask-marketsense-section {
   width: 100%;
   padding: 0 48px;
@@ -23,14 +13,10 @@ $input-placeholder: #9ca3af;
   @media (max-width: 768px) {
     padding: 0 16px;
   }
-
-  @media (max-width: 480px) {
-    padding: 0 12px;
-  }
 }
 
 .section-inner {
-  background-color: $section-bg;
+  background-color: #122040;
   padding: 24px 28px;
   width: 100%;
   max-width: 100%;
@@ -43,17 +29,13 @@ $input-placeholder: #9ca3af;
   @media (max-width: 768px) {
     padding: 20px 16px 24px;
   }
-
-  @media (max-width: 480px) {
-    padding: 16px 12px 20px;
-  }
 }
 
 .section-content {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 63.5rem;
+  max-width: 70rem;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -70,28 +52,21 @@ $input-placeholder: #9ca3af;
 
 .header {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   gap: 2px;
   min-width: 0;
 }
 
 .logo-wrap {
-  margin-left: -20px;
-  flex-shrink: 0;
-
-  @media (max-width: 480px) {
-    margin-left: -12px;
-  }
+  display: flex;
+  gap: 6px;
 }
 
 .logo {
-  width: 22px;
-  height: 22px;
-  display: block;
-
-  @media (max-width: 480px) {
-    width: 18px;
-    height: 18px;
+  @media (max-width: 768px) {
+    width: 20px;
+    height: 20px;
   }
 }
 
@@ -105,7 +80,7 @@ $input-placeholder: #9ca3af;
   font-weight: 600;
   font-size: 16px;
   line-height: 24px;
-  color: $section-text;
+  color: $white;
 
   @media (max-width: 768px) {
     font-size: 15px;
@@ -131,7 +106,7 @@ $input-placeholder: #9ca3af;
   }
 
   @media (max-width: 480px) {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 16px;
   }
 }
@@ -140,7 +115,7 @@ $input-placeholder: #9ca3af;
   position: relative;
   display: flex;
   align-items: stretch;
-  background-color: $input-bg;
+  background-color:$white;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   min-width: 0;
@@ -151,24 +126,25 @@ $input-placeholder: #9ca3af;
   }
 }
 
+.input-wrap-inner {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding:8px 16px;
+  gap: 10px;
+  @media (max-width: 1024px) and (min-width: 769px) {
+    padding:8px 12px;
+    gap: 8px;
+  }
+  @media (max-width: 768px) {
+    padding:8px;
+    gap: 4px;
+  }
+}
+
 .input-wrap .input-icon {
   color: $primary-colors-midnight-blue;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  margin-right: 8px;
-  margin-left: 8px;
-  flex-shrink: 0;
-
-  @media (max-width: 768px) {
-    margin: 12px 12px 0;
-    align-self: flex-start;
-  }
-
-  @media (max-width: 480px) {
-    margin: 10px 10px 0;
-  }
 }
 
 .input-wrap .input {
@@ -181,17 +157,11 @@ $input-placeholder: #9ca3af;
   outline: none;
 
   &::placeholder {
-    color: $input-placeholder;
+    color: $text-neutral-750;
   }
 
   @media (max-width: 768px) {
-    padding: 12px 12px 8px;
-    font-size: 16px; // avoids zoom on focus on iOS
-  }
-
-  @media (max-width: 480px) {
-    padding: 10px 10px 6px;
-    font-size: 14px;
+    font-size: 14px; // avoids zoom on focus on iOS
   }
 }
 
@@ -201,8 +171,8 @@ $input-placeholder: #9ca3af;
   justify-content: center;
   gap: 8px;
   padding: 8px 18px;
-  background-color: $secondary-colors-gold-750;
-  color: $text-primary-midnight-blue;
+  background-color: $button-background-primary;
+  color: $button-color-primary;
   border: none;
   border-radius: 0;
   font-weight: 600;
@@ -212,7 +182,7 @@ $input-placeholder: #9ca3af;
   flex-shrink: 0;
 
   &:hover:not(:disabled) {
-    background-color: $section-gold-hover;
+    background-color: $secondary-colors-gold-500;
   }
 
   &:focus {
@@ -258,7 +228,7 @@ $input-placeholder: #9ca3af;
   align-self: center;
 
   @media (max-width: 480px) {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 14px;
   }
 }
@@ -267,8 +237,10 @@ $input-placeholder: #9ca3af;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: center;
-
+  justify-content: flex-start;
+  @media (max-width: 1024px) and (min-width: 769px) {
+    justify-content: flex-start;
+  }
   @media (max-width: 768px) {
     gap: 8px;
   }
@@ -280,7 +252,7 @@ $input-placeholder: #9ca3af;
 
 .suggestion-btn {
   background: transparent;
-  color: $section-text;
+  color: $white;
   padding: 8px 16px;
   font-weight: 400;
   font-size: 13px;
@@ -293,9 +265,9 @@ $input-placeholder: #9ca3af;
   white-space: normal;
   word-break: break-word;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-family: 'Noto Sans', sans-serif;
 
   &:hover {
-    background: lighten($section-bg-suggestions, 8%);
     border-color: rgba(255, 255, 255, 0.35);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
@@ -324,7 +296,7 @@ $input-placeholder: #9ca3af;
 
   @media (max-width: 480px) {
     padding: 6px 10px;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 15px;
   }
 }

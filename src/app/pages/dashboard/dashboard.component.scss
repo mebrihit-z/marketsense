@@ -58,6 +58,12 @@
 .carousel-section {
     width: 100%;
     padding: 2px 48px;
+    @media (max-width: 1024px) and (min-width: 769px) {
+        padding: 2px 32px;
+    }
+    @media (max-width: 768px) {
+        padding: 2px 16px;
+    }
 
 }
 
@@ -67,21 +73,33 @@
 
 .asset-allocation-section {
     padding: 2px 48px;
+    @media (max-width: 1024px) and (min-width: 769px) {
+        padding: 2px 32px;
+    }
     width: 100%;
     order: 2; // Default order (after asset-flows)
     
     &.pinned {
         order: 1; // When pinned, show before asset-flows
     }
+    @media (max-width: 768px) {
+        padding: 2px 16px;
+    }
 }
 
 .asset-flows-section {
     padding: 2px 48px;
+    @media (max-width: 1024px) and (min-width: 769px) {
+        padding: 2px 32px;
+    }
     width: 100%;
     order: 1; // Default order (before asset-allocation)
     
     &.pinned {
         order: 1; // When pinned, show before asset-allocation
+    }
+    @media (max-width: 768px) {
+        padding: 2px 16px;
     }
 }
 

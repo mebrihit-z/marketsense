@@ -13,7 +13,6 @@ body {
   padding: 0;
   font-family: 'Noto Sans', sans-serif;
   background-color: $bg-cream;
-  color: $text-primary-midnight-blue;
 }
 
 // Ensure main content doesn't overlap with sticky header
@@ -26,10 +25,4 @@ app-root {
   width: 100%;
   background: $secondary-colors-gold-750;
   margin: 12px 0;
-}
-.horizontal-line {
-  height: 1px;
-  background: $border-gray-medium;
-  margin-top: 12px;
-  width: 100%;
 }

@@ -938,7 +938,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (!d.children && isSmall) return '1px';
         return '2px';
       })
-      .style('color', '#00113F') // $text-primary-midnight-blue
+      .style('color', '#00113F') // $text-midnight-blue
       .style('pointer-events', 'none')
       .style('white-space', d => {
         const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;

@@ -8,7 +8,7 @@
 
 .title {
   margin: 0;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   font-style: normal;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -26,7 +26,7 @@
   &--h2 {
     font-size: 20px;
     font-weight: 600;
-
+    white-space: nowrap;
     @media (max-width: 768px) {
       font-size: 18px;
     }
@@ -34,7 +34,7 @@
 
   &--h3 {
     font-size: 18px;
-    font-weight: 400;
+    font-weight: 600;
     @media (max-width: 768px) {
       font-size: 16px;
     }
@@ -44,7 +44,7 @@
     font-size: 16px;
     font-weight: 400;
     @media (max-width: 768px) {
-      font-size: 15px;
+      font-size: 14px;
     }
   }
   &--h5 {
@@ -65,14 +65,13 @@
 
 .subtitle {
   margin: 0;
-  color: $text-primary-midnight-blue;
+  color: $text-neutral-750;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
   line-height: 1.4;
-  letter-spacing: -0.15px;
 
   @media (max-width: 768px) {
-    font-size: 13px;
+    font-size: 14px;
   }
 }

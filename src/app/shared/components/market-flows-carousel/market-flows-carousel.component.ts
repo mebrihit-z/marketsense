@@ -36,6 +36,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   currentSlideIndex: number = 0;
   
   cardsPerSlide = 4;
+  /** Number of cards to show in stacked column when detail is open: 2 on iPad, 3 on laptop */
+  stackedCardsCount = 3;
 
   constructor(
     private carouselHost: ElementRef<HTMLElement>,
@@ -104,8 +106,10 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
       this.cardsPerSlide = 1; // Mobile: 1 card
     } else if (width <= 1024) {
       this.cardsPerSlide = 2; // iPad: 2 cards
+      this.stackedCardsCount = 2;
     } else {
       this.cardsPerSlide = 4; // Desktop: 4 cards
+      this.stackedCardsCount = 3;
     }
     // Reset to first slide when cards per slide changes
     this.currentSlideIndex = 0;

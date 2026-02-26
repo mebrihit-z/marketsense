@@ -18,7 +18,7 @@
           class="saved-views-btn"
           (click)="toggleViewingDropdown()"
           [attr.aria-expanded]="isViewingDropdownOpen">
-          <img src="assets/icons/saved-icon.svg" alt="Saved" class="bookmark-icon">
+          <img src="assets/icons/bookmark-icon.svg" alt="Saved" class="bookmark-icon">
           <span class="saved-views-text">{{ savedViewsCount }} Saved Views</span>
           <img src="assets/icons/caret-down-icon.svg" alt="Dropdown" class="caret-icon">
         </button>
@@ -38,7 +38,7 @@
               (click)="selectViewingOption(option)">
               <div class="option-content">
                 <div class="option-header">
-                  <app-title [title]="option.name" level="h4" class="option-title"></app-title>
+                  <app-title [title]="option.name" level="h5" class="option-title"></app-title>
                   <span class="active-badge" *ngIf="option.isActive">Active</span>
                 </div>
                 <p class="option-saved-date">Saved {{ option.savedDate }}</p>

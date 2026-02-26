@@ -1,0 +1,239 @@
+@use '../../../../_variables' as *;
+
+.flow-dimensions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    padding: 0px;
+    gap: 16px;
+  }
+}
+
+.flow-dimensions-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dimension-selectors {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+}
+
+.hierarchy-selectors {
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.hierarchy-chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    flex-direction: column;
+    gap: 0px;
+  }
+}
+
+.hierarchy-arrow {
+  color: $secondary-colors-gold-750;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.dimension-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 170px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    min-width: unset;
+    flex: none;
+  }
+}
+
+.hierarchy-arrow-icon {
+  margin-top: 20px;
+
+  @media (max-width: 768px) {
+    transform: rotate(90deg);
+    margin: -2px 0;
+  }
+}
+
+.dimension-number-label {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  color: $text-midnight-blue;
+  display: block;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+    line-height: 14px;
+  }
+}
+
+.dimension-selector-label {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-midnight-blue;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    line-height: 18px;
+  }
+}
+
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-button {
+  width: 100%;
+  padding: 4px 12px;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  &:hover {
+    background-color: $dropdown-hover-background;
+  }
+
+  &.has-selection {
+    color: $text-midnight-blue;
+  }
+
+  .custom-select-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .custom-select-arrow {
+    margin-left: 8px;
+
+    &.open {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.custom-select-button.hierarchy-dropdown {
+  background-color: $bg-white;
+  border: 1px solid $border-gray-medium;
+  min-width: 120px;
+  border: 1px solid $primary-colors-midnight-blue;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+
+  &.has-selection .custom-select-text {
+    color: $primary-colors-midnight-blue;
+    font-weight: 500;
+  }
+
+  &:hover {
+    background-color: $dropdown-hover-background;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-colors-midnight-blue;
+  }
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  display: none;
+  padding: 8px;
+
+  &.open {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  @media (max-width: 768px) {
+    max-height: 200px;
+  }
+}
+
+.custom-select-option {
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  background-color: $bg-white;
+  color: $text-midnight-blue;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  &:hover {
+    background-color: $dropdown-hover-background;
+  }
+
+  &.selected {
+    background-color: $neutral-colors-neutral-250;
+    color: $text-midnight-blue;
+    font-weight: 500;
+  }
+}

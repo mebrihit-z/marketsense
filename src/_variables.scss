@@ -1,87 +1,11 @@
-// ============================================
-// COLOR VARIABLES
-// ============================================
-
-
-
-// Red Colors (Negative/Outflow)
-$red-light: #fca5a5;
-$red: #f87171;
-$red-dark: #ef4444;
-$red-link: #FCA5A5;
-$red-accent: #fb2c36;
-$red-negative: #e7000b;
-$red-badge: #d4183d;
-$red-gradient-start: rgba(251, 44, 54, 0.15);
-$red-gradient-mid: rgba(251, 44, 54, 0.20);
-$red-gradient-end: rgba(251, 44, 54, 0.18);
-$red-gradient-top: rgba(251, 44, 54, 0.08);
-
-// Blue Colors (Links/Accents)
-$blue-link: rgba(0, 100, 200, 0.7);
-$blue-primary: #3b82f6;
-$blue-primary-dark: #2563eb;
-$blue-primary-hover: #60a5fa;
-
-// Orange Colors
-$orange-primary: #f59e0b;
-$orange-primary-dark: #d97706;
-$orange-primary-hover: #fbbf24;
-$orange-secondary: #f97316;
-$orange-secondary-dark: #ea580c;
-$orange-secondary-hover: #fb923c;
-
-// Purple Colors
-$purple-primary: #8b5cf6;
-$purple-primary-dark: #7c3aed;
-$purple-primary-hover: #a78bfa;
-
-// Cyan Colors
-$cyan-primary: #06b6d4;
-$cyan-primary-dark: #0891b2;
-$cyan-primary-hover: #22d3ee;
-
-// Pink Colors
-$pink-primary: #ec4899;
-$pink-primary-dark: #db2777;
-$pink-primary-hover: #f472b6;
-
-// Teal Colors
-$teal-primary: #14b8a6;
-$teal-primary-dark: #0d9488;
-$teal-primary-hover: #5eead4;
-
-// Gray Shades
-$gray-light: #9ca3af;
-$gray-medium: #6b7280;
-$gray-dark: #4b5563;
-$gray-darker: #374151;
-
-// Opacity Overlays
-$overlay-light: rgba(0, 0, 0, 0.05);
-$overlay-medium: rgba(0, 0, 0, 0.1);
-$overlay-dark: rgba(0, 0, 0, 0.12);
-$overlay-darker: rgba(0, 0, 0, 0.85);
-$overlay-gray: rgba(86, 86, 86, 0.1);
-$overlay-gray-light: rgba(86, 86, 86, 0.05);
-$overlay-modal: rgba(0, 0, 0, 0.5);
-$overlay-logo: rgba(3, 2, 19, 0.1);
-$overlay-white: rgba(255, 255, 255, 0.5);
-$overlay-shadow-light: rgba(0, 17, 63, 0.20);
-$overlay-shadow-medium: rgba(0, 0, 0, 0.08);
-$overlay-shadow-dark: rgba(0, 0, 0, 0.1);
-
-// Default/Misc
-$default-gray: #999999;
-$blue-focus-outline: rgba(30, 64, 175, 0.25);
-$primary-blue-light-hover: rgba(11, 65, 173, 0.05);
-
 // ===============BRAND COLORS=============================
 
 // Primary colors
 $primary-colors-midnight-blue: #00113F;
 $primary-colors-sky-blue: #C7EAFF;
 $white: #FFFFFF;
+$black: #000000;
+
 // Secondary - Gold
 $secondary-colors-gold-1000: #C5730B;
 $secondary-colors-gold-750: #FFB70E;
@@ -111,52 +35,51 @@ $neutral-colors-neutral-500: #B1ADA8;
 $neutral-colors-neutral-250: #F5F1EB;
 
 // Traffic colors
-$traffic-success-green: #14853D;
-$traffic-danger-crimson: #C53532;
-$traffic-warning-yellow: #FFBE00;
+$traffic-colors-success-green: #2A6907;
+$traffic-colors-danger-crimson: #BE2E2C;
+$traffic-colors-warning-yellow: #FFB70E;
 
-// ===============PALETTE COLORS=============================
+// Red Colors (Negative/Outflow)
+$red-light: #fca5a5;
+$red: #f87171;
+$red-dark: #ef4444;
+$red-link: #FCA5A5;
+$red-accent: #fb2c36;
+$red-negative: #e7000b;
+$red-badge: #d4183d;
 
-
-// Purple palette
-$purple-1000: #5E017F;
-$purple-750: #8F20DE;
-$purple-500: #DEB1FF;
-$purple-250: #F5E8FF;
-
-// Neutral colors
-$neutral-1000: #3D3C37;
-$neutral-750: #7B7974;
-$neutral-500: #B9B6B1;
-$neutral-250: #F7F3EE;
-
-// Traffic colors
-$traffic-success-green: #14853D;
-$traffic-danger-crimson: #C53532;
-$traffic-warning-yellow: #FFBE00;
+// Gray Shades
+$gray-darker: #374151;
 
 // Background Colors
 $bg-white: #ffffff;
-$bg-light: #ececf0;
 $bg-cream: #F8F6F1;
+
+$bg-light: #ececf0;
 $bg-light-opacity: rgba(236, 236, 240, 0.3);
-$bg-light-opacity-50: rgba(236, 236, 240, 0.5);
 $bg-gray-light: #f9fafb;
+$bg-neutral: #e8e9eb;
+$bg-gray-medium: #e5e7eb;
+$bg-gray-darker: #4b5563;
 $bg-gray-lighter: #ECEEF2;
 $bg-gray-lightest: #F3F3F5;
-$bg-gray-medium: #e5e7eb;
 $bg-gray-dark: #6b7280;
-$bg-gray-darker: #4b5563;
-$bg-neutral: #e8e9eb;
+
+$bg-midnight-blue: $primary-colors-midnight-blue;
+$bg-sky-blue: $primary-colors-sky-blue;
+$bg-gold-250: $secondary-colors-gold-250;
+$bg-gold-500: $secondary-colors-gold-500;
+$bg-gold-750: $secondary-colors-gold-750;
+$bg-gold-1000: $secondary-colors-gold-1000;
 
 // Text Colors
-$text-primary-midnight-blue: #00113F;
-$text-primary: #0A0A0A;
-$text-primary-dark: #030213;
+$text-midnight-blue: $primary-colors-midnight-blue;
+$text-primary-sky-blue: $primary-colors-sky-blue;
+$text-neutral-1000: $neutral-colors-neutral-1000;
+$text-neutral-750: $neutral-colors-neutral-750;
+$text-neutral-500: $neutral-colors-neutral-500;
+$text-neutral-250: $neutral-colors-neutral-250;
 $text-secondary: #717182;
-$text-dark: #333333;
-$text-medium: #666666;
-$text-light: rgba(0, 0, 0, 0.85);
 
 // Border Colors
 $border-light: rgba(0, 0, 0, 0.1);
@@ -165,4 +88,34 @@ $border-gray: #b3b3b3;
 $border-gray-light: #c4c4c4;
 $border-gray-medium: #d1d5dc;
 $border-gray-dark: #e5e7eb;
+
+// Opacity Overlays
+$overlay-light: rgba(0, 0, 0, 0.05);
+$overlay-medium: rgba(0, 0, 0, 0.1);
+$overlay-dark: rgba(0, 0, 0, 0.12);
+$overlay-gray: rgba(86, 86, 86, 0.1);
+$overlay-gray-light: rgba(86, 86, 86, 0.05);
+$overlay-shadow-light: rgba(0, 17, 63, 0.20);
+$overlay-shadow-medium: rgba(0, 0, 0, 0.08);
+$overlay-shadow-dark: rgba(0, 0, 0, 0.1);
+$modal-overlay-background: rgba(0, 0, 0, 0.5);
+
+$filters-height-desktop: 56px;
+$filters-height-condensed: 45px;
+$filters-height-mobile: 56px;
+$filters-height-tablet: 40px;
+
+
+
+// Button colors
+$button-background-primary: $secondary-colors-gold-750;
+$button-color-primary: $text-midnight-blue;
+$button-disabled-opacity: 0.5;
+
+// Hover colors
+$filter-hover-background: $neutral-colors-neutral-250;
+$card-hover-background: $neutral-colors-neutral-250;
+$dropdown-hover-background: $neutral-colors-neutral-250;
+
+
 

@@ -39,8 +39,14 @@
     &.condensed {
         padding: 0px 0px 0px 0px;
     }
+    @media (max-width: 1024px) {
+        padding: 0px 32px 24px 32px;
+    }
     @media (max-width: 768px) {
         padding: 12px 24px;
+    }
+    @media (max-width: 480px) {
+        padding: 0px 16px 16px 16px;
     }
 }
 .filters-root {
@@ -51,19 +57,23 @@
         overflow-x: auto;
         overflow-y: visible;
     }
+
+    @media (max-width: 1024px) and (min-width: 769px) {
+        overflow: visible;
+    }
     
     @media (max-width: 768px) {
-        padding: 10px;
+
         overflow-x: visible;
         overflow-y: visible;
     }
     
     &.condensed {
         padding: 24px 13px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        
         
         @media (max-width: 1400px) {
-            padding: 24px 2px 24px 4px;
+            padding: 24px 8px 24px 8px;
         }
         
         @media (max-width: 1200px) {
@@ -77,11 +87,42 @@
     }
 }
 .filters-and-toggles-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid $bg-gray-medium;
+    @media (max-width: 1024px) {
+        flex-direction: column;
+        gap: 4px;
+    }
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 12px;
+        padding-bottom: 12px;
+
+        .filters-and-toggles-content-inner {
+            width: 100%;
+        }
+    }
+    @media (max-width: 480px) {
+        gap: 4px;
+        padding-bottom: 10px;
+    }
     &.condensed {
         padding-bottom: 0px;
         border-bottom: none;
+
+        // Let the filters block take remaining width so "Clear all" / "Save filter set" sit on the right
+        .filters-and-toggles-content-inner {
+            flex: 1;
+            min-width: 0;
+        }
+        @media (max-width: 768px) {
+            .filters-and-toggles-content-inner {
+                width: 100%;
+            }
+        }
     }
 }
 .filters-container { 
@@ -99,6 +140,10 @@
         overflow-x: auto;
         overflow-y: visible;
     }
+
+    @media (max-width: 1024px) and (min-width: 769px) {
+        overflow: visible;
+    }
     
     @media (max-width: 768px) {
         flex-direction: column;
@@ -107,6 +152,10 @@
         flex-wrap: wrap;
         overflow-x: visible;
         overflow-y: visible;
+        min-width: 0;
+    }
+    @media (max-width: 480px) {
+        gap: 10px;
     }
     
     &:not(.condensed-layout) {
@@ -125,29 +174,28 @@
         gap: 16px;
         flex-wrap: nowrap;
         min-width: 0;
+        overflow: visible;
+
+        // Keep "Clear all" / "Save filter set" on the right
+        .clear-all-container-condensed {
+            order: 999;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
         
         @media (max-width: 1400px) {
             gap: 12px;
         }
         
-        // At 1280px (laptop): wrap so AI Confidence doesn't overlap dropdowns; hide info icons
+        // At 1280px (laptop): wrap so AI Confidence doesn't overlap dropdowns
         @media (max-width: 1280px) {
             flex-wrap: wrap;
             align-items: flex-start;
             gap: 12px;
-            .label-with-info-condensed .info-btn-wrapper {
-                display: none;
-            }
         }
         
         @media (max-width: 1200px) {
             gap: 8px;
-            
-            .clear-all-container-condensed {
-                order: 999;
-                margin-left: auto;
-                flex-shrink: 0;
-            }
         }
         
         @media (max-width: 768px) {
@@ -165,31 +213,27 @@
     transition: height 0.2s ease, align-items 0.2s ease;
     flex-shrink: 0;
 
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
     line-height: 20px; /* 142.857% */
     letter-spacing: -0.15px;
+    margin-top: 16px;
     
     @media (max-width: 768px) {
         font-size: 13px;
         gap: 6px;
         justify-content: flex-start;
         width: 100%;
+        margin-top: 0;
+    }
+    @media (max-width: 480px) {
+        margin-bottom: 4px;
     }
     
     .filters-root.condensed & {
-        align-items: center;
-        justify-content: center;
-        height:65px;
-        flex-shrink: 0;
-        
-        @media (max-width: 768px) {
-            height: auto;
-            justify-content: flex-start;
-            margin-bottom: 4px;
-        }
+        display: none;
     }
     
     .filter-icon {
@@ -215,14 +259,21 @@
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-wrap: wrap;
         gap: 10px;
+        margin-bottom: 8px;
+        overflow: visible;
     }
     
     @media (max-width: 768px) {
-        flex-direction: row;
-        flex-wrap: wrap;
+        flex-direction: column;
+        flex-wrap: nowrap;
         gap: 10px;
         width: 100%;
+        min-width: 0;
         align-items: stretch;
+    }
+    @media (max-width: 480px) {
+        flex-direction: column;
+        gap: 8px;
     }
     
     ::ng-deep app-filter-dropdown {
@@ -230,15 +281,44 @@
         min-width: fit-content;
         
         @media (max-width: 1024px) and (min-width: 769px) {
-            width: calc(33.333% - 7px);
+            /* Same width for all dropdowns: 3 per row with 10px gap (2 gaps = 20px) */
+            width: calc((100% - 20px) / 3);
             min-width: 0;
-            flex: 0 0 calc(33.333% - 7px);
+            max-width: calc((100% - 20px) / 3);
+            flex: 0 0 calc((100% - 20px) / 3);
+
+            .btn {
+                width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+            }
         }
         
         @media (max-width: 768px) {
-            width: calc(50% - 5px);
+            display: block;
+            width: 100% !important;
             min-width: 0;
-            flex: 0 0 calc(50% - 5px);
+            flex: 0 0 100% !important;
+            max-width: 100%;
+
+            .btn {
+                width: 100% !important;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+
+            .panel {
+                left: 50%;
+                transform: translateX(-50%);
+                width: calc(100vw - 48px) !important;
+                max-width: none;
+                box-sizing: border-box;
+            }
+        }
+        @media (max-width: 480px) {
+            .panel {
+                width: calc(100vw - 32px) !important;
+            }
         }
     }
 }
@@ -266,21 +346,11 @@
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
     flex-shrink: 0;
     align-items: flex-start;
-    height:65px;
     position: relative;
     
-    &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 17px;
-        width: 100%;
-        height: 1px;
-        background: rgba(10, 10, 10, 0.1);
-    }
+   
     
     @media (max-width: 1200px) {
         flex: 1 1 auto;
@@ -295,6 +365,13 @@
     }
 }
 
+.filter-group-label-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    justify-content: flex-start;
+}
+
 .filter-group-label {
     color: $primary-colors-midnight-blue;
     font-size: 14px;
@@ -304,12 +381,18 @@
     letter-spacing: -0.15px;
    
 }
-
+.filter-group-horizontal-divider {
+    width: 100%;
+    height: 1px;
+    background: $primary-colors-midnight-blue;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
 .filter-group-dropdowns {
     display: flex;
     gap: 11px;
     align-items: center;
-    height: 40px;
+    height: $filters-height-condensed;
     
     @media (max-width: 1200px) {
         gap: 8px;
@@ -336,7 +419,6 @@
         .btn {
             font-size: 12px;
             line-height: 16px;
-            height: 40px;
             padding: 4px 8px;
             
             @media (max-width: 768px) {
@@ -366,7 +448,9 @@
                 }
             }
         }
-        
+        .btn.condensed & {
+            height: 40px;
+        }
         .panel {
             .panel-title {
                 font-size: 12px;
@@ -482,7 +566,7 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 20px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     margin: 0;
     white-space: nowrap;
     flex-shrink: 0;
@@ -499,7 +583,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 20px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     text-align: center;
     white-space: nowrap;
     letter-spacing: 0.03px;
@@ -621,21 +705,30 @@
 }
 
 .clear-all-container-condensed {
-    padding-top: 8px
-    ;
+    padding-top: 8px;
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 8px;
-    height:65px;
+    height: 65px;
     flex-shrink: 0;
     margin-left: auto;
     white-space: nowrap;
     min-width: fit-content;
-
-    // Hide "Clear All Filters" and "Save Filter Set" in condensed bar when viewport < 1440px
-    @media (max-width: 1439px) {
-        display: none !important;
+    @media (max-width: 768px) {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 8px;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        padding-top: 12px;
+        order: 999;
+    }
+    @media (max-width: 480px) {
+        gap: 8px;
+        padding-top: 10px;
     }
 }
 
@@ -659,6 +752,8 @@
         font-size: 13px;
         line-height: 18px;
         padding: 8px 16px;
+        min-height: 44px;
+        justify-content: center;
     }
     
     &:hover {
@@ -685,6 +780,8 @@
         font-size: 13px;
         line-height: 18px;
         padding: 8px 16px;
+        min-height: 44px;
+        justify-content: center;
     }
     
     &:hover {
@@ -696,6 +793,16 @@
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+}
+
+// Condensed action buttons: show label only (no icons)
+.clear-all-container-condensed {
+    .condensed-btn-label {
+        display: inline;
+    }
+    .action-icon-condensed {
+        display: none;
+    }
 }
 
 .clear-all,
@@ -737,7 +844,7 @@
     margin-top: 20px;
     width: 100%;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     flex-wrap: wrap;
     
     @media (max-width: 1200px) {
@@ -747,14 +854,16 @@
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 4px;
+        margin-top: 4px;
     }
     
     @media (max-width: 768px) {
         flex-direction: column;
         width: 100%;
         align-items: flex-start;
-        gap: 16px;
+        gap: 8px;
+        margin-top: 8px;
     }
 }
 
@@ -788,6 +897,13 @@
         justify-content: center;
         margin-top: 16px;
         align-self: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    @media (max-width: 480px) {
+        justify-content: stretch;
+        gap: 8px;
+        margin-top: 12px;
     }
 }
 
@@ -813,8 +929,15 @@
     }
     
     @media (max-width: 768px) {
-        font-size: 13px;
+        font-size: 14px;
         line-height: 18px;
+        min-height: 44px;
+        padding: 8px 12px;
+        justify-content: center;
+    }
+    @media (max-width: 480px) {
+        flex: 1 1 auto;
+        min-width: 0;
     }
 }
 
@@ -834,26 +957,28 @@
     align-items: center;
     gap: 8px;
     background-color: $bg-white;
-    padding:8px;
+    padding: 8px 13px;
     margin-bottom: 16px;
     box-shadow: 0 2px 2px 0 $overlay-shadow-light;
-    height: 40px;
+    height: $filters-height-desktop;
     align-items: center;
     @media (max-width: 1024px) and (min-width: 769px) {
-        // margin-left: 75px;
+        margin-bottom: 8px;
     }
     @media (max-width: 768px) {
         width: 100%;
-        flex-direction: column;
-        align-items: flex-start;
+    
+        align-items: stretch;
         gap: 12px;
-        
+        padding: 10px 12px;
+        margin-bottom: 0px;
+        height: $filters-height-mobile;
     }
 }
 
 .toggle-label {
     font-weight: 400;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 20px;
     color: $primary-colors-midnight-blue;
     white-space: nowrap;
@@ -910,7 +1035,6 @@
     .tooltip-content {
         background: #374151;
         border: none;
-        border-radius: 6px;
         padding: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         color: $bg-white;
@@ -937,7 +1061,7 @@
 .label-with-info-condensed {
     .info-btn-wrapper {
         .info-tooltip {
-            top: calc(100% + 43px);
+            top: calc(100% + 20px);
             left: 50%;
             transform: translateX(-50%);
             
@@ -947,9 +1071,19 @@
             }
         }
     }
+    // Investor/Product: align tooltip to left so it isn't cut off on the left edge
+    &.filter-group-label-row .info-btn-wrapper .info-tooltip {
+        left: 0;
+        transform: none;
+        .tooltip-arrow {
+            left: 8px;
+            transform: none;
+        }
+    }
 }
 
 .toggle-buttons {
+    height: 100%;
     display: flex;
     border: 1px solid $primary-colors-midnight-blue;
     background-color: $bg-white;
@@ -958,31 +1092,62 @@
             flex-wrap: wrap;
         }
     }
+    @media (max-width: 768px) {
+        width: 100%;
+        flex: 1;
+    }
 }
 
 .toggle-btn {
     font-weight: 500;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 16px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     background-color: $bg-white;
     border: none;
     padding: 4px 8px;
     cursor: pointer;
     transition: background-color 0.2s;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 
     &:last-child {
         border-right: none;
     }
 
     &:hover:not(&.active) {
-        background-color: $overlay-gray-light;
+        background-color: $filter-hover-background;
     }
 
     &.active {
         background-color: $primary-colors-midnight-blue;
         color: $white;
+
+        .icon-historical,
+        .icon-forecasted {
+            filter: brightness(0) invert(1);
+        }
+    }
+    
+    .icon-historical,
+    .icon-forecasted {
+        transition: filter 0.2s;
+    }
+    
+    &:not(.active) .icon-historical,
+    &:not(.active) .icon-forecasted {
+        filter: brightness(0) saturate(100%) invert(8%) sepia(31%) saturate(5000%) hue-rotate(212deg) brightness(95%) contrast(101%);
+    }
+
+    @media (max-width: 768px) {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+        font-size: 14px;
+        line-height: 18px;
     }
 }
 
@@ -993,27 +1158,42 @@
     gap: 24px;
     min-width: 0;
     max-width: 100%;
-    width: 560px;
+    width: 580px;
     background-color: $bg-white;
-    z-index: -1;
-    padding-left: 8px;
+    position: relative;
+    z-index: 0;
     margin-bottom: 16px;
     box-shadow: 0 2px 2px 0 $overlay-shadow-light;
-    height: 40px;
+    height: $filters-height-desktop;
     align-items: center;
+    padding: 8px 13px;
+    overflow: visible;
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+        align-items: stretch;
+        gap: 0px;
         width: 100%;
-        margin-left: 75px;
+        min-width: 0;
+        height: auto;
+        margin-left: 0;
+        padding-left: 16px;
+        padding-right: 16px;
     }
     
     @media (max-width: 768px) {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
         gap: 12px;
         width: 100%;
+        min-width: 0;
+        height: auto;
+        padding: 10px 16px;
+        margin-bottom: 12px;
+    }
+    @media (max-width: 480px) {
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        gap: 10px;
     }
 }
 
@@ -1023,12 +1203,15 @@
     width: 100%;
     max-width: 400px;
     min-width: 0;
+    overflow: visible;
     @media (max-width: 1024px) and (min-width: 769px) {
-        margin-left: 20px;
+        max-width: 100%;
+        margin-left: 0;
     }
     @media (max-width: 768px) {
         width: 100%;
         max-width: 100%;
+        margin-left: 0;
     }
 }
 
@@ -1049,12 +1232,20 @@
     user-select: none;
     touch-action: none; /* allow handle drag without browser scroll */
     
+    @media (max-width: 1024px) and (min-width: 769px) {
+        max-width: 100%;
+    }
+    
     @media (max-width: 768px) {
         width: 100%;
         max-width: 100%;
-        height: 24px;
-        padding: 0 6px;
+        height: 28px;
+        min-height: 28px;
+        padding: 0 8px;
         box-sizing: border-box;
+    }
+    @media (max-width: 480px) {
+        padding: 0 4px;
     }
 }
 
@@ -1064,14 +1255,22 @@
     top: 9px;
     width: 100%;
     max-width: 400px;
-    height: 2px;
     pointer-events: none; /* so handles receive hover/drag; track clicks go to container */
 
+    @media (max-width: 1024px) and (min-width: 769px) {
+        max-width: 100%;
+    }
+
     @media (max-width: 768px) {
-        width: calc(100% - 12px);
-        max-width: calc(100% - 12px);
-        left: 6px;
-        top: 11px;
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        left: 8px;
+        top: 13px;
+    }
+    @media (max-width: 480px) {
+        width: calc(100% - 8px);
+        max-width: calc(100% - 8px);
+        left: 4px;
     }
 }
 
@@ -1081,24 +1280,32 @@
     top: 0;
     width: 100%;
     max-width: 400px;
-    height: 2px;
+    height: 5px;
     pointer-events: none;
     
+    @media (max-width: 1024px) and (min-width: 769px) {
+        max-width: 100%;
+    }
+    
     @media (max-width: 768px) {
-        width: calc(100% - 12px);
-        max-width: calc(100% - 12px);
-        left: 6px;
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        left: 8px;
+    }
+    @media (max-width: 480px) {
+        width: calc(100% - 8px);
+        max-width: calc(100% - 8px);
+        left: 4px;
     }
 }
 
 .time-horizon-dots .dot {
     position: absolute;
-    width: 2px;
-    height: 2px;
+    width: 4px;
+    height: 4px;
     background: $primary-colors-midnight-blue;
-    border-radius: 2px;
+    border-radius: 50%;
     top: 0;
-    transform: translateX(-50%);
 }
 
 .time-horizon-track-background {
@@ -1107,23 +1314,32 @@
     top: 0;
     width: 100%;
     max-width: 400px;
-    height: 2px;
-    background: rgba(11, 65, 173, 0.4); // Light blue track (matching image)
+    height: 5px;
+    background: $primary-colors-sky-blue;
     border-radius: 2px;
     pointer-events: none;
     z-index: -1;
     
+    @media (max-width: 1024px) and (min-width: 769px) {
+        max-width: 100%;
+    }
+    
     @media (max-width: 768px) {
-        width: calc(100% - 12px);
-        max-width: calc(100% - 12px);
-        left: 6px;
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        left: 8px;
+    }
+    @media (max-width: 480px) {
+        width: calc(100% - 8px);
+        max-width: calc(100% - 8px);
+        left: 4px;
     }
 }
 
 .time-horizon-track-active {
     position: absolute;
     top: 0;
-    height: 2px;
+    height: 5px;
     background: $primary-colors-midnight-blue; // Darker blue active segment
     border-radius: 2px;
     pointer-events: none;
@@ -1131,8 +1347,8 @@
 
 .time-horizon-handle {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background: $primary-colors-midnight-blue; // Dark blue handle
     border-radius: 50%;
     cursor: grab !important;
@@ -1145,10 +1361,15 @@
     pointer-events: auto;
     
     @media (max-width: 768px) {
-        width: 12px;
-        height: 12px;
-        top: 5px;
+        width: 14px;
+        height: 14px;
+        top: 7px;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    @media (max-width: 480px) {
+        width: 16px;
+        height: 16px;
+        top: 6px;
     }
     
     &:active {
@@ -1171,6 +1392,14 @@
         cursor: grab !important;
         pointer-events: auto;
     }
+    @media (max-width: 768px) {
+        &::before {
+            width: 44px;
+            height: 44px;
+            margin-left: -22px;
+            margin-top: -22px;
+        }
+    }
 }
 
 .time-horizon-labels {
@@ -1179,13 +1408,33 @@
     max-width: 400px;
     height: 20px;
     min-width: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+    box-sizing: border-box;
+    overflow: visible;
+    
+    @media (max-width: 1024px) and (min-width: 769px) {
+        max-width: 100%;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
     
     @media (max-width: 768px) {
-        width: calc(100% - 12px);
-        max-width: calc(100% - 12px);
-        left: 6px;
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        margin-left: 8px;
         height: 24px;
+        margin-top: 6px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    @media (max-width: 480px) {
+        width: calc(100% - 8px);
+        max-width: calc(100% - 8px);
+        margin-left: 4px;
         margin-top: 4px;
+        padding-left: 8px;
+        padding-right: 8px;
     }
 }
 
@@ -1193,34 +1442,27 @@
     position: absolute;
     font-size: 12px;
     font-weight: 400;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     white-space: nowrap;
     top: 0;
     transform: translateX(-50%);
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
+
+    // Override inline style so first/last labels aren't cut off (template sets translateX(-50%) on all)
+    &:first-child {
+        transform: translateX(0) !important;
+    }
+    &:last-child {
+        transform: translateX(-80%) !important;
+    }
     
     @media (max-width: 768px) {
-        font-size: 11px;
+        font-size: 12px;
         padding: 4px 2px;
         min-width: 32px;
         text-align: center;
-        
-        // First label - align to left edge (accounting for container offset)
-        &:first-child {
-            transform: translateX(0) !important;
-        }
-        
-        // Last label - align to right edge (accounting for container offset)
-        &:last-child {
-            transform: translateX(-100%) !important;
-        }
-        
-        // Middle labels - keep centered
-        &:not(:first-child):not(:last-child) {
-            transform: translateX(-50%);
-        }
     }
 }
 
@@ -1260,11 +1502,14 @@
     align-items: center;
     gap: 2px;
     justify-content: center;
-    
+
+    &.filter-group-label-row {
+        justify-content: flex-start;
+    }
 }
 
 .ai-confidence-label-condensed {
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
@@ -1295,7 +1540,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 20px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     text-align: center;
     white-space: nowrap;
     letter-spacing: 0.03px;
@@ -1393,21 +1638,11 @@
 .toggle-group-condensed {
     display: flex;
     flex-direction: column;
-    gap: 6px;
     align-items: flex-start;
-    height:65px;
     flex-shrink: 0;
     position: relative;
     
-    &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 17px;
-        width: 100%;
-        height: 1px;
-        background: rgba(10, 10, 10, 0.1);
-    }
+ 
     
     @media (max-width: 1200px) {
         width: 100%;
@@ -1430,9 +1665,8 @@
 
 .toggle-buttons-condensed {
     display: flex;
- 
     background-color: $bg-white;
-    height: 40px;
+    height: $filters-height-condensed;
     
     @media (max-width: 768px) {
         width: 100%;
@@ -1441,17 +1675,20 @@
 }
 
 .toggle-btn-condensed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     font-weight: 500;
     font-size: 12px;
     line-height: 16px;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     background-color: $bg-white;
     border: 1px solid $primary-colors-midnight-blue;
     padding: 11px 8px;
     cursor: pointer;
     transition: background-color 0.2s;
     white-space: nowrap;
-    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1469,12 +1706,27 @@
     }
     
     &:hover:not(&.active) {
-        background-color: $overlay-gray-light;
+        background-color: $filter-hover-background;
     }
     
     &.active {
         background-color: $primary-colors-midnight-blue;
         color: $white;
+
+        .icon-historical,
+        .icon-forecasted {
+            filter: brightness(0) invert(1);
+        }
+    }
+    
+    .icon-historical,
+    .icon-forecasted {
+        transition: filter 0.2s;
+    }
+    
+    &:not(.active) .icon-historical,
+    &:not(.active) .icon-forecasted {
+        filter: brightness(0) saturate(100%) invert(8%) sepia(31%) saturate(5000%) hue-rotate(212deg) brightness(95%) contrast(101%);
     }
 }
 
@@ -1482,23 +1734,13 @@
 .time-horizon-container-condensed {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+
     align-items: flex-start;
-    height:65px;
-    min-height:65px;
-    max-height:65px;
+   
     flex-shrink: 0;
     position: relative;
     
-    &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 17px;
-        width: 100%;
-        height: 1px;
-        background: rgba(10, 10, 10, 0.1);
-    }
+   
     
     @media (max-width: 1400px) {
     }
@@ -1519,9 +1761,8 @@
     flex-direction: column;
     justify-content: center;
     background-color: $bg-white;
-    width: 300px;
-    height: 40px;
-    min-height: 40px;
+    width: 320px;
+    height: $filters-height-condensed;
     flex-shrink: 0;
     position: relative;
     box-shadow: 0 2px 2px 0 $overlay-shadow-light;
@@ -1533,8 +1774,8 @@
 
 .time-horizon-slider-container-condensed {
     position: absolute;
-    left: 20px;
-    top: 0;
+    left: 30px;
+    top: 8px;
     width: 252px;
     height: 12px;
     cursor: grab;
@@ -1547,7 +1788,7 @@
 .time-horizon-slider-track-condensed {
     position: absolute;
     left: 0;
-    top: 4px;
+    top: 3px;
     width: 252px;
     height: 12px;
     
@@ -1559,21 +1800,21 @@
 .time-horizon-dots-condensed {
     position: absolute;
     left: 0;
-    top: 4px;
+    top: 3px;
     width: 100%;
-    height: 3px;
+    height: 5px;
     pointer-events: none;
 }
 
 .time-horizon-dot-condensed {
     position: absolute;
-    width: 2px;
-    height: 2px;
+    width: 4px;
+    height: 4px;
     background: $primary-colors-midnight-blue;
-    border-radius: 2px;
+    border-radius: 50%;
     top: 0.5px;
     transform: translateX(-50%);
-    
+    z-index: 2;
     &.active {
         background: $primary-colors-midnight-blue;
     }
@@ -1583,10 +1824,10 @@
 .time-horizon-track-background-condensed {
     position: absolute;
     left: 0;
-    top: 4px;
+    top: 3px;
     width: 252px;
-    height: 3px;
-    background: rgba(11, 65, 173, 0.4);
+    height: 5px;
+    background: $primary-colors-sky-blue;
     border-radius: 2px;
     pointer-events: none;
     
@@ -1597,20 +1838,29 @@
 
 .time-horizon-track-active-condensed {
     position: absolute;
-    top: 4px;
-    height: 3px;
+    top: 3px;
+    height: 5px;
     background: $primary-colors-midnight-blue;
     border-radius: 2px;
     pointer-events: none;
+}
+
+/* Condensed: same visible handle as full version */
+.time-horizon-slider-container-condensed .time-horizon-handle {
+    width: 12px;
+    height: 12px;
+    top: 2px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .time-horizon-labels-condensed {
     position: relative;
     width: 253px;
     height: 16px;
-    margin-left: 20px;
+    margin-left: 30px;
     margin-top: 2px;
     flex-shrink: 0;
+    top: 8px;
     
     @media (max-width: 768px) {
         width: 100%;
@@ -1619,9 +1869,9 @@
 
 .time-horizon-label-condensed {
     position: absolute;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
-    color: $text-primary-midnight-blue;
+    color: $text-midnight-blue;
     white-space: nowrap;
     letter-spacing: 0.03px;
     line-height: 16px;

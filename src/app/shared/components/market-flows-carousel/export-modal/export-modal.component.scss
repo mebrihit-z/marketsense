@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: $overlay-modal;
+  background-color: $modal-overlay-background;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +58,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   opacity: 0.7;
   display: flex;
   align-items: center;
@@ -89,7 +89,7 @@
   font-size: 18px;
   line-height: 18px;
   letter-spacing: -0.4395px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
   margin: 0;
 }
 
@@ -107,6 +107,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px 0;
+  @media (max-width: 768px) {
+    padding: 0px;
+  }
 }
 
 .export-option {
@@ -162,7 +165,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.1504px;
-  color: $text-primary-midnight-blue;
+  color: $text-midnight-blue;
 }
 
 .option-description {

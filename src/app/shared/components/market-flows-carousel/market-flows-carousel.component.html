@@ -62,47 +62,10 @@
         [selectedProductTypes]="selectedProductTypes"
         (close)="onCloseDetailModal()">
       </app-market-flow-detail-modal>
-      <!-- Pagination below detail (same as image) -->
-      <div class="navigation-container">
-        <div class="pagination-info">
-          <span class="page-info-text">Viewing {{ viewingRangeStart }}-{{ viewingRangeEnd }} of {{ totalCardsCount }} items</span>
-        </div>
-        <div class="pagination-controls">
-          <button
-            class="page-btn prev"
-            [disabled]="currentSlideIndex === 0 || totalSlides === 0"
-            (click)="previousSlide($event)"
-            type="button"
-            aria-label="Previous page">
-            <img src="assets/icons/previous-icon.svg" alt="Previous page" class="page-btn-icon">
-          </button>
-          <div class="page-numbers">
-            <button
-              *ngFor="let page of visiblePageNumbers"
-              type="button"
-              class="page-number"
-              [class.active]="page === currentPage"
-              [class.ellipsis]="page === -1"
-              [disabled]="page === -1"
-              (click)="page !== -1 && goToSlide(page - 1)">
-              <span *ngIf="page !== -1">{{ page }}</span>
-              <span *ngIf="page === -1">...</span>
-            </button>
-          </div>
-          <button
-            class="page-btn next"
-            [disabled]="currentSlideIndex >= totalSlides - 1 || totalSlides === 0"
-            (click)="nextSlide($event)"
-            type="button"
-            aria-label="Next page">
-            <img src="assets/icons/next-icon.svg" alt="Next page" class="page-btn-icon">
-          </button>
-        </div>
-      </div>
     </div>
     <div class="stacked-cards-column">
       <app-market-flow-card
-        *ngFor="let card of stackedCards | slice:0:3"
+        *ngFor="let card of stackedCards | slice:0:stackedCardsCount"
         [card]="card"
         [isPinned]="isCardPinned(card.id)"
         (download)="onDownload($event)"
@@ -113,12 +76,49 @@
         (viewMore)="onCardClick($event)">
       </app-market-flow-card>
     </div>
+    <!-- Pagination: below detail on desktop, below cards on iPad -->
+    <div class="detail-layout-navigation">
+      <div class="pagination-info">
+        <span class="page-info-text">Viewing {{ viewingRangeStart }}{{ viewingRangeStart !== viewingRangeEnd ? '-' + viewingRangeEnd : '' }} of {{ totalCardsCount }} items</span>
+      </div>
+      <div class="pagination-controls">
+        <button
+          class="page-btn prev"
+          [disabled]="currentSlideIndex === 0 || totalSlides === 0"
+          (click)="previousSlide($event)"
+          type="button"
+          aria-label="Previous page">
+          <img src="assets/icons/previous-icon.svg" alt="Previous page" class="page-btn-icon">
+        </button>
+        <div class="page-numbers">
+          <button
+            *ngFor="let page of visiblePageNumbers"
+            type="button"
+            class="page-number"
+            [class.active]="page === currentPage"
+            [class.ellipsis]="page === -1"
+            [disabled]="page === -1"
+            (click)="page !== -1 && goToSlide(page - 1)">
+            <span *ngIf="page !== -1">{{ page }}</span>
+            <span *ngIf="page === -1">...</span>
+          </button>
+        </div>
+        <button
+          class="page-btn next"
+          [disabled]="currentSlideIndex >= totalSlides - 1 || totalSlides === 0"
+          (click)="nextSlide($event)"
+          type="button"
+          aria-label="Next page">
+          <img src="assets/icons/next-icon.svg" alt="Next page" class="page-btn-icon">
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Carousel Navigation (when no card selected) -->
   <div class="navigation-container" *ngIf="!selectedCardForDetail">
     <div class="pagination-info">
-      <span class="page-info-text">Viewing {{ viewingRangeStart }}-{{ viewingRangeEnd }} of {{ totalCardsCount }} items</span>
+      <span class="page-info-text">Viewing {{ viewingRangeStart }}{{ viewingRangeStart !== viewingRangeEnd ? '-' + viewingRangeEnd : '' }} of {{ totalCardsCount }} items</span>
     </div>
     <div class="pagination-controls">
       <button 
