@@ -1,17 +1,12 @@
 <div class="header">
   <div class="header-container">
-    <!-- Logo -->
-    <div class="header-brand">
+    <!-- Row 1: Logo and profile -->
+    <div class="header-row header-row-1">
       <a routerLink="/" class="brand-link">
         <img src="assets/images/marsh-logo.svg" alt="MarketSense Logo" class="brand-logo brand-logo-default">
         <img src="assets/icons/marsh-logo-white.svg" alt="MarketSense Logo" class="brand-logo brand-logo-white">
       </a>
-      <div class="brand-description">Market signals and asset flow intelligence</div>
-    </div>
-    <!-- user and settings section -->
-    <div class="header-user-settings-date">
       <div class="settings-and-user">
-        <!-- <span class="settings-icon"><img src="assets/icons/setting-icon.svg" alt="Settings"></span> -->
         <span class="user-name" (click)="toggleProfileModal()">{{ currentProfile ? (currentProfile.firstName.charAt(0) + currentProfile.lastName.charAt(0)) : 'SF' }}</span>
         <app-profile-modal
           [isVisible]="isProfileModalOpen"
@@ -21,9 +16,13 @@
           (profileSwitch)="onProfileSwitch($event)">
         </app-profile-modal>
       </div>
+    </div>
+    <!-- Row 2: Brand description and last updated -->
+    <div class="header-row header-row-2">
+      <div class="brand-description">Personalized market signals and asset flow intelligence</div>
       <div class="date-updated">
         <img src="assets/icons/calendar-icon.svg" alt="Calendar" class="calendar-icon">
-        <span>Last updated: Nov 11, 2025</span>
+        <span class="date-updated-text"><span class="date-label">Last updated:</span><span class="date-value"> Nov 11, 2025</span></span>
       </div>
     </div>
   </div>

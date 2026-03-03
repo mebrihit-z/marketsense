@@ -38,6 +38,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   followUpMessage: string = '';
   activeTab: 'new-question' | 'history' = 'new-question';
   isCollapsed: boolean = false;
+  isVisualizationModalOpen: boolean = false;
 
   /** Local conversation (all questions + answers) shown until backend-driven data is wired in. */
   private _localAnalyses: AnalysisResult[] = [];
@@ -84,8 +85,10 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         } else {
           this.userMessage = '';
         }
+        this.isVisualizationModalOpen = false;
       } else {
         document.body.style.overflow = '';
+        this.isVisualizationModalOpen = false;
       }
       this.cdr.markForCheck();
     }
@@ -105,6 +108,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   onClose(): void {
     document.body.style.overflow = '';
+    this.isVisualizationModalOpen = false;
     this.close.emit();
   }
 
@@ -217,7 +221,12 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   }
 
   onExpandAndDownload(): void {
+    this.isVisualizationModalOpen = true;
     this.expandAndDownload.emit();
+  }
+
+  closeVisualizationModal(): void {
+    this.isVisualizationModalOpen = false;
   }
 
   toggleCollapse(): void {

@@ -925,7 +925,7 @@
     transition: opacity 0.2s ease;
     
     &:hover {
-        opacity: 0.8;
+        font-weight: 700;
     }
     
     @media (max-width: 768px) {
@@ -1301,8 +1301,8 @@
 
 .time-horizon-dots .dot {
     position: absolute;
-    width: 4px;
-    height: 4px;
+    width: 6px;
+    height: 6px;
     background: $primary-colors-midnight-blue;
     border-radius: 50%;
     top: 0;
@@ -1339,7 +1339,7 @@
 .time-horizon-track-active {
     position: absolute;
     top: 0;
-    height: 5px;
+    height: 6px;
     background: $primary-colors-midnight-blue; // Darker blue active segment
     border-radius: 2px;
     pointer-events: none;
@@ -1347,8 +1347,8 @@
 
 .time-horizon-handle {
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 15px;
+    height: 15px;
     background: $primary-colors-midnight-blue; // Dark blue handle
     border-radius: 50%;
     cursor: grab !important;
@@ -1363,18 +1363,23 @@
     @media (max-width: 768px) {
         width: 14px;
         height: 14px;
-        top: 7px;
+        top: 8px;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
     }
-    @media (max-width: 480px) {
-        width: 16px;
-        height: 16px;
-        top: 6px;
-    }
+    
     
     &:active {
         cursor: grabbing;
     }
+}
+
+// Hover emphasis specifically for start/end handles
+.time-horizon-handle-start:hover,
+.time-horizon-handle-end:hover {
+    transform: translateX(-50%) scale(1.2);
+    box-shadow:
+        0 0 0 3px rgba($time-horizon-handle-hover-background, 0.9),
+        0px 2px 4px rgba(0, 0, 0, 0.18);
 }
 
 /* Full layout: larger hover hit area so hand shows when hovering over the dots (same as condensed) */
@@ -1808,11 +1813,10 @@
 
 .time-horizon-dot-condensed {
     position: absolute;
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
     background: $primary-colors-midnight-blue;
     border-radius: 50%;
-    top: 0.5px;
     transform: translateX(-50%);
     z-index: 2;
     &.active {
@@ -1851,6 +1855,15 @@
     height: 12px;
     top: 2px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+// Condensed: hover emphasis for start/end handles
+.time-horizon-slider-container-condensed .time-horizon-handle-start:hover,
+.time-horizon-slider-container-condensed .time-horizon-handle-end:hover {
+    transform: translateX(-50%) scale(1.2);
+    box-shadow:
+        0 0 0 3px rgba($time-horizon-handle-hover-background, 0.9),
+        0px 2px 4px rgba(0, 0, 0, 0.18);
 }
 
 .time-horizon-labels-condensed {

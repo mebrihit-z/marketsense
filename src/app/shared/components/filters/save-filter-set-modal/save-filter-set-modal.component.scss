@@ -94,38 +94,23 @@
 
 .close-btn {
   position: relative;
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   background: none;
   border: none;
   cursor: pointer;
-  color: $text-midnight-blue;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  padding: 0;
-  transition: opacity 0.2s;
-
   &:hover {
-    opacity: 0.7;
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
+    background-color: $window-btn-hover-background;
   }
 }
 
 .input-section {
   width: 100%;
 }
-.close-icon{
-  &:hover{
-    background-color: rgba($neutral-colors-neutral-1000, 0.1);
-    opacity: 1;
-  }
-}
+
 .input-field {
   width: 100%;
   height: 42px;

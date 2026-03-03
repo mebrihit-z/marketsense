@@ -182,7 +182,7 @@
   flex-shrink: 0;
 
   &:hover:not(:disabled) {
-    background-color: $secondary-colors-gold-500;
+    background-color: $button-hover-background;
   }
 
   &:focus {
@@ -268,9 +268,8 @@
   font-family: 'Noto Sans', sans-serif;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
+    background-color: $suggestion-btn-hover-background;
+    color:$text-midnight-blue;
   }
 
   &:active {
