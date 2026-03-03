@@ -18,24 +18,33 @@
       <app-title title="MarketSense AI" subtitle="Ask questions about flows, trends, and signals" level="h3"></app-title>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs-container">
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'new-question'"
-        (click)="setActiveTab('new-question')">
-        New Question
-      </button>
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'history'"
-        (click)="setActiveTab('history')">
-        Session History
-      </button>
+    <!-- Tabs + Clear Analysis -->
+    <div class="tabs-row">
+      <div class="tabs-container">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'new-question'"
+          (click)="setActiveTab('new-question')">
+          New Question
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'history'"
+          (click)="setActiveTab('history')">
+          Session History
+        </button>
+      </div>
+      <a 
+        *ngIf="activeTab === 'new-question' && hasDisplayAnalyses" 
+        class="clear-analysis-link" 
+        (click)="onClearAnalysis()"
+        href="javascript:void(0)">
+        Clear Analysis
+      </a>
     </div>
 
     <!-- Session History Message -->
-    <div class="session-history-message" *ngIf="activeTab === 'new-question'">
+    <div class="session-history-message" *ngIf="activeTab === 'new-question' && !hasDisplayAnalyses">
       <p>Your session history will be available after your first question is answered.</p>
     </div>
     <div class="session-history-message" *ngIf="activeTab === 'history'">
@@ -44,38 +53,112 @@
     <div class="horizontal-divider"></div>
     <!-- Main Content - New Question -->
     <div class="main-content" *ngIf="activeTab === 'new-question'">
-      <!-- Input Section -->
-      <div class="input-section">
-        <div class="input-wrapper">
-          <textarea 
-            class="input-field" 
-            [(ngModel)]="userMessage"
-            (keydown.enter)="onSendMessage($event)"
-            rows="3"
-            placeholder="Ask a question about flows, trends, or signals...">
-          </textarea>
-          <button 
-            class="ask-btn" 
-            [disabled]="!userMessage.trim()" 
-            (click)="onSendMessage()"
-            aria-label="Ask Question">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            </svg>
-            <span>Ask Question</span>
-          </button>
+      <!-- STATE 1: Before first question - input at the top -->
+      <ng-container *ngIf="!hasDisplayAnalyses; else withAnalyses">
+        <div class="input-section">
+          <div class="input-wrapper">
+            <textarea 
+              class="input-field" 
+              [(ngModel)]="userMessage"
+              (keydown.enter)="onSendMessage($event)"
+              rows="3"
+              placeholder="Ask a question about flows, trends, or signals...">
+            </textarea>
+            <button 
+              class="ask-btn" 
+              [disabled]="!userMessage.trim()" 
+              (click)="onSendMessage()"
+              aria-label="Ask Question">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              <span>Ask Question</span>
+            </button>
+          </div>
         </div>
-      </div>
+        <div class="empty-state">
+          <p class="empty-state-text">No analysis yet. Ask a question to get started.</p>
+          <p class="ai-capability-text">MarketSense AI currently provides forecasted insights and forward-looking signals, not historical analysis.</p>
+          <div class="example-questions">
+            <p class="example-text">Example: "What are the top equity flows by region?"</p>
+            <p class="example-text">Example: "Show alternatives performance for institutional clients"</p>
+          </div>
+        </div>
+      </ng-container>
 
-      <!-- Empty State -->
-      <div class="empty-state">
-        <p class="empty-state-text">No analysis yet. Ask a question to get started.</p>
-        <p class="ai-capability-text">MarketSense AI currently provides forecasted insights and forward-looking signals, not historical analysis.</p>
-        <div class="example-questions">
-          <p class="example-text">Example: "What are the top equity flows by region?"</p>
-          <p class="example-text">Example: "Show alternatives performance for institutional clients"</p>
+      <!-- STATE 2: After first question - analysis scrolls, input sticks to bottom -->
+      <ng-template #withAnalyses>
+        <div class="scrollable-content">
+          <ng-container *ngFor="let analysis of displayAnalyses; let i = index">
+            <!-- Question Section -->
+            <section class="analysis-section question-section">
+              <h4 class="section-label">
+                {{ i === 0 ? 'QUESTION' : 'FOLLOW-UP QUESTION' }}
+              </h4>
+              <div class="question-card">
+                <p class="question-text">{{ analysis.question }}</p>
+                <span class="question-timestamp">{{ analysis.timestamp }}</span>
+              </div>
+            </section>
+
+            <!-- AI-Generated Summary Section -->
+            <section class="analysis-section summary-section">
+              <h4 class="section-label">AI-Generated Summary</h4>
+              <p class="summary-text">{{ analysis.summary }}</p>
+            </section>
+
+            <!-- Key Insights Section -->
+            <section class="analysis-section insights-section">
+              <h4 class="section-label">Key Insights</h4>
+              <ul class="insights-list">
+                <li *ngFor="let insight of analysis.insights">{{ insight }}</li>
+              </ul>
+            </section>
+
+            <!-- Visualization Section -->
+            <section class="analysis-section visualization-section">
+              <div class="visualization-header">
+                <h4 class="section-label">Visualization</h4>
+                <button type="button" class="expand-download-btn" (click)="onExpandAndDownload()" aria-label="Expand and Download">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 4L4 2M4 2L4 6M4 2L2 2M14 12L12 14M12 14L12 10M12 14L14 14M2 12L4 10M14 4L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>Expand &amp; Download</span>
+                </button>
+              </div>
+              <div class="visualization-chart">
+                <!-- Chart placeholder / host for chart component -->
+                <div class="chart-placeholder" *ngIf="!analysis.chartData">
+                  <span class="chart-placeholder-text">Chart</span>
+                </div>
+              </div>
+            </section>
+          </ng-container>
         </div>
-      </div>
+
+        <!-- Follow-up input fixed at bottom -->
+        <div class="input-section follow-up-section">
+          <div class="input-wrapper">
+            <textarea 
+              class="input-field" 
+              [(ngModel)]="followUpMessage"
+              (keydown.enter)="onSendFollowUp($event)"
+              rows="3"
+              placeholder="Ask a follow-up question based on the results above...">
+            </textarea>
+            <button 
+              class="ask-btn follow-up-btn" 
+              [disabled]="!followUpMessage.trim()" 
+              (click)="onSendFollowUp()"
+              aria-label="Ask Follow-Up Question">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              <span>Ask Follow-Up Question</span>
+            </button>
+          </div>
+        </div>
+      </ng-template>
     </div>
 
     <!-- Main Content - Session History -->

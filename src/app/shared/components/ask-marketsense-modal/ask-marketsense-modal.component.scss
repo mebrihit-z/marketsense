@@ -120,13 +120,36 @@
   text-align: left;
 }
 
-// Tabs
+// Tabs row (tabs + Clear Analysis link)
+.tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
 .tabs-container {
   display: flex;
   gap: 8px;
-  padding: 0 24px;
+  padding: 0;
   border-bottom: none;
   flex-shrink: 0;
+}
+
+.clear-analysis-link {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-midnight-blue;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .tab-btn {
@@ -166,11 +189,161 @@
   display: flex;
   flex-direction: column;
   padding: 5px 24px 32px 24px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .session-history-content {
   padding: 24px 40px 32px 40px;
+}
+
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+// Analysis result sections (Question, Summary, Key Insights, Visualization)
+.analysis-section {
+  margin-bottom: 24px;
+  flex-shrink: 0;
+
+  &:last-of-type {
+    margin-bottom: 20px;
+  }
+}
+
+.section-label {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0 0 8px 0;
+  color: $text-midnight-blue;
+
+  .question-section & {
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+}
+
+.question-card {
+  background-color: $neutral-colors-neutral-250;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.question-text {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0 0 8px 0;
+  color: $text-midnight-blue;
+}
+
+.question-timestamp {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: $text-neutral-750;
+}
+
+.summary-text {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0;
+  color: $text-midnight-blue;
+}
+
+.insights-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+
+  li {
+    position: relative;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    margin-bottom: 8px;
+    color: $text-midnight-blue;
+    padding-left: 8px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #e88c2e;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.visualization-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 12px;
+
+  .section-label {
+    margin-bottom: 0;
+  }
+}
+
+.expand-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid #D1D5DC;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-midnight-blue;
+  transition: background-color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    border-color: $primary-colors-midnight-blue;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.visualization-chart {
+  min-height: 200px;
+  background-color: $bg-white;
+  border: 1px solid #D1D5DC;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  width: 100%;
+}
+
+.chart-placeholder-text {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-neutral-750;
 }
 
 // Input Section

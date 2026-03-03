@@ -2,6 +2,7 @@ import { Component, Input, HostListener, ElementRef, ViewChild, AfterViewInit } 
 import { CommonModule } from '@angular/common';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../title/title.component';
+import UserProfileService from '../../services/user-profile.service';
 
 export interface ViewingOption {
   name: string;
@@ -23,6 +24,11 @@ export default class WelcomeSectionComponent implements AfterViewInit {
   @Input() viewingFilter: string = 'High-confidence Equities';
   @Input() isViewingDropdownOpen: boolean = false;
 
+  /** Display name: from UserProfileService.getGivenName() or fallback to userName input. */
+  get displayName(): string {
+    return this.userProfileService.getGivenName() ?? this.userName;
+  }
+
   get savedViewsCount(): number {
     return this.viewingOptions?.length ?? 0;
   }
@@ -31,6 +37,8 @@ export default class WelcomeSectionComponent implements AfterViewInit {
   
   dropdownPosition = { top: 0, left: 0 };
   showAskMarketSenseModal: boolean = false;
+
+  constructor(private readonly userProfileService: UserProfileService) {}
 
   viewingOptions: ViewingOption[] = [
     {
