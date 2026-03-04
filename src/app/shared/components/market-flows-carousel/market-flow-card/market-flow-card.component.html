@@ -7,11 +7,10 @@
      (touchstart)="onCardTouchStart($event)"
      (keydown)="onCardKeyDown($event)"
      [attr.aria-label]="'View details for ' + card.title">
-  <!-- Card Header -->
+  <!-- Card Header: Title (left) + Pin & Download (right) -->
   <div class="card-header">
     <app-title [title]="card.title" level="h4" class="card-title"></app-title>
     <div class="card-actions" data-market-flow-action="actions" (click)="$event.stopPropagation()" (touchstart)="$event.stopPropagation()" (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
-      <!-- Pin Button -->
       <button
         type="button"
         class="icon-btn"
@@ -26,48 +25,45 @@
           [src]="isPinned ? 'assets/icons/pined-pin-icon.svg' : 'assets/icons/pin-icon.svg'"
           alt="Pin Button">
       </button>
-      <!-- Download Button -->
       <button type="button" class="icon-btn" data-market-flow-action="download" (click)="onDownload($event)" (pointerdown)="onDownload($event)" (touchstart)="onDownload($event)" (mousedown)="onDownload($event)" aria-label="Download">
         <img src="assets/icons/download-icon.svg" alt="download icon" class="more-options-icon">
       </button>
     </div>
   </div>
 
-  <!-- Content Section -->
-  <div class="content-section">
-    <!-- Badge, Label and Score row -->
-    <div class="metrics-row">
-      <div class="badge-container">
-        <div class="badge" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
-          {{ card.percentageChange }}
-        </div>
-        <span class="metric-label">{{ card.metricLabel }}</span>
-      </div>
-      <!-- Score Indicator -->
-      <!-- <div class="score-indicator">
-        <span class="score-dot" [style.background-color]="getConfidenceColor(card.aiConfidence)"></span>
-        <span class="score-text">Score</span>
-      </div> -->
-    </div>
+  <!-- Sentiment badge (Bullish/Bearish) – below title, slightly indented -->
+  <div class="sentiment-row">
+    <span class="sentiment-pill" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
+      {{ card.sentiment ?? (card.percentageColor === 'red' ? 'Bearish' : 'Bullish') }}
+    </span>
+  </div>
 
-    <!-- Large Value and View More row -->
-    <div class="bottom-row">
-      <div class="large-value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
-        {{ card.value }}
-      </div>
-      <a
-        href="#"
-        class="view-more-link"
-        data-market-flow-action="view-more"
-        (click)="onViewMore($event)"
-        (pointerdown)="onViewMore($event)"
-        (touchstart)="onViewMore($event)"
-        (mousedown)="onViewMore($event)"
-        aria-label="View more">
-        View More
-        <img src="assets/icons/view-more-icon.svg" alt="" class="view-more-chevron">
-      </a>
+  <!-- Value row: main value (left) | percentage pill + AUM (right), same row -->
+  <div class="value-row">
+    <div class="large-value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
+      {{ card.value }}
     </div>
+    <div class="badge-container">
+      <span class="percentage-pill" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
+        {{ card.percentageChange }}
+      </span>
+      <span class="metric-label">{{ card.metricLabel }}</span>
+    </div>
+  </div>
+
+  <!-- View More > (bottom right) -->
+  <div class="view-more-row">
+    <a
+      href="#"
+      class="view-more-link"
+      data-market-flow-action="view-more"
+      (click)="onViewMore($event)"
+      (pointerdown)="onViewMore($event)"
+      (touchstart)="onViewMore($event)"
+      (mousedown)="onViewMore($event)"
+      aria-label="View more">
+      View More <span class="view-more-arrow" aria-hidden="true">&gt;</span>
+    </a>
   </div>
 </div>
 

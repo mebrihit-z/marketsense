@@ -11,6 +11,8 @@ export interface MarketFlowCard {
   percentageChange: string;
   percentageColor: 'red' | 'green';
   metricLabel: string;
+  /** Optional sentiment label (e.g. "Bullish", "Bearish"). If omitted, derived from percentageColor. */
+  sentiment?: string;
   aiConfidence: 'high' | 'medium' | 'low';
   description: string;
   chartColor: 'red' | 'green';

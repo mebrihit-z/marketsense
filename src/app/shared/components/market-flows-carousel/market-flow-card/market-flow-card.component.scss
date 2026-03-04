@@ -1,18 +1,23 @@
 @use '../../../../../_variables' as *;
 
+// Image reference: light green Bullish #E6F7D4-ish, dark green value/badge #388E3C-ish, AUM grey #A0AEC0
+$card-bullish-bg: #e8f5e9;
+$card-dark-green: #2e7d32;
+$card-aum-gray: #94a3b8;
+
 .card {
   background-color: $bg-white;
-  padding: 12px 16px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 7px;
   height: 100%;
   position: relative;
   cursor: pointer;
   border: 1px solid $neutral-colors-neutral-500;
   box-shadow: 0 2px 2px 0 $overlay-shadow-light;
-  cursor: pointer;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
+
   &:hover {
     border-color: $card-border-hover-color;
   }
@@ -29,19 +34,19 @@
   }
 }
 
-// Card Header
+// Card Header: Title (left) + Pin & Download (right), horizontally aligned
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 24px;
+  min-height: 32px;
 }
 
 .card-title {
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 24px;
-  letter-spacing: -0.31px;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
   color: $text-midnight-blue;
   margin: 0;
   flex: 1;
@@ -49,7 +54,7 @@
 
 .card-actions {
   display: flex;
-  gap: 0;
+  gap: 2px;
   align-items: center;
   position: relative;
   z-index: 10;
@@ -61,14 +66,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
   background: none;
   border: none;
   cursor: pointer;
-  color: $text-secondary;
+  color: $primary-colors-midnight-blue;
   transition: color 0.2s, background-color 0.2s;
   border-radius: 8px;
   position: relative;
@@ -77,113 +78,124 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 
   &:hover {
     background-color: $overlay-light;
-    color: $text-midnight-blue;
   }
 
   &:active {
     background-color: $overlay-light;
   }
 
-  svg {
-    width: 16px;
-    height: 16px;
-    pointer-events: none;
-  }
 
-  img {
-    pointer-events: none;
-  }
 
   &.pinned {
+    color: $primary-colors-midnight-blue;
     &:hover {
-      background-color: $primary-colors-midnight-blue;
+      background-color: rgba($primary-colors-midnight-blue, 0.08);
     }
   }
 }
 
-// Content Section
-.content-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+// Sentiment badge: below title, slightly indented, oval pill, light green bg, dark green text
+.sentiment-row {
+  margin-top: -6px;
 }
 
-.metrics-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.badge-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.badge {
+.sentiment-pill {
   display: inline-block;
-  padding: 4px 20.644px 2px 9px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.00);
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+
+  &.positive {
+    background-color: $secondary-colors-green-250;
+    color: $secondary-colors-green-1000;
+  }
+
+  &.negative {
+    background-color: #ffebee;
+    color: $red-negative;
+  }
+}
+
+// Value row: main value (left) and percentage pill + AUM (right) on same row, baseline-aligned
+.value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+}
+
+.large-value {
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+
+  &.positive {
+    color: $secondary-colors-green-1000;
+  }
+
+  &.negative {
+    color: $red-negative;
+  }
+}
+
+.value-row .badge-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.percentage-pill {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 9999px;
   font-weight: 500;
   font-size: 12px;
-  line-height: 16px;
+  line-height: 1.3;
   color: white;
   white-space: nowrap;
 
-  &.negative {
-    background-color: $red-badge;
-  }
-
   &.positive {
     background-color: $secondary-colors-green-1000;
+  }
+
+  &.negative {
+    background-color: $red-badge;
   }
 }
 
 .metric-label {
   font-weight: 400;
   font-size: 12px;
-  line-height: 16px;
-  color: $neutral-colors-neutral-750;
+  line-height: 1.3;
+  color: $text-neutral-750;
 }
 
-.bottom-row {
+// View More > – bottom right, dark blue, ">" as character
+.view-more-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.large-value {
-  font-size: 27px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
-  letter-spacing: -0.312px;
-
-  &.negative {
-    color: $red-negative;
-  }
-
-  &.positive {
-    color: $secondary-colors-green-1000;
-  }
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 .view-more-link {
   display: inline-flex;
   align-items: center;
+  gap: 2px;
   font-weight: 600;
-  font-size: 12px;
-  line-height: 16px;
-  color: $text-midnight-blue;
+  font-size: 14px;
+  line-height: 1.35;
+  color: $primary-colors-midnight-blue;
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -199,32 +211,8 @@
   }
 }
 
-.view-more-chevron {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  pointer-events: none;
-}
-
-// Score Indicator
-.score-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.score-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.score-text {
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: $text-secondary;
+.view-more-arrow {
+  font-weight: 600;
+  margin-left: 2px;
 }
 
