@@ -24,7 +24,7 @@
     letter-spacing: -0.15px;
     height: $filters-height-desktop;
     &:hover {
-        background-color: $filter-hover-background;
+        border-color: $filter-border-hover-color;
     }
     @media (max-width: 768px) {
         height: $filters-height-mobile;
