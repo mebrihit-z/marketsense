@@ -33,13 +33,14 @@ export function extractFilterOptionsFromAssetFlows(
   const productTypesSet = new Set<string>();
   const productSubTypeMap = new Map<string, Set<string>>(); // productType -> Set<subType>
 
-  // Extract unique values from all records
+  // Extract unique values from all records (plan_type is the source field in asset-flows-data.json)
   assetFlows.forEach(record => {
     if (record.Investor_Region) {
       investorRegionsSet.add(record.Investor_Region);
     }
-    if (record.Investor_Types) {
-      investorTypesSet.add(record.Investor_Types);
+    const planType = record.Plan_Type ?? record.Investor_Types;
+    if (planType) {
+      investorTypesSet.add(planType);
     }
     if (record.Product_Region) {
       productRegionsSet.add(record.Product_Region);

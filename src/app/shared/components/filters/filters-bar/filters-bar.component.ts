@@ -2,12 +2,11 @@
 import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
 import SaveFilterSetModalComponent from '../save-filter-set-modal/save-filter-set-modal.component';
-import { extractFilterOptionsFromExcel } from '../../../utils/excel-filter-options.util';
 import { extractFilterOptionsFromAssetFlows } from '../../../utils/asset-flows-filter-options.util';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
+import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 
 export interface FilterOptionTotals {
   productTypeTotal: number;
@@ -65,7 +64,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @Output() filterOptionTotalsChange = new EventEmitter<FilterOptionTotals>();
   @Output() filterDropdownOpened = new EventEmitter<void>();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private assetFlowsData: AssetFlowsDataService
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['forceCloseDropdown'] && changes['forceCloseDropdown'].currentValue > 0) {
@@ -176,14 +177,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
 
   /**
    * Loads product types, product sub-types, investor regions, investor types, and product regions 
-   * dynamically from asset-flows-data.json
+   * from the central asset flows data source (JSON or backend API via environment).
    * @returns {void}
    */
   private loadFilterOptionsFromAssetFlows(): void {
-    this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
-      next: (data) => {
+    this.assetFlowsData.getAssetFlows().subscribe({
+      next: (data: AssetFlowRecord[]) => {
         try {
-          // Extract filter options from asset flows data
           const filterOptions = extractFilterOptionsFromAssetFlows(data);
           
           // Set product types
@@ -230,7 +230,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           this.investorTypeChange.emit(this.state.investorType);
           this.productRegionChange.emit(this.state.productRegion);
           this.emitFilterOptionTotals();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Error extracting filter options from asset flows data:', error);
           // Fallback to empty arrays
           this.productTypeOptions = [];
@@ -241,7 +241,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           this.emitFilterOptionTotals();
         }
       },
-      error: (error) => {
+      error: (error: unknown) => {
         console.error('Error loading asset flows data for filter options:', error);
         // Fallback to empty arrays
         this.productTypeOptions = [];
@@ -249,69 +249,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         this.investorRegionOptions = [];
         this.investorTypeOptions = [];
         this.productRegionOptions = [];
-        this.emitFilterOptionTotals();
-      }
-    });
-  }
-
-  /**
-   * Loads product types, product sub-types, and investor regions dynamically from marketsense_input_data.xlsx
-   * @returns {void}
-   * @deprecated Use loadFilterOptionsFromAssetFlows() instead
-   */
-  private loadFilterOptionsFromExcel(): void {
-    this.http.get('assets/data/marketsense_input_data.xlsx', { responseType: 'arraybuffer' }).subscribe({
-      next: (arrayBuffer) => {
-        try {
-          // Extract filter options from Excel file
-          const filterOptions = extractFilterOptionsFromExcel(arrayBuffer, {
-            superparentCol: 'SuperParent',
-            parentCol: 'Parent',
-            subassetCol: 'SubAsset'
-          });
-          
-          // Set product types
-          this.productTypeOptions = filterOptions.productTypes.map(type => ({ value: type }));
-          
-          // Set product sub-types grouped by product type
-          this.productSubTypeOptions = filterOptions.productSubTypes.map(group => ({
-            category: group.productType,
-            options: group.subTypes.map(subType => ({ value: subType }))
-          }));
-          
-          // Set investor regions
-          this.investorRegionOptions = filterOptions.investorRegions.map(region => ({ value: region }));
-          
-          // Initialize productType selection with all options selected
-          this.state.productType = filterOptions.productTypes;
-          
-          // Initialize productSubType selection with all options selected
-          const allSubTypes = filterOptions.productSubTypes.flatMap(group => group.subTypes);
-          this.state.productSubType = allSubTypes;
-          
-          // Initialize investorRegion selection with all options selected
-          this.state.investorRegion = filterOptions.investorRegions;
-          
-          // Emit initial selections
-          this.productTypeChange.emit(this.state.productType);
-          this.productSubTypeChange.emit(this.state.productSubType);
-          this.investorRegionChange.emit(this.state.investorRegion);
-          this.emitFilterOptionTotals();
-        } catch (error) {
-          console.error('Error extracting filter options from Excel file:', error);
-          // Fallback to empty arrays
-          this.productTypeOptions = [];
-          this.productSubTypeOptions = [];
-          this.investorRegionOptions = [];
-          this.emitFilterOptionTotals();
-        }
-      },
-      error: (error) => {
-        console.error('Error loading Excel file for filter options:', error);
-        // Fallback to empty arrays
-        this.productTypeOptions = [];
-        this.productSubTypeOptions = [];
-        this.investorRegionOptions = [];
         this.emitFilterOptionTotals();
       }
     });
@@ -1272,9 +1209,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       case 'timeHorizon':
         return 'Adjust the time window to analyze short-term trends or long-term capital movements.';
       case 'investorGroup':
-        return 'Filter by the source of capital: select investor region (e.g., U.S., Europe, Global) and investor type (e.g., Institutional, Retail, Corporate) to understand where money is coming from and who is investing.';
+        return 'Define the source of capital. Filter by region and investor type to understand allocator demand.';
       case 'productGroup':
-        return 'Filter by the destination of investments: product region, asset class (e.g., Equity, Fixed Income, Alternatives), and sub-categories for detailed analysis of where capital is flowing.';
+        return 'Define where capital is allocated. Filter by region, asset class, and asset sub-class.';
       default:
         return '';
     }

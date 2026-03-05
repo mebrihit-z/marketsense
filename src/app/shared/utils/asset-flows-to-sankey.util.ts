@@ -7,6 +7,7 @@ export interface AssetFlowRecord {
   Model_Run_Date?: string;
   Model_Version?: string;
   Investor_Region: string;
+  /** @deprecated Use Plan_Type (from plan_type in JSON) */
   Investor_Types?: string;
   Plan_Type?: string;
   Sec_Type?: string;
@@ -15,6 +16,85 @@ export interface AssetFlowRecord {
   Product_Sub_Type: string;
   Asset_Flow_Date?: string;
   Asset_Flow_Value: number;
+}
+
+/** Raw record shape from asset-flows-data.json (snake_case, MongoDB-style $date/$numberLong) */
+interface RawAssetFlowRecord {
+  investor_region?: string;
+  plan_type?: string;
+  product_region?: string;
+  product_type?: string;
+  product_sub_type?: string;
+  asset_flow_date?: string | { $date: string };
+  asset_flow_value?: number | { $numberLong: string };
+  [key: string]: unknown;
+}
+
+function unwrapValue(v: number | { $numberLong: string } | undefined | null): number {
+  if (v === undefined || v === null) return 0;
+  if (typeof v === 'number' && !Number.isNaN(v)) return v;
+  if (typeof v === 'object' && v !== null && '$numberLong' in v) {
+    const val = (v as { $numberLong: string }).$numberLong;
+    const n = typeof val === 'string' ? Number(val) : Number.NaN;
+    return Number.isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
+function unwrapDate(d: string | { $date: string } | undefined | null): string | undefined {
+  if (d === undefined || d === null) return undefined;
+  if (typeof d === 'string') return d;
+  if (typeof d === 'object' && d !== null && '$date' in d) {
+    const dateVal = (d as { $date: string }).$date;
+    return typeof dateVal === 'string' ? dateVal : undefined;
+  }
+  return undefined;
+}
+
+function getStr(r: Record<string, unknown>, snake: string, pascal: string): string {
+  const v = r[snake] ?? r[pascal];
+  return typeof v === 'string' ? v : '';
+}
+
+function getStrOpt(r: Record<string, unknown>, snake: string, pascal: string): string | undefined {
+  const v = r[snake] ?? r[pascal];
+  return typeof v === 'string' ? v : undefined;
+}
+
+/**
+ * Normalizes a raw asset flow record from JSON (snake_case, $date/$numberLong) to AssetFlowRecord.
+ * Handles both MongoDB-style (snake_case + $date/$numberLong) and already-normalized records.
+ */
+export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowRecord): AssetFlowRecord {
+  const r = raw as Record<string, unknown>;
+  const assetFlowDateRaw = r['asset_flow_date'] ?? r['Asset_Flow_Date'];
+  const assetFlowValueRaw = r['asset_flow_value'] ?? r['Asset_Flow_Value'];
+  const dateUnwrapped = unwrapDate(assetFlowDateRaw as string | { $date: string } | undefined);
+  const dateFinal = dateUnwrapped ?? (typeof assetFlowDateRaw === 'string' ? assetFlowDateRaw : undefined);
+  const valueUnwrapped = unwrapValue(assetFlowValueRaw as number | { $numberLong: string } | undefined);
+  const valueFinal = valueUnwrapped !== 0 ? valueUnwrapped : (typeof assetFlowValueRaw === 'number' ? assetFlowValueRaw : 0);
+
+  return {
+    Model_Run_Date: (r['model_run_date'] ?? r['Model_Run_Date']) as string | undefined,
+    Model_Version: (r['model_version'] ?? r['Model_Version']) as string | undefined,
+    Investor_Region: getStr(r, 'investor_region', 'Investor_Region'),
+    Plan_Type: getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types'),
+    Investor_Types: getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types'),
+    Sec_Type: (r['sec_type'] ?? r['Sec_Type']) as string | undefined,
+    Product_Region: getStrOpt(r, 'product_region', 'Product_Region'),
+    Product_Type: getStr(r, 'product_type', 'Product_Type'),
+    Product_Sub_Type: getStr(r, 'product_sub_type', 'Product_Sub_Type'),
+    Asset_Flow_Date: dateFinal,
+    Asset_Flow_Value: valueFinal,
+  };
+}
+
+/**
+ * Normalizes an array of raw asset flow records (e.g. from asset-flows-data.json).
+ */
+export function normalizeAssetFlowsData(raw: (RawAssetFlowRecord | AssetFlowRecord)[]): AssetFlowRecord[] {
+  if (!raw || !Array.isArray(raw)) return [];
+  return raw.map(normalizeAssetFlowRecord);
 }
 
 export interface SankeyNode {

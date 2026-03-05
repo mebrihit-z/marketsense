@@ -1,12 +1,12 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
+import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { 
   aggregateSankeyDataByGlobal, 
   filterSankeyData 
@@ -67,7 +67,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
-    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
+    { id: 'investor-type', label: 'Plan Type', count: 0, active: true },
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
@@ -96,7 +96,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   
   // Data loading
   private rawAssetFlowsData?: AssetFlowRecord[];
-  private dataUrl: string = 'assets/data/asset-flows-data.json';
   
   // Treemap regions data
   treemapRegions: TreemapRegion[] = [
@@ -147,7 +146,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   ];
 
   constructor(
-    private http: HttpClient
+    private assetFlowsData: AssetFlowsDataService
   ) {}
 
   ngOnInit(): void {
@@ -324,22 +323,20 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Loads asset flows data from JSON file
+   * Loads asset flows data from the central data service (JSON or backend API via environment).
    */
   private loadData(): void {
-    this.http.get<AssetFlowRecord[]>(this.dataUrl).subscribe({
+    this.assetFlowsData.getAssetFlows().subscribe({
       next: (assetFlows: AssetFlowRecord[]) => {
         try {
-          // Store raw data for time horizon filtering
           this.rawAssetFlowsData = assetFlows;
           this.updateTreemapData();
         } catch (error: unknown) {
-          console.error('Error loading asset-flows-data.json:', error);
+          console.error('Error loading asset flows data:', error);
         }
       },
       error: (error: unknown) => {
-        console.error('Error loading asset-flows-data.json:', error);
-        console.error('Failed to load from:', this.dataUrl);
+        console.error('Error loading asset flows data:', error);
       }
     });
   }

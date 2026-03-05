@@ -31,7 +31,7 @@
                 [options]="investorTypeOptions"
                 [selected]="state.investorType"
                 [isOpen]="isDropdownOpen('investorType')"
-                [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Type' && openFilterDropdownTooltip !== null)"
+                [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Plan Type' && openFilterDropdownTooltip !== null)"
                 infoTooltip="Filter by the type of investor (e.g., Institutional, Retail, Corporate) to analyze capital flows by investor category."
                 (selectedChange)="onChange('investorType', $event)"
                 (openChange)="onDropdownOpenChange('investorType', $event)"
@@ -117,11 +117,11 @@
                     [options]="investorTypeOptions"
                     [selected]="state.investorType"
                     [isOpen]="isDropdownOpen('investorType')"
-                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Type' && openFilterDropdownTooltip !== null)"
+                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Plan Type' && openFilterDropdownTooltip !== null)"
                     infoTooltip="Filter by the type of investor (e.g., Institutional, Retail, Corporate) to analyze capital flows by investor category."
                     (selectedChange)="onChange('investorType', $event)"
                     (openChange)="onDropdownOpenChange('investorType', $event)"
-                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Investor Type', $event.isOpen)"
+                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Plan Type', $event.isOpen)"
                   ></app-filter-dropdown>
                 </div>
               </div>

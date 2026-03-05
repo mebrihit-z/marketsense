@@ -1,11 +1,11 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core'
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
+import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 import { 
   aggregateSankeyDataByGlobal, 
@@ -99,7 +99,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
-    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
+    { id: 'investor-type', label: 'Plan Type', count: 0, active: true },
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
@@ -110,7 +110,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private assetFlowsData: AssetFlowsDataService) {}
   
   // Sample flow data
   flowData: AssetFlowData = {
@@ -147,16 +147,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   }
   
   private loadAssetFlowsData(): void {
-    this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
+    this.assetFlowsData.getAssetFlows().subscribe({
       next: (data) => {
         try {
-          // Store raw data for filtering
           this.rawAssetFlowsData = data;
           
-          // Filter and convert asset flows data to Sankey format
           this.updateSankeyData();
           
-          // Extract filter options from the raw data (before time horizon filtering)
           this.filterOptions = extractFilterOptionsFromAssetFlows(data);
           // Emit filter options to parent component
           this.filterOptionsChange.emit(this.filterOptions);

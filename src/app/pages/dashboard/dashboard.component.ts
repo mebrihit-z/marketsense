@@ -1,7 +1,6 @@
 /* eslint-disable */
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { FiltersBarComponent, type FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
 import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
@@ -12,6 +11,7 @@ import WelcomeSectionComponent from '../../shared/components/welcome-section/wel
 import AskMarketsenseSectionComponent from '../../shared/components/ask-marketsense-section/ask-marketsense-section.component';
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
 import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
+import { AssetFlowsDataService } from '../../core/services/asset-flows-data.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -45,14 +45,14 @@ export default class DashboardComponent implements OnInit {
   // Raw asset flows data
   rawAssetFlowsData: AssetFlowRecord[] = [];
 
-  constructor(private cdr: ChangeDetectorRef, private http: HttpClient) {}
+  constructor(private cdr: ChangeDetectorRef, private assetFlowsData: AssetFlowsDataService) {}
 
   ngOnInit(): void {
     this.loadAssetFlowsData();
   }
 
   private loadAssetFlowsData(): void {
-    this.http.get<AssetFlowRecord[]>('assets/data/asset-flows-data.json').subscribe({
+    this.assetFlowsData.getAssetFlows().subscribe({
       next: (data) => {
         this.rawAssetFlowsData = data;
         this.cdr.detectChanges();

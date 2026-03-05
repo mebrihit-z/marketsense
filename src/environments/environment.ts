@@ -3,11 +3,13 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:3000/api',
-  appName: 'MarketSense',
   version: '1.0.0',
-  enableDebug: true
+  production: false,
+  apiBaseUrl: 'http://localhost:3000/api/v1',
+  appName: 'MarketSense',
+  dataUrlConfig: {
+    assetFlows: 'assets/data/asset-flows-data.json',
+  },
 };
 
 /*

@@ -2,9 +2,10 @@
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
+import { environment } from '../../../../../environments/environment';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
-import { convertExcelToSankey } from '../../../utils/excel-to-sankey.util';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
+import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -37,7 +38,7 @@ interface TreemapHierarchyNode extends d3.HierarchyNode<TreemapNodeData> {
 })
 export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() data?: SankeyDataLocal;
-  @Input() dataUrl: string = 'assets/data/asset-flows-data.json';
+  @Input() dataUrl: string = environment.dataUrlConfig.assetFlows;
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
@@ -52,7 +53,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   constructor(
     private el: ElementRef,
-    private http: HttpClient
+    private http: HttpClient,
+    private assetFlowsData: AssetFlowsDataService
   ) {}
 
   ngAfterViewInit(): void {
@@ -106,60 +108,22 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private loadDataFromJson(): void {
-    // Check if dataUrl is an Excel file
-    const isExcelFile = this.dataUrl.toLowerCase().endsWith('.xlsx') || 
-                        this.dataUrl.toLowerCase().endsWith('.xls');
+    // Use central service when URL is the configured asset flows source (JSON or API on VDI)
+    const isAssetFlowsData = this.dataUrl === environment.dataUrlConfig.assetFlows || this.dataUrl.includes('asset-flows-data');
     
-    // Check if dataUrl is asset-flows-data.json
-    const isAssetFlowsData = this.dataUrl.includes('asset-flows-data.json');
-    
-    if (isExcelFile) {
-      // Load Excel file as ArrayBuffer
-      this.http.get(this.dataUrl, { responseType: 'arraybuffer' }).subscribe({
-        next: (arrayBuffer) => {
-          try {
-            // Convert Excel to Sankey data using the utility
-            const sankeyData = convertExcelToSankey(arrayBuffer, {
-              superparentCol: 'SuperParent',
-              parentCol: 'Parent',
-              subassetCol: 'SubAsset',
-              valueCol: 'Value'
-            });
-            
-            // Map to SankeyDataLocal format
-            this.originalData = {
-              nodes: sankeyData.nodes,
-              links: sankeyData.links,
-              summary: sankeyData.summary
-            };
-            
-            this.applyFilters();
-          } catch (error) {
-            console.error('Error converting Excel to treemap data:', error);
-          }
-        },
-        error: (error) => {
-          console.error('Error loading Excel file:', error);
-          console.error('Failed to load from:', this.dataUrl);
-        }
-      });
-    } else if (isAssetFlowsData) {
-      // Load asset-flows-data.json and convert to Sankey format
-      this.http.get<AssetFlowRecord[]>(this.dataUrl).subscribe({
+    if (isAssetFlowsData) {
+      // Load from central asset flows source (JSON or backend API)
+      this.assetFlowsData.getAssetFlows().subscribe({
         next: (assetFlows) => {
           try {
-            // Store raw data for time horizon filtering
             this.rawAssetFlowsData = assetFlows;
-            
-            // Convert asset flows to Sankey data with time horizon filtering
             this.convertAssetFlowsWithTimeHorizonFilter();
           } catch (error) {
             console.error('Error converting asset flows to treemap data:', error);
           }
         },
         error: (error) => {
-          console.error('Error loading asset-flows-data.json:', error);
-          console.error('Failed to load from:', this.dataUrl);
+          console.error('Error loading asset flows data:', error);
         }
       });
     } else {
