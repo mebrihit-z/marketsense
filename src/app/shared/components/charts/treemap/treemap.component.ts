@@ -2,7 +2,6 @@
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
-import { environment } from '../../../../../environments/environment';
 import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
@@ -38,7 +37,12 @@ interface TreemapHierarchyNode extends d3.HierarchyNode<TreemapNodeData> {
 })
 export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() data?: SankeyDataLocal;
-  @Input() dataUrl: string = environment.dataUrlConfig.assetFlows;
+  /**
+   * Optional URL for loading pre-aggregated treemap/Sankey data.
+   * When not provided, the component will load from the central AssetFlowsDataService,
+   * which is the single place that knows about environment.dataUrlConfig.assetFlows.
+   */
+  @Input() dataUrl?: string;
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
@@ -108,11 +112,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private loadDataFromJson(): void {
-    // Use central service when URL is the configured asset flows source (JSON or API on VDI)
-    const isAssetFlowsData = this.dataUrl === environment.dataUrlConfig.assetFlows || this.dataUrl.includes('asset-flows-data');
-    
-    if (isAssetFlowsData) {
-      // Load from central asset flows source (JSON or backend API)
+    // Prefer the central AssetFlowsDataService as the single place that
+    // knows about environment.dataUrlConfig.assetFlows. Only fall back to
+    // direct HTTP loading when an explicit dataUrl is provided.
+    if (!this.dataUrl) {
       this.assetFlowsData.getAssetFlows().subscribe({
         next: (assetFlows) => {
           try {
@@ -126,19 +129,20 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           console.error('Error loading asset flows data:', error);
         }
       });
-    } else {
-      // Load JSON file (backward compatibility - assumes it's already in SankeyDataLocal format)
-      this.http.get<SankeyDataLocal>(this.dataUrl).subscribe({
-        next: (data) => {
-          this.originalData = data;
-          this.applyFilters();
-        },
-        error: (error) => {
-          console.error('Error loading sankey data:', error);
-          console.error('Failed to load from:', this.dataUrl);
-        }
-      });
+      return;
     }
+
+    // Load JSON file (backward compatibility - assumes it's already in SankeyDataLocal format)
+    this.http.get<SankeyDataLocal>(this.dataUrl).subscribe({
+      next: (data) => {
+        this.originalData = data;
+        this.applyFilters();
+      },
+      error: (error) => {
+        console.error('Error loading sankey data:', error);
+        console.error('Failed to load from:', this.dataUrl);
+      }
+    });
   }
 
   /**
