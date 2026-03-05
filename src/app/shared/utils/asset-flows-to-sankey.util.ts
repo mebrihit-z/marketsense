@@ -18,6 +18,30 @@ export interface AssetFlowRecord {
   Asset_Flow_Value: number;
 }
 
+// Supported fields that can be used as Sankey dimensions
+export type AssetFlowDimensionField =
+  | 'Investor_Region'
+  | 'Plan_Type'
+  | 'Product_Region'
+  | 'Product_Type'
+  | 'Product_Sub_Type';
+
+// Configuration for which fields drive the Sankey hierarchy
+export interface SankeyDimensionConfig {
+  /**
+   * Top-level grouping (e.g. Investor_Region or Plan_Type)
+   */
+  superField: AssetFlowDimensionField;
+  /**
+   * Mid-level grouping (e.g. Product_Type or Product_Region)
+   */
+  parentField: AssetFlowDimensionField;
+  /**
+   * Leaf grouping (e.g. Product_Sub_Type). Use 'none' for super + parent only (no leaf nodes).
+   */
+  subField: AssetFlowDimensionField | 'none';
+}
+
 /** Raw record shape from asset-flows-data.json (snake_case, MongoDB-style $date/$numberLong) */
 interface RawAssetFlowRecord {
   investor_region?: string;
@@ -146,15 +170,22 @@ export interface SankeyData {
 
 /**
  * Convert asset flows data to Sankey diagram format
- * Maps:
+ * Default mapping:
  * - Investor_Region -> superparent
  * - Product_Type -> parent
  * - Product_Sub_Type -> subasset
  * - Asset_Flow_Value -> value (negative = outflow, positive = inflow)
  */
 export function convertAssetFlowsToSankey(
-  assetFlows: AssetFlowRecord[]
+  assetFlows: AssetFlowRecord[],
+  dimensionConfig?: SankeyDimensionConfig
 ): SankeyData {
+  const config: SankeyDimensionConfig = dimensionConfig ?? {
+    superField: 'Investor_Region',
+    parentField: 'Product_Type',
+    subField: 'Product_Sub_Type',
+  };
+
   // Validate input
   if (!assetFlows || assetFlows.length === 0) {
     return {
@@ -198,9 +229,34 @@ export function convertAssetFlowsToSankey(
     };
   }
 
+  // Helper to safely read configured fields, falling back to "Unknown" when missing
+  const getField = (r: AssetFlowRecord, field: AssetFlowDimensionField): string => {
+    const value = (r as any)[field];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+    return 'Unknown';
+  };
+
+  type ExtendedRow = AssetFlowRecord & {
+    __super: string;
+    __parent: string;
+    __sub: string;
+  };
+
+  const skipSubLevel = config.subField === 'none';
+
+  const extendedRows: ExtendedRow[] = rowsNz.map((r) => {
+    const er = r as ExtendedRow;
+    er.__super = getField(r, config.superField);
+    er.__parent = getField(r, config.parentField);
+    er.__sub = skipSubLevel ? '' : getField(r, config.subField as AssetFlowDimensionField);
+    return er;
+  });
+
   // Separate negative (outflows/sources) and positive (inflows/destinations)
-  const neg = rowsNz.filter(r => r.Asset_Flow_Value < 0); // selling (sources) - negative values
-  const pos = rowsNz.filter(r => r.Asset_Flow_Value > 0); // buying (destinations) - positive values
+  const neg = extendedRows.filter(r => r.Asset_Flow_Value < 0); // selling (sources) - negative values
+  const pos = extendedRows.filter(r => r.Asset_Flow_Value > 0); // buying (destinations) - positive values
 
   // Net New Capital
   const totalNegAbs = neg.reduce((sum, r) => sum + Math.abs(r.Asset_Flow_Value), 0);
@@ -241,7 +297,7 @@ export function convertAssetFlowsToSankey(
   }
 
   const parentsNeg = Array.from(
-    new Set(neg.map(r => `${r.Investor_Region}|${r.Product_Type}`))
+    new Set(neg.map(r => `${r.__super}|${r.__parent}`))
   )
     .map(key => {
       const [sp, p] = key.split('|');
@@ -253,7 +309,7 @@ export function convertAssetFlowsToSankey(
     });
 
   const parentsPos = Array.from(
-    new Set(pos.map(r => `${r.Investor_Region}|${r.Product_Type}`))
+    new Set(pos.map(r => `${r.__super}|${r.__parent}`))
   )
     .map(key => {
       const [sp, p] = key.split('|');
@@ -264,8 +320,8 @@ export function convertAssetFlowsToSankey(
       return a.p.localeCompare(b.p);
     });
 
-  const superNeg = Array.from(new Set(neg.map(r => r.Investor_Region))).sort();
-  const superPos = Array.from(new Set(pos.map(r => r.Investor_Region))).sort();
+  const superNeg = Array.from(new Set(neg.map(r => r.__super))).sort();
+  const superPos = Array.from(new Set(pos.map(r => r.__super))).sort();
   const superAll = Array.from(
     new Set([...superNeg, ...superPos])
   ).sort();
@@ -291,12 +347,14 @@ export function convertAssetFlowsToSankey(
     add(parentEndName(sp, p));
   }
 
-  // Sub-asset Source/Destination nodes (scoped by SuperParent)
-  for (const r of neg) {
-    add(subSourceName(r.Investor_Region, r.Product_Sub_Type));
-  }
-  for (const r of pos) {
-    add(subDestName(r.Investor_Region, r.Product_Sub_Type));
+  // Sub-asset Source/Destination nodes (scoped by SuperParent) — only when not skipSubLevel
+  if (!skipSubLevel) {
+    for (const r of neg) {
+      add(subSourceName(r.__super, r.__sub));
+    }
+    for (const r of pos) {
+      add(subDestName(r.__super, r.__sub));
+    }
   }
 
   // Build links
@@ -305,7 +363,7 @@ export function convertAssetFlowsToSankey(
   // 0) SuperParent(Start) -> Parent(Start)
   const superParentOut: { [key: string]: number } = {};
   for (const r of neg) {
-    const key = `${r.Investor_Region}|${r.Product_Type}`;
+    const key = `${r.__super}|${r.__parent}`;
     superParentOut[key] = (superParentOut[key] || 0) + Math.abs(r.Asset_Flow_Value);
   }
   for (const [key, total] of Object.entries(superParentOut)) {
@@ -319,33 +377,47 @@ export function convertAssetFlowsToSankey(
     }
   }
 
-  // 1) Parent(Start) -> Sub(Source)
-  for (const r of neg) {
-    links.push({
-      source: parentStartName(r.Investor_Region, r.Product_Type),
-      target: subSourceName(r.Investor_Region, r.Product_Sub_Type),
-      value: Math.abs(r.Asset_Flow_Value),
-      date: r.Asset_Flow_Date,
-    });
-  }
+  if (skipSubLevel) {
+    // Parent(Start) -> Pool (aggregated by sp, parent)
+    for (const [key, total] of Object.entries(superParentOut)) {
+      if (total > 0) {
+        const [sp, p] = key.split('|');
+        links.push({
+          source: parentStartName(sp, p),
+          target: poolName(sp),
+          value: total,
+        });
+      }
+    }
+  } else {
+    // 1) Parent(Start) -> Sub(Source)
+    for (const r of neg) {
+      links.push({
+        source: parentStartName(r.__super, r.__parent),
+        target: subSourceName(r.__super, r.__sub),
+        value: Math.abs(r.Asset_Flow_Value),
+        date: r.Asset_Flow_Date,
+      });
+    }
 
-  // 2) Sub(Source) -> Pool (per SuperParent)
-  for (const r of neg) {
-    links.push({
-      source: subSourceName(r.Investor_Region, r.Product_Sub_Type),
-      target: poolName(r.Investor_Region),
-      value: Math.abs(r.Asset_Flow_Value),
-    });
+    // 2) Sub(Source) -> Pool (per SuperParent)
+    for (const r of neg) {
+      links.push({
+        source: subSourceName(r.__super, r.__sub),
+        target: poolName(r.__super),
+        value: Math.abs(r.Asset_Flow_Value),
+      });
+    }
   }
 
   // 3) Net New Capital / Withdrawals (PER SUPERPARENT)
   const netBySp: { [key: string]: number } = {};
 
   for (const r of pos) {
-    netBySp[r.Investor_Region] = (netBySp[r.Investor_Region] || 0) + r.Asset_Flow_Value;
+    netBySp[r.__super] = (netBySp[r.__super] || 0) + r.Asset_Flow_Value;
   }
   for (const r of neg) {
-    netBySp[r.Investor_Region] = (netBySp[r.Investor_Region] || 0) - Math.abs(r.Asset_Flow_Value);
+    netBySp[r.__super] = (netBySp[r.__super] || 0) - Math.abs(r.Asset_Flow_Value);
   }
 
   for (const [sp, net] of Object.entries(netBySp).sort()) {
@@ -386,29 +458,48 @@ export function convertAssetFlowsToSankey(
     }
   }
 
-  // 4) Pool -> Sub(Destination) (per SuperParent)
-  for (const r of pos) {
-    links.push({
-      source: poolName(r.Investor_Region),
-      target: subDestName(r.Investor_Region, r.Product_Sub_Type),
-      value: r.Asset_Flow_Value,
-    });
-  }
+  if (skipSubLevel) {
+    // Pool -> Parent(End) (aggregated by sp, parent)
+    const superParentInAgg: { [key: string]: number } = {};
+    for (const r of pos) {
+      const key = `${r.__super}|${r.__parent}`;
+      superParentInAgg[key] = (superParentInAgg[key] || 0) + r.Asset_Flow_Value;
+    }
+    for (const [key, total] of Object.entries(superParentInAgg)) {
+      if (total > 0) {
+        const [sp, p] = key.split('|');
+        links.push({
+          source: poolName(sp),
+          target: parentEndName(sp, p),
+          value: total,
+        });
+      }
+    }
+  } else {
+    // 4) Pool -> Sub(Destination) (per SuperParent)
+    for (const r of pos) {
+      links.push({
+        source: poolName(r.__super),
+        target: subDestName(r.__super, r.__sub),
+        value: r.Asset_Flow_Value,
+      });
+    }
 
-  // 5) Sub(Destination) -> Parent(End)
-  for (const r of pos) {
-    links.push({
-      source: subDestName(r.Investor_Region, r.Product_Sub_Type),
-      target: parentEndName(r.Investor_Region, r.Product_Type),
-      value: r.Asset_Flow_Value,
-      date: r.Asset_Flow_Date,
-    });
+    // 5) Sub(Destination) -> Parent(End)
+    for (const r of pos) {
+      links.push({
+        source: subDestName(r.__super, r.__sub),
+        target: parentEndName(r.__super, r.__parent),
+        value: r.Asset_Flow_Value,
+        date: r.Asset_Flow_Date,
+      });
+    }
   }
 
   // 6) Parent(End) -> SuperParent(End)
   const superParentIn: { [key: string]: number } = {};
   for (const r of pos) {
-    const key = `${r.Investor_Region}|${r.Product_Type}`;
+    const key = `${r.__super}|${r.__parent}`;
     superParentIn[key] = (superParentIn[key] || 0) + r.Asset_Flow_Value;
   }
   for (const [key, total] of Object.entries(superParentIn)) {
@@ -428,14 +519,14 @@ export function convertAssetFlowsToSankey(
   const parentFlows: { [key: string]: { outflow: number; inflow: number } } = {};
 
   for (const r of neg) {
-    const key = `${r.Investor_Region}|${r.Product_Type}`;
+    const key = `${r.__super}|${r.__parent}`;
     if (!parentFlows[key]) {
       parentFlows[key] = { outflow: 0, inflow: 0 };
     }
     parentFlows[key].outflow += Math.abs(r.Asset_Flow_Value);
   }
   for (const r of pos) {
-    const key = `${r.Investor_Region}|${r.Product_Type}`;
+    const key = `${r.__super}|${r.__parent}`;
     if (!parentFlows[key]) {
       parentFlows[key] = { outflow: 0, inflow: 0 };
     }
@@ -457,16 +548,16 @@ export function convertAssetFlowsToSankey(
   const superparentFlows: { [key: string]: { outflow: number; inflow: number } } = {};
 
   for (const r of neg) {
-    if (!superparentFlows[r.Investor_Region]) {
-      superparentFlows[r.Investor_Region] = { outflow: 0, inflow: 0 };
+    if (!superparentFlows[r.__super]) {
+      superparentFlows[r.__super] = { outflow: 0, inflow: 0 };
     }
-    superparentFlows[r.Investor_Region].outflow += Math.abs(r.Asset_Flow_Value);
+    superparentFlows[r.__super].outflow += Math.abs(r.Asset_Flow_Value);
   }
   for (const r of pos) {
-    if (!superparentFlows[r.Investor_Region]) {
-      superparentFlows[r.Investor_Region] = { outflow: 0, inflow: 0 };
+    if (!superparentFlows[r.__super]) {
+      superparentFlows[r.__super] = { outflow: 0, inflow: 0 };
     }
-    superparentFlows[r.Investor_Region].inflow += r.Asset_Flow_Value;
+    superparentFlows[r.__super].inflow += r.Asset_Flow_Value;
   }
 
   const superparentsSummary: SuperParentSummary[] = [];

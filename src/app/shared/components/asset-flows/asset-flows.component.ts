@@ -4,13 +4,13 @@ import { CommonModule } from '@angular/common';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
-import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
-import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
-import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
+import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type AssetFlowDimensionField, type SankeyDimensionConfig } from '../../utils/asset-flows-to-sankey.util';
 import { 
   aggregateSankeyDataByGlobal, 
   filterSankeyData 
 } from '../../utils/sankey-data.utils';
+import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
+import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 
 export type { FlowDimension };
 
@@ -99,7 +99,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   // Available dimensions for drag and drop
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
-    { id: 'investor-type', label: 'Plan Type', count: 0, active: true },
+    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
@@ -191,6 +191,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
    * Filters asset flows data based on time horizon and converts to Sankey format
    * Creates one Global Sankey if Global is selected
    * Creates one combined Sankey for all other selected regions
+   * Uses Dimension 2 and 3 to control which fields are used for parent and leaf nodes.
    */
   private updateSankeyData(): void {
     if (!this.rawAssetFlowsData) {
@@ -217,7 +218,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     }
     
     // Convert filtered data to Sankey format (contains all regions)
-    const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData);
+    // Use Dimension 2 and 3 to control which fields are treated as
+    // parent and leaf levels in the Sankey hierarchy, while keeping
+    // Investor_Region as the super dimension so Global aggregation works.
+    const allRegionsSankeyData = convertAssetFlowsToSankey(
+      filteredData,
+      this.getSankeyDimensionConfig()
+    );
     
     // Clear existing Sankey data map
     this.sankeyDataMap.clear();
@@ -281,9 +288,15 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       investorRegions: string[];
     }>;
     
-    // Cache product type arrays to avoid creating new arrays in template
-    this.cachedSelectedProductTypes = this.selectedProductTypes || [];
-    this.cachedSelectedProductSubTypes = this.selectedProductSubTypes || [];
+    // Cache product type arrays to avoid creating new arrays in template.
+    // When Dimension 2/3 are changed away from Product Type / Product Sub-Types,
+    // disable product-type-based filtering inside the Sankey component to avoid
+    // filtering out all nodes.
+    const isDefaultParent = !this.selectedDimension2 || this.selectedDimension2.id === 'product-type';
+    const isDefaultSub = !this.selectedDimension3 || this.selectedDimension3.id === 'product-sub-types';
+
+    this.cachedSelectedProductTypes = isDefaultParent ? (this.selectedProductTypes || []) : [];
+    this.cachedSelectedProductSubTypes = isDefaultSub ? (this.selectedProductSubTypes || []) : [];
   }
   
   /**
@@ -511,6 +524,48 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     } else {
       this.selectedDimension3 = dimension;
     }
+
+    // Recompute Sankey data when any flow dimension changes
+    if (this.rawAssetFlowsData) {
+      this.updateSankeyData();
+    }
+  }
+
+  /**
+   * Maps a FlowDimension id to the corresponding AssetFlowRecord field.
+   */
+  private mapDimensionIdToField(id: string): AssetFlowDimensionField {
+    switch (id) {
+      case 'investor-region':
+        return 'Investor_Region';
+      case 'investor-type':
+        return 'Plan_Type';
+      case 'product-region':
+        return 'Product_Region';
+      case 'product-type':
+        return 'Product_Type';
+      case 'product-sub-types':
+        return 'Product_Sub_Type';
+      default:
+        return 'Product_Type';
+    }
+  }
+
+  /**
+   * Builds the SankeyDimensionConfig from the selected flow dimensions.
+   * For now the super dimension stays fixed to Investor_Region so that
+   * Global vs regional aggregation continues to work as before.
+   * Dimension 2 controls the parent level, Dimension 3 controls the leaf level.
+   */
+  private getSankeyDimensionConfig(): SankeyDimensionConfig {
+    const dim2Id = this.selectedDimension2?.id || 'product-type';
+    const dim3Id = this.selectedDimension3?.id || 'product-sub-types';
+
+    return {
+      superField: 'Investor_Region',
+      parentField: this.mapDimensionIdToField(dim2Id),
+      subField: dim3Id === 'none' ? 'none' : this.mapDimensionIdToField(dim3Id),
+    };
   }
 
   getTotalInflow(): number {

@@ -36,6 +36,8 @@ export class FlowDimensionsComponent implements OnChanges {
   @Input() selectedDimension2: FlowDimension | null = null;
   @Input() selectedDimension3: FlowDimension | null = null;
   @Input() forceCloseDimensionDropdown = 0;
+  /** When true, Dimension 3 dropdown includes a "None" option (super + parent nodes only). */
+  @Input() showNoneForDimension3 = false;
 
   @Output() dimensionChange = new EventEmitter<{
     selectId: DimensionSelectId;
@@ -58,6 +60,14 @@ export class FlowDimensionsComponent implements OnChanges {
     return dimension.label;
   }
 
+  /** Synthetic "None" option for Dimension 3 only. */
+  private readonly noneDimensionOption: FlowDimension = {
+    id: 'none',
+    label: 'None',
+    count: 0,
+    active: true,
+  };
+
   getAvailableDimensionsForSelect(
     selectId: DimensionSelectId
   ): FlowDimension[] {
@@ -71,7 +81,11 @@ export class FlowDimensionsComponent implements OnChanges {
     if (selectId !== 'dimension3' && this.selectedDimension3) {
       selectedIds.add(this.selectedDimension3.id);
     }
-    return this.availableDimensions.filter((dim) => !selectedIds.has(dim.id));
+    const list = this.availableDimensions.filter((dim) => !selectedIds.has(dim.id));
+    if (selectId === 'dimension3' && this.showNoneForDimension3) {
+      return [this.noneDimensionOption, ...list];
+    }
+    return list;
   }
 
   toggleDropdown(selectId: DimensionSelectId, event?: Event): void {
