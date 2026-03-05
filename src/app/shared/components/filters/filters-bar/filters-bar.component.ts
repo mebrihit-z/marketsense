@@ -204,15 +204,33 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           // Set investor types
           this.investorTypeOptions = filterOptions.investorTypes.map(type => ({ value: type }));
           
-          // Set product regions
-          this.productRegionOptions = filterOptions.productRegions.map(region => ({ value: region }));
-          
-          // Initialize productType selection with all options selected
-          this.state.productType = filterOptions.productTypes;
-          
-          // Initialize productSubType selection with all options selected
-          const allSubTypes = filterOptions.productSubTypes.flatMap(group => group.subTypes);
-          this.state.productSubType = allSubTypes;
+         // Set product regions
+         this.productRegionOptions = filterOptions.productRegions.map(region => ({ value: region }));
+         
+         // Determine default product types for initial selection:
+         // Prefer "Fixed Income" and "Multi-Asset"/"Balanced/Multi-Asset" when present.
+         const preferredProductTypes = new Set<string>([
+           'Fixed Income',
+           'Multi-Asset',
+           'Balanced/Multi-Asset',
+           'Balanced / Multi-Asset'
+         ]);
+         const defaultProductTypes = filterOptions.productTypes.filter(type =>
+           preferredProductTypes.has(type)
+         );
+         
+         // Initialize productType selection:
+         // - If preferred types exist in the data, select only those.
+         // - Otherwise, fall back to selecting all product types.
+         this.state.productType = defaultProductTypes.length > 0
+           ? defaultProductTypes
+           : filterOptions.productTypes;
+         
+         // Initialize productSubType selection to match the initially selected product types
+         const defaultSubTypes = filterOptions.productSubTypes
+           .filter(group => this.state.productType.includes(group.productType))
+           .flatMap(group => group.subTypes);
+         this.state.productSubType = defaultSubTypes;
           
           // Initialize investorRegion selection with only "Global" selected by default
           this.state.investorRegion = ['Global'];
