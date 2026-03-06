@@ -16,7 +16,7 @@
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(18, 32, 64, 0.35);
-  transition: transform 0.2s, box-shadow 0.2s, opacity 0.25s ease, visibility 0.25s ease;
+ 
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -26,10 +26,11 @@
   color: $white;
   padding: 10px 16px;
   gap: 8px;
-
+  &:hover {
+    background-color: $sticky-btn-hover-background;
+    color: $text-midnight-blue;
+  }
   
-  
-
   &.visible {
     opacity: 1;
     visibility: visible;

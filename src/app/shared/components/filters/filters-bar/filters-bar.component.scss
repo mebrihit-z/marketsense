@@ -46,7 +46,8 @@
 }
 
 .condensed-bar-expand-btn {
-    display: inline-flex;
+    display:flex;
+    gap: 6px;
     align-items: center;
     justify-content: center;
     padding: 8px;
@@ -57,7 +58,8 @@
     color: $white;
 
     &:hover {
-        background-color: #d4eef9;
+        color: $text-midnight-blue;
+        background-color: $sticky-btn-hover-background;
     }
 }
 
