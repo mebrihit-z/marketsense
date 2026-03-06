@@ -17,6 +17,12 @@
         right: 0;
         background-color: #E9F7FF;
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+
+        // Icon-only state: no full bar; background is on the button only
+        &.condensed-collapsed {
+            background-color: transparent;
+            box-shadow: none;
+        }
     }
     
     @media (max-width: 1024px) {
@@ -30,6 +36,69 @@
         }
     }
 }
+// Collapsed condensed bar: filter icon only, no blue row
+.condensed-bar-collapsed {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.condensed-bar-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border: none;
+    background-color: $primary-colors-midnight-blue;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: $white;
+
+    &:hover {
+        background-color: #d4eef9;
+    }
+}
+
+.condensed-bar-expand-icon {
+    width: 20px;
+    height: 20px;
+}
+
+// Right side: X (close) above Clear all / Save view
+.condensed-bar-actions-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    order: 999;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.condensed-bar-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    margin-top: -8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.06);
+    }
+}
+
+.condensed-bar-close-icon {
+    width: 32px;
+    height: 32px;
+}
+
 .filters-bar-container {
     padding: 0px 48px 24px 48px;
     display: flex;
@@ -38,6 +107,10 @@
     border-bottom: 1px solid $secondary-colors-gold-750;
     &.condensed {
         padding: 0px 0px 0px 0px;
+
+        &.condensed-collapsed {
+            border-bottom: none;
+        }
     }
     @media (max-width: 1024px) {
         padding: 0px 32px 24px 32px;
@@ -176,11 +249,12 @@
         min-width: 0;
         overflow: visible;
 
-        // Keep "Clear all" / "Save filter set" on the right
-        .clear-all-container-condensed {
+        // Keep close (X) + "Clear all" / "Save filter set" on the right
+        .condensed-bar-actions-right {
             order: 999;
             margin-left: auto;
             flex-shrink: 0;
+            margin-top: -16px;
         }
         
         @media (max-width: 1400px) {
@@ -705,7 +779,6 @@
 }
 
 .clear-all-container-condensed {
-    padding-top: 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;

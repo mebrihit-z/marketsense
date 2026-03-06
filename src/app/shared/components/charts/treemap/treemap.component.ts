@@ -500,6 +500,31 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       }
     }
 
+    // Two-level (no sub): Parent(Start) -> Pool and Pool -> Parent(End) when there are no (Source)/(Destination) nodes
+    const hasSubLevel = (sankeyData.links || []).some((l) => {
+      const src = typeof l.source === 'string' ? l.source : '';
+      const tgt = typeof l.target === 'string' ? l.target : '';
+      return this.isSourceNodeName(src) || this.isSourceNodeName(tgt) || this.isDestinationNodeName(src) || this.isDestinationNodeName(tgt);
+    });
+    if (!hasSubLevel) {
+      for (const l of (sankeyData.links || [])) {
+        const s = l.source as string;
+        const t = l.target as string;
+        const v = +l.value || 0;
+        if (typeof s !== 'string' || typeof t !== 'string') continue;
+        if (s.endsWith('(Start)') && this.isPool(t)) {
+          const sp = this.superFromScoped(s);
+          const parent = this.cleanParentName(s);
+          ensureSP(sp).outflows.push({ parent, name: parent, value: v });
+        }
+        if (this.isPool(s) && t.endsWith('(End)')) {
+          const sp = this.superparentFromPool(s);
+          const parent = this.cleanParentName(t);
+          ensureSP(sp).inflows.push({ parent, name: parent, value: v });
+        }
+      }
+    }
+
     // Aggregate duplicates
     const aggregateByParent = (leaves: Array<{ parent: string; name: string; value: number }>): TreemapNodeData[] => {
       const parents = new Map<string, Map<string, number>>();

@@ -102,9 +102,22 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   isScrolled = false;
   scrollThreshold = 50; // Pixels to scroll before showing condensed layout
 
+  /** When true, the condensed bar is expanded (visible); when false, only the thin strip with expand button is shown. */
+  condensedBarExpanded = true;
+
   /** When true, host gets class 'condensed' so the bar can use position: fixed and stay at top. */
   @HostBinding('class.condensed') get hostCondensed(): boolean {
     return this.isScrolled;
+  }
+
+  /** When true, condensed bar is collapsed (icon only, no blue row). */
+  @HostBinding('class.condensed-collapsed') get hostCondensedCollapsed(): boolean {
+    return this.isScrolled && !this.condensedBarExpanded;
+  }
+
+  /** Toggles the condensed filter bar open/closed (only applies when isScrolled). */
+  toggleCondensedBar(): void {
+    this.condensedBarExpanded = !this.condensedBarExpanded;
   }
 
   /**

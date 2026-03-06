@@ -5,7 +5,7 @@ import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-ce
 import { TreemapComponent } from '../charts/treemap/treemap.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
-import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData } from '../../utils/asset-flows-to-sankey.util';
+import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type AssetFlowDimensionField, type SankeyDimensionConfig } from '../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { 
   aggregateSankeyDataByGlobal, 
@@ -254,6 +254,37 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     } else {
       this.selectedDimension3 = dimension;
     }
+    if (this.rawAssetFlowsData) {
+      this.updateTreemapData();
+    }
+  }
+
+  private mapDimensionIdToField(id: string): AssetFlowDimensionField {
+    switch (id) {
+      case 'investor-region':
+        return 'Investor_Region';
+      case 'investor-type':
+        return 'Plan_Type';
+      case 'product-region':
+        return 'Product_Region';
+      case 'product-type':
+        return 'Product_Type';
+      case 'product-sub-types':
+        return 'Product_Sub_Type';
+      default:
+        return 'Product_Type';
+    }
+  }
+
+  private getSankeyDimensionConfig(): SankeyDimensionConfig {
+    const dim1Id = this.selectedDimension1?.id || 'investor-region';
+    const dim2Id = this.selectedDimension2?.id || 'product-type';
+    const dim3Id = this.selectedDimension3?.id || 'product-sub-types';
+    return {
+      superField: this.mapDimensionIdToField(dim1Id),
+      parentField: this.mapDimensionIdToField(dim2Id),
+      subField: dim3Id === 'none' ? 'none' : this.mapDimensionIdToField(dim3Id),
+    };
   }
 
   onPackingCirclesClick(): void {
@@ -342,7 +373,8 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Updates treemap data based on current filters and time horizon
+   * Updates treemap data based on current filters, time horizon, and flow dimensions.
+   * Dimension 1 = super, Dimension 2 = parent, Dimension 3 = leaf (or 'none').
    */
   private updateTreemapData(): void {
     if (!this.rawAssetFlowsData) {
@@ -350,38 +382,65 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       return;
     }
 
-    // Filter data based on time horizon
-    const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
-    
-    // Convert filtered data to Sankey format (contains all regions)
-    const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData);
-    
-    // Clear existing treemap data map
+    if (!this.selectedInvestorRegions || this.selectedInvestorRegions.length === 0) {
+      console.warn('AssetAllocation: No investor regions selected');
+      this.treemapDataMap.clear();
+      this.regionDataArray = [];
+      return;
+    }
+
+    let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    if (!filteredData || filteredData.length === 0) {
+      this.treemapDataMap.clear();
+      this.regionDataArray = [];
+      return;
+    }
+
+    const dimensionConfig = this.getSankeyDimensionConfig();
+    const isSuperInvestorRegion = this.selectedDimension1?.id === 'investor-region';
+
+    if (!isSuperInvestorRegion) {
+      const hasGlobal = this.selectedInvestorRegions.includes('Global');
+      if (!hasGlobal) {
+        filteredData = filteredData.filter((r) =>
+          this.selectedInvestorRegions.includes(r.Investor_Region)
+        );
+      }
+      if (filteredData.length === 0) {
+        this.treemapDataMap.clear();
+        this.regionDataArray = [];
+        return;
+      }
+      const singleSankeyData = convertAssetFlowsToSankey(filteredData, dimensionConfig);
+      this.treemapDataMap.clear();
+      this.treemapDataMap.set('Asset Flows', singleSankeyData);
+      this.updateRegionDataArray();
+      return;
+    }
+
+    const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData, dimensionConfig);
     this.treemapDataMap.clear();
-    
-    // Separate Global from individual regions
+
     const hasGlobal = this.selectedInvestorRegions.includes('Global');
     const individualRegions = this.selectedInvestorRegions.filter(region => region !== 'Global');
-    
-    // Create Global treemap if Global is selected
+
     if (hasGlobal) {
       const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
       this.treemapDataMap.set('Global', globalSankeyData);
     }
-    
-    // Create one combined treemap for all selected non-Global regions
+
     if (individualRegions.length > 0) {
+      const useProductTypeFilter = this.selectedDimension2?.id === 'product-type';
+      const useProductSubTypeFilter = this.selectedDimension3?.id === 'product-sub-types';
       const combinedSankeyData: SankeyData = filterSankeyData(
         allRegionsSankeyData,
-        individualRegions, // All selected regions combined
-        this.selectedProductTypes || [],
-        this.selectedProductSubTypes || []
+        individualRegions,
+        useProductTypeFilter ? (this.selectedProductTypes || []) : [],
+        useProductSubTypeFilter ? (this.selectedProductSubTypes || []) : []
       );
-      // Use a descriptive key that shows all selected regions
       const regionsKey = individualRegions.join(', ');
       this.treemapDataMap.set(regionsKey, combinedSankeyData);
     }
-    // Update cached array for template
     this.updateRegionDataArray();
   }
 
@@ -397,28 +456,32 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     const nonGlobalKeys = Array.from(this.treemapDataMap.keys()).filter(key => key !== 'Global');
     keys.push(...nonGlobalKeys);
     
-    // Build cached region data array to avoid method calls in template
     this.regionDataArray = keys.map(key => {
       const data = this.treemapDataMap.get(key);
       if (!data) {
         return null;
       }
+      const investorRegions =
+        key === 'Global'
+          ? ['Global']
+          : key === 'Asset Flows'
+            ? []
+            : (this.selectedInvestorRegions || []).filter(r => r !== 'Global');
       return {
         key,
         data,
-        investorRegions: key === 'Global' 
-          ? ['Global']
-          : (this.selectedInvestorRegions || []).filter(r => r !== 'Global')
+        investorRegions
       };
     }).filter(item => item !== null) as Array<{
       key: string;
       data: SankeyData;
       investorRegions: string[];
     }>;
-    
-    // Cache product type arrays to avoid creating new arrays in template
-    this.cachedSelectedProductTypes = this.selectedProductTypes || [];
-    this.cachedSelectedProductSubTypes = this.selectedProductSubTypes || [];
+
+    const isDefaultParent = !this.selectedDimension2 || this.selectedDimension2.id === 'product-type';
+    const isDefaultSub = !this.selectedDimension3 || this.selectedDimension3.id === 'product-sub-types';
+    this.cachedSelectedProductTypes = isDefaultParent ? (this.selectedProductTypes || []) : [];
+    this.cachedSelectedProductSubTypes = isDefaultSub ? (this.selectedProductSubTypes || []) : [];
   }
 
   /**
