@@ -92,14 +92,14 @@ export default class WelcomeSectionComponent implements AfterViewInit {
     }
   }
 
-  @HostListener('window:scroll', ['$event'])
+  @HostListener('window:scroll')
   onScroll(): void {
     if (this.isViewingDropdownOpen) {
       this.updateDropdownPosition();
     }
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize(): void {
     if (this.isViewingDropdownOpen) {
       this.updateDropdownPosition();

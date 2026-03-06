@@ -95,7 +95,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     }
   }
   
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onWindowResize(): void {
     this.updateCardsPerSlide();
   }

@@ -160,7 +160,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * Handles window scroll events to toggle condensed layout.
    * @returns {void}
    */
-  @HostListener('window:scroll', ['$event'])
+  @HostListener('window:scroll')
   onWindowScroll(): void {
     this.checkScrollPosition();
   }
@@ -169,7 +169,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * Handles window resize events to update condensed layout state on mobile.
    * @returns {void}
    */
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onWindowResize(): void {
     this.checkScrollPosition();
   }
