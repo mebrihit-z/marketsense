@@ -14,7 +14,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() data: number[] = [];
   @Input() color: string = '#00113F'; // $primary-colors-midnight-blue
   @Input() width: number = 400;
-  @Input() height: number = 250;
+  @Input() height: number = 320;
   @Input() showGrid: boolean = true;
   @Input() showArea: boolean = false;
   @Input() xAxisLabels: string[] = [];
@@ -26,7 +26,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('chart', { static: false }) chartElement!: ElementRef<HTMLDivElement>;
 
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
-  private margin = { top: 50, right: 20, bottom: 50, left: 55 }; // Increased top margin for axisTop labels, bottom for x-axis label
+  private margin = { top: 50, right: 20, bottom: 50, left: 70 }; // Increased left margin to prevent y-axis label overlapping with tick values
   private tooltip: any = null;
 
   /** Effective margin: larger bottom on mobile so x-axis labels are not cut off */
@@ -81,7 +81,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Ensure width fits within container to prevent horizontal scrolling
     const maxWidth = containerWidth > 0 ? containerWidth : (this.width || 400);
     const actualWidth = Math.min(this.width || maxWidth, maxWidth);
-    const actualHeight = this.height || 250;
+    const actualHeight = this.height || 320;
 
     const innerWidth = actualWidth - margin.left - margin.right;
     const innerHeight = actualHeight - margin.top - margin.bottom;
@@ -525,11 +525,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .attr('stroke', '#e5e7eb')
       .attr('stroke-width', 1);
 
-    // Add Y-axis label if provided - positioned to the left of y-axis values
+    // Add Y-axis label if provided - positioned to the left of y-axis tick values to avoid overlap
     if (this.yAxisLabel) {
       g.append('text')
         .attr('transform', 'rotate(-90)')
-        .attr('y', 0 - margin.left + 5) // Positioned further left to avoid y-axis values
+        .attr('y', 0 - margin.left - 8) // Offset further left from tick values (e.g. -50, 0, 50)
         .attr('x', 0 - (innerHeight / 2))
         .attr('dy', '1em')
         .style('text-anchor', 'middle')
@@ -539,4 +539,3 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   }
 }
-`y`

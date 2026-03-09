@@ -2,33 +2,13 @@
   <div class="sankey-chart-scroll">
     <div class="regional-sankey"></div>
   </div>
-  <div class="sankey-legend">
-    <div class="sankey-legend-section">
-      <div class="sankey-legend-header">Product Types:</div>
+  <div class="sankey-legend" *ngIf="shouldShowLegend && hasFilterSelection && legendSections.length">
+    <div class="sankey-legend-section" *ngFor="let section of legendSections">
+      <div class="sankey-legend-header">{{ section.header }}</div>
       <div class="sankey-legend-row">
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-private-markets"></span> Private Markets</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-alternatives"></span> Alternatives</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-equity"></span> Equity</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-other-specialized"></span> Other / Specialized</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-fixed-income"></span> Fixed Income</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-multi-asset"></span> Multi-Asset</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-cash"></span> Cash</span>
-      </div>
-    </div>
-    <div class="sankey-legend-section">
-      <div class="sankey-legend-header">Other Nodes:</div>
-      <div class="sankey-legend-row">
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-regions"></span> Regions</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-capital-withdrawn"></span> Capital Withdrawn</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-net-new-capital"></span> Net New Capital</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-reallocation-pool"></span> Reallocation Pool</span>
-      </div>
-    </div>
-    <div class="sankey-legend-section">
-      <div class="sankey-legend-header">Flows:</div>
-      <div class="sankey-legend-row">
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-inflow"></span> Inflows</span>
-        <span class="sankey-legend-item"><span class="sankey-legend-swatch swatch-outflow"></span> Outflows</span>
+        <span class="sankey-legend-item" *ngFor="let item of section.items">
+          <span class="sankey-legend-swatch" [ngClass]="item.color ? '' : 'swatch-' + item.swatchClass" [style.background-color]="item.color || null"></span> {{ item.label }}
+        </span>
       </div>
     </div>
   </div>

@@ -384,6 +384,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     return '$ ' + d3.format(',.2f')(v) + 'B';
   }
 
+  /** Cells below this size cannot display readable text; hide labels and rely on tooltip */
+  private isLabelUnreadable(w: number, h: number): boolean {
+    return w < 80 || h < 32;
+  }
+
   /**
    * Formats the time horizon range for display in tooltips
    * @returns Formatted time horizon string (e.g., "+3 mo", "+3 mo to +9 mo", "Today")
@@ -771,6 +776,14 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
         return false;
       })
+      .classed('unreadable-label', d => {
+        if (!d.children) {
+          const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+          const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+          return this.isLabelUnreadable(w, h);
+        }
+        return false;
+      })
       .style('position', 'absolute')
       .style('box-sizing', 'border-box')
       .style('overflow', d => {
@@ -952,6 +965,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const isTiny = w < 40 || h < 18;
         const isSmall = w < 60 || h < 25;
         
+        // Hide label for cells too small to read; tooltip shows full info on hover
+        if (!d.children && this.isLabelUnreadable(w, h)) {
+          return '';
+        }
         // Always show labels for all nodes, especially leaf nodes (product sub-types)
         if (d.depth === 2) {
           return d.data.name + ' — ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
@@ -973,7 +990,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         // For leaf nodes (product sub-types), always return the name
         return d.data.name || '';
       })
-      .style('display', 'block') // Ensure labels are always displayed
+      .style('display', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        // Hide label for unreadably small cells; rely on tooltip for details
+        return (!d.children && this.isLabelUnreadable(w, h)) ? 'none' : 'block';
+      })
       .style('visibility', 'visible') // Explicitly make labels visible
       .style('z-index', '10') // Ensure labels are above other elements
       .style('position', 'relative'); // Ensure proper positioning
@@ -986,11 +1008,18 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('padding', '0 6px 6px 6px')
       .style('color', 'rgba(0, 0, 0, 0.85)')
       .style('pointer-events', 'none')
+      .style('display', d => {
+        const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
+        const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
+        return (!d.children && this.isLabelUnreadable(w, h)) ? 'none' : 'block';
+      })
       .text(d => {
         const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
         const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
         const isTiny = w < 40 || h < 18;
 
+        // For unreadably small cells, hide value (tooltip shows it on hover)
+        if (!d.children && this.isLabelUnreadable(w, h)) return '';
         // For very small leaf nodes, hide the separate value div since it's included in the label
         if (!d.children && isTiny) return '';
 

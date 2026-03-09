@@ -66,7 +66,7 @@
             </textarea>
             <button 
               class="ask-btn" 
-              [disabled]="!userMessage.trim()" 
+              [disabled]="!userMessage.trim() || isWaitingForResponse" 
               (click)="onSendMessage()"
               aria-label="Ask Question">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -148,16 +148,17 @@
             </textarea>
             <button 
               class="ask-btn follow-up-btn" 
-              [disabled]="!followUpMessage.trim()" 
+              [disabled]="!followUpMessage.trim() || isWaitingForResponse" 
               (click)="onSendFollowUp()"
               aria-label="Ask Follow-Up Question">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
               </svg>
-              <span>Ask Follow-Up Question</span>
+              <span>{{ isWaitingForResponse ? 'Sending...' : 'Ask Follow-Up Question' }}</span>
             </button>
           </div>
         </div>
+        <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
       </ng-template>
     </div>
 
@@ -200,10 +201,11 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </svg>
-            <span>Ask Follow-up Question</span>
+            <span>{{ isWaitingForResponse ? 'Processing...' : 'Ask Follow-up Question' }}</span>
           </button>
         </div>
       </div>
+      <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
     </div>
     </div>
   </div>

@@ -10,6 +10,10 @@ export const environment = {
   dataUrlConfig: {
     assetFlows: 'assets/data/asset-flows-data.json',
   },
+  /** AI chat API URL. When undefined/empty, service uses mock JSON locally. */
+  aiChatApiUrl: undefined as string | undefined,
+  /** Mock JSON path for local dev (used when aiChatApiUrl is not set). */
+  aiChatMockUrl: 'assets/data/ai-chat-mock.json',
 };
 
 /*

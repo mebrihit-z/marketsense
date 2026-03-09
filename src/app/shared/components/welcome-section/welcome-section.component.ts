@@ -29,6 +29,11 @@ export default class WelcomeSectionComponent implements AfterViewInit {
     return this.userProfileService.getGivenName() ?? this.userName;
   }
 
+  /** Last login: from UserProfileService or fallback to lastLogin input. */
+  get displayLastLogin(): string {
+    return this.userProfileService.getLastLogin() ?? this.lastLogin;
+  }
+
   get savedViewsCount(): number {
     return this.viewingOptions?.length ?? 0;
   }

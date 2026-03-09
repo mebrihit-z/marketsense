@@ -1,5 +1,6 @@
 /* eslint-disable */
-import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import {
@@ -7,7 +8,7 @@ import {
   sankeyLinkHorizontal,
   SankeyGraph
 } from 'd3-sankey';
-import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
+import { filterSankeyData, extractProductTypeFromNodeName, type SankeyData } from '../../../utils/sankey-data.utils';
 
 // ----------------------
 // TypeScript Models
@@ -38,10 +39,21 @@ interface RegionalSankeyData {
 // ----------------------
 // Angular Component
 // ----------------------
+export interface SankeyLegendItem {
+  swatchClass: string;
+  label: string;
+  /** When set, overrides swatchClass color (used for nodes without predefined colors) */
+  color?: string;
+}
+export interface SankeyLegendSection {
+  header: string;
+  items: SankeyLegendItem[];
+}
+
 @Component({
   selector: 'app-sankey',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './sankey.component.html',
   styleUrl: './sankey.component.scss',
   providers: []
@@ -57,12 +69,28 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() showLegend: boolean = true;
   /** When set to 'Global', node labels will have the "Global" prefix removed for display. */
   @Input() regionKey?: string;
+  /** Label for the parent-node legend section (same as selected dimension 2). Falls back to "Product Types" when not provided. */
+  @Input() dimension2Label?: string;
+  /** Label for the super-node legend (Super Start/End, same as selected dimension 1). Falls back to "Regions" when not provided. */
+  @Input() dimension1Label?: string;
 
   // Getter to ensure TypeScript recognizes the input
   get shouldShowLegend(): boolean {
     return this.showLegend;
   }
-  
+
+  /** True when user has made a filter selection (regions, product types, or sub-types) */
+  get hasFilterSelection(): boolean {
+    return (
+      (this.selectedInvestorRegions?.length ?? 0) > 0 ||
+      (this.selectedProductTypes?.length ?? 0) > 0 ||
+      (this.selectedProductSubTypes?.length ?? 0) > 0
+    );
+  }
+
+  /** Dynamic legend sections (Product Types, Other Nodes, Flows) built from current data */
+  legendSections: SankeyLegendSection[] = [];
+
   private loadedData?: RegionalSankeyData;
   private lastDataHash: string = '';
   private lastFiltersHash: string = '';
@@ -70,7 +98,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   constructor(
     private el: ElementRef,
-    private http: HttpClient
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
   ) {
     // Generate unique tooltip ID for this instance
     this.tooltipId = `sankey-tooltip-${Math.random().toString(36).substr(2, 9)}`;
@@ -135,6 +164,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
       }
     }
+
+    // Dimension labels change updates the legend
+    if ((changes['dimension1Label'] || changes['dimension2Label']) && (this.data || this.loadedData) && this.el?.nativeElement) {
+      shouldRecreate = true;
+    }
     
     // Only recreate if something actually changed
     if (shouldRecreate && this.el?.nativeElement) {
@@ -185,14 +219,36 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       // Replace "United States" with "U.S" and "United Kingdom" with "U.K"
       let formatted = name.replace(/United States/g, 'U.S');
       formatted = formatted.replace(/United Kingdom/g, 'U.K');
-      // Remove (Source) and (Destination) from display to give labels more space
+      // Remove (Source), (Destination), (Start), and (End) from display
       formatted = formatted.replace(/\s*\(Source\)\s*$/, '');
       formatted = formatted.replace(/\s*\(Destination\)\s*$/, '');
+      formatted = formatted.replace(/\s*\(Start\)\s*$/, '');
+      formatted = formatted.replace(/\s*\(End\)\s*$/, '');
       // On global sankey only, remove "Global" prefix from labels (title already says Global)
       if (this.regionKey === 'Global') {
         formatted = formatted.replace(/^Global\s*:\s*/, '').replace(/^Global\s*-\s*/, '').replace(/^Global\s+/, '').trim();
       }
       return formatted;
+    }
+
+    /** Formats a number with thousand separators e.g. 57644.15 -> "57,644.15" */
+    private formatValueWithCommas(value: number, decimals: number = 2): string {
+      return value.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    /** Formats a date string (ISO or YYYY-MM-DD) to a readable tooltip format e.g. "Mar 31, 2026" */
+    private formatDateForTooltip(dateStr: string): string {
+      if (!dateStr || typeof dateStr !== 'string') return dateStr ?? '';
+      try {
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch {
+        return dateStr;
+      }
     }
 
     // Helper function to format time information for tooltip
@@ -214,7 +270,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   // -----------------------------------------
   private createSankey() {
     const dataToUse = this.getFilteredData();
-    if (!dataToUse) return;
+    if (!dataToUse) {
+      this.legendSections = [];
+      this.cdr.markForCheck();
+      return;
+    }
 
     const element = this.el.nativeElement.querySelector('.regional-sankey');
     
@@ -324,47 +384,63 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     const graph = sankeyGen(graphData);
 
-    // Build a map of Source/Destination nodes to their parent types
-    const nodeParentTypeMap = new Map<string, string>();
+    // Helper: map extracted parent type (from any dimension) to our color class
+    const parentTypeToColorClass = (parentType: string | null): string | null => {
+      if (!parentType) return null;
+      const p = parentType.toLowerCase();
+      if (p.includes('private equity')) return 'private-markets';
+      if (p.includes('equity') && !p.includes('private')) return 'equity';
+      if (p.includes('fixed income')) return 'fixed-income';
+      if (p.includes('cash')) return 'cash';
+      if (p.includes('multi-asset') || p.includes('balanced')) return 'multi-asset';
+      if (p.includes('alternatives')) return 'alternatives';
+      if (p.includes('other') && (p.includes('specialized') || p.includes('/'))) return 'other-specialized';
+      if (p.includes('private markets')) return 'private-markets';
+      return null;
+    };
+
+    // Build map: subNodeName -> Map<parentName, totalValue> - sum flows per parent, then pick parent with highest total
+    type ParentFlowEntry = { parent: SankeyNodeExtra; value: number };
+    const subToParentValues = new Map<string, Map<string, ParentFlowEntry>>();
+    const addParentFlow = (subName: string, parent: SankeyNodeExtra, value: number) => {
+      if (!subToParentValues.has(subName)) {
+        subToParentValues.set(subName, new Map<string, ParentFlowEntry>());
+      }
+      const parentMap = subToParentValues.get(subName)!;
+      const key = parent.name;
+      const existing = parentMap.get(key);
+      const newValue = (existing?.value ?? 0) + value;
+      parentMap.set(key, { parent, value: newValue });
+    };
+
     graph.links.forEach(link => {
       const source = link.source as SankeyNodeExtra;
       const target = link.target as SankeyNodeExtra;
+      const value = (link as SankeyLinkExtra).value ?? 0;
       
-      // If source is a parent (Start) node and target is a Source node, map target to parent type
-      if (source.name && source.name.includes('(Start)') && target.name && target.name.includes('(Source)')) {
-        if (source.name.includes('Equity')) {
-          nodeParentTypeMap.set(target.name, 'Equity');
-        } else if (source.name.includes('Fixed Income')) {
-          nodeParentTypeMap.set(target.name, 'Fixed Income');
-        } else if (source.name.includes('Cash')) {
-          nodeParentTypeMap.set(target.name, 'Cash');
-        } else if (source.name.includes('Multi-Asset')) {
-          nodeParentTypeMap.set(target.name, 'Multi-Asset');
-        } else if (source.name.includes('Alternatives')) {
-          nodeParentTypeMap.set(target.name, 'Alternatives');
-        } else if (source.name.includes('Other / Specialized') || source.name.includes('Other/Specialized')) {
-          nodeParentTypeMap.set(target.name, 'Other / Specialized');
-        } else if (source.name.includes('Private Markets')) {
-          nodeParentTypeMap.set(target.name, 'Private Markets');
-        }
+      // Start -> Source: parent passes value to sub
+      if (source.name && source.name.includes('(Start)') && !source.name.includes('Super Start') && target.name && target.name.includes('(Source)')) {
+        addParentFlow(target.name, source, value);
       }
-      
-      // If target is a parent (End) node and source is a Destination node, map source to parent type
-      if (target.name && target.name.includes('(End)') && source.name && source.name.includes('(Destination)')) {
-        if (target.name.includes('Equity')) {
-          nodeParentTypeMap.set(source.name, 'Equity');
-        } else if (target.name.includes('Fixed Income')) {
-          nodeParentTypeMap.set(source.name, 'Fixed Income');
-        } else if (target.name.includes('Cash')) {
-          nodeParentTypeMap.set(source.name, 'Cash');
-        } else if (target.name.includes('Multi-Asset')) {
-          nodeParentTypeMap.set(source.name, 'Multi-Asset');
-        } else if (target.name.includes('Alternatives')) {
-          nodeParentTypeMap.set(source.name, 'Alternatives');
-        } else if (target.name.includes('Other / Specialized') || target.name.includes('Other/Specialized')) {
-          nodeParentTypeMap.set(source.name, 'Other / Specialized');
-        } else if (target.name.includes('Private Markets')) {
-          nodeParentTypeMap.set(source.name, 'Private Markets');
+      // Destination -> End: sub passes value to parent
+      if (target.name && target.name.includes('(End)') && !target.name.includes('Super End') && source.name && source.name.includes('(Destination)')) {
+        addParentFlow(source.name, target, value);
+      }
+    });
+
+    const leafToParentNodeMap = new Map<string, SankeyNodeExtra>();
+    const nodeParentTypeMap = new Map<string, string>();
+    subToParentValues.forEach((parentMap, subNodeName) => {
+      const entries: ParentFlowEntry[] = Array.from(parentMap.values());
+      const bestEntry = entries.length > 0
+        ? entries.reduce((a, b) => a.value >= b.value ? a : b)
+        : null;
+      if (bestEntry && bestEntry.parent.name) {
+        leafToParentNodeMap.set(subNodeName, bestEntry.parent);
+        const extractedType = extractProductTypeFromNodeName(bestEntry.parent.name);
+        const colorClass = parentTypeToColorClass(extractedType);
+        if (colorClass) {
+          nodeParentTypeMap.set(subNodeName, colorClass);
         }
       }
     });
@@ -455,7 +531,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const source = link.source as SankeyNodeExtra;
         const target = link.target as SankeyNodeExtra;
         const value = link.value;
-        const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+        const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
         
         // Check if this is a subasset link (connected to Source or Destination nodes)
         const isSubassetLink = (source.name && (source.name.includes('(Source)') || source.name.includes('(Destination)'))) ||
@@ -468,7 +544,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         
         // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
         if (isSubassetLink && link.date) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Date: ${link.date}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Date: ${component.formatDateForTooltip(link.date)}</div>`;
         } else {
           const timeInfo = component.formatTimeInfo();
           if (timeInfo) {
@@ -554,15 +630,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       if (nodeName.includes('Super Start') || nodeName.includes('Super End')) return 'regions';
       const parentType = nodeParentTypeMap.get(nodeName);
       if (parentType) {
-        if (parentType === 'Equity') return 'equity';
-        if (parentType === 'Fixed Income') return 'fixed-income';
-        if (parentType === 'Cash') return 'cash';
-        if (parentType === 'Multi-Asset') return 'multi-asset';
-        if (parentType === 'Other / Specialized') return 'other-specialized';
-        if (parentType === 'Private Markets') return 'private-markets';
-        if (parentType === 'Alternatives') return 'alternatives';
+        return parentType;
       }
       if (nodeName.includes('(Start)') || nodeName.includes('(End)')) {
+        if (nodeName.includes('Private Equity')) return 'private-markets';
         if (nodeName.includes('Equity')) return 'equity';
         if (nodeName.includes('Fixed Income')) return 'fixed-income';
         if (nodeName.includes('Cash')) return 'cash';
@@ -574,6 +645,59 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) return 'source-destination';
       return 'default';
     };
+
+    // Unique colors only for parent nodes that don't have existing colors (default type)
+    const defaultColorPalette = [
+      '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4',
+      '#f032e6', '#bfef45', '#469990', '#dcbeff', '#9a6324', '#800000', '#aaffc3',
+      '#808000', '#ffd8b1', '#000075', '#fabed4', '#fffac8', '#e6beff'
+    ];
+    const defaultNodes = graph.nodes.filter(n => getNodeColorClass(n.name) === 'default');
+    const defaultNodeColorScale = d3.scaleOrdinal<string, string>()
+      .domain(defaultNodes.map(n => n.name))
+      .range(defaultColorPalette);
+
+    // Leaf nodes (Source/Destination) inherit parent's color
+    const getNodeDisplayStyle = (nodeName: string): { class?: string; fill?: string; stroke?: string } => {
+      const cls = getNodeColorClass(nodeName);
+      const parentNode = leafToParentNodeMap.get(nodeName);
+      // For leaf nodes, use parent's color if we have a linked parent
+      const effectiveNode = parentNode ? { name: parentNode.name } : { name: nodeName };
+      const effectiveCls = parentNode ? getNodeColorClass(parentNode.name) : cls;
+      if (effectiveCls === 'default') {
+        return { class: 'sankey-node-rect', fill: defaultNodeColorScale(effectiveNode.name), stroke: defaultNodeColorScale(effectiveNode.name) };
+      }
+      if (effectiveCls === 'source-destination') {
+        return { class: `sankey-node-rect sankey-node-${effectiveCls}` };
+      }
+      return { class: `sankey-node-rect sankey-node-${effectiveCls}` };
+    };
+
+    // Display labels and order for legend (dynamic entries from nodes; flows added at end)
+    const legendLabelByClass: Record<string, string> = {
+      'reallocation-pool': 'Reallocation Pool',
+      'net-new-capital': 'Net New Capital',
+      'capital-withdrawn': 'Capital Withdrawn',
+      'regions': 'Regions',
+      'equity': 'Equity',
+      'fixed-income': 'Fixed Income',
+      'cash': 'Cash',
+      'multi-asset': 'Multi-Asset',
+      'other-specialized': 'Other / Specialized',
+      'private-markets': 'Private Markets',
+      'alternatives': 'Alternatives',
+      'outflow': 'Outflows',
+      'inflow': 'Inflows',
+      'new-capital': 'New Capital'
+    };
+    const legendOrder: Record<string, number> = {
+      'private-markets': 1, 'alternatives': 2, 'equity': 3, 'other-specialized': 4,
+      'fixed-income': 5, 'multi-asset': 6, 'cash': 7,
+      'regions': 10, 'capital-withdrawn': 11, 'net-new-capital': 12, 'reallocation-pool': 13,
+      'outflow': 20, 'inflow': 21, 'new-capital': 22,
+      'default': 50
+    };
+    const defaultOrder = 99;
 
     // -----------------------------------------
     // 7. Draw Nodes
@@ -587,11 +711,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('y', d => d.y0!)
       .attr('height', d => d.y1! - d.y0!)
       .attr('width', d => d.x1! - d.x0!)
-      .attr('class', d => `sankey-node-rect sankey-node-${getNodeColorClass(d.name)}`)
+      .attr('class', d => getNodeDisplayStyle(d.name).class || 'sankey-node-rect')
+      .attr('fill', d => getNodeDisplayStyle(d.name).fill ?? null)
+      .attr('stroke', d => getNodeDisplayStyle(d.name).stroke ?? null)
+      .attr('stroke-width', d => (getNodeDisplayStyle(d.name).fill ? 1 : null))
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
         const value = nodeValues.get(node) || 0;
-        const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
+        const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
         const incoming = nodeIncoming.get(node) || 0;
         const outgoing = nodeOutgoing.get(node) || 0;
         
@@ -668,21 +795,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
-               const subassetValue = subasset.value >= 0.1 ? subasset.value.toFixed(2) : subasset.value.toFixed(3);
-               
-               let subassetLine = `${component.formatNodeName(subasset.name)}: <strong>$${subassetValue}B</strong>`;
-               if (subasset.dates.length > 0) {
-                 // Format dates - if multiple, show range or list
-                 let dateStr = '';
-                 if (subasset.dates.length === 1) {
-                   dateStr = subasset.dates[0];
-                 } else if (subasset.dates.length <= 3) {
-                   dateStr = subasset.dates.join(', ');
-                 } else {
-                   dateStr = `${subasset.dates[0]} - ${subasset.dates[subasset.dates.length - 1]} (${subasset.dates.length} dates)`;
-                 }
-                 subassetLine += ` <span style="opacity: 0.75; font-size: 12px;">(${dateStr})</span>`;
-               }
+               const subassetValue = component.formatValueWithCommas(subasset.value, subasset.value >= 0.1 ? 2 : 3);
+               const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>$${subassetValue}B</strong>`;
                subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
              });
              if (remainingCount > 0) {
@@ -697,8 +811,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(node.name)}</strong></div>
           <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
-          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: $${incoming.toFixed(2)}B</div>
-          <div style="font-size: 13px; opacity: 0.9;">Outgoing: $${outgoing.toFixed(2)}B</div>
+          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: $${component.formatValueWithCommas(incoming, 2)}B</div>
+          <div style="font-size: 13px; opacity: 0.9;">Outgoing: $${component.formatValueWithCommas(outgoing, 2)}B</div>
         `;
         
         if (timeInfo) {
@@ -714,11 +828,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('display', 'block')
           .html(tooltipHtml);
         
-        // Highlight the hovered node (hover styles in SCSS)
-        d3.select(this)
-          .classed('sankey-node-hovered', true)
-          .attr('stroke-width', 3)
-          .raise(); // Bring to front
+        // Highlight the hovered node (hover styles in SCSS; for nodes with custom fill use brighter stroke)
+        const sel = d3.select(this);
+        const displayStyle = getNodeDisplayStyle(node.name);
+        sel.attr('stroke-width', 3).raise();
+        if (displayStyle.fill) {
+          const c = d3.color(displayStyle.fill);
+          if (c) sel.attr('stroke', c.brighter(0.4).toString());
+        } else {
+          sel.classed('sankey-node-hovered', true);
+        }
         
         // Highlight connected links
         const nodeLinks = graph.links.filter(link => 
@@ -751,18 +870,30 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('left', (event.pageX + 10) + 'px')
           .style('top', (event.pageY - 10) + 'px');
       })
-      .on('mouseout', function() {
+      .on('mouseout', function(event, d) {
         tooltip.style('opacity', '0').style('display', 'none');
-        d3.select(this)
-          .classed('sankey-node-hovered', false)
-          .attr('stroke-width', 1);
+        const n = d as SankeyNodeExtra;
+        const sel = d3.select(this);
+        const displayStyle = getNodeDisplayStyle(n.name);
+        sel.classed('sankey-node-hovered', false);
+        sel.attr('stroke-width', displayStyle.fill ? 1 : null);
+        if (displayStyle.stroke) sel.attr('stroke', displayStyle.stroke);
         chartGroup.selectAll('rect').attr('opacity', 1);
-        chartGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
+        chartGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (link: any) => Math.max(1, (link as SankeyLinkExtra).width || 1));
       });
 
     // -----------------------------------------
     // 8. Node Labels (with values inline)
     // -----------------------------------------
+    const getLabelX = (d: SankeyNodeExtra): number => {
+      if (d.name.includes('Reallocation Pool')) return d.x1! + 12;
+      if (d.name.includes('(Source)')) return d.x1! + 12;
+      if (d.name.includes('(Destination)')) return d.x0! - 12;
+      if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return d.x0! - 12;
+      if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return d.x0! - 12;
+      if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return d.x1! + 12;
+      return (d.x0! + d.x1!) / 2;
+    };
     const nodeLabels = chartGroup.append('g')
       .attr('class', 'sankey-node-labels')
       .selectAll('text')
@@ -770,24 +901,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .enter()
       .append('text')
       .attr('class', 'sankey-node-label')
-      .attr('x', d => {
-        // Position labels based on node type and side (outflow vs inflow)
-        if (d.name.includes('(Source)')) {
-          return d.x1! + 12;
-        }
-        if (d.name.includes('(Destination)')) {
-          return d.x0! - 12;
-        }
-        // Positive/inflow side (right of Reallocation Pool): label to the left of the node
-        if (reallocationPoolX !== null && d.x0! > reallocationPoolX) {
-          return d.x0! - 12;
-        }
-        // Negative/outflow side (left of Reallocation Pool): label to the right of the node
-        if (reallocationPoolX !== null && d.x1! < reallocationPoolX) {
-          return d.x1! + 12;
-        }
-        return (d.x0! + d.x1!) / 2;
-      })
+      .attr('x', getLabelX)
       .attr('y', d => (d.y0! + d.y1!) / 2)
       .attr('text-anchor', d => {
         if (d.name.includes('(Source)')) return 'start';
@@ -816,14 +930,18 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return label + ':';
       });
     
-    // Add value text as tspan on the same row
+    // Add value text as tspan – on next line for Net New Capital, Realloc, Super Start, Super End to avoid overlap
+    const putValueOnNextLine = (d: SankeyNodeExtra) =>
+      d.name.includes('Net New Capital') || d.name.includes('Reallocation Pool') ||
+      d.name.includes('Super Start') || d.name.includes('Super End');
     nodeLabels.append('tspan')
       .attr('class', 'sankey-node-label-value')
-      .attr('dx', '8px')
+      .attr('dx', d => putValueOnNextLine(d) ? null : '8px')
+      .attr('dy', d => putValueOnNextLine(d) ? '1.15em' : null)
+      .attr('x', d => putValueOnNextLine(d) ? getLabelX(d) : null)
       .text(d => {
         const value = nodeValues.get(d) || 0;
-        const formattedValue = value >= 0.1 ? value.toFixed(2) : value.toFixed(3);
-        // Add negative sign for nodes to the left of Reallocation Pool
+        const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
         const sign = isLeftOfReallocation ? '-' : '';
@@ -832,7 +950,87 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Link values are not drawn – only node labels show values (next to each node)
 
-    // Legend is rendered in template (outside chart) – see sankey.component.html
+    // -----------------------------------------
+    // 9. Build dynamic legend sections (Product Types from displayed parent nodes, Other Nodes, Flows)
+    // -----------------------------------------
+    const getNodeDisplayLabel = (nodeName: string): string => {
+      if (nodeName.includes('Reallocation Pool')) return 'Realloc';
+      const formatted = this.formatNodeName(nodeName);
+      const maxLength = 28;
+      return formatted.length > maxLength ? formatted.substring(0, maxLength) + '...' : formatted;
+    };
+
+    // Product Types: one legend entry per displayed parent node (Start/End, excluding Super Start/Super End)
+    const productTypeParentNodes = graph.nodes.filter(node =>
+      (node.name.includes('(Start)') || node.name.includes('(End)')) &&
+      !node.name.includes('Super Start') &&
+      !node.name.includes('Super End')
+    );
+    const productTypeItemsMap = new Map<string, SankeyLegendItem>(); // key = displayLabel to dedupe
+    productTypeParentNodes.forEach(node => {
+      const cls = getNodeColorClass(node.name);
+      const label = getNodeDisplayLabel(node.name);
+      if (!productTypeItemsMap.has(label)) {
+        const swatchClass = (cls === 'source-destination' || cls === 'default') ? 'default' : cls;
+        productTypeItemsMap.set(label, {
+          swatchClass,
+          label,
+          ...(cls === 'default' && { color: defaultNodeColorScale(node.name) })
+        });
+      }
+    });
+    const productTypeItems = Array.from(productTypeItemsMap.values())
+      .sort((a, b) => (legendOrder[a.swatchClass] ?? defaultOrder) - (legendOrder[b.swatchClass] ?? defaultOrder));
+    const dimension2Header = (this.dimension2Label || 'Product Types').trim();
+    const productTypes: SankeyLegendSection | null = productTypeItems.length > 0
+      ? { header: dimension2Header + (dimension2Header.endsWith(':') ? '' : ':'), items: productTypeItems }
+      : null;
+
+    const otherNodeClasses = ['regions', 'capital-withdrawn', 'net-new-capital', 'reallocation-pool'];
+    const uniqueClasses = new Set<string>();
+    graph.nodes.forEach(node => {
+      const cls = getNodeColorClass(node.name);
+      if (cls !== 'source-destination' && cls !== 'default') {
+        uniqueClasses.add(cls);
+      }
+    });
+    const hasNewCapital = graph.links.some(link => {
+      const s = link.source as SankeyNodeExtra;
+      const t = link.target as SankeyNodeExtra;
+      return (s.name && s.name.includes('Net New Capital')) || (t.name && t.name.includes('Net New Capital'));
+    });
+
+    const toSection = (classes: string[], header: string): SankeyLegendSection | null => {
+      const present = classes.filter(cls => uniqueClasses.has(cls));
+      if (present.length === 0) return null;
+      const labelByCls: Record<string, string> = {};
+      graph.nodes.forEach(node => {
+        const cls = getNodeColorClass(node.name);
+        if (present.includes(cls) && !labelByCls[cls]) {
+          labelByCls[cls] = getNodeDisplayLabel(node.name);
+        }
+      });
+      return {
+        header,
+        items: present
+          .sort((a, b) => (legendOrder[a] ?? defaultOrder) - (legendOrder[b] ?? defaultOrder))
+          .map(cls => ({ swatchClass: cls, label: labelByCls[cls] ?? legendLabelByClass[cls] ?? cls }))
+      };
+    };
+    const otherNodes = toSection(otherNodeClasses, 'Other Nodes:');
+    const flowItems: SankeyLegendItem[] = [
+      { swatchClass: 'inflow', label: 'Inflows' },
+      { swatchClass: 'outflow', label: 'Outflows' }
+    ];
+    if (hasNewCapital) flowItems.push({ swatchClass: 'new-capital', label: 'New Capital' });
+    const flowsSection: SankeyLegendSection = { header: 'Flows:', items: flowItems };
+
+    this.legendSections = [
+      ...(productTypes ? [productTypes] : []),
+      ...(otherNodes ? [otherNodes] : []),
+      flowsSection
+    ];
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {

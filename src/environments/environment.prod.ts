@@ -5,7 +5,10 @@ export const environment = {
   assetFlowsDataUrl: 'assets/data/asset-flows-data.json',
   appName: 'MarketSense',
   version: '1.0.0',
-  enableDebug: false
+  enableDebug: false,
+  /** AI chat backend URL on VDI. POST requests go here. */
+  aiChatApiUrl: 'https://api.marketsense.com/api/ai-chat',
+  aiChatMockUrl: undefined as string | undefined,
 };
 
 

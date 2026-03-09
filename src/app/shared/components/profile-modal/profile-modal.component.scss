@@ -40,23 +40,13 @@
   }
 }
 
-// Current Profile Section
+// Current Profile Section - clean layout matching design
 .profile-section {
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 16px;
-    right: 16px;
-    height: 1px;
-    background-color: $border-light;
-  }
 }
 
 .current-profile {
@@ -65,45 +55,7 @@
   overflow: hidden;
 }
 
-// Switch Profile Section
-.switch-profile-section {
-  padding: 12px 8px;
-}
-
-.section-header {
-  padding: 0 16px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: $text-secondary;
-  text-transform: uppercase;
-}
-
-.profiles-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profile-item {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  position: relative;
-
-  &:hover {
-    background-color: $dropdown-hover-background;
-  }
-
-  &.selected {
-    background-color: $neutral-colors-neutral-250;
-  }
-}
-
-// Profile Avatar
+// Profile Avatar - dark blue circle with white initial
 .profile-avatar {
   width: 40px;
   height: 40px;
@@ -112,29 +64,17 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background-color: #0D2E55;
 
   .avatar-initials {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 500;
     color: $bg-white;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.02em;
   }
-
-  &.avatar-blue {
-    background-color: $primary-colors-midnight-blue;
-  }
-
-  &.avatar-green {
-    background-color: $secondary-colors-green-1000;
-  }
-
-  &.avatar-red {
-    background-color: $red-dark;
-  }
-
 }
 
-// Profile Info
+// Profile Info - name and role stacked
 .profile-info {
   flex: 1;
   display: flex;
@@ -144,32 +84,23 @@
 }
 
 .profile-name {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 20px;
-  color: $text-midnight-blue;
+  line-height: 22px;
+  color: #0D2E55;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .profile-role {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 16px;
-  color: $text-secondary;
+  line-height: 18px;
+  color: #6C757D;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-// Active Indicator
-.active-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: $primary-colors-midnight-blue;
-  flex-shrink: 0;
 }
 
 // Sign Out Section

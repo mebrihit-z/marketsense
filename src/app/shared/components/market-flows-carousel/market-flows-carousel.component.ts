@@ -121,6 +121,14 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   showExportModal: boolean = false;
   selectedCardForExport: MarketFlowCard | null = null;
   selectedCardForDetail: MarketFlowCard | null = null;
+
+  /** For embedded modal markup (VDI): overlay visible when detail shown in non-inline mode. */
+  get isVisible(): boolean {
+    return !!this.selectedCardForDetail;
+  }
+
+  /** For embedded modal markup (VDI): carousel always uses inline detail panel. */
+  inline: boolean = true;
   
   // Sort dropdown state
   sortDropdownOpen: boolean = false;
@@ -383,9 +391,11 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     // Here you would typically send the message to an AI service
   }
   
-  onDownload(cardId: string): void {
-    // Find the card by ID and show export modal
-    const card = this.cards.find(c => c.id === cardId);
+  onDownload(cardId?: string): void {
+    // When called from embedded modal (VDI), cardId may be omitted - use selected card
+    const id = cardId ?? this.selectedCardForDetail?.id ?? this.selectedCard?.id;
+    if (!id) return;
+    const card = this.cards.find(c => c.id === id);
     if (card) {
       this.selectedCardForExport = card;
       this.showExportModal = true;
@@ -427,6 +437,116 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
 
   onCloseDetailModal(): void {
     this.selectedCardForDetail = null;
+  }
+
+  /** Alias for templates that reference onClose (e.g. embedded modal markup on VDI). */
+  onClose(): void {
+    this.onCloseDetailModal();
+  }
+
+  /** Alias for templates that reference card (e.g. selected card for detail view). */
+  get card(): MarketFlowCard | null {
+    return this.selectedCardForDetail;
+  }
+
+  /** For embedded modal markup (VDI): confidence color for AI score. */
+  getConfidenceColor(confidence: 'high' | 'medium' | 'low'): string {
+    return confidence ? '#00bc7d' : '#00bc7d';
+  }
+
+  /** For embedded modal markup (VDI): confidence label for AI score. */
+  getConfidenceLabel(confidence: 'high' | 'medium' | 'low'): string {
+    switch (confidence) {
+      case 'high': return 'High';
+      case 'medium': return 'Medium';
+      case 'low': return 'Low';
+      default: return 'High';
+    }
+  }
+
+  /** For embedded modal markup (VDI): projected value from selected card. */
+  getProjectedValue(): string {
+    if (!this.card) return '$0';
+    return this.card.value;
+  }
+
+  /** For embedded modal markup (VDI): time horizon display for selected card. */
+  getTimeHorizonDisplay(): string {
+    if (!this.card) return '12 Month';
+    return this.card.timeHorizon || '12 Month';
+  }
+
+  /** For embedded modal markup (VDI): chart data for line chart. */
+  getChartData(): number[] {
+    const labels = this.getXAxisLabels();
+    const template = [10, 12, 18, 25, 35];
+    if (labels.length <= template.length) return template.slice(0, labels.length);
+    const last = template[template.length - 1] ?? 35;
+    return [...template, ...Array(labels.length - template.length).fill(last)];
+  }
+
+  /** For embedded modal markup (VDI): chart line color. */
+  getChartColor(): string {
+    return '#00113F';
+  }
+
+  /** For embedded modal markup (VDI): chart width. */
+  getChartWidth(): number {
+    if (typeof window !== 'undefined' && this.card) {
+      const width = window.innerWidth;
+      if (width <= 480) return Math.max(280, width - 32);
+      if (width <= 768) return Math.max(300, width - 48);
+      if (width <= 1024) return Math.max(600, width - 64);
+      return Math.min(width - 220, 800);
+    }
+    return 800;
+  }
+
+  /** For embedded modal markup (VDI): x-axis labels for chart. */
+  getXAxisLabels(): string[] {
+    if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
+      return this._generateTimeHorizonLabels(this.timeHorizonRange.start, this.timeHorizonRange.end);
+    }
+    if (!this.card) return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    const isHistorical = this.card.dataType === 'historical';
+    return isHistorical ? ['-12mo', '-9mo', '-6mo', '-3mo', 'Today'] : ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+  }
+
+  private _generateTimeHorizonLabels(start: string, end: string): string[] {
+    const parseMo = (s: string): number | null => {
+      const m = s.match(/([+-]?\d+)\s*mo/i);
+      return m ? parseInt(m[1], 10) : null;
+    };
+    const startMo = parseMo(start);
+    const endMo = parseMo(end);
+    if (startMo === null || endMo === null) return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    const span = endMo - startMo;
+    const n = Math.min(5, Math.max(1, Math.abs(span) + 1));
+    const step = span === 0 ? 0 : span / (n - 1);
+    const labels: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const mo = span === 0 ? startMo : Math.round(startMo + step * i);
+      labels.push(mo === 0 ? 'Today' : mo > 0 ? `+${mo}mo` : `${mo}mo`);
+    }
+    return labels.length ? labels : ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+  }
+
+  /** For embedded modal markup (VDI): chart y-axis min. */
+  getYAxisMin(): number | undefined {
+    const data = this.getChartData();
+    if (data.length === 0) return undefined;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    return max <= 0 ? min * 1.1 : min * 0.9;
+  }
+
+  /** For embedded modal markup (VDI): chart y-axis max. */
+  getYAxisMax(): number | undefined {
+    const data = this.getChartData();
+    if (data.length === 0) return undefined;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    return min < 0 && max <= 0 ? max * 0.9 : max * 1.1;
   }
 
   /** Cards to show in the right column when a card is selected (all except the selected one). */

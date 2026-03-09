@@ -11,6 +11,8 @@ export default class UserProfileService {
   user$ = this.user.asObservable();
   private givenName: string | undefined = undefined;
   private familyName: string | undefined = undefined;
+  private roleName: string | undefined = undefined;
+  private lastLogin: string | undefined = undefined;
 
   // Getter (sync access)
   getuser(): UserProfile | null {
@@ -34,5 +36,21 @@ export default class UserProfileService {
   }
   getGivenName(): string | undefined {
     return this.givenName;
+  }
+
+  setRoleName(roleName: string | undefined): void {
+    this.roleName = roleName ?? undefined;
+  }
+
+  getRoleName(): string | undefined {
+    return this.roleName;
+  }
+
+  setLastLogin(lastLogin: string | undefined): void {
+    this.lastLogin = lastLogin ?? undefined;
+  }
+
+  getLastLogin(): string | undefined {
+    return this.lastLogin;
   }
 }

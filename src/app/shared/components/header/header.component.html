@@ -7,22 +7,19 @@
         <img src="assets/icons/marsh-logo-white.svg" alt="MarketSense Logo" class="brand-logo brand-logo-white">
       </a>
       <div class="settings-and-user">
-        <span class="user-name" (click)="toggleProfileModal()">{{ currentProfile ? (currentProfile.firstName.charAt(0) + currentProfile.lastName.charAt(0)) : 'SF' }}</span>
+        <span class="user-name" (click)="toggleProfileModal()">{{ displayInitials }}</span>
         <app-profile-modal
           [isVisible]="isProfileModalOpen"
-          [profiles]="profiles"
-          [currentProfileId]="currentProfileId"
-          (close)="closeProfileModal()"
-          (profileSwitch)="onProfileSwitch($event)">
+          (close)="closeProfileModal()">
         </app-profile-modal>
       </div>
     </div>
-    <!-- Row 2: Brand description and last updated -->
+    <!-- Row 2: Brand description and last login -->
     <div class="header-row header-row-2">
       <div class="brand-description">Personalized market signals and asset flow intelligence</div>
-      <div class="date-updated">
-        <img src="assets/icons/calendar-icon.svg" alt="Calendar" class="calendar-icon">
-        <span class="date-updated-text"><span class="date-label">Last updated:</span><span class="date-value"> Nov 11, 2025</span></span>
+      <div class="last-login-wrap">
+        <img src="assets/icons/clock-icon.svg" alt="" class="clock-icon">
+        <span class="last-login-text">Last login: {{ lastLogin }}</span>
       </div>
     </div>
   </div>

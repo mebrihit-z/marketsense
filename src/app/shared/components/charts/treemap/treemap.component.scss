@@ -80,6 +80,11 @@ app-treemap {
       align-items: flex-start !important;
     }
 
+    // Cells with hidden labels: show pointer to indicate hover reveals tooltip
+    &.leaf.unreadable-label {
+      cursor: pointer;
+    }
+
     &.superparent .label {
       font-size: 15px;
       font-weight: 600;

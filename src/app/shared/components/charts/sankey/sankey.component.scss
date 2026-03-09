@@ -144,6 +144,8 @@
     &.swatch-reallocation-pool { background-color: #6f6e6a; }
     &.swatch-outflow { background-color: #DC2626; }
     &.swatch-inflow { background-color: #059669; }
+    &.swatch-new-capital { background-color: #77B1FF; }
+    &.swatch-default { background-color: #6b7280; }
   }
 }
 
@@ -227,7 +229,19 @@
   .sankey-legend-rect-destination { fill: var(--green-primary, #22c55e); stroke: var(--green-primary, #22c55e); }
   .sankey-legend-rect-outflow { fill: var(--red-link, #DC2626); stroke: var(--red-link, #DC2626); }
   .sankey-legend-rect-reallocation { fill: var(--green-link, #059669); stroke: var(--green-link, #059669); }
+  .sankey-legend-rect-inflow { fill: var(--green-link, #059669); stroke: var(--green-link, #059669); }
   .sankey-legend-rect-new-capital { fill: var(--blue-link, rgba(0, 100, 200, 0.7)); stroke: var(--blue-link, rgba(0, 100, 200, 0.7)); }
+}
+
+// In-chart legend (drawn inside SVG, dynamic per data)
+.sankey-container ::ng-deep .sankey-in-chart-legend {
+  pointer-events: none;
+
+  .sankey-legend-bg {
+    fill: rgba(255, 255, 255, 0.92);
+    stroke: rgba(0, 0, 0, 0.08);
+    stroke-width: 1;
+  }
 }
 
 // Sankey node and link labels – readable typography

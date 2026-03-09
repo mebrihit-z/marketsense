@@ -1,0 +1,38 @@
+[
+  {
+    "question": "What are the largest inflows and outflows by asset class over the last 12 months, broken down by client type, and what percentage of total assets do they represent?",
+    "timestamp": "Today at 07:12 PM",
+    "summary": "Analysis of 3M institutional flows shows positive net inflows across equity and alternatives, with fixed income maintaining stable momentum. Real estate continues to experience outflows driven by commercial office headwinds. By client type, institutional accounts lead net inflows in equities and alternatives; retail shows a shift toward fixed income.",
+    "insights": [
+      "Equity inflows up 18.2% vs prior quarter, driven by large-cap positioning; represents ~42% of total institutional AUM",
+      "Alternatives showing highest net flow percentage at 15.4% of AUM, with institutional concentration",
+      "Real estate outflows accelerating, now -6.8% of total assets; commercial office headwinds across client types",
+      "Fixed income flows stabilizing near long-term average of 8–9% of assets; retail inflows offset institutional rotation"
+    ],
+    "chartData": null
+  },
+  {
+    "question": "Building on the prior analysis: what trends do we see in institutional flows by client type?",
+    "timestamp": "Today at 07:15 PM",
+    "summary": "Building on the prior analysis: institutional flows in the last quarter show a clear rotation from real estate into equities and alternatives. By client type, the trend holds with institutional leading the shift; retail flows into fixed income have increased as a share of total assets.",
+    "insights": [
+      "Institutional equity allocation up 2.1 pts vs prior quarter; large-cap and international leading",
+      "Alternatives net flows remain strong at 15.4% of AUM, concentrated in private equity and infrastructure",
+      "Real estate outflows (-6.8%) primarily from institutional; retail real estate flows near flat",
+      "Fixed income: retail inflows offset institutional outflows; overall 8–9% of AUM in line with history"
+    ],
+    "chartData": null
+  },
+  {
+    "question": "testing",
+    "timestamp": "Today at 07:15 PM",
+    "summary": "Mebrihit testing ",
+    "insights": [
+      "Institutional equity allocation up 2.1 pts vs prior quarter; large-cap and international leading",
+      "Alternatives net flows remain strong at 15.4% of AUM, concentrated in private equity and infrastructure",
+      "Real estate outflows (-6.8%) primarily from institutional; retail real estate flows near flat",
+      "Fixed income: retail inflows offset institutional outflows; overall 8–9% of AUM in line with history"
+    ],
+    "chartData": null
+  }
+]

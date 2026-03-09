@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { ProfileModalComponent, Profile } from '../profile-modal/profile-modal.component';
+import { ProfileModalComponent } from '../profile-modal/profile-modal.component';
+import UserProfileService from '../../services/user-profile.service';
 
 @Component({
   selector: 'app-header',
@@ -12,47 +13,21 @@ import { ProfileModalComponent, Profile } from '../profile-modal/profile-modal.c
 })
 export default class HeaderComponent {
   isProfileModalOpen = false;
-  
-  // Sample profile data - you can replace this with data from a service
-  profiles: Profile[] = [
-    {
-      id: '1',
-      firstName: 'Mick',
-      lastName: '',
-      role: 'Product Strategist',
-      avatarColor: 'blue'
-    },
-    {
-      id: '2',
-      firstName: 'Priya',
-      lastName: 'Ramesh',
-      role: 'Consultant Relations Director',
-      avatarColor: 'green'
-    },
-    {
-      id: '3',
-      firstName: 'Mattiya',
-      lastName: 'Thompson',
-      role: 'Sales/Marketing Manager',
-      avatarColor: 'red'
-    }
-  ];
 
-  currentProfileId = '1';
+  constructor(private userProfileService: UserProfileService) {}
 
-  /**
-   * @returns {import("../profile-modal/profile-modal.component").Profile | undefined} The currently selected profile, or undefined
-   */
-  get currentProfile(): Profile | undefined {
-    return this.profiles.find(p => p.id === this.currentProfileId);
+  /** Last login: from UserProfileService or default (like welcome section). */
+  get lastLogin(): string {
+    return this.userProfileService.getLastLogin() ?? 'Today, 9:42 AM';
   }
 
-  /**
-   * @param {import("../profile-modal/profile-modal.component").Profile} profile - Profile to get initials for
-   * @returns {string} Uppercase two-letter initials
-   */
-  static getInitials(profile: Profile): string {
-    return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
+  /** Avatar initials from logged-in user (UserProfileService) or fallback. */
+  get displayInitials(): string {
+    const name = this.userProfileService.getGivenName() ?? 'Mick';
+    if (!name.trim()) return 'M';
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    return name.charAt(0).toUpperCase() || 'M';
   }
 
   toggleProfileModal(): void {
@@ -61,15 +36,6 @@ export default class HeaderComponent {
 
   closeProfileModal(): void {
     this.isProfileModalOpen = false;
-  }
-
-  /**
-   * @param {import("../profile-modal/profile-modal.component").Profile} profile - Profile switched to
-   */
-  onProfileSwitch(profile: Profile): void {
-    this.currentProfileId = profile.id;
-    // Here you can add logic to switch the actual user profile
-    // For example, call an authentication service to switch context
   }
 }
  

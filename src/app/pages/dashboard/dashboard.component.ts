@@ -494,19 +494,17 @@ export default class DashboardComponent implements OnInit {
   }
 
   /**
-   * Formats a numeric value in billions with appropriate decimal places
+   * Formats a numeric value in billions with thousand separators and appropriate decimal places
    * @param value - The value in billions
-   * @returns Formatted string (e.g., "124.8" or "5.2")
+   * @returns Formatted string (e.g., "124.8" or "57,644.15")
    */
   private formatValue(value: number): string {
     if (value === 0) return '0';
-    if (value < 0.1) {
-      return value.toFixed(2);
-    } else if (value < 1) {
-      return value.toFixed(1);
-    } else {
-      return value.toFixed(1);
-    }
+    const decimals = value < 0.1 ? 2 : value < 1 ? 1 : 1;
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
   }
 
   /**

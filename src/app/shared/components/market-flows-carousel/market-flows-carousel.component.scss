@@ -286,7 +286,7 @@
   display: grid;
   grid-template-columns: 1fr; /* Laptop: 3 cards in one column on the right */
   gap: 16px;
-  max-height: 80vh;
+ 
   overflow-y: auto;
   padding: 12px 12px 12px 4px; // room for card box-shadows
   box-sizing: border-box;
