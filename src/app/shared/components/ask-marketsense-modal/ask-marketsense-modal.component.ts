@@ -43,6 +43,8 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   activeTab: 'new-question' | 'history' = 'new-question';
   isCollapsed: boolean = false;
   isVisualizationModalOpen: boolean = false;
+  /** Analysis whose chart is shown in the expanded visualization modal (the one that was clicked). */
+  expandedAnalysis: AnalysisResult | null = null;
   /** True while waiting for AI response. */
   isWaitingForResponse: boolean = false;
   /** Last error message from AI chat, if any. */
@@ -57,21 +59,6 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       return this._localAnalyses;
     }
     return this.analysisResult ? [this.analysisResult] : [];
-  }
-
-  /** The visualization image to use for the expanded modal (default: most recent analysis with an image). */
-  get expandedVisualizationImageBase64(): string | null {
-    const analyses = this.displayAnalyses;
-    if (!analyses.length) {
-      return null;
-    }
-    // Prefer the last analysis that has a visualization image
-    for (let i = analyses.length - 1; i >= 0; i--) {
-      if (analyses[i].visualization_image_base64) {
-        return analyses[i].visualization_image_base64!;
-      }
-    }
-    return null;
   }
 
   get hasDisplayAnalyses(): boolean {
@@ -109,9 +96,11 @@ export default class AskMarketsenseModalComponent implements OnChanges {
           this.userMessage = '';
         }
         this.isVisualizationModalOpen = false;
+        this.expandedAnalysis = null;
       } else {
         document.body.style.overflow = '';
         this.isVisualizationModalOpen = false;
+        this.expandedAnalysis = null;
       }
       this.cdr.markForCheck();
     }
@@ -132,6 +121,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   onClose(): void {
     document.body.style.overflow = '';
     this.isVisualizationModalOpen = false;
+    this.expandedAnalysis = null;
     this.close.emit();
   }
 
@@ -222,13 +212,15 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.clearAnalysis.emit();
   }
 
-  onExpandAndDownload(): void {
+  onExpandAndDownload(analysis: AnalysisResult): void {
+    this.expandedAnalysis = analysis;
     this.isVisualizationModalOpen = true;
     this.expandAndDownload.emit();
   }
 
   closeVisualizationModal(): void {
     this.isVisualizationModalOpen = false;
+    this.expandedAnalysis = null;
   }
 
   toggleCollapse(): void {

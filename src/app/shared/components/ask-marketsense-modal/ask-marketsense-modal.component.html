@@ -121,7 +121,7 @@
             <section class="analysis-section visualization-section">
               <div class="visualization-header">
                 <h4 class="section-label">Visualization</h4>
-                <button type="button" class="expand-download-btn" (click)="onExpandAndDownload()" aria-label="Expand and Download">
+                <button type="button" class="expand-download-btn" (click)="onExpandAndDownload(analysis)" aria-label="Expand and Download">
                   <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
                   <span>Expand &amp; Download</span>
                 </button>
@@ -228,8 +228,7 @@
       <div class="visualization-title-group">
         <h2 class="visualization-title">Flow Analysis Visualization</h2>
         <p class="visualization-subtitle">
-          What are the largest inflows and outflows by asset class over the last 12 months, broken down by client type,
-          and what percentage of total assets do they represent?
+          {{ expandedAnalysis ? expandedAnalysis.question : 'Flow analysis chart' }}
         </p>
         <div class="time-range-pill">
           <span class="time-range-label">Time Range: 3M</span>
@@ -253,11 +252,11 @@
 
     <div class="visualization-modal-body">
       <div class="visualization-chart-large">
-        <!-- Render the same visualization image used in the inline card when available -->
-        <ng-container *ngIf="expandedVisualizationImageBase64; else largeChartPlaceholder">
+        <!-- Render the chart for the analysis that was clicked -->
+        <ng-container *ngIf="expandedAnalysis?.visualization_image_base64; else largeChartPlaceholder">
           <img
             class="chart-large-placeholder-img"
-            [src]="'data:image/png;base64,' + expandedVisualizationImageBase64"
+            [src]="'data:image/png;base64,' + (expandedAnalysis?.visualization_image_base64 ?? '')"
             alt="Flow analysis chart"
           />
         </ng-container>
