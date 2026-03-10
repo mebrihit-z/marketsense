@@ -27,12 +27,12 @@
           (click)="setActiveTab('new-question')">
           New Question
         </button>
-        <button 
+        <!-- <button 
           class="tab-btn" 
           [class.active]="activeTab === 'history'"
           (click)="setActiveTab('history')">
           Session History
-        </button>
+        </button> -->
       </div>
       <button
         *ngIf="activeTab === 'new-question' && hasDisplayAnalyses"
@@ -112,7 +112,7 @@
               <h4 class="section-label">Key Insights</h4>
               <div class="insights-list-container">
                 <ul class="insights-list">
-                  <li *ngFor="let insight of analysis.insights">{{ insight }}</li>
+                  <li *ngFor="let point of analysis.key_points">{{ point }}</li>
                 </ul>
               </div>
             </section>
@@ -127,8 +127,15 @@
                 </button>
               </div>
               <div class="visualization-chart">
-                <!-- Chart placeholder / host for chart component -->
-                <div class="chart-placeholder" *ngIf="!analysis.chartData">
+                <!-- Render backend visualization image when available -->
+                <img
+                  *ngIf="analysis.visualization_image_base64"
+                  class="visualization-image"
+                  [src]="'data:image/png;base64,' + analysis.visualization_image_base64"
+                  alt="MarketSense visualization"
+                />
+                <!-- Fallback placeholder when no visualization is available -->
+                <div class="chart-placeholder" *ngIf="!analysis.visualization_image_base64">
                   <img src="assets/icons/chart-placeholder.svg" alt="chart-placeholder" class="chart-placeholder-icon" />
                 </div>
               </div>

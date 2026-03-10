@@ -5,11 +5,41 @@ import { environment } from '../../../environments/environment';
 
 /** Response shape from backend AI chat or mock JSON */
 export interface AiChatResponse {
+  /** Route used by backend (e.g. "genie") */
+  route?: string;
+  /** High-level intent of the request (e.g. "data") */
+  intent?: string;
+  /** Original user question */
   question: string;
-  timestamp: string;
+  /** Optional backend message (may be null) */
+  message?: string | null;
+  /** Conversation identifier from backend */
+  conversation_id?: string;
+  /** Space identifier used in the request */
+  space_id?: string;
+  /** Whether the response was served from cache */
+  from_cache?: boolean;
+  /** Backend response time in milliseconds */
+  response_time_ms?: number;
+  /** Natural language summary of the analysis */
   summary: string;
-  insights: string[];
-  chartData?: unknown;
+  /** Key points list from backend */
+  key_points?: string[];
+  /** Number of data rows returned */
+  row_count?: number;
+  /** Column metadata for tabular data */
+  columns?: unknown[];
+  /** Row data, typically matching the columns definition */
+  rows?: unknown[];
+  /** Optional base64-encoded image for visualization */
+  visualization_image_base64?: string;
+
+  /**
+   * Client-side convenience fields used by the UI.
+   * These are not part of the raw backend contract but are
+   * populated in the service for easier rendering.
+   */
+  timestamp?: string;
 }
 
 /** Request payload for AI chat (backend API shape) */
@@ -119,8 +149,8 @@ export class AiChatService {
       question: res.question ?? question,
       timestamp: res.timestamp ?? this.formatTimestamp(),
       summary: res.summary ?? '',
-      insights: Array.isArray(res.insights) ? res.insights : [],
-      chartData: res.chartData,
+      key_points: Array.isArray(res.key_points) ? res.key_points : [],
+      visualization_image_base64: res.visualization_image_base64,
     };
   }
 
@@ -129,7 +159,7 @@ export class AiChatService {
       question,
       timestamp: this.formatTimestamp(),
       summary: 'Analysis of flows shows positive net inflows across equity and alternatives, with fixed income maintaining stable momentum.',
-      insights: [
+      key_points: [
         'Equity inflows up vs prior quarter',
         'Alternatives showing highest net flow percentage',
         'Fixed income flows stabilizing near long-term average',

@@ -10,8 +10,8 @@ export interface AnalysisResult {
   question: string;
   timestamp: string;
   summary: string;
-  insights: string[];
-  chartData?: unknown;
+  key_points: string[];
+  visualization_image_base64?: string;
 }
 
 @Component({
@@ -140,6 +140,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
     this.aiChatService.sendQuestion(question, { isFollowUp: false }).subscribe({
       next: (result: AiChatResponse) => {
+        console.log('==== AskMarketsenseModal initial AiChatResponse ====:', result);
         this._localAnalyses = [...this._localAnalyses, this.toAnalysisResult(result)];
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
@@ -153,12 +154,13 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   }
 
   private toAnalysisResult(res: AiChatResponse): AnalysisResult {
+    const ts = res.timestamp ?? '';
     return {
       question: res.question,
-      timestamp: res.timestamp.includes('Today') ? res.timestamp : `Today at ${res.timestamp}`,
+      timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
       summary: res.summary,
-      insights: res.insights ?? [],
-      chartData: res.chartData,
+      key_points: res.key_points ?? [],
+      visualization_image_base64: res.visualization_image_base64,
     };
   }
 
@@ -178,6 +180,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
     this.aiChatService.sendQuestion(followUpQuestion, { isFollowUp: true }).subscribe({
       next: (result: AiChatResponse) => {
+        console.log('==== AskMarketsenseModal follow-up AiChatResponse ====:', result);
         this._localAnalyses = [...this._localAnalyses, this.toAnalysisResult(result)];
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
