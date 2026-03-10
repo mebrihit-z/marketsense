@@ -59,6 +59,21 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     return this.analysisResult ? [this.analysisResult] : [];
   }
 
+  /** The visualization image to use for the expanded modal (default: most recent analysis with an image). */
+  get expandedVisualizationImageBase64(): string | null {
+    const analyses = this.displayAnalyses;
+    if (!analyses.length) {
+      return null;
+    }
+    // Prefer the last analysis that has a visualization image
+    for (let i = analyses.length - 1; i >= 0; i--) {
+      if (analyses[i].visualization_image_base64) {
+        return analyses[i].visualization_image_base64!;
+      }
+    }
+    return null;
+  }
+
   get hasDisplayAnalyses(): boolean {
     return this.displayAnalyses.length > 0;
   }
