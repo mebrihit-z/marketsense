@@ -8,6 +8,14 @@
       "Alternatives showing highest net flow percentage at 15.4% of AUM, with institutional concentration",
       "Real estate outflows accelerating, now -6.8% of total assets; commercial office headwinds across client types",
       "Fixed income flows stabilizing near long-term average of 8–9% of assets; retail inflows offset institutional rotation"
+    ],
+    "row_count": 4,
+    "columns": ["portfolio_id", "portfolio_name", "total_inflow"],
+    "rows": [
+      { "portfolio_id": 406606, "portfolio_name": "Bank of America Cash Operating", "total_inflow": 27196795004.0 },
+      { "portfolio_id": 644162, "portfolio_name": "SHORT DURATION - NON REPRESENTED", "total_inflow": 9859956368.0 },
+      { "portfolio_id": 406609, "portfolio_name": "PNC Cash Operating", "total_inflow": 8789563429.0 },
+      { "portfolio_id": 406610, "portfolio_name": "Example Fourth Portfolio", "total_inflow": 5000000000.0 }
     ]
   },
   {
@@ -19,6 +27,15 @@
       "Alternatives net flows remain strong at 15.4% of AUM, concentrated in private equity and infrastructure",
       "Real estate outflows (-6.8%) primarily from institutional; retail real estate flows near flat",
       "Fixed income: retail inflows offset institutional outflows; overall 8–9% of AUM in line with history"
+    ],
+    "row_count": 5,
+    "columns": ["portfolio_id", "portfolio_name", "total_inflow"],
+    "rows": [
+      { "portfolio_id": 4066066, "portfolio_name": "Bank of America Cash Operating", "total_inflow": 27196795004.0 },
+      { "portfolio_id": 6441622, "portfolio_name": "SHORT DURATION - NON REPRESENTED", "total_inflow": 9859956368.0 },
+      { "portfolio_id": 4066099, "portfolio_name": "PNC Cash Operating", "total_inflow": 8789563429.0 },
+      { "portfolio_id": 406610, "portfolio_name": "Example Fourth Portfolio", "total_inflow": 5000000000.0 },
+      { "portfolio_id": 406610, "portfolio_name": "Example Fifth Portfolio", "total_inflow": 4500000000.0 }
     ]
   },
   {
@@ -30,6 +47,14 @@
       "Alternatives net flows remain strong at 15.4% of AUM, concentrated in private equity and infrastructure",
       "Real estate outflows (-6.8%) primarily from institutional; retail real estate flows near flat",
       "Fixed income: retail inflows offset institutional outflows; overall 8–9% of AUM in line with history"
+    ],
+    "row_count": 4,
+    "columns": ["asset_class", "client", "inflow", "outflow", "pct_assets"],
+    "rows": [
+      { "asset_class": "Equity",       "client": "Institutional", "inflow": 45200000000.0, "outflow": 38700000000.0, "pct_assets": 0.123 },
+      { "asset_class": "Fixed Income", "client": "Institutional", "inflow": 32800000000.0, "outflow": 28400000000.0, "pct_assets": 0.087 },
+      { "asset_class": "Alternatives", "client": "Institutional", "inflow": 28500000000.0, "outflow": 19200000000.0, "pct_assets": 0.154 },
+      { "asset_class": "Real Estate",  "client": "Institutional", "inflow": 12300000000.0, "outflow": 24800000000.0, "pct_assets": -0.068 }
     ]
   }
 ]

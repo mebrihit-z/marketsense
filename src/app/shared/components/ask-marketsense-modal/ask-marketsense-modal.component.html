@@ -101,6 +101,31 @@
               </div>
             </section>
 
+            <!-- Query Results Table (when columns/rows present) -->
+            <section class="analysis-section query-results-section" *ngIf="analysis.columns?.length && analysis.rows?.length">
+              <div class="query-results-header">
+                <h4 class="section-label query-results-title">Query Results</h4>
+                <button type="button" class="expand-download-btn query-results-expand-btn" (click)="onExpandAndDownload(analysis)" aria-label="Expand">
+                  <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
+                  <span>Expand &amp; Download</span>
+                </button>
+              </div>
+              <div class="query-results-card">
+                <table class="query-results-table">
+                  <thead>
+                    <tr>
+                      <th *ngFor="let col of analysis.columns" class="query-results-th">{{ formatColumnLabel(col) }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of analysis.rows" class="query-results-tr">
+                      <td *ngFor="let col of analysis.columns" class="query-results-td">{{ formatCellValue(col, row[col]) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             <!-- AI-Generated Summary Section -->
             <section class="analysis-section summary-section">
               <h4 class="section-label">AI-Generated Summary</h4>

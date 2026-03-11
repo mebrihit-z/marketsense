@@ -12,6 +12,10 @@ export interface AnalysisResult {
   summary: string;
   key_points: string[];
   visualization_image_base64?: string;
+  /** Table data for Query Results */
+  row_count?: number;
+  columns?: string[];
+  rows?: Record<string, unknown>[];
 }
 
 @Component({
@@ -166,7 +170,32 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       summary: res.summary,
       key_points: res.key_points ?? [],
       visualization_image_base64: res.visualization_image_base64,
+      row_count: res.row_count,
+      columns: (res.columns ?? []) as string[],
+      rows: (res.rows ?? []) as Record<string, unknown>[],
     };
+  }
+
+  /** Display label for a column key (e.g. total_inflow -> Total Inflow) */
+  formatColumnLabel(key: string): string {
+    return key
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /** Format cell value for display (e.g. large numbers as $XX.XB) */
+  formatCellValue(key: string, value: unknown): string {
+    if (value == null) return '—';
+    if (typeof value === 'number') {
+      if (key.toLowerCase().includes('inflow') || key.toLowerCase().includes('outflow') || key.toLowerCase().includes('total')) {
+        const billions = value / 1e9;
+        return `$${billions.toFixed(1)}B`;
+      }
+      if (Number.isInteger(value)) return String(value);
+      return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+    return String(value);
   }
 
   onSendFollowUp(event?: Event | KeyboardEvent): void {
