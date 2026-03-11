@@ -194,7 +194,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       .join(' ');
   }
 
-  /** Format cell value for display (e.g. large numbers as $XX.XB) */
+  /** Format cell value for display (e.g. large numbers as $XX.XB, dates as readable format) */
   formatCellValue(key: string, value: unknown): string {
     if (value == null) return '—';
     if (typeof value === 'number') {
@@ -205,7 +205,31 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       if (Number.isInteger(value)) return String(value);
       return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
     }
+    const date = this.toDate(value);
+    if (date) {
+      const keyLower = key.toLowerCase();
+      const isYearColumn = keyLower === 'year' || keyLower.includes('year');
+      if (isYearColumn) {
+        return String(date.getUTCFullYear());
+      }
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
     return String(value);
+  }
+
+  /** Coerce value to Date if it's an ISO string or Date instance; otherwise null */
+  private toDate(value: unknown): Date | null {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    const str = typeof value === 'string' ? value.trim() : '';
+    if (!str || !/^\d{4}-\d{2}-\d{2}/.test(str)) return null;
+    const date = new Date(str);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   onSendFollowUp(event?: Event | KeyboardEvent): void {

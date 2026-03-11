@@ -151,6 +151,9 @@ export class AiChatService {
       summary: res.summary ?? '',
       key_points: Array.isArray(res.key_points) ? res.key_points : [],
       visualization_image_base64: res.visualization_image_base64,
+      row_count: res.row_count,
+      columns: Array.isArray(res.columns) ? res.columns : [],
+      rows: Array.isArray(res.rows) ? res.rows : [],
     };
   }
 
