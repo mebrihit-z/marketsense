@@ -247,6 +247,76 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.expandAndDownload.emit();
   }
 
+  onDownloadPng(): void {
+    // Try exporting from the rendered <img> element first (works for both backend and placeholder images)
+    const imgEl = document.querySelector('.visualization-modal .visualization-chart-large img.chart-large-placeholder-img') as
+      | HTMLImageElement
+      | null;
+
+    const safeQuestion = (this.expandedAnalysis?.question ?? 'chart')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const filename = safeQuestion ? `${safeQuestion}.png` : 'chart.png';
+
+    if (imgEl && imgEl.naturalWidth && imgEl.naturalHeight) {
+      const canvas = document.createElement('canvas');
+      canvas.width = imgEl.naturalWidth;
+      canvas.height = imgEl.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+      ctx.drawImage(imgEl, 0, 0);
+
+      if (canvas.toBlob) {
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      } else {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      return;
+    }
+
+    // Fallback: use base64 data from the analysis if available
+    const base64 = this.expandedAnalysis?.visualization_image_base64;
+    if (!base64) {
+      return;
+    }
+
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   closeVisualizationModal(): void {
     this.isVisualizationModalOpen = false;
     this.expandedAnalysis = null;

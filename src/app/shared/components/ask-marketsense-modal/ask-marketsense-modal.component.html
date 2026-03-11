@@ -260,7 +260,13 @@
         </div>
       </div>
       <div class="visualization-header-actions">
-        <button type="button" class="download-btn">PNG</button>
+        <button
+          type="button"
+          class="download-btn"
+          (click)="onDownloadPng()"
+        >
+          PNG
+        </button>
         <button type="button" class="download-btn">PDF</button>
         <button
           type="button"
