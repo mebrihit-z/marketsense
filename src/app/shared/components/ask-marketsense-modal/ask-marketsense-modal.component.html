@@ -105,7 +105,7 @@
             <section class="analysis-section query-results-section" *ngIf="analysis.columns?.length && analysis.rows?.length">
               <div class="query-results-header">
                 <h4 class="section-label query-results-title">Query Results</h4>
-                <button type="button" class="expand-download-btn query-results-expand-btn" (click)="onExpandAndDownload(analysis)" aria-label="Expand">
+                <button type="button" class="expand-download-btn query-results-expand-btn" (click)="onExpandQueryResults(analysis)" aria-label="Expand">
                   <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
                   <span>Expand &amp; Download</span>
                 </button>
@@ -256,7 +256,7 @@
           {{ expandedAnalysis ? expandedAnalysis.question : 'Flow analysis chart' }}
         </p>
         <div class="time-range-pill">
-          <span class="time-range-label">Time Range: 3M</span>
+          <span class="time-range-label"></span>
         </div>
       </div>
       <div class="visualization-header-actions">
@@ -265,9 +265,13 @@
           class="download-btn"
           (click)="onDownloadPng()"
         >
+          <img src="assets/icons/download-icon.svg" alt="" class="download-btn-icon" />
           PNG
         </button>
-        <button type="button" class="download-btn" (click)="onDownloadPdf()">PDF</button>
+        <button type="button" class="download-btn" (click)="onDownloadPdf()">
+          <img src="assets/icons/download-icon.svg" alt="" class="download-btn-icon" />
+          PDF
+        </button>
         <button
           type="button"
           class="visualization-close-btn"
@@ -301,6 +305,65 @@
             />
           </div>
         </ng-template>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Query Results expanded modal (same look as visualization modal) -->
+<div
+  class="visualization-modal-backdrop"
+  *ngIf="isQueryResultsModalOpen"
+  (click)="closeQueryResultsModal()"
+>
+  <div class="visualization-modal" (click)="$event.stopPropagation()">
+    <div class="visualization-modal-header">
+      <div class="visualization-title-group">
+        <h2 class="visualization-title">Query Results</h2>
+        <p class="visualization-subtitle">
+          {{ expandedTableAnalysis ? expandedTableAnalysis.question : 'Query results table' }}
+        </p>
+        <div class="time-range-pill">
+        </div>
+      </div>
+      <div class="visualization-header-actions">
+        <button
+          type="button"
+          class="download-btn"
+          (click)="onDownloadQueryResultsCsv()"
+          [disabled]="!expandedTableAnalysis?.columns?.length || !expandedTableAnalysis?.rows?.length"
+          aria-label="Download as CSV"
+        >
+          <img src="assets/icons/download-icon.svg" alt="" class="download-btn-icon" />
+          CSV
+        </button>
+        <button
+          type="button"
+          class="visualization-close-btn"
+          (click)="closeQueryResultsModal()"
+          aria-label="Close expanded query results"
+        >
+          <img src="assets/icons/x-icon.svg" alt="Close" />
+        </button>
+      </div>
+    </div>
+
+    <div class="visualization-divider"></div>
+
+    <div class="visualization-modal-body">
+      <div class="visualization-chart-large query-results-table-wrapper" *ngIf="expandedTableAnalysis?.columns?.length && expandedTableAnalysis?.rows?.length">
+        <table class="query-results-table query-results-table-expanded">
+          <thead>
+            <tr>
+              <th *ngFor="let col of (expandedTableAnalysis?.columns ?? [])" class="query-results-th">{{ formatColumnLabel(col) }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of (expandedTableAnalysis?.rows ?? [])" class="query-results-tr">
+              <td *ngFor="let col of (expandedTableAnalysis?.columns ?? [])" class="query-results-td">{{ formatCellValue(col, row[col]) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

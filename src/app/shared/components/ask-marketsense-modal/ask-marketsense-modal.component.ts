@@ -50,6 +50,9 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   isVisualizationModalOpen: boolean = false;
   /** Analysis whose chart is shown in the expanded visualization modal (the one that was clicked). */
   expandedAnalysis: AnalysisResult | null = null;
+  /** Query Results expanded modal: analysis whose table is shown. */
+  isQueryResultsModalOpen: boolean = false;
+  expandedTableAnalysis: AnalysisResult | null = null;
   /** True while waiting for AI response. */
   isWaitingForResponse: boolean = false;
   /** Last error message from AI chat, if any. */
@@ -102,10 +105,14 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         }
         this.isVisualizationModalOpen = false;
         this.expandedAnalysis = null;
+        this.isQueryResultsModalOpen = false;
+        this.expandedTableAnalysis = null;
       } else {
         document.body.style.overflow = '';
         this.isVisualizationModalOpen = false;
         this.expandedAnalysis = null;
+        this.isQueryResultsModalOpen = false;
+        this.expandedTableAnalysis = null;
       }
       this.cdr.markForCheck();
     }
@@ -127,6 +134,8 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     document.body.style.overflow = '';
     this.isVisualizationModalOpen = false;
     this.expandedAnalysis = null;
+    this.isQueryResultsModalOpen = false;
+    this.expandedTableAnalysis = null;
     this.close.emit();
   }
 
@@ -246,6 +255,50 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.expandedAnalysis = analysis;
     this.isVisualizationModalOpen = true;
     this.expandAndDownload.emit();
+  }
+
+  onExpandQueryResults(analysis: AnalysisResult): void {
+    this.expandedTableAnalysis = analysis;
+    this.isQueryResultsModalOpen = true;
+    this.expandAndDownload.emit();
+  }
+
+  closeQueryResultsModal(): void {
+    this.isQueryResultsModalOpen = false;
+    this.expandedTableAnalysis = null;
+  }
+
+  onDownloadQueryResultsCsv(): void {
+    const analysis = this.expandedTableAnalysis;
+    const columns = analysis?.columns ?? [];
+    const rows = analysis?.rows ?? [];
+    if (!columns.length || !rows.length) return;
+
+    const escape = (v: string): string => {
+      const s = String(v);
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    const headerRow = columns.map((col) => escape(this.formatColumnLabel(col))).join(',');
+    const dataRows = rows.map((row) =>
+      columns.map((col) => escape(this.formatCellValue(col, row[col]))).join(',')
+    );
+    const csv = [headerRow, ...dataRows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const safeQuestion = (analysis?.question ?? 'query-results')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const filename = safeQuestion ? `${safeQuestion}.csv` : 'query-results.csv';
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   onDownloadPng(): void {
