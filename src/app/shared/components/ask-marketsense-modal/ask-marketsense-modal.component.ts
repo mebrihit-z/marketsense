@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/market-flow-card.component';
 import TitleComponent from '../title/title.component';
 import { AiChatService, type AiChatResponse } from '../../../core/services/ai-chat.service';
+import { jsPDF } from 'jspdf';
 
 export interface AnalysisResult {
   question: string;
@@ -315,6 +316,52 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  onDownloadPdf(): void {
+    const imgEl = document.querySelector('.visualization-modal .visualization-chart-large img.chart-large-placeholder-img') as
+      | HTMLImageElement
+      | null;
+
+    const safeQuestion = (this.expandedAnalysis?.question ?? 'chart')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const filename = safeQuestion ? `${safeQuestion}.pdf` : 'chart.pdf';
+
+    const getImageData = (): { dataUrl: string; width: number; height: number } | null => {
+      if (imgEl && imgEl.naturalWidth && imgEl.naturalHeight) {
+        const canvas = document.createElement('canvas');
+        canvas.width = imgEl.naturalWidth;
+        canvas.height = imgEl.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imgEl, 0, 0);
+        return {
+          dataUrl: canvas.toDataURL('image/png'),
+          width: canvas.width,
+          height: canvas.height,
+        };
+      }
+      const base64 = this.expandedAnalysis?.visualization_image_base64;
+      if (!base64) return null;
+      const dataUrl = `data:image/png;base64,${base64}`;
+      return { dataUrl, width: 800, height: 600 };
+    };
+
+    const imageData = getImageData();
+    if (!imageData) return;
+
+    const { dataUrl, width, height } = imageData;
+    const pdf = new jsPDF({
+      orientation: width > height ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [width, height],
+    });
+    pdf.addImage(dataUrl, 'PNG', 0, 0, width, height);
+    pdf.save(filename);
   }
 
   closeVisualizationModal(): void {
