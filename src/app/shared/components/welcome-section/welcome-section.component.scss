@@ -47,20 +47,33 @@
   overflow: visible;
 }
 
+.welcome-title-wrapper {
+  width: 100%;
+}
+
 .welcome-title {
   font-weight: 600;
   font-size: 20px;
   line-height: 28px;
   color: $text-midnight-blue;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   
   @media (max-width: 768px) {
     font-size: 20px;
     line-height: 28px;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
 .welcome-name {
+}
+
+.welcome-greeting {
+  white-space: nowrap;
 }
 
 .welcome-meta {
