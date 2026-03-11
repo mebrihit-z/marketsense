@@ -348,6 +348,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   isSaveFilterSetModalOpen: boolean = false;
 
   /**
+   * Local storage key for saved filter views.
+   */
+  private readonly SAVED_VIEWS_STORAGE_KEY = 'marketsense.savedViews';
+
+  /**
    * @param {keyof typeof this.state} key - The state key to update
    * @param {string[]} values - The new values to set for the state key
    * @returns {void} Updates internal state and emits changes for specific filter groups.
@@ -566,9 +571,134 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @returns {void} Saves the current filter set configuration with the given name.
    */
   onSaveFilterSet(filterSetName: string): void {
-    // TODO: Implement save filter set functionality (e.g., save to localStorage or API)
+    // Persist the current filter configuration to localStorage so it can be surfaced
+    // in the "Saved Views" dropdown (and later synced to Mongo on VDI).
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(this.SAVED_VIEWS_STORAGE_KEY);
+        const existing: any[] = raw ? JSON.parse(raw) : [];
+
+        const now = new Date();
+
+        const savedView = {
+          id: `${now.getTime()}`,
+          name: filterSetName,
+          savedAt: now.toISOString(),
+          // Full filter state so it can be reapplied by whatever
+          // consumes these presets (e.g., a service or container component).
+          state: {
+            investorRegion: [...this.state.investorRegion],
+            investorType: [...this.state.investorType],
+            productRegion: [...this.state.productRegion],
+            productType: [...this.state.productType],
+            productSubType: [...this.state.productSubType],
+          },
+          dataType: this.dataType,
+          timeHorizonRange: { ...this.timeHorizonRange },
+          timeHorizonRangeLabels: {
+            start: this.timeHorizons[this.timeHorizonRange.startIndex],
+            end: this.timeHorizons[this.timeHorizonRange.endIndex],
+          },
+          selectedTimeHorizon: this.selectedTimeHorizon,
+          aiConfidenceRange: { ...this.aiConfidenceRange },
+        };
+
+        const updated = [...existing, savedView];
+        localStorage.setItem(this.SAVED_VIEWS_STORAGE_KEY, JSON.stringify(updated));
+
+        // Notify other parts of the app (e.g., welcome section) that saved views changed.
+        try {
+          window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
+        } catch {
+          // Swallow if CustomEvent is not available (older environments)
+        }
+      } catch (e) {
+        console.error('Failed to save filter set to localStorage', e);
+      }
+    }
     // Close modal after saving
     this.isSaveFilterSetModalOpen = false;
+  }
+
+  /**
+   * Applies a saved view (triggered when user selects one of the "Saved Views").
+   * Expects the payload structure created in onSaveFilterSet().
+   */
+  @HostListener('window:marketsenseApplySavedView', ['$event'])
+  onApplySavedView(event: Event): void {
+    const customEvent = event as CustomEvent<any>;
+    const detail = customEvent?.detail;
+    if (!detail || typeof detail !== 'object') return;
+
+    const savedState = detail.state ?? {};
+
+    // Safely apply saved state to current filter state (only keys that exist).
+    const keys: Array<keyof typeof this.state> = [
+      'investorRegion',
+      'investorType',
+      'productRegion',
+      'productType',
+      'productSubType',
+    ];
+
+    keys.forEach((key) => {
+      const value = savedState[key];
+      if (Array.isArray(value)) {
+        this.state[key] = [...value];
+      }
+    });
+
+    // Re-emit filter changes so downstream components update.
+    this.productTypeChange.emit(this.state.productType);
+    this.productSubTypeChange.emit(this.state.productSubType);
+    this.productRegionChange.emit(this.state.productRegion);
+    this.investorRegionChange.emit(this.state.investorRegion);
+    this.investorTypeChange.emit(this.state.investorType);
+
+    // Apply data type first so time horizon labels map correctly.
+    if (detail.dataType === 'historical' || detail.dataType === 'forecasted') {
+      this.dataType = detail.dataType;
+      this.dataTypeChange.emit(this.dataType);
+    }
+
+    // Apply time horizon using the saved start/end labels so both handles
+    // are restored exactly as saved (e.g., "+3 mo" to "+12 mo").
+    const labels = detail.timeHorizonRangeLabels;
+    if (labels && typeof labels === 'object') {
+      const horizons = this.timeHorizons;
+      const startLabel = labels.start as string | undefined;
+      const endLabel = labels.end as string | undefined;
+      const startIndex = startLabel != null ? horizons.indexOf(startLabel) : -1;
+      const endIndex = endLabel != null ? horizons.indexOf(endLabel) : -1;
+      if (startIndex >= 0 && endIndex >= startIndex) {
+        this.timeHorizonRange = { startIndex, endIndex };
+        this.updateSelectedTimeHorizon();
+      }
+    } else if (detail.timeHorizonRange && typeof detail.timeHorizonRange === 'object') {
+      // Fallback for older saved views that only have indices.
+      const { startIndex, endIndex } = detail.timeHorizonRange;
+      if (
+        typeof startIndex === 'number' &&
+        typeof endIndex === 'number' &&
+        startIndex >= 0 &&
+        endIndex >= startIndex
+      ) {
+        this.timeHorizonRange = { startIndex, endIndex };
+        this.updateSelectedTimeHorizon();
+      }
+    } else if (typeof detail.selectedTimeHorizon === 'string') {
+      // Last-resort fallback: preserve at least the end handle using the previous logic.
+      this.selectedTimeHorizon = detail.selectedTimeHorizon;
+      this.initializeTimeHorizonRange();
+    }
+
+    // Apply AI confidence range if present.
+    if (detail.aiConfidenceRange && typeof detail.aiConfidenceRange === 'object') {
+      const { min, max } = detail.aiConfidenceRange;
+      if (typeof min === 'number' && typeof max === 'number' && min >= 0 && max <= 100 && min < max) {
+        this.aiConfidenceRange = { min, max };
+      }
+    }
   }
 
   /**

@@ -36,6 +36,8 @@
   gap: 12px;
   padding: 21px;
   padding-bottom: 25px;
+  /* Nudge modal slightly upward from exact vertical center */
+  margin-top: -32px;
   animation: slideUp 0.3s ease-out;
 }
 
