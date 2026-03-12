@@ -101,6 +101,22 @@
               </div>
             </section>
 
+            <!-- AI-Generated Summary Section -->
+            <section class="analysis-section summary-section">
+              <h4 class="section-label">AI-Generated Summary</h4>
+              <p class="summary-text">{{ analysis.summary }}</p>
+            </section>
+
+            <!-- Key Insights Section -->
+            <section class="analysis-section insights-section">
+              <h4 class="section-label">Key Insights</h4>
+              <div class="insights-list-container">
+                <ul class="insights-list">
+                  <li *ngFor="let point of analysis.key_points">{{ point }}</li>
+                </ul>
+              </div>
+            </section>
+
             <!-- Query Results Table (when columns/rows present) -->
             <section class="analysis-section query-results-section" *ngIf="analysis.columns?.length && analysis.rows?.length">
               <div class="query-results-header">
@@ -123,22 +139,6 @@
                     </tr>
                   </tbody>
                 </table>
-              </div>
-            </section>
-
-            <!-- AI-Generated Summary Section -->
-            <section class="analysis-section summary-section">
-              <h4 class="section-label">AI-Generated Summary</h4>
-              <p class="summary-text">{{ analysis.summary }}</p>
-            </section>
-
-            <!-- Key Insights Section -->
-            <section class="analysis-section insights-section">
-              <h4 class="section-label">Key Insights</h4>
-              <div class="insights-list-container">
-                <ul class="insights-list">
-                  <li *ngFor="let point of analysis.key_points">{{ point }}</li>
-                </ul>
               </div>
             </section>
 

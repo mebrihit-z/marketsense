@@ -295,7 +295,9 @@
   .query-results-card {
     background-color: $bg-white;
     border: 1px solid #E5E7EB;
-    overflow: hidden;
+    // Show up to ~3 rows, then scroll
+    max-height: 220px;
+    overflow-y: auto;
   }
 
   .query-results-table {

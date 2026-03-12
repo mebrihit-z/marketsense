@@ -65,24 +65,24 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
 
   /**
    * Load saved views from localStorage (populated by filters bar "Save View").
-   * Falls back to the original static presets if nothing has been saved yet.
+   * If nothing has been saved yet, the list stays empty.
    */
   private loadSavedViews(): void {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      this.viewingOptions = this.getDefaultViewingOptions();
+      this.viewingOptions = [];
       return;
     }
 
     try {
       const raw = localStorage.getItem(this.SAVED_VIEWS_STORAGE_KEY);
       if (!raw) {
-        this.viewingOptions = this.getDefaultViewingOptions();
+        this.viewingOptions = [];
         return;
       }
 
       const parsed: any[] = JSON.parse(raw);
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        this.viewingOptions = this.getDefaultViewingOptions();
+        this.viewingOptions = [];
         return;
       }
 
@@ -140,10 +140,12 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
       tags.push(...state.productType.slice(0, 2));
     }
     if (Array.isArray(state.productRegion) && state.productRegion.length > 0) {
-      tags.push(state.productRegion.join(', '));
+      // Show only the primary product region as a tag
+      tags.push(state.productRegion[0]);
     }
     if (Array.isArray(state.investorRegion) && state.investorRegion.length > 0) {
-      tags.push(state.investorRegion.join(', '));
+      // Show only the primary investor region as a tag
+      tags.push(state.investorRegion[0]);
     }
     return tags.slice(0, 3);
   }

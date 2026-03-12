@@ -328,7 +328,8 @@
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  height: 20px;
+  /* Allow tags to wrap to multiple lines without being clipped */
+  min-height: 20px;
   margin-top: 2px;
 }
 
