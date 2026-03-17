@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../title/title.component';
 import UserProfileService from '../../services/user-profile.service';
+import { SavedViewsService, type SavedView } from '../../../core/services/saved-views.service';
 
 export interface ViewingOption {
   name: string;
@@ -46,10 +47,10 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
   dropdownPosition = { top: 0, left: 0 };
   showAskMarketSenseModal: boolean = false;
 
-  /** Local storage key used by filters bar to persist views. */
-  private readonly SAVED_VIEWS_STORAGE_KEY = 'marketsense.savedViews';
-
-  constructor(private readonly userProfileService: UserProfileService) {}
+  constructor(
+    private readonly userProfileService: UserProfileService,
+    private readonly savedViewsService: SavedViewsService
+  ) {}
 
   viewingOptions: ViewingOption[] = [];
 
@@ -64,48 +65,39 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
   }
 
   /**
-   * Load saved views from localStorage (populated by filters bar "Save View").
+   * Load saved views via SavedViewsService (localStorage in dev, backend on VDI).
    * If nothing has been saved yet, the list stays empty.
    */
   private loadSavedViews(): void {
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      this.viewingOptions = [];
-      return;
-    }
+    this.savedViewsService.getSavedViews().subscribe({
+      next: (views: SavedView[]) => {
+        if (!Array.isArray(views) || views.length === 0) {
+          this.viewingOptions = [];
+          return;
+        }
 
-    try {
-      const raw = localStorage.getItem(this.SAVED_VIEWS_STORAGE_KEY);
-      if (!raw) {
-        this.viewingOptions = [];
-        return;
-      }
+        this.viewingOptions = views.map((item, index) => {
+          const name = item?.name ?? `View ${index + 1}`;
+          const savedDate = this.formatSavedDate(item?.savedAt);
+          const tags = this.deriveTagsFromState(item?.state);
+          return {
+            name,
+            savedDate,
+            tags,
+            isActive: index === 0,
+            raw: item,
+          };
+        });
 
-      const parsed: any[] = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        this.viewingOptions = [];
-        return;
-      }
-
-      this.viewingOptions = parsed.map((item, index) => {
-        const name = item?.name ?? `View ${index + 1}`;
-        const savedDate = this.formatSavedDate(item?.savedAt);
-        const tags = this.deriveTagsFromState(item?.state);
-        return {
-          name,
-          savedDate,
-          tags,
-          isActive: index === 0,
-          raw: item,
-        };
-      });
-
-      if (this.viewingOptions.length > 0) {
-        this.viewingFilter = this.viewingOptions[0].name;
-      }
-    } catch (e) {
-      console.error('Failed to load saved views from localStorage', e);
-      this.viewingOptions = this.getDefaultViewingOptions();
-    }
+        if (this.viewingOptions.length > 0) {
+          this.viewingFilter = this.viewingOptions[0].name;
+        }
+      },
+      error: (e) => {
+        console.error('Failed to load saved views', e);
+        this.viewingOptions = this.getDefaultViewingOptions();
+      },
+    });
   }
 
   /**
@@ -258,36 +250,25 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
       }));
     }
 
-    // Also remove this view from localStorage so it no longer appears
-    // in future sessions or other parts of the app.
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      try {
-        const raw = localStorage.getItem(this.SAVED_VIEWS_STORAGE_KEY);
-        if (raw) {
-          const existing: any[] = JSON.parse(raw);
-          const rawId = (option as any).raw?.id;
-          const updated = Array.isArray(existing)
-            ? existing.filter((item) => {
-                if (rawId != null) {
-                  return item?.id !== rawId;
-                }
-                // Fallback match by name if id is missing
-                return item?.name !== option.name;
-              })
-            : [];
-          localStorage.setItem(this.SAVED_VIEWS_STORAGE_KEY, JSON.stringify(updated));
+    const rawId = (option as any).raw?.id as string | undefined;
 
+    this.savedViewsService
+      .deleteView({ id: rawId, name: option.name })
+      .subscribe({
+        next: () => {
           // Let listeners (e.g., other components) know saved views changed.
-          try {
-            window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
-          } catch {
-            // Ignore if CustomEvent is not supported
+          if (typeof window !== 'undefined') {
+            try {
+              window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
+            } catch {
+              // Ignore if CustomEvent is not supported
+            }
           }
-        }
-      } catch (e) {
-        console.error('Failed to delete saved view from localStorage', e);
-      }
-    }
+        },
+        error: (e) => {
+          console.error('Failed to delete saved view', e);
+        },
+      });
   }
 
   onSaveCurrent(): void {

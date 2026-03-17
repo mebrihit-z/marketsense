@@ -10,6 +10,8 @@ export const environment = {
   dataUrlConfig: {
     assetFlows: 'assets/data/asset-flows-data.json',
   },
+  /** When set, saved views will be loaded from and persisted to this backend API instead of localStorage. */
+  savedViewsApiUrl: undefined as string | undefined,
   /** AI chat API URL. When undefined/empty, service uses mock JSON locally. */
   aiChatApiUrl: undefined as string | undefined,
   /** Mock JSON path for local dev (used when aiChatApiUrl is not set). */

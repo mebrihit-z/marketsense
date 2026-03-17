@@ -1,0 +1,162 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
+
+export interface SavedViewState {
+  investorRegion: string[];
+  investorType: string[];
+  productRegion: string[];
+  productType: string[];
+  productSubType: string[];
+}
+
+export interface SavedView {
+  id?: string;
+  name: string;
+  savedAt?: string;
+  state: SavedViewState;
+  dataType?: 'historical' | 'forecasted';
+  timeHorizonRange?: { startIndex: number; endIndex: number };
+  timeHorizonRangeLabels?: { start: string; end: string };
+  selectedTimeHorizon?: string;
+  aiConfidenceRange?: { min: number; max: number };
+}
+
+/**
+ * Central service for "Saved Views".
+ *
+ * - On local/dev: persists to window.localStorage using the same key as the
+ *   filters bar / welcome section.
+ * - On VDI (or any environment where environment.savedViewsApiUrl is set):
+ *   performs HTTP GET/POST/DELETE against the configured backend endpoint.
+ */
+@Injectable({
+  providedIn: 'root',
+})
+export class SavedViewsService {
+  private readonly storageKey = 'marketsense.savedViews';
+  /** When true, use localStorage instead of backend API (local/dev). */
+  private readonly useLocalStorage = !('savedViewsApiUrl' in environment) || !environment['savedViewsApiUrl'];
+
+  constructor(private http: HttpClient) {}
+
+  /**
+   * Load all saved views.
+   * - Local: read from localStorage.
+   * - VDI:   GET from backend.
+   */
+  getSavedViews(): Observable<SavedView[]> {
+    if (this.useLocalStorage) {
+      return of(this.readFromLocalStorage());
+    }
+
+    const url = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
+    return this.http.get<SavedView[] | { items: SavedView[] }>(url).pipe(
+      map((res) => {
+        if (Array.isArray(res)) {
+          return res;
+        }
+        const items = (res as { items?: SavedView[] }).items;
+        return Array.isArray(items) ? items : [];
+      }),
+      catchError((err) => {
+        console.error('Failed to load saved views from backend', err);
+        return of<SavedView[]>([]);
+      })
+    );
+  }
+
+  /**
+   * Persist a saved view.
+   * Caller is responsible for constructing the SavedView payload.
+   */
+  saveView(view: SavedView): Observable<void> {
+    if (this.useLocalStorage) {
+      const existing = this.readFromLocalStorage();
+      const now = new Date();
+      const withMeta: SavedView = {
+        ...view,
+        id: view.id ?? `${now.getTime()}`,
+        savedAt: view.savedAt ?? now.toISOString(),
+      };
+      existing.push(withMeta);
+      this.writeToLocalStorage(existing);
+      return of(void 0);
+    }
+
+    const url = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
+    return this.http.post<void>(url, view).pipe(
+      catchError((err) => {
+        console.error('Failed to save view to backend', err);
+        throw err;
+      })
+    );
+  }
+
+  /**
+   * Delete a saved view by id or name.
+   */
+  deleteView(identifier: { id?: string; name?: string }): Observable<void> {
+    if (this.useLocalStorage) {
+      const existing = this.readFromLocalStorage();
+      const updated = existing.filter((item) => {
+        if (identifier.id != null) {
+          return item.id !== identifier.id;
+        }
+        if (identifier.name) {
+          return item.name !== identifier.name;
+        }
+        return true;
+      });
+      this.writeToLocalStorage(updated);
+      return of(void 0);
+    }
+
+    const urlBase = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
+    const query =
+      identifier.id != null
+        ? `id=${encodeURIComponent(identifier.id)}`
+        : identifier.name
+        ? `name=${encodeURIComponent(identifier.name)}`
+        : '';
+    const url = query ? `${urlBase}?${query}` : urlBase;
+
+    return this.http.delete<void>(url).pipe(
+      catchError((err) => {
+        console.error('Failed to delete view from backend', err);
+        throw err;
+      })
+    );
+  }
+
+  private readFromLocalStorage(): SavedView[] {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return [];
+    }
+    try {
+      const raw = localStorage.getItem(this.storageKey);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as SavedView[]) : [];
+    } catch (e) {
+      console.error('Failed to read saved views from localStorage', e);
+      return [];
+    }
+  }
+
+  private writeToLocalStorage(views: SavedView[]): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(views));
+    } catch (e) {
+      console.error('Failed to write saved views to localStorage', e);
+    }
+  }
+}
+

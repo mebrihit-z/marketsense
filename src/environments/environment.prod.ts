@@ -6,6 +6,8 @@ export const environment = {
   appName: 'MarketSense',
   version: '1.0.0',
   enableDebug: false,
+  /** Backend endpoint for Saved Views on VDI (set to your API route, e.g. `${apiUrl}/saved-views`). */
+  savedViewsApiUrl: 'https://api.marketsense.com/api/saved-views',
   /** AI chat backend URL on VDI. POST requests go here. */
   aiChatApiUrl: 'https://api.marketsense.com/api/ai-chat',
   aiChatMockUrl: undefined as string | undefined,

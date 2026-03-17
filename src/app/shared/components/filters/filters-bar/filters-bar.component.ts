@@ -7,6 +7,7 @@ import SaveFilterSetModalComponent from '../save-filter-set-modal/save-filter-se
 import { extractFilterOptionsFromAssetFlows } from '../../../utils/asset-flows-filter-options.util';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
+import { SavedViewsService, type SavedView } from '../../../../core/services/saved-views.service';
 
 export interface FilterOptionTotals {
   productTypeTotal: number;
@@ -65,7 +66,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @Output() filterDropdownOpened = new EventEmitter<void>();
 
   constructor(
-    private assetFlowsData: AssetFlowsDataService
+    private assetFlowsData: AssetFlowsDataService,
+    private savedViewsService: SavedViewsService
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -566,51 +568,42 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @returns {void} Saves the current filter set configuration with the given name.
    */
   onSaveFilterSet(filterSetName: string): void {
-    // Persist the current filter configuration to localStorage so it can be surfaced
-    // in the "Saved Views" dropdown (and later synced to Mongo on VDI).
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      try {
-        const raw = localStorage.getItem(this.SAVED_VIEWS_STORAGE_KEY);
-        const existing: any[] = raw ? JSON.parse(raw) : [];
+    const savedView: SavedView = {
+      name: filterSetName,
+      // Full filter state so it can be reapplied by whatever
+      // consumes these presets (e.g., a service or container component).
+      state: {
+        investorRegion: [...this.state.investorRegion],
+        investorType: [...this.state.investorType],
+        productRegion: [...this.state.productRegion],
+        productType: [...this.state.productType],
+        productSubType: [...this.state.productSubType],
+      },
+      dataType: this.dataType,
+      timeHorizonRange: { ...this.timeHorizonRange },
+      timeHorizonRangeLabels: {
+        start: this.timeHorizons[this.timeHorizonRange.startIndex],
+        end: this.timeHorizons[this.timeHorizonRange.endIndex],
+      },
+      selectedTimeHorizon: this.selectedTimeHorizon,
+      aiConfidenceRange: { ...this.aiConfidenceRange },
+    };
 
-        const now = new Date();
-
-        const savedView = {
-          id: `${now.getTime()}`,
-          name: filterSetName,
-          savedAt: now.toISOString(),
-          // Full filter state so it can be reapplied by whatever
-          // consumes these presets (e.g., a service or container component).
-          state: {
-            investorRegion: [...this.state.investorRegion],
-            investorType: [...this.state.investorType],
-            productRegion: [...this.state.productRegion],
-            productType: [...this.state.productType],
-            productSubType: [...this.state.productSubType],
-          },
-          dataType: this.dataType,
-          timeHorizonRange: { ...this.timeHorizonRange },
-          timeHorizonRangeLabels: {
-            start: this.timeHorizons[this.timeHorizonRange.startIndex],
-            end: this.timeHorizons[this.timeHorizonRange.endIndex],
-          },
-          selectedTimeHorizon: this.selectedTimeHorizon,
-          aiConfidenceRange: { ...this.aiConfidenceRange },
-        };
-
-        const updated = [...existing, savedView];
-        localStorage.setItem(this.SAVED_VIEWS_STORAGE_KEY, JSON.stringify(updated));
-
+    this.savedViewsService.saveView(savedView).subscribe({
+      next: () => {
         // Notify other parts of the app (e.g., welcome section) that saved views changed.
-        try {
-          window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
-        } catch {
-          // Swallow if CustomEvent is not available (older environments)
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
+          } catch {
+            // Swallow if CustomEvent is not available (older environments)
+          }
         }
-      } catch (e) {
-        console.error('Failed to save filter set to localStorage', e);
-      }
-    }
+      },
+      error: (e) => {
+        console.error('Failed to save filter set', e);
+      },
+    });
     // Close modal after saving
     this.isSaveFilterSetModalOpen = false;
   }
