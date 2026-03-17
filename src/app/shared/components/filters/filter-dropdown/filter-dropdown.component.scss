@@ -222,12 +222,41 @@
   flex-direction: column;
   gap: 8px;
 }
+
+.group-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .group-label {
   color: $text-secondary;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  margin-bottom: 4px;
+}
+
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #0A0A0A;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 .option { 
   display:flex; 

@@ -32,7 +32,27 @@
       <!-- Grouped Options -->
       <div class="options" *ngIf="isGrouped">
         <div *ngFor="let group of groupedOptions" class="option-group">
-          <div class="group-label">{{ group.category }}</div>
+          <div class="group-label-row">
+            <div class="group-label">{{ group.category }}</div>
+            <div class="group-actions">
+              <button
+                type="button"
+                class="group-action-btn"
+                *ngIf="!groupAllSelected(group)"
+                (click)="selectAllInGroup(group, $event)"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                class="group-action-btn"
+                *ngIf="groupAllSelected(group)"
+                (click)="deselectAllInGroup(group, $event)"
+              >
+                Deselect all
+              </button>
+            </div>
+          </div>
           <label class="option grouped-option" *ngFor="let opt of group.options">
             <div class="checkbox-wrapper">
               <input type="checkbox" [(ngModel)]="pendingMap[opt.value]" (change)="onChange()" />

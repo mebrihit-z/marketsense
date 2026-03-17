@@ -211,6 +211,53 @@ export default class FilterDropdownComponent {
   }
 
   /**
+   * Selects all options within a specific group (for grouped dropdowns).
+   * Useful for "Select all" per product type in grouped product sub-types.
+   * @param group The option group whose options should be selected.
+   * @param ev Optional event object to stop propagation.
+   * @returns Nothing.
+   */
+  selectAllInGroup(group: GroupedFilterOption, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!this.isGrouped) {
+      return;
+    }
+    group.options.forEach(opt => {
+      this.pendingMap[opt.value] = true;
+    });
+  }
+
+  /**
+   * Deselects all options within a specific group (for grouped dropdowns).
+   * Useful for "Deselect all" per product type in grouped product sub-types.
+   * @param group The option group whose options should be deselected.
+   * @param ev Optional event object to stop propagation.
+   * @returns Nothing.
+   */
+  deselectAllInGroup(group: GroupedFilterOption, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!this.isGrouped) {
+      return;
+    }
+    group.options.forEach(opt => {
+      this.pendingMap[opt.value] = false;
+    });
+  }
+
+  /**
+   * Determines whether all options in a given group are currently selected
+   * according to the pending map (used to toggle group-level Select/Deselect).
+   * @param group The option group to inspect.
+   * @returns True if all options in the group are selected.
+   */
+  groupAllSelected(group: GroupedFilterOption): boolean {
+    if (!this.isGrouped || !group || !group.options?.length) {
+      return false;
+    }
+    return group.options.every(opt => !!this.pendingMap[opt.value]);
+  }
+
+  /**
    * Clears all selected filter options in the pending map.
    * @param ev Optional event object to stop propagation.
    * @returns Nothing.
