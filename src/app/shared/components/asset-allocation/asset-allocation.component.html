@@ -21,20 +21,33 @@
         </button>
       </div>
     </div>
-    <!-- Flow Dimensions & Toggle Section -->
+    <!-- Flow Dimensions & Min Flow Section -->
     <div class="dimensions-section">
-      <app-flow-dimensions
-        title="Flow Dimensions"
-        subtitle="Select three dimensions to drill down through the treemap. Dimension 1 shows the top-level grouping, Dimension 2 breaks it down further, and Dimension 3 reveals the deepest level."
-        [availableDimensions]="availableDimensions"
-        [selectedDimension1]="selectedDimension1"
-        [selectedDimension2]="selectedDimension2"
-        [selectedDimension3]="selectedDimension3"
-        [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
-        [showNoneForDimension3]="true"
-        (dimensionChange)="onFlowDimensionChange($event)"
-        (dimensionDropdownOpened)="dimensionDropdownOpened.emit()">
-      </app-flow-dimensions>
+      <div class="dimensions-section-inner">
+        <app-flow-dimensions
+          title="Flow Dimensions"
+          subtitle="Select three dimensions to drill down through the treemap. Dimension 1 shows the top-level grouping, Dimension 2 breaks it down further, and Dimension 3 reveals the deepest level."
+          [availableDimensions]="availableDimensions"
+          [selectedDimension1]="selectedDimension1"
+          [selectedDimension2]="selectedDimension2"
+          [selectedDimension3]="selectedDimension3"
+          [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
+          [showNoneForDimension3]="true"
+          (dimensionChange)="onFlowDimensionChange($event)"
+          (dimensionDropdownOpened)="dimensionDropdownOpened.emit()">
+        </app-flow-dimensions>
+      </div>
+      <ng-container *ngIf="minFlowValueOptions?.length">
+        <div class="dimension-selector-container min-flow-value-container">
+          <span class="dimension-number-label">Min flow value:</span>
+          <select
+            class="min-flow-value-select"
+            [ngModel]="minFlowValue"
+            (ngModelChange)="minFlowValue = +$event">
+            <option *ngFor="let opt of minFlowValueOptions" [value]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </ng-container>
     </div>
   </div>
   <!-- Treemap Visualization -->
@@ -46,6 +59,7 @@
           [selectedInvestorRegions]="regionData.investorRegions"
           [selectedProductTypes]="cachedSelectedProductTypes"
           [selectedProductSubTypes]="cachedSelectedProductSubTypes"
+          [minFlowValue]="minFlowValue"
           [timeHorizon]="timeHorizon"
           [timeHorizonStart]="timeHorizonStart"
           [timeHorizonEnd]="timeHorizonEnd">

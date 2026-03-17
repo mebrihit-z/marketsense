@@ -300,12 +300,8 @@ export function filterSankeyData(
     return data;
   }
 
-  // Check if "Global" is selected - if so, we should include all regions (no region filtering)
-  const hasGlobalSelected = selectedInvestorRegions.includes('Global');
-  const regionsToFilter = hasGlobalSelected 
-    ? [] // When Global is selected, don't filter by region (include all)
-    : selectedInvestorRegions.filter(r => r !== 'Global'); // Remove Global from filter list if present
-  
+  const regionsToFilter = selectedInvestorRegions || [];
+
   // If no filters are selected, return original data
   const hasInvestorRegionFilter = regionsToFilter.length > 0;
   const hasProductTypeFilter = selectedProductTypes.length > 0;
@@ -508,143 +504,52 @@ export function filterSankeyData(
 }
 
 /**
- * Aggregates Sankey data by combining all investor regions into a single "Global" region.
- * Maintains the same Sankey structure as individual regions but with aggregated values.
- * Aggregates product sub-type values from all regions.
- * 
- * @param data - The Sankey data object to aggregate
- * @returns Aggregated Sankey data with "Global" as the single region
+ * Filters Sankey data by a minimum flow value (e.g. only show links with value >= minValue in billions).
+ * Removes links below the threshold and any nodes that are no longer connected.
+ *
+ * @param data - The Sankey data object to filter
+ * @param minValue - Minimum link value in billions (e.g. 0.5 for $0.5B). Use 0 or undefined to skip filtering.
+ * @returns Filtered Sankey data with only links >= minValue and their connected nodes
  */
-export function aggregateSankeyDataByGlobal(data: SankeyData): SankeyData {
-  if (!data || !data.nodes || !Array.isArray(data.nodes) || !data.links || !Array.isArray(data.links)) {
+export function filterSankeyDataByMinValue(
+  data: SankeyData,
+  minValue: number
+): SankeyData {
+  if (!data || !data.links || !Array.isArray(data.links) || minValue <= 0) {
     return data;
   }
 
-  const aggregatedNodes: SankeyNode[] = [];
-  const aggregatedLinks: SankeyLink[] = [];
-  const nodeNameMap = new Map<string, string>(); // original name -> aggregated name
-  
-  // Helper to get aggregated node name
-  const getAggregatedName = (originalName: string): string => {
-    if (nodeNameMap.has(originalName)) {
-      return nodeNameMap.get(originalName)!;
-    }
-    
-    let aggregatedName = originalName;
-    
-    // Replace region names with "Global"
-    // Pattern 1: "Region (Super Start)" -> "Global (Super Start)"
-    aggregatedName = aggregatedName.replace(/^[^(]+(?=\s*\(Super (Start|End)\))/, 'Global');
-    
-    // Pattern 2: "Region: Product Type (Start)" -> "Global: Product Type (Start)"
-    aggregatedName = aggregatedName.replace(/^[^:]+:\s*/, 'Global: ');
-    
-    // Pattern 3: "Net New Capital (Region)" -> "Net New Capital (Global)"
-    aggregatedName = aggregatedName.replace(/Net New Capital \((.+?)\)/, 'Net New Capital (Global)');
-    
-    // Pattern 4: "Capital Withdrawn (Region)" -> "Capital Withdrawn (Global)"
-    aggregatedName = aggregatedName.replace(/Capital Withdrawn \((.+?)\)/, 'Capital Withdrawn (Global)');
-    
-    nodeNameMap.set(originalName, aggregatedName);
-    return aggregatedName;
-  };
+  const filteredLinks = data.links.filter((link) => (link.value ?? 0) >= minValue);
+  if (filteredLinks.length === 0) {
+    return {
+      ...data,
+      nodes: [],
+      links: [],
+      summary: data.summary
+        ? {
+            ...data.summary,
+            superparents: [],
+            parents: [],
+            superparent_net_new: []
+          }
+        : (data as any).summary
+    };
+  }
 
-  // Step 1: Create all aggregated nodes (unique by aggregated name)
-  const aggregatedNodeSet = new Set<string>();
-  data.nodes.forEach(node => {
-    const aggregatedName = getAggregatedName(node.name);
-    if (!aggregatedNodeSet.has(aggregatedName)) {
-      aggregatedNodeSet.add(aggregatedName);
-      aggregatedNodes.push({ name: aggregatedName });
-    }
-  });
-
-  // Step 2: Aggregate links by combining values for same source/target pairs
-  const linkMap = new Map<string, SankeyLink>(); // "source|target" -> aggregated link
-  
-  data.links.forEach(link => {
+  const nodeNames = new Set<string>();
+  filteredLinks.forEach((link) => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
-    
-    const aggregatedSource = getAggregatedName(source);
-    const aggregatedTarget = getAggregatedName(target);
-    
-    // Only process if both nodes exist in aggregated nodes
-    if (aggregatedNodeSet.has(aggregatedSource) && aggregatedNodeSet.has(aggregatedTarget)) {
-      const linkKey = `${aggregatedSource}|${aggregatedTarget}`;
-      
-      if (linkMap.has(linkKey)) {
-        // Aggregate the value
-        const existingLink = linkMap.get(linkKey)!;
-        existingLink.value += link.value;
-        // Keep date if available (prefer first one)
-        if (!existingLink.date && link.date) {
-          existingLink.date = link.date;
-        }
-      } else {
-        // Create new aggregated link
-        const newLink: SankeyLink = {
-          source: aggregatedSource,
-          target: aggregatedTarget,
-          value: link.value
-        };
-        if (link.date) {
-          newLink.date = link.date;
-        }
-        linkMap.set(linkKey, newLink);
-      }
-    }
+    if (source) nodeNames.add(source);
+    if (target) nodeNames.add(target);
   });
 
-  // Convert link map to array
-  aggregatedLinks.push(...Array.from(linkMap.values()));
-
-  // Step 3: Aggregate summary data
-  const aggregatedSummary: SankeyData['summary'] = {
-    ...data.summary,
-    superparents: [{
-      superparent: 'Global',
-      outflow: data.summary?.superparents?.reduce((sum, sp) => sum + (sp.outflow || 0), 0) || 0,
-      inflow: data.summary?.superparents?.reduce((sum, sp) => sum + (sp.inflow || 0), 0) || 0,
-      net: data.summary?.superparents?.reduce((sum, sp) => sum + (sp.net || 0), 0) || 0
-    }],
-    superparent_net_new: [{
-      superparent: 'Global',
-      net_new_capital: data.summary?.superparent_net_new?.reduce((sum, sp) => sum + (sp.net_new_capital || 0), 0) || 0
-    }],
-    // Aggregate parents by product type (removing region)
-    parents: (() => {
-      const parentMap = new Map<string, { parent: string; outflow: number; inflow: number; net: number }>();
-      
-      data.summary?.parents?.forEach(parent => {
-        const key = parent.parent;
-        if (!parentMap.has(key)) {
-          parentMap.set(key, {
-            parent: key,
-            outflow: 0,
-            inflow: 0,
-            net: 0
-          });
-        }
-        const aggregated = parentMap.get(key)!;
-        aggregated.outflow += parent.outflow || 0;
-        aggregated.inflow += parent.inflow || 0;
-        aggregated.net += parent.net || 0;
-      });
-      
-      return Array.from(parentMap.values()).map(p => ({
-        superparent: 'Global',
-        parent: p.parent,
-        outflow: p.outflow,
-        inflow: p.inflow,
-        net: p.net
-      }));
-    })()
-  };
+  const filteredNodes = (data.nodes || []).filter((node) => nodeNames.has(node.name));
 
   return {
-    nodes: aggregatedNodes,
-    links: aggregatedLinks,
-    summary: aggregatedSummary
+    ...data,
+    nodes: filteredNodes,
+    links: filteredLinks
   };
 }
+

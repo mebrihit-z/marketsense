@@ -2,7 +2,7 @@
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
-import { filterSankeyData, type SankeyData } from '../../../utils/sankey-data.utils';
+import { filterSankeyData, filterSankeyDataByMinValue, type SankeyData } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 
@@ -46,6 +46,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
+  /** Minimum flow value in billions ($B) to show; links below this are hidden. Use 0 to show all. */
+  @Input() minFlowValue: number = 0;
   @Input() timeHorizon: string = 'Today';
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
@@ -82,7 +84,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Handle filter changes - check if any filter input changed
     const filterChanged = changes['selectedInvestorRegions'] || 
                           changes['selectedProductTypes'] || 
-                          changes['selectedProductSubTypes'];
+                          changes['selectedProductSubTypes'] ||
+                          changes['minFlowValue'];
     
     // Handle time horizon changes
     const timeHorizonChanged = changes['timeHorizon'] || 
@@ -285,13 +288,18 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       summary: this.originalData.summary
     };
 
-    // Apply filters using the filterSankeyData utility
-    const filteredData = filterSankeyData(
+    // Apply category filters using the filterSankeyData utility
+    let filteredData = filterSankeyData(
       sankeyData,
       this.selectedInvestorRegions,
       this.selectedProductTypes,
       this.selectedProductSubTypes
     );
+    // Apply minimum flow value filter
+    const minVal = this.minFlowValue ?? 0;
+    if (minVal > 0) {
+      filteredData = filterSankeyDataByMinValue(filteredData, minVal);
+    }
     // Convert back to local format
     this.loadedData = {
       nodes: filteredData.nodes,

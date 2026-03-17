@@ -22,6 +22,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   @Input() rawAssetFlowsData: AssetFlowRecord[] = [];
   @Input() timeHorizonRange: { start: string; end: string } | null = null;
   @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedInvestorTypes: string[] = [];
+  @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Output() close = new EventEmitter<void>();
 
@@ -127,12 +129,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   private applyChartDataFilters(productSubType: string): AssetFlowRecord[] {
     let data = this.rawAssetFlowsData.filter(r => r.Product_Sub_Type === productSubType);
-    const hasGlobal = this.selectedInvestorRegions?.includes('Global');
-    if (!hasGlobal && this.selectedInvestorRegions?.length) {
-      data = data.filter(r => this.selectedInvestorRegions.includes(r.Investor_Region));
+    if (this.selectedInvestorRegions?.length) {
+      data = data.filter(r => this.selectedInvestorRegions!.includes(r.Investor_Region));
     }
-    if (!hasGlobal && this.selectedProductTypes?.length) {
-      data = data.filter(r => this.selectedProductTypes.includes(r.Product_Type));
+    if (this.selectedInvestorTypes?.length) {
+      data = data.filter(r => {
+        const investorType = r.Plan_Type ?? r.Investor_Types;
+        return investorType && this.selectedInvestorTypes!.includes(investorType);
+      });
+    }
+    if (this.selectedProductRegions?.length) {
+      data = data.filter(r => r.Product_Region != null && this.selectedProductRegions!.includes(r.Product_Region));
+    }
+    if (this.selectedProductTypes?.length) {
+      data = data.filter(r => this.selectedProductTypes!.includes(r.Product_Type));
     }
     if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
       const start = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.start);

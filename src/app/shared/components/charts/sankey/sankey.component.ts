@@ -8,7 +8,7 @@ import {
   sankeyLinkHorizontal,
   SankeyGraph
 } from 'd3-sankey';
-import { filterSankeyData, extractProductTypeFromNodeName, type SankeyData } from '../../../utils/sankey-data.utils';
+import { filterSankeyData, filterSankeyDataByMinValue, extractProductTypeFromNodeName, type SankeyData } from '../../../utils/sankey-data.utils';
 
 // ----------------------
 // TypeScript Models
@@ -73,18 +73,21 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() dimension2Label?: string;
   /** Label for the super-node legend (Super Start/End, same as selected dimension 1). Falls back to "Regions" when not provided. */
   @Input() dimension1Label?: string;
+  /** Minimum flow value in billions ($B) to show; links below this are hidden. Use 0 or leave unset to show all. */
+  @Input() minFlowValue: number = 0;
 
   // Getter to ensure TypeScript recognizes the input
   get shouldShowLegend(): boolean {
     return this.showLegend;
   }
 
-  /** True when user has made a filter selection (regions, product types, or sub-types) */
+  /** True when user has made a filter selection (regions, product types, sub-types, or min value) */
   get hasFilterSelection(): boolean {
     return (
       (this.selectedInvestorRegions?.length ?? 0) > 0 ||
       (this.selectedProductTypes?.length ?? 0) > 0 ||
-      (this.selectedProductSubTypes?.length ?? 0) > 0
+      (this.selectedProductSubTypes?.length ?? 0) > 0 ||
+      (this.minFlowValue ?? 0) > 0
     );
   }
 
@@ -121,7 +124,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * Generate a hash of filter values to detect actual changes
    */
   private getFiltersHash(): string {
-    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}`;
+    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}`;
   }
 
   ngAfterViewInit(): void {
@@ -154,7 +157,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Check if filters actually changed
     if (changes['selectedInvestorRegions'] || 
         changes['selectedProductTypes'] || 
-        changes['selectedProductSubTypes']) {
+        changes['selectedProductSubTypes'] ||
+        changes['minFlowValue']) {
       const newFiltersHash = this.getFiltersHash();
       if (newFiltersHash !== this.lastFiltersHash) {
         this.lastFiltersHash = newFiltersHash;
@@ -180,28 +184,35 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
 
   /**
-   * Applies filters to the sankey data based on selected investor regions, product types, and product sub-types
+   * Applies filters to the sankey data: category filters (regions, product types, sub-types) and minimum flow value.
    */
   private getFilteredData(): RegionalSankeyData | undefined {
     const dataToUse = this.loadedData || this.data;
     if (!dataToUse) return undefined;
 
-    // If no filters are selected, return original data
-    if (
-      this.selectedInvestorRegions.length === 0 &&
-      this.selectedProductTypes.length === 0 &&
-      this.selectedProductSubTypes.length === 0
-    ) {
-      return dataToUse;
+    let result = dataToUse as SankeyData;
+
+    // Apply category filters when any are selected
+    const hasCategoryFilters =
+      this.selectedInvestorRegions.length > 0 ||
+      this.selectedProductTypes.length > 0 ||
+      this.selectedProductSubTypes.length > 0;
+    if (hasCategoryFilters) {
+      result = filterSankeyData(
+        result,
+        this.selectedInvestorRegions,
+        this.selectedProductTypes,
+        this.selectedProductSubTypes
+      );
     }
 
-    // Apply filters using the utility function
-    return filterSankeyData(
-      dataToUse as SankeyData,
-      this.selectedInvestorRegions,
-      this.selectedProductTypes,
-      this.selectedProductSubTypes
-    ) as RegionalSankeyData;
+    // Apply minimum flow value filter (values in billions)
+    const minVal = this.minFlowValue ?? 0;
+    if (minVal > 0) {
+      result = filterSankeyDataByMinValue(result, minVal);
+    }
+
+    return result as RegionalSankeyData;
   }
 
     // Helper: read CSS variable from component host first (scoped palette for VDI/local consistency), then :root

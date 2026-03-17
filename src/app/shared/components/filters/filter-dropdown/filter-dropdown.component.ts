@@ -355,7 +355,7 @@ export default class FilterDropdownComponent {
     // Default tooltip text based on filter type
     switch (this.title) {
       case 'Investor Region':
-        return 'Select the geographic source of capital flows (e.g., U.S., Europe, Global) to understand where money is coming from.';
+        return 'Select the geographic source of capital flows (e.g., U.S., Europe) to understand where money is coming from.';
       case 'Plan Type':
         return 'Filter by investor category such as Pension Funds, Insurance, Asset Managers, or Sovereign Wealth Funds.';
       case 'Product Region':

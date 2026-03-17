@@ -179,21 +179,32 @@ export default class DashboardComponent implements OnInit {
       return [];
     }
 
-    // Filter data by selected investor regions and product types
-    // When "Global" is selected, include all investor regions and all product types (like sankey)
+    // Filter data by all selected filters: investor region, investor type, product region, product type
     let filteredData = this.rawAssetFlowsData;
-    const hasGlobal = this.selectedInvestorRegions.includes('Global');
-    
-    // Filter by investor regions (if Global is selected, include all regions)
-    if (!hasGlobal) {
-      filteredData = filteredData.filter(record => 
-        this.selectedInvestorRegions.includes(record.Investor_Region)
+
+    // Filter by investor regions
+    filteredData = filteredData.filter(record =>
+      this.selectedInvestorRegions.includes(record.Investor_Region)
+    );
+
+    // Filter by investor type (Plan_Type or Investor_Types)
+    if (this.selectedInvestorTypes && this.selectedInvestorTypes.length > 0) {
+      filteredData = filteredData.filter(record => {
+        const investorType = record.Plan_Type ?? record.Investor_Types;
+        return investorType && this.selectedInvestorTypes.includes(investorType);
+      });
+    }
+
+    // Filter by product region
+    if (this.selectedProductRegions && this.selectedProductRegions.length > 0) {
+      filteredData = filteredData.filter(record =>
+        record.Product_Region != null && this.selectedProductRegions.includes(record.Product_Region)
       );
     }
-    
-    // Filter by selected product types (if Global is selected, include all product types)
-    if (!hasGlobal && this.selectedProductTypes && this.selectedProductTypes.length > 0) {
-      filteredData = filteredData.filter(record => 
+
+    // Filter by product type (apply whenever user has selected product types)
+    if (this.selectedProductTypes && this.selectedProductTypes.length > 0) {
+      filteredData = filteredData.filter(record =>
         this.selectedProductTypes.includes(record.Product_Type)
       );
     }
@@ -264,19 +275,22 @@ export default class DashboardComponent implements OnInit {
     if (previousDateRange) {
       let previousData = this.rawAssetFlowsData;
       // Apply same filters as current period
-      // When "Global" is selected, include all investor regions and all product types (like sankey)
-      const hasGlobal = this.selectedInvestorRegions && this.selectedInvestorRegions.includes('Global');
-      
-      // Filter by investor regions (if Global is selected, include all regions)
-      if (!hasGlobal) {
-        previousData = previousData.filter(record => 
-          this.selectedInvestorRegions.includes(record.Investor_Region)
+      previousData = previousData.filter(record =>
+        this.selectedInvestorRegions.includes(record.Investor_Region)
+      );
+      if (this.selectedInvestorTypes && this.selectedInvestorTypes.length > 0) {
+        previousData = previousData.filter(record => {
+          const investorType = record.Plan_Type ?? record.Investor_Types;
+          return investorType && this.selectedInvestorTypes.includes(investorType);
+        });
+      }
+      if (this.selectedProductRegions && this.selectedProductRegions.length > 0) {
+        previousData = previousData.filter(record =>
+          record.Product_Region != null && this.selectedProductRegions.includes(record.Product_Region)
         );
       }
-      
-      // Filter by selected product types (if Global is selected, include all product types)
-      if (!hasGlobal && this.selectedProductTypes && this.selectedProductTypes.length > 0) {
-        previousData = previousData.filter(record => 
+      if (this.selectedProductTypes && this.selectedProductTypes.length > 0) {
+        previousData = previousData.filter(record =>
           this.selectedProductTypes.includes(record.Product_Type)
         );
       }

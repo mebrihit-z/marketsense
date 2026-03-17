@@ -9,6 +9,7 @@ import {
   HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import TitleComponent from '../title/title.component';
 
 export interface FlowDimension {
@@ -24,7 +25,7 @@ export type DimensionSelectId = 'dimension1' | 'dimension2' | 'dimension3';
 @Component({
   selector: 'app-flow-dimensions',
   standalone: true,
-  imports: [CommonModule, TitleComponent],
+  imports: [CommonModule, FormsModule, TitleComponent],
   templateUrl: './flow-dimensions.component.html',
   styleUrl: './flow-dimensions.component.scss',
 })

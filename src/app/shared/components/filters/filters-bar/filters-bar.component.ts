@@ -208,11 +208,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
             options: group.subTypes.map(subType => ({ value: subType }))
           }));
           
-          // Set investor regions with "Global" option at the beginning
-          this.investorRegionOptions = [
-            { value: 'Global' },
-            ...filterOptions.investorRegions.map(region => ({ value: region }))
-          ];
+          // Set investor regions from data (no Global option)
+          this.investorRegionOptions = filterOptions.investorRegions.map(region => ({ value: region }));
           
           // Set investor types
           this.investorTypeOptions = filterOptions.investorTypes.map(type => ({ value: type }));
@@ -245,8 +242,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
            .flatMap(group => group.subTypes);
          this.state.productSubType = defaultSubTypes;
           
-          // Initialize investorRegion selection with only "Global" selected by default
-          this.state.investorRegion = ['Global'];
+          // Initialize investorRegion selection with all regions selected by default
+          this.state.investorRegion = [...filterOptions.investorRegions];
           
           // Initialize investorType selection with all options selected
           this.state.investorType = filterOptions.investorTypes;
@@ -375,8 +372,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     } else if (key === 'productRegion') {
       this.productRegionChange.emit(values);
     } else if (key === 'investorRegion') {
-      // Allow Global to be selected along with other regions
-      // The asset-flows component will show both Global Sankey and individual region Sankey diagrams
       this.investorRegionChange.emit(values);
     } else if (key === 'investorType') {
       this.investorTypeChange.emit(values);

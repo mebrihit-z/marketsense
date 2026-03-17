@@ -1,12 +1,12 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core'
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type AssetFlowDimensionField, type SankeyDimensionConfig } from '../../utils/asset-flows-to-sankey.util';
 import { 
-  aggregateSankeyDataByGlobal, 
   filterSankeyData 
 } from '../../utils/sankey-data.utils';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
@@ -37,7 +37,7 @@ export interface AssetFlowData {
 @Component({
   selector: 'app-asset-flows',
   standalone: true,
-  imports: [CommonModule, SankeyComponent, TitleComponent, FlowDimensionsComponent],
+  imports: [CommonModule, FormsModule, SankeyComponent, TitleComponent, FlowDimensionsComponent],
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })
@@ -86,6 +86,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     investorRegions: string[];
   }> = [];
   
+  // Super dimension values per Sankey key (Dimension 1 values used to build each entry; passed to Sankey for correct filtering)
+  private sankeySuperValuesMap = new Map<string, string[]>();
+  
   // Cached arrays for Sankey inputs (prevents creating new arrays on every change detection)
   cachedSelectedProductTypes: string[] = [];
   cachedSelectedProductSubTypes: string[] = [];
@@ -96,11 +99,11 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   // Filter options extracted from data
   filterOptions: FilterOptions | undefined;
 
-  // Available dimensions for drag and drop
+  // Available dimensions for Dimension 1, 2, and 3 dropdowns (includes Product Region for Dimension 1)
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
-    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
+    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
   ];
@@ -109,6 +112,20 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   selectedDimension1: FlowDimension | null = null;
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
+
+  /** Minimum flow value in billions to show in Sankey (0 = show all). */
+  minFlowValue: number = 0;
+  /** Preset options for min flow value filter (value in billions, label for display). */
+  minFlowValueOptions: { value: number; label: string }[] = [
+    { value: 0, label: 'All flows' },
+    { value: 1, label: '≥ $1B' },
+    { value: 5, label: '≥ $5B' },
+    { value: 10, label: '≥ $10B' },
+    { value: 50, label: '≥ $50B' },
+    { value: 100, label: '≥ $100B' },
+    { value: 50000, label: '≥ $50,000B' },
+    { value: 100000, label: '≥ $100,000B' }
+  ];
 
   constructor(private assetFlowsData: AssetFlowsDataService) {}
   
@@ -189,7 +206,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   
   /**
    * Filters asset flows data based on time horizon and converts to Sankey format
-   * Creates one Global Sankey if Global is selected
+   * Builds Sankey data map (aggregated when no super values, or per selected values).
    * Creates one combined Sankey for all other selected regions
    * Uses Dimension 2 and 3 to control which fields are used for parent and leaf nodes.
    */
@@ -199,48 +216,45 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       return;
     }
     
-    const { values: superValues, hasGlobal } = this.getSuperDimensionValues();
+    const { values: superValues } = this.getSuperDimensionValues();
     const dim1Id = this.selectedDimension1?.id || 'investor-region';
-    const individualValues = superValues.filter(v => v !== 'Global');
+    let individualValues = superValues;
 
-    // Require at least one super-dimension value when using Investor_Region (backward compatible)
-    if (dim1Id === 'investor-region' && (!this.selectedInvestorRegions || this.selectedInvestorRegions.length === 0)) {
-      console.warn('No investor regions selected');
-      this.sankeyDataMap.clear();
-      this.selectedRegionsArray = [];
-      this.regionDataArray = [];
-      return;
-    }
-    // Filter data based on time horizon
-    const filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
-    
+    // Filter data by time horizon, then by filter bar (investor region, type, product region/type/sub-type)
+    let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    filteredData = this.filterDataByFilterBar(filteredData);
+
     if (!filteredData || filteredData.length === 0) {
-      console.warn('No data after time horizon filtering');
+      console.warn('No data after filtering');
       this.sankeyDataMap.clear();
+      this.sankeySuperValuesMap.clear();
       this.selectedRegionsArray = [];
       this.regionDataArray = [];
       return;
     }
-    
-    // Convert filtered data to Sankey format (contains all regions)
-    // Use Dimension 2 and 3 to control which fields are treated as
-    // parent and leaf levels in the Sankey hierarchy, while keeping
-    // Investor_Region as the super dimension so Global aggregation works.
+
+    // Convert to Sankey using Dimension 1 as super, Dimension 2 as parent, Dimension 3 as leaf
+    const dimensionConfig = this.getSankeyDimensionConfig();
     const allRegionsSankeyData = convertAssetFlowsToSankey(
       filteredData,
-      this.getSankeyDimensionConfig()
+      dimensionConfig
     );
-    
-    // Clear existing Sankey data map
-    this.sankeyDataMap.clear();
 
-    // Create Global/aggregated Sankey when "Global" is selected, or when no super values selected (show all)
-    if (hasGlobal || individualValues.length === 0) {
-      const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
-      this.sankeyDataMap.set('Global', globalSankeyData);
+    // When Dimension 1 has no selected values in the filter bar, use super values that actually exist in the data
+    // so the Sankey is still created with the chosen dimension as super nodes.
+    const superparents = allRegionsSankeyData?.summary?.superparents ?? [];
+    const valuesInData = superparents
+      .map((sp: { superparent?: string }) => sp.superparent)
+      .filter((s): s is string => typeof s === 'string' && s.length > 0);
+    if (valuesInData.length > 0 && individualValues.length === 0) {
+      individualValues = valuesInData;
     }
 
-    // Create one combined Sankey for selected super values (excl. Global)
+    // Clear existing Sankey data map and super values map
+    this.sankeyDataMap.clear();
+    this.sankeySuperValuesMap.clear();
+
+    // Require at least one super-dimension value; if none selected, don't render a global aggregate
     if (individualValues.length > 0) {
       const combinedSankeyData: SankeyData = filterSankeyData(
         allRegionsSankeyData,
@@ -250,6 +264,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       );
       const displayKey = individualValues.join(', ');
       this.sankeyDataMap.set(displayKey, combinedSankeyData);
+      this.sankeySuperValuesMap.set(displayKey, individualValues);
     }
     // Update cached array for template (only when map actually changes)
     this.updateSelectedRegionsArray();
@@ -260,27 +275,21 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
    * This prevents change detection loops from calling methods in template
    */
   private updateSelectedRegionsArray(): void {
-    const keys: string[] = [];
-    if (this.sankeyDataMap.has('Global')) {
-      keys.push('Global');
-    }
-    // Get all keys that are not 'Global' - these are the combined region names
-    const nonGlobalKeys = Array.from(this.sankeyDataMap.keys()).filter(key => key !== 'Global');
-    keys.push(...nonGlobalKeys);
+    const keys: string[] = Array.from(this.sankeyDataMap.keys());
     this.selectedRegionsArray = keys;
     
-    // Build cached region data array to avoid method calls in template
+    // Build cached region data array. Pass super dimension values (not just investor regions) so the Sankey
+    // filters correctly for any Dimension 1 (investor region, product type, etc.).
     this.regionDataArray = keys.map(key => {
       const data = this.sankeyDataMap.get(key);
       if (!data) {
         return null;
       }
+      const superValues = this.sankeySuperValuesMap.get(key) ?? [];
       return {
         key,
         data,
-        investorRegions: key === 'Global' 
-          ? ['Global']
-          : (this.selectedInvestorRegions || []).filter(r => r !== 'Global')
+        investorRegions: superValues
       };
     }).filter(item => item !== null) as Array<{
       key: string;
@@ -353,7 +362,36 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       : `target: ${endDate}`;
     return filtered;
   }
-  
+
+  /**
+   * Applies filter bar selections (investor region, investor type, product region, product type, product sub-type)
+   * to the given data. Used so the Sankey only reflects currently selected filters; Dimension 1 then controls grouping.
+   */
+  private filterDataByFilterBar(data: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!data || data.length === 0) return data;
+    let result = data;
+
+    if (this.selectedInvestorRegions?.length) {
+      result = result.filter(r => this.selectedInvestorRegions!.includes(r.Investor_Region));
+    }
+    if (this.selectedInvestorTypes?.length) {
+      result = result.filter(r => {
+        const t = r.Plan_Type ?? r.Investor_Types;
+        return t && this.selectedInvestorTypes!.includes(t);
+      });
+    }
+    if (this.selectedProductRegions?.length) {
+      result = result.filter(r => r.Product_Region != null && this.selectedProductRegions!.includes(r.Product_Region));
+    }
+    if (this.selectedProductTypes?.length) {
+      result = result.filter(r => this.selectedProductTypes!.includes(r.Product_Type));
+    }
+    if (this.selectedProductSubTypes?.length) {
+      result = result.filter(r => this.selectedProductSubTypes!.includes(r.Product_Sub_Type));
+    }
+    return result;
+  }
+
   /**
    * Converts time horizon string to target date in YYYY-MM format
    * Returns null if time horizon is invalid
@@ -571,25 +609,24 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   /**
    * Returns the selected values for splitting/filtering Sankey data based on dimension 1.
-   * When dim1 is Investor_Region, uses selectedInvestorRegions (supports "Global").
+   * When dim1 is Investor_Region, uses selectedInvestorRegions.
    * Otherwise uses the matching filter for that dimension.
    */
-  private getSuperDimensionValues(): { values: string[]; hasGlobal: boolean } {
+  private getSuperDimensionValues(): { values: string[] } {
     const dim1Id = this.selectedDimension1?.id || 'investor-region';
     switch (dim1Id) {
       case 'investor-region':
-        const regions = this.selectedInvestorRegions || [];
-        return { values: regions, hasGlobal: regions.includes('Global') };
+        return { values: this.selectedInvestorRegions || [] };
       case 'product-type':
-        return { values: this.selectedProductTypes || [], hasGlobal: false };
+        return { values: this.selectedProductTypes || [] };
       case 'investor-type':
-        return { values: this.selectedInvestorTypes || [], hasGlobal: false };
+        return { values: this.selectedInvestorTypes || [] };
       case 'product-region':
-        return { values: this.selectedProductRegions || [], hasGlobal: false };
+        return { values: this.selectedProductRegions || [] };
       case 'product-sub-types':
-        return { values: this.selectedProductSubTypes || [], hasGlobal: false };
+        return { values: this.selectedProductSubTypes || [] };
       default:
-        return { values: this.selectedInvestorRegions || [], hasGlobal: (this.selectedInvestorRegions || []).includes('Global') };
+        return { values: this.selectedInvestorRegions || [] };
     }
   }
 

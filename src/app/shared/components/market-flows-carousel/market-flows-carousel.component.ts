@@ -27,6 +27,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   @Input() rawAssetFlowsData: AssetFlowRecord[] = [];
   @Input() timeHorizonRange: { start: string; end: string } | null = null;
   @Input() selectedInvestorRegions: string[] = [];
+  @Input() selectedInvestorTypes: string[] = [];
+  @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Output() pinCard = new EventEmitter<string>();
 

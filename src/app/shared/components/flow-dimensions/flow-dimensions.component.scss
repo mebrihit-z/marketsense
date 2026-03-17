@@ -76,6 +76,32 @@
     min-width: unset;
     flex: none;
   }
+
+  &.min-flow-value-container {
+    min-width: 120px;
+  }
+}
+
+.min-flow-value-select {
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 20px;
+  border: 1px solid $border-gray-medium;
+  border-radius: 4px;
+  background-color: $bg-white;
+  color: $text-midnight-blue;
+  min-width: 100%;
+  cursor: pointer;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-colors-midnight-blue;
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 }
 
 .hierarchy-arrow-icon {
@@ -91,7 +117,7 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 16px;
-  color: $text-midnight-blue;
+  color: #00113F;
   display: block;
 
   @media (max-width: 768px) {

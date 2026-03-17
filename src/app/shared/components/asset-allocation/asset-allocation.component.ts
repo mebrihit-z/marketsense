@@ -1,16 +1,14 @@
 /* eslint-disable */
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type AssetFlowDimensionField, type SankeyDimensionConfig } from '../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
-import { 
-  aggregateSankeyDataByGlobal, 
-  filterSankeyData 
-} from '../../utils/sankey-data.utils';
+import { filterSankeyData } from '../../utils/sankey-data.utils';
 
 export interface TreemapNode {
   id: string;
@@ -37,7 +35,7 @@ export interface TreemapRegion {
 @Component({
   selector: 'app-asset-allocation',
   standalone: true,
-  imports: [CommonModule, TreemapCellModalComponent, TreemapComponent, TitleComponent, FlowDimensionsComponent],
+  imports: [CommonModule, FormsModule, TreemapCellModalComponent, TreemapComponent, TitleComponent, FlowDimensionsComponent],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
 })
@@ -64,11 +62,11 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   isPinned: boolean = false;
   
   
-  // Available dimensions for drag and drop
+  // Available dimensions for Dimension 1, 2, and 3 dropdowns (includes Product Region for Dimension 1)
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
-    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
     { id: 'product-region', label: 'Product Region', count: 0, active: true },
+    { id: 'investor-type', label: 'Investor Type', count: 0, active: true },
     { id: 'product-type', label: 'Product Type', count: 0, active: true },
     { id: 'product-sub-types', label: 'Product Sub-Types', count: 0, active: true },
   ];
@@ -78,12 +76,28 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
 
+  /** Minimum flow value in billions to show in treemap (0 = show all). */
+  minFlowValue: number = 0;
+  /** Preset options for min flow value filter (value in billions, label for display). */
+  minFlowValueOptions: { value: number; label: string }[] = [
+    { value: 0, label: 'All flows' },
+    { value: 1, label: '≥ $1B' },
+    { value: 5, label: '≥ $5B' },
+    { value: 10, label: '≥ $10B' },
+    { value: 50, label: '≥ $50B' },
+    { value: 100, label: '≥ $100B' },
+    { value: 50000, label: '≥ $50,000B' },
+    { value: 100000, label: '≥ $100,000B' }
+  ];
+
   // Modal state
   showCellModal: boolean = false;
   selectedCellData: TreemapCellData | null = null;
   
   // Treemap data map (similar to asset-flows)
   private treemapDataMap = new Map<string, SankeyData>();
+  // Super dimension values per key (Dimension 1 values; passed to treemap for correct filtering)
+  private treemapSuperValuesMap = new Map<string, string[]>();
   regionDataArray: Array<{
     key: string;
     data: SankeyData;
@@ -382,16 +396,11 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       return;
     }
 
-    if (!this.selectedInvestorRegions || this.selectedInvestorRegions.length === 0) {
-      console.warn('AssetAllocation: No investor regions selected');
-      this.treemapDataMap.clear();
-      this.regionDataArray = [];
-      return;
-    }
-
     let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
     if (!filteredData || filteredData.length === 0) {
+      console.warn('AssetAllocation: No data after time horizon filter');
       this.treemapDataMap.clear();
+      this.treemapSuperValuesMap.clear();
       this.regionDataArray = [];
       return;
     }
@@ -400,34 +409,35 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     const isSuperInvestorRegion = this.selectedDimension1?.id === 'investor-region';
 
     if (!isSuperInvestorRegion) {
-      const hasGlobal = this.selectedInvestorRegions.includes('Global');
-      if (!hasGlobal) {
-        filteredData = filteredData.filter((r) =>
-          this.selectedInvestorRegions.includes(r.Investor_Region)
-        );
-      }
+      const regionsToUse = (this.selectedInvestorRegions?.length ?? 0) > 0
+        ? this.selectedInvestorRegions!
+        : [...new Set(filteredData.map((r) => r.Investor_Region))].filter(Boolean).sort();
+      filteredData = filteredData.filter((r) => regionsToUse.includes(r.Investor_Region));
       if (filteredData.length === 0) {
         this.treemapDataMap.clear();
+        this.treemapSuperValuesMap.clear();
         this.regionDataArray = [];
         return;
       }
       const singleSankeyData = convertAssetFlowsToSankey(filteredData, dimensionConfig);
       this.treemapDataMap.clear();
+      this.treemapSuperValuesMap.clear();
       this.treemapDataMap.set('Asset Flows', singleSankeyData);
+      this.treemapSuperValuesMap.set('Asset Flows', []);
       this.updateRegionDataArray();
       return;
     }
 
     const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData, dimensionConfig);
     this.treemapDataMap.clear();
+    this.treemapSuperValuesMap.clear();
 
-    const hasGlobal = this.selectedInvestorRegions.includes('Global');
-    const individualRegions = this.selectedInvestorRegions.filter(region => region !== 'Global');
-
-    if (hasGlobal) {
-      const globalSankeyData = aggregateSankeyDataByGlobal(allRegionsSankeyData);
-      this.treemapDataMap.set('Global', globalSankeyData);
-    }
+    // When Dimension 1 is investor region: use selected regions, or all regions present in the data if none selected
+    let individualRegions = this.selectedInvestorRegions?.length
+      ? this.selectedInvestorRegions
+      : (allRegionsSankeyData?.summary?.superparents ?? [])
+          .map((sp: { superparent?: string }) => sp.superparent)
+          .filter((s): s is string => typeof s === 'string' && s.length > 0);
 
     if (individualRegions.length > 0) {
       const useProductTypeFilter = this.selectedDimension2?.id === 'product-type';
@@ -440,6 +450,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       );
       const regionsKey = individualRegions.join(', ');
       this.treemapDataMap.set(regionsKey, combinedSankeyData);
+      this.treemapSuperValuesMap.set(regionsKey, individualRegions);
     }
     this.updateRegionDataArray();
   }
@@ -448,29 +459,19 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
    * Update the cached region data array (called only when treemapDataMap changes)
    */
   private updateRegionDataArray(): void {
-    const keys: string[] = [];
-    if (this.treemapDataMap.has('Global')) {
-      keys.push('Global');
-    }
-    // Get all keys that are not 'Global' - these are the combined region names
-    const nonGlobalKeys = Array.from(this.treemapDataMap.keys()).filter(key => key !== 'Global');
-    keys.push(...nonGlobalKeys);
+    const keys: string[] = Array.from(this.treemapDataMap.keys());
     
+    // Pass super dimension values (not only investor regions) so treemap filters correctly for any Dimension 1.
     this.regionDataArray = keys.map(key => {
       const data = this.treemapDataMap.get(key);
       if (!data) {
         return null;
       }
-      const investorRegions =
-        key === 'Global'
-          ? ['Global']
-          : key === 'Asset Flows'
-            ? []
-            : (this.selectedInvestorRegions || []).filter(r => r !== 'Global');
+      const superValues = this.treemapSuperValuesMap.get(key) ?? [];
       return {
         key,
         data,
-        investorRegions
+        investorRegions: superValues
       };
     }).filter(item => item !== null) as Array<{
       key: string;
