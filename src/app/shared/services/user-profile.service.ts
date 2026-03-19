@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Injectable } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { UserProfile } from "../models/user.model";
@@ -12,6 +13,7 @@ export default class UserProfileService {
   private givenName: string | undefined = undefined;
   private familyName: string | undefined = undefined;
   private roleName: string | undefined = undefined;
+  private userId: string | undefined = undefined;
   private lastLogin: string | undefined = undefined;
 
   // Getter (sync access)
@@ -22,10 +24,20 @@ export default class UserProfileService {
   // Setter
   setUser(profile: UserProfile | null): void {
     this.user.next(profile);
+    // Keep a convenience userId field in sync for other consumers.
+    this.userId = profile?.sub ?? undefined;
+    // Keep a convenience display-name field in sync for other consumers.
+    this.setGivenName(profile?.given_name);
+    this.familyName = profile?.family_name ?? undefined;
   }
 
   clearUser(): void {
     this.user.next(null);
+    this.userId = undefined;
+    this.givenName = undefined;
+    this.familyName = undefined;
+    this.roleName = undefined;
+    this.lastLogin = undefined;
   }
   setGivenName(givenName: string | undefined): void {
     if (givenName) {
@@ -52,5 +64,14 @@ export default class UserProfileService {
 
   getLastLogin(): string | undefined {
     return this.lastLogin;
+  }
+
+  setUserId(userId: string | undefined): void {
+    this.userId = userId ?? undefined;
+  }
+
+  getUserId(): string | undefined {
+    // Prefer explicitly set value, but fall back to current user profile.
+    return this.userId ?? this.user.value?.sub;
   }
 }

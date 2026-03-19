@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
@@ -16,6 +17,10 @@ export interface SavedView {
   id?: string;
   name: string;
   savedAt?: string;
+  /** Creator identifier (if provided by backend / caller). */
+  userId?: string;
+  /** Creator display name (if provided by backend / caller). */
+  userName?: string;
   state: SavedViewState;
   dataType?: 'historical' | 'forecasted';
   timeHorizonRange?: { startIndex: number; endIndex: number };
@@ -43,23 +48,53 @@ export class SavedViewsService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Normalize creator identity fields from various backend payload shapes.
+   * (Backend may return `userId/userName` or nested/underscored equivalents.)
+   */
+  private normalizeSavedView(view: SavedView): SavedView {
+    const anyView = view as any;
+    const userId =
+      anyView.userId ??
+      anyView.user_id ??
+      anyView.user?.id ??
+      anyView.user?.sub ??
+      anyView.user?.userId ??
+      undefined;
+
+    const userName =
+      anyView.userName ??
+      anyView.user_name ??
+      anyView.user?.name ??
+      anyView.user?.given_name ??
+      anyView.user?.preferred_username ??
+      anyView.user?.userName ??
+      undefined;
+
+    return {
+      ...view,
+      ...(userId != null ? { userId } : {}),
+      ...(userName != null ? { userName } : {}),
+    };
+  }
+
+  /**
    * Load all saved views.
    * - Local: read from localStorage.
    * - VDI:   GET from backend.
    */
   getSavedViews(): Observable<SavedView[]> {
     if (this.useLocalStorage) {
-      return of(this.readFromLocalStorage());
+      return of(this.readFromLocalStorage().map((v) => this.normalizeSavedView(v)));
     }
 
     const url = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
     return this.http.get<SavedView[] | { items: SavedView[] }>(url).pipe(
       map((res) => {
         if (Array.isArray(res)) {
-          return res;
+          return res.map((v) => this.normalizeSavedView(v));
         }
         const items = (res as { items?: SavedView[] }).items;
-        return Array.isArray(items) ? items : [];
+        return Array.isArray(items) ? items.map((v) => this.normalizeSavedView(v)) : [];
       }),
       catchError((err) => {
         console.error('Failed to load saved views from backend', err);

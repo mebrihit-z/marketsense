@@ -8,6 +8,7 @@ import { extractFilterOptionsFromAssetFlows } from '../../../utils/asset-flows-f
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 import { SavedViewsService, type SavedView } from '../../../../core/services/saved-views.service';
+import UserProfileService from '../../../services/user-profile.service';
 
 export interface FilterOptionTotals {
   productTypeTotal: number;
@@ -67,7 +68,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
 
   constructor(
     private assetFlowsData: AssetFlowsDataService,
-    private savedViewsService: SavedViewsService
+    private savedViewsService: SavedViewsService,
+    private userProfileService: UserProfileService
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -568,8 +570,19 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @returns {void} Saves the current filter set configuration with the given name.
    */
   onSaveFilterSet(filterSetName: string): void {
+    const currentUser = this.userProfileService.getuser();
+    const userId = this.userProfileService.getUserId() ?? currentUser?.sub;
+    // Prefer the user's given name from UserProfileService (keeps UI consistent
+    // with other components like WelcomeSection).
+    const userName =
+      this.userProfileService.getGivenName() ??
+      currentUser?.name ??
+      currentUser?.given_name;
+
     const savedView: SavedView = {
       name: filterSetName,
+      userId,
+      userName,
       // Full filter state so it can be reapplied by whatever
       // consumes these presets (e.g., a service or container component).
       state: {

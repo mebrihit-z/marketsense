@@ -11,6 +11,10 @@ export interface ViewingOption {
   savedDate: string;
   tags: string[];
   isActive: boolean;
+  /** Creator identity (if provided by backend saved view). */
+  userId?: string;
+  /** Creator display name (if provided by backend saved view). */
+  userName?: string;
   /** Optional backing payload from localStorage (full saved view). */
   raw?: any;
 }
@@ -76,7 +80,14 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
           return;
         }
 
-        this.viewingOptions = views.map((item, index) => {
+        // Scope saved views by the currently logged-in user.
+        // Keep legacy saved views that don't include userId.
+        const currentUserId = this.userProfileService.getUserId();
+        const scopedViews = currentUserId
+          ? views.filter((v) => !v?.userId || v.userId === currentUserId)
+          : views;
+
+        this.viewingOptions = scopedViews.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
           const tags = this.deriveTagsFromState(item?.state);
@@ -84,6 +95,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
             name,
             savedDate,
             tags,
+            userId: item?.userId,
+            userName: item?.userName,
             isActive: index === 0,
             raw: item,
           };
