@@ -262,6 +262,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           this.investorTypeChange.emit(this.state.investorType);
           this.productRegionChange.emit(this.state.productRegion);
           this.emitFilterOptionTotals();
+
+          // After filter options + initial state are ready, apply user's default saved view (if any).
+          this.applyDefaultSavedViewIfPresent();
         } catch (error: unknown) {
           console.error('Error extracting filter options from asset flows data:', error);
           // Fallback to empty arrays
@@ -271,6 +274,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           this.investorTypeOptions = [];
           this.productRegionOptions = [];
           this.emitFilterOptionTotals();
+
+          // Still attempt to apply default saved view even if option extraction failed.
+          this.applyDefaultSavedViewIfPresent();
         }
       },
       error: (error: unknown) => {
@@ -282,6 +288,37 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         this.investorTypeOptions = [];
         this.productRegionOptions = [];
         this.emitFilterOptionTotals();
+
+        // Still attempt to apply default saved view even if options failed to load.
+        this.applyDefaultSavedViewIfPresent();
+      }
+    });
+  }
+
+  /**
+   * Applies the user's default saved view, if it exists.
+   * This ensures the selected filters reflect the default preset when the app opens.
+   */
+  private applyDefaultSavedViewIfPresent(): void {
+    if (this.hasAttemptedApplyDefaultSavedView) return;
+    this.hasAttemptedApplyDefaultSavedView = true;
+
+    const currentUserId = this.userProfileService.getUserId();
+
+    this.savedViewsService.getSavedViews().subscribe({
+      next: (views: SavedView[]) => {
+        const scopedViews = currentUserId
+          ? views.filter((v) => !v?.userId || v.userId === currentUserId)
+          : views;
+
+        const defaultView = scopedViews.find((v) => v?.isDefault === true) ?? null;
+        if (!defaultView) return;
+
+        // Reuse existing apply logic.
+        this.onApplySavedView({ detail: defaultView } as any);
+      },
+      error: (e) => {
+        console.error('Failed to load saved views for default apply', e);
       }
     });
   }
@@ -347,6 +384,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
 
   // Save filter set modal state
   isSaveFilterSetModalOpen: boolean = false;
+
+  // Ensure the default saved view is applied only once during initialization.
+  private hasAttemptedApplyDefaultSavedView: boolean = false;
 
   /**
    * Local storage key for saved filter views.
@@ -566,10 +606,12 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /**
-   * @param {string} filterSetName - The name for the filter set
+   * @param {{ name: string; isDefault: boolean }} payload - Saved view payload
    * @returns {void} Saves the current filter set configuration with the given name.
    */
-  onSaveFilterSet(filterSetName: string): void {
+  onSaveFilterSet(payload: { name: string; isDefault: boolean }): void {
+    const filterSetName = payload.name;
+    const isDefault = payload.isDefault;
     const currentUser = this.userProfileService.getuser();
     const userId = this.userProfileService.getUserId() ?? currentUser?.sub;
     // Prefer the user's given name from UserProfileService (keeps UI consistent
@@ -583,6 +625,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       name: filterSetName,
       userId,
       userName,
+      isDefault,
       // Full filter state so it can be reapplied by whatever
       // consumes these presets (e.g., a service or container component).
       state: {

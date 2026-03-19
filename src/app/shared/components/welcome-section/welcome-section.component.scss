@@ -254,7 +254,7 @@
 
 .dropdown-option-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 12px 13px;
   background: transparent;
@@ -288,6 +288,68 @@
   align-items: center;
   gap: 8px;
   height: 20px;
+}
+
+.option-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.option-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.default-toggle {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.default-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.default-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background-color: $neutral-colors-neutral-500;
+  border-radius: 999px;
+  transition: background-color 0.2s;
+}
+
+.default-toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  top: 2px;
+  background-color: $bg-white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.default-toggle input:checked + .default-toggle-slider {
+  background-color: $primary-colors-midnight-blue;
+}
+
+.default-toggle input:checked + .default-toggle-slider::before {
+  transform: translateX(12px);
 }
 
 .option-title {

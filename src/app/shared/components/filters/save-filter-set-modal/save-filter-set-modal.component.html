@@ -23,6 +23,12 @@
         autofocus>
     </div>
 
+    <!-- Default option -->
+    <label class="default-option" (click)="$event.stopPropagation()">
+      <input type="checkbox" [(ngModel)]="isDefault">
+      <span>Set as default view</span>
+    </label>
+
     <!-- Action Buttons -->
     <div class="action-buttons">
       <button class="btn-cancel" (click)="onCancel()">Cancel</button>

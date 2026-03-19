@@ -14,9 +14,10 @@ import TitleComponent from '../../title/title.component';
 export default class SaveFilterSetModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<string>();
+  @Output() save = new EventEmitter<{ name: string; isDefault: boolean }>();
 
   filterSetName: string = '';
+  isDefault: boolean = false;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible']) {
@@ -24,6 +25,7 @@ export default class SaveFilterSetModalComponent implements OnChanges {
         document.body.style.overflow = 'hidden';
         // Reset the input when modal opens
         this.filterSetName = '';
+        this.isDefault = false;
       } else {
         document.body.style.overflow = '';
       }
@@ -33,13 +35,15 @@ export default class SaveFilterSetModalComponent implements OnChanges {
   onClose(): void {
     document.body.style.overflow = '';
     this.filterSetName = '';
+    this.isDefault = false;
     this.close.emit();
   }
 
   onSave(): void {
     if (this.filterSetName.trim()) {
-      this.save.emit(this.filterSetName.trim());
+      this.save.emit({ name: this.filterSetName.trim(), isDefault: this.isDefault });
       this.filterSetName = '';
+      this.isDefault = false;
       this.onClose();
     }
   }

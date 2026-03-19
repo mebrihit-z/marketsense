@@ -32,9 +32,7 @@
           *ngIf="isViewingDropdownOpen"
           [style.top.px]="dropdownPosition.top"
           [style.left.px]="dropdownPosition.left">
-          <div class="filter-presets-header">
-            <app-title title="Filter Presets" level="h3" class="filter-presets-title"></app-title>
-          </div>
+         
           <div class="viewing-dropdown-content">
             <div
               *ngFor="let option of viewingOptions"
@@ -43,21 +41,35 @@
               (click)="selectViewingOption(option)">
               <div class="option-content">
                 <div class="option-header">
-                  <app-title [title]="option.name" level="h5" class="option-title"></app-title>
-                  <span class="active-badge" *ngIf="option.isActive">Active</span>
+                  <div class="option-header-left">
+                    <app-title [title]="option.name" level="h5" class="option-title"></app-title>
+                    <span class="active-badge" *ngIf="option.isDefault">Default</span>
+                    <span class="active-badge" *ngIf="!option.isDefault && option.isActive">Active</span>
+                  </div>
                 </div>
                 <p class="option-saved-date">Saved {{ option.savedDate }}</p>
                 <div class="option-tags">
                   <span class="option-tag" *ngFor="let tag of option.tags">{{ tag }}</span>
                 </div>
               </div>
-              <button
-                type="button"
-                class="delete-btn"
-                (click)="deleteOption(option, $event)"
-                aria-label="Delete preset">
-                <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
-              </button>
+              <div class="option-actions">
+                <label class="default-toggle" (click)="$event.stopPropagation()">
+                  <input
+                    type="checkbox"
+                    [checked]="option.isDefault"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleDefaultForOption(option, $event)"
+                    aria-label="Set as default preset" />
+                  <span class="default-toggle-slider" aria-hidden="true"></span>
+                </label>
+                <button
+                  type="button"
+                  class="delete-btn"
+                  (click)="deleteOption(option, $event)"
+                  aria-label="Delete preset">
+                  <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
+                </button>
+              </div>
             </div>
           </div>
         </div>

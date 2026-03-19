@@ -137,6 +137,26 @@
   }
 }
 
+.default-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 0;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.1504px;
+  color: $text-midnight-blue;
+}
+
+.default-option input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+}
+
 .action-buttons {
   display: flex;
   gap: 8px;

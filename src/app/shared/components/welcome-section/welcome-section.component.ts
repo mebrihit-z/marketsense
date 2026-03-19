@@ -11,6 +11,8 @@ export interface ViewingOption {
   savedDate: string;
   tags: string[];
   isActive: boolean;
+  /** Marks which saved view should be treated as default. */
+  isDefault?: boolean;
   /** Creator identity (if provided by backend saved view). */
   userId?: string;
   /** Creator display name (if provided by backend saved view). */
@@ -87,24 +89,36 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
           ? views.filter((v) => !v?.userId || v.userId === currentUserId)
           : views;
 
+        if (scopedViews.length === 0) {
+          this.viewingOptions = [];
+          return;
+        }
+
+        const defaultView = scopedViews.find((v) => v?.isDefault === true) ?? null;
+        const activeView = defaultView ?? scopedViews[0];
+        const activeKey = activeView ? (activeView.id ?? activeView.name) : null;
+
         this.viewingOptions = scopedViews.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
           const tags = this.deriveTagsFromState(item?.state);
+          const key = item?.id ?? item?.name;
           return {
             name,
             savedDate,
             tags,
             userId: item?.userId,
             userName: item?.userName,
-            isActive: index === 0,
+            isDefault: item?.isDefault === true,
+            isActive: activeKey != null ? key === activeKey : index === 0,
             raw: item,
           };
         });
 
         if (this.viewingOptions.length > 0) {
-          this.viewingFilter = this.viewingOptions[0].name;
+          this.viewingFilter = this.viewingOptions.find((o) => o.isActive)?.name ?? this.viewingOptions[0].name;
         }
+
       },
       error: (e) => {
         console.error('Failed to load saved views', e);
@@ -240,6 +254,56 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
         // Swallow if CustomEvent is not available
       }
     }
+  }
+
+  /**
+   * Toggle whether this saved view should be the default.
+   * Stored via `SavedViewsService.setDefaultView()`.
+   */
+  toggleDefaultForOption(option: ViewingOption, event: Event): void {
+    event.stopPropagation();
+
+    const input = event.target as HTMLInputElement | null;
+    const nextIsDefault = !!input?.checked;
+
+    const raw = (option as any).raw as SavedView | undefined;
+    if (!raw) return;
+
+    this.savedViewsService.setDefaultView(raw, nextIsDefault).subscribe({
+      next: () => {
+        // Keep dropdown UI consistent immediately.
+        if (nextIsDefault) {
+          this.viewingFilter = option.name;
+          this.viewingOptions = this.viewingOptions.map((o) => ({
+            ...o,
+            isActive: (o as any).raw?.id != null && (option as any).raw?.id != null
+              ? (o as any).raw?.id === (option as any).raw?.id
+              : o.name === option.name,
+          }));
+
+          // Apply immediately when user marks default.
+          if (typeof window !== 'undefined') {
+            try {
+              window.dispatchEvent(new CustomEvent('marketsenseApplySavedView', { detail: raw }));
+            } catch {
+              // Ignore if CustomEvent is not available
+            }
+          }
+        }
+
+        // Refresh badge states (Default/Active) and allow FiltersBar to re-apply if needed.
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
+          } catch {
+            // Ignore if CustomEvent is not supported
+          }
+        }
+      },
+      error: (e) => {
+        console.error('Failed to update default saved view', e);
+      }
+    });
   }
 
   /**

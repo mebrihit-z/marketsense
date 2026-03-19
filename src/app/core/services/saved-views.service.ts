@@ -17,6 +17,7 @@ export interface SavedView {
   id?: string;
   name: string;
   savedAt?: string;
+  isDefault?: boolean;
   /** Creator identifier (if provided by backend / caller). */
   userId?: string;
   /** Creator display name (if provided by backend / caller). */
@@ -116,6 +117,16 @@ export class SavedViewsService {
         id: view.id ?? `${now.getTime()}`,
         savedAt: view.savedAt ?? now.toISOString(),
       };
+      if (withMeta.isDefault) {
+        // Ensure only one default view per user (same userId) in local/dev.
+        const targetUserId = withMeta.userId ?? null;
+        existing.forEach((v) => {
+          const vUserId = v.userId ?? null;
+          if (vUserId === targetUserId) {
+            v.isDefault = false;
+          }
+        });
+      }
       existing.push(withMeta);
       this.writeToLocalStorage(existing);
       return of(void 0);
@@ -164,6 +175,48 @@ export class SavedViewsService {
         throw err;
       })
     );
+  }
+
+  /**
+   * Mark a specific saved view as default (or unset it).
+   * - Local/dev: updates localStorage in-place and ensures only one default per user.
+   * - Backend/VDI: best-effort persists the flag (other defaults are not forcibly cleared here).
+   */
+  setDefaultView(view: SavedView, isDefault: boolean): Observable<void> {
+    if (this.useLocalStorage) {
+      const existing = this.readFromLocalStorage();
+      const targetUserId = view.userId ?? null;
+      const targetId = view.id ?? null;
+      const targetName = view.name ?? null;
+
+      // Update in-place rather than appending duplicates.
+      const updated = existing.map((v) => {
+        const matchesTarget =
+          (targetId != null && v.id === targetId) ||
+          (targetId == null && targetName != null && v.name === targetName);
+
+        if (isDefault) {
+          // Clear default for all views of the same user except the target.
+          const vUserId = v.userId ?? null;
+          if (vUserId === targetUserId) {
+            return matchesTarget ? { ...v, isDefault: true } : { ...v, isDefault: false };
+          }
+        }
+
+        // Unset default only for the target.
+        if (!isDefault && matchesTarget) {
+          return { ...v, isDefault: false };
+        }
+
+        return v;
+      });
+
+      this.writeToLocalStorage(updated);
+      return of(void 0);
+    }
+
+    // Backend path: best-effort persist. Backend may enforce uniqueness.
+    return this.saveView({ ...view, isDefault });
   }
 
   private readFromLocalStorage(): SavedView[] {
