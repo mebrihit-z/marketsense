@@ -98,7 +98,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
         const activeView = defaultView ?? scopedViews[0];
         const activeKey = activeView ? (activeView.id ?? activeView.name) : null;
 
-        this.viewingOptions = scopedViews.map((item, index) => {
+        const mapped = scopedViews.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
           const tags = this.deriveTagsFromState(item?.state);
@@ -115,6 +115,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
           };
         });
 
+        this.viewingOptions = this.orderViewingOptionsForDropdown(mapped);
+
         if (this.viewingOptions.length > 0) {
           this.viewingFilter = this.viewingOptions.find((o) => o.isActive)?.name ?? this.viewingOptions[0].name;
         }
@@ -125,6 +127,38 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
         this.viewingOptions = this.getDefaultViewingOptions();
       },
     });
+  }
+
+  /**
+   * Dropdown order: default saved view first, then the active view (if not the same), then the rest in stable order.
+   */
+  private orderViewingOptionsForDropdown(options: ViewingOption[]): ViewingOption[] {
+    if (options.length <= 1) {
+      return [...options];
+    }
+
+    const optionKey = (o: ViewingOption) => o.raw?.id ?? o.name;
+    const defaultOpt = options.find((o) => o.isDefault) ?? null;
+    const activeOpt = options.find((o) => o.isActive) ?? null;
+
+    const result: ViewingOption[] = [];
+    const seen = new Set<string>();
+
+    const pushUnique = (o: ViewingOption | null) => {
+      if (!o) return;
+      const k = optionKey(o);
+      if (seen.has(k)) return;
+      seen.add(k);
+      result.push(o);
+    };
+
+    pushUnique(defaultOpt);
+    pushUnique(activeOpt);
+    for (const o of options) {
+      pushUnique(o);
+    }
+
+    return result;
   }
 
   /**
@@ -239,10 +273,12 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    */
   selectViewingOption(option: ViewingOption): void {
     this.viewingFilter = option.name;
-    this.viewingOptions = this.viewingOptions.map(o => ({
-      ...o,
-      isActive: o === option
-    }));
+    this.viewingOptions = this.orderViewingOptionsForDropdown(
+      this.viewingOptions.map((o) => ({
+        ...o,
+        isActive: o === option,
+      }))
+    );
     this.isViewingDropdownOpen = false;
 
     // Notify the rest of the app (e.g., filters bar) to apply this saved view's filters.
@@ -316,15 +352,19 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     if (index === -1) return;
     const wasActive = option.isActive;
     const hadMultiple = this.viewingOptions.length > 1;
-    this.viewingOptions = this.viewingOptions.filter((_, i) => i !== index);
-    if (this.viewingOptions.length === 0) {
+    let next = this.viewingOptions.filter((_, i) => i !== index);
+    if (next.length === 0) {
       this.viewingFilter = 'No presets';
+      this.viewingOptions = next;
     } else if (wasActive && hadMultiple) {
-      this.viewingFilter = this.viewingOptions[0].name;
-      this.viewingOptions = this.viewingOptions.map((o, i) => ({
+      this.viewingFilter = next[0].name;
+      next = next.map((o, i) => ({
         ...o,
-        isActive: i === 0
+        isActive: i === 0,
       }));
+      this.viewingOptions = this.orderViewingOptionsForDropdown(next);
+    } else {
+      this.viewingOptions = this.orderViewingOptionsForDropdown(next);
     }
 
     const rawId = (option as any).raw?.id as string | undefined;

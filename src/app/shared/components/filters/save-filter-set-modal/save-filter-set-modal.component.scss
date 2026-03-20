@@ -140,11 +140,14 @@
 .default-option {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   padding: 2px 0;
   cursor: pointer;
   user-select: none;
+}
+
+.default-option-label {
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
@@ -152,9 +155,43 @@
   color: $text-midnight-blue;
 }
 
-.default-option input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
+// Same checkbox styling as filter-dropdown `.checkbox-wrapper`
+.default-option .checkbox-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    border: 1px solid $border-light;
+    background: $bg-gray-lightest;
+    box-shadow: 0 1px 2px 0 $overlay-light;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    position: relative;
+    flex-shrink: 0;
+
+    &:checked {
+      background-color: $primary-colors-midnight-blue;
+      border-color: $primary-colors-midnight-blue;
+
+      &::after {
+        content: '';
+        position: absolute;
+        left: 4px;
+        top: 1px;
+        width: 4px;
+        height: 7px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+  }
 }
 
 .action-buttons {
