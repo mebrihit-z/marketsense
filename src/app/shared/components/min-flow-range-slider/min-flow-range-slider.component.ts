@@ -67,8 +67,32 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     return this.options?.[this.activeRange?.startIndex]?.label ?? '';
   }
 
+  /**
+   * Upper-bound copy for the end handle: chart filtering uses this as max ($B inclusive),
+   * so we show ≤… / “No max”, not the option’s “≥ …” minimum-threshold wording.
+   */
   get endLabel(): string {
-    return this.options?.[this.activeRange?.endIndex]?.label ?? '';
+    const opts = this.options;
+    const endIdx = this.activeRange?.endIndex;
+    if (!opts?.length || endIdx == null) return '';
+    const last = opts.length - 1;
+    if (endIdx >= last) return 'No max';
+    const val = opts[endIdx]?.value;
+    if (val == null || !Number.isFinite(val)) return '';
+    return this.formatUpperBoundLabel(val);
+  }
+
+  private formatUpperBoundLabel(valueBn: number): string {
+    if (valueBn <= 0) return 'No max';
+    if (valueBn < 1) {
+      const m = valueBn * 1000;
+      const s = Number.isInteger(m) ? String(m) : m.toFixed(0);
+      return `≤ $${s}M`;
+    }
+    const s = Number.isInteger(valueBn)
+      ? valueBn.toLocaleString('en-US')
+      : valueBn.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    return `≤ $${s}B`;
   }
 
   getHandlePosition(type: 'start' | 'end'): number {
