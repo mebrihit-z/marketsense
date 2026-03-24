@@ -63,6 +63,28 @@ export default class FilterDropdownComponent {
   }
 
   /**
+   * Total unique option values in the current dropdown.
+   */
+  get uniqueOptionCount(): number {
+    return new Set(this.flatOptions.map(option => option.value)).size;
+  }
+
+  /**
+   * Number of selected values that exist in this dropdown's options.
+   */
+  get selectedCount(): number {
+    const optionValues = new Set(this.flatOptions.map(option => option.value));
+    let count = 0;
+    const selectedValues = new Set(this.selected || []);
+    selectedValues.forEach(value => {
+      if (optionValues.has(value)) {
+        count++;
+      }
+    });
+    return count;
+  }
+
+  /**
    * Gets the effective map to use for display (pending if dropdown is open, confirmed otherwise).
    * @returns The map to use for checkbox states.
    */

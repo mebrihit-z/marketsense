@@ -1,0 +1,133 @@
+@use '../../../../_variables' as *;
+
+.min-flow-range-root {
+  min-width: 0;
+}
+
+.min-flow-range-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  min-width: 200px;
+}
+
+.min-flow-range-container {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  min-width: 0;
+  overflow: visible;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.min-flow-range-track {
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.min-flow-range-dots {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 6px;
+  pointer-events: none;
+}
+
+.min-flow-range-dots .dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: $primary-colors-midnight-blue;
+  border-radius: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.min-flow-range-track-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 5px;
+  background: $primary-colors-sky-blue;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.min-flow-range-track-active {
+  position: absolute;
+  top: 0;
+  height: 6px;
+  background: $primary-colors-midnight-blue;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.min-flow-range-handle {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background: $primary-colors-midnight-blue;
+  border-radius: 50%;
+  cursor: grab;
+  transform: translateX(-50%);
+  top: 5px;
+  z-index: 2;
+  user-select: none;
+  touch-action: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    margin-top: -14px;
+    cursor: grab;
+    pointer-events: auto;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.min-flow-range-handle-start:hover,
+.min-flow-range-handle-end:hover {
+  transform: translateX(-50%) scale(1.15);
+  box-shadow:
+    0 0 0 3px rgba($time-horizon-handle-hover-background, 0.85),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.min-flow-range-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: $primary-colors-midnight-blue;
+  line-height: 1.3;
+}
+
+.min-flow-range-summary-sep {
+  opacity: 0.55;
+  user-select: none;
+}

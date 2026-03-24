@@ -1,0 +1,53 @@
+<div class="min-flow-range-root" *ngIf="options?.length">
+  <div class="min-flow-range-slider-wrapper">
+    <div
+      class="min-flow-range-container"
+      #sliderContainer
+      (mousedown)="onTrackClick($event)"
+      (click)="onTrackClick($event)"
+      (touchend)="onTrackClick($event)">
+      <div class="min-flow-range-track">
+        <div class="min-flow-range-dots">
+          <div
+            class="dot"
+            *ngFor="let opt of options; let i = index"
+            [style.left.%]="dotLeftPercent(i)"></div>
+        </div>
+        <div class="min-flow-range-track-bg"></div>
+        <div
+          class="min-flow-range-track-active"
+          [style.left.px]="getActiveTrackLeft()"
+          [style.width.px]="getActiveTrackWidth()"></div>
+      </div>
+      <div
+        class="min-flow-range-handle min-flow-range-handle-start"
+        [style.left.px]="getHandlePosition('start')"
+        (mousedown)="startDrag($event, 'start')"
+        (touchstart)="startDrag($event, 'start')"
+        (click)="$event.stopPropagation()"
+        role="slider"
+        [attr.aria-valuenow]="displayStartIndex"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="numSteps"
+        [attr.aria-valuetext]="startLabel"
+        aria-label="Minimum flow range start"></div>
+      <div
+        class="min-flow-range-handle min-flow-range-handle-end"
+        [style.left.px]="getHandlePosition('end')"
+        (mousedown)="startDrag($event, 'end')"
+        (touchstart)="startDrag($event, 'end')"
+        (click)="$event.stopPropagation()"
+        role="slider"
+        [attr.aria-valuenow]="displayEndIndex"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="numSteps"
+        [attr.aria-valuetext]="endLabel"
+        aria-label="Minimum flow range end"></div>
+    </div>
+    <div class="min-flow-range-summary" aria-live="polite">
+      <span class="min-flow-range-summary-start">{{ startLabel }}</span>
+      <span class="min-flow-range-summary-sep">—</span>
+      <span class="min-flow-range-summary-end">{{ endLabel }}</span>
+    </div>
+  </div>
+</div>

@@ -504,22 +504,36 @@ export function filterSankeyData(
 }
 
 /**
- * Filters Sankey data by a minimum flow value (e.g. only show links with value >= minValue in billions).
- * Removes links below the threshold and any nodes that are no longer connected.
+ * Filters Sankey links by optional lower and upper bounds (values in billions).
+ * Removes links outside the range and any nodes that are no longer connected.
  *
- * @param data - The Sankey data object to filter
- * @param minValue - Minimum link value in billions (e.g. 0.5 for $0.5B). Use 0 or undefined to skip filtering.
- * @returns Filtered Sankey data with only links >= minValue and their connected nodes
+ * @param minValue - Use 0 or less to apply no lower bound.
+ * @param maxValue - Use null/undefined to apply no upper bound.
  */
-export function filterSankeyDataByMinValue(
+export function filterSankeyDataByFlowValueRange(
   data: SankeyData,
-  minValue: number
+  minValue: number,
+  maxValue: number | null | undefined
 ): SankeyData {
-  if (!data || !data.links || !Array.isArray(data.links) || minValue <= 0) {
+  if (!data || !data.links || !Array.isArray(data.links)) {
     return data;
   }
 
-  const filteredLinks = data.links.filter((link) => (link.value ?? 0) >= minValue);
+  const hasMin = minValue > 0;
+  const hasMax = maxValue != null && Number.isFinite(maxValue as number);
+  if (!hasMin && !hasMax) {
+    return data;
+  }
+
+  const max = hasMax ? (maxValue as number) : Infinity;
+
+  const filteredLinks = data.links.filter((link) => {
+    const v = link.value ?? 0;
+    if (hasMin && v < minValue) return false;
+    if (hasMax && v > max) return false;
+    return true;
+  });
+
   if (filteredLinks.length === 0) {
     return {
       ...data,
@@ -551,5 +565,23 @@ export function filterSankeyDataByMinValue(
     nodes: filteredNodes,
     links: filteredLinks
   };
+}
+
+/**
+ * Filters Sankey data by a minimum flow value (e.g. only show links with value >= minValue in billions).
+ * Removes links below the threshold and any nodes that are no longer connected.
+ *
+ * @param data - The Sankey data object to filter
+ * @param minValue - Minimum link value in billions (e.g. 0.5 for $0.5B). Use 0 or undefined to skip filtering.
+ * @returns Filtered Sankey data with only links >= minValue and their connected nodes
+ */
+export function filterSankeyDataByMinValue(
+  data: SankeyData,
+  minValue: number
+): SankeyData {
+  if (!data || !data.links || !Array.isArray(data.links) || minValue <= 0) {
+    return data;
+  }
+  return filterSankeyDataByFlowValueRange(data, minValue, null);
 }
 

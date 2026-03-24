@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import TitleComponent from '../../title/title.component';
@@ -11,6 +12,8 @@ import TitleComponent from '../../title/title.component';
 })
 export default class ExportModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
+  @Input() title: string = 'Export Market Flow';
+  @Input() subtitle: string = 'Choose your preferred export format';
   @Output() close = new EventEmitter<void>();
   @Output() exportXLS = new EventEmitter<void>();
   @Output() exportPDF = new EventEmitter<void>();

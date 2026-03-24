@@ -8,7 +8,12 @@ import {
   sankeyLinkHorizontal,
   SankeyGraph
 } from 'd3-sankey';
-import { filterSankeyData, filterSankeyDataByMinValue, extractProductTypeFromNodeName, type SankeyData } from '../../../utils/sankey-data.utils';
+import {
+  filterSankeyData,
+  filterSankeyDataByFlowValueRange,
+  extractProductTypeFromNodeName,
+  type SankeyData,
+} from '../../../utils/sankey-data.utils';
 
 // ----------------------
 // TypeScript Models
@@ -73,8 +78,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() dimension2Label?: string;
   /** Label for the super-node legend (Super Start/End, same as selected dimension 1). Falls back to "Regions" when not provided. */
   @Input() dimension1Label?: string;
-  /** Minimum flow value in billions ($B) to show; links below this are hidden. Use 0 or leave unset to show all. */
+  /** Minimum flow value in billions ($B); links below this are hidden when greater than 0. */
   @Input() minFlowValue: number = 0;
+  /** Maximum flow value in billions; links above this are hidden when set. Null = no upper cap. */
+  @Input() maxFlowValue: number | null = null;
 
   // Getter to ensure TypeScript recognizes the input
   get shouldShowLegend(): boolean {
@@ -87,7 +94,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       (this.selectedInvestorRegions?.length ?? 0) > 0 ||
       (this.selectedProductTypes?.length ?? 0) > 0 ||
       (this.selectedProductSubTypes?.length ?? 0) > 0 ||
-      (this.minFlowValue ?? 0) > 0
+      (this.minFlowValue ?? 0) > 0 ||
+      (this.maxFlowValue != null && Number.isFinite(this.maxFlowValue))
     );
   }
 
@@ -124,7 +132,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * Generate a hash of filter values to detect actual changes
    */
   private getFiltersHash(): string {
-    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}`;
+    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}`;
   }
 
   ngAfterViewInit(): void {
@@ -158,7 +166,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (changes['selectedInvestorRegions'] || 
         changes['selectedProductTypes'] || 
         changes['selectedProductSubTypes'] ||
-        changes['minFlowValue']) {
+        changes['minFlowValue'] ||
+        changes['maxFlowValue']) {
       const newFiltersHash = this.getFiltersHash();
       if (newFiltersHash !== this.lastFiltersHash) {
         this.lastFiltersHash = newFiltersHash;
@@ -206,10 +215,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       );
     }
 
-    // Apply minimum flow value filter (values in billions)
     const minVal = this.minFlowValue ?? 0;
-    if (minVal > 0) {
-      result = filterSankeyDataByMinValue(result, minVal);
+    const maxVal = this.maxFlowValue;
+    if (minVal > 0 || (maxVal != null && Number.isFinite(maxVal))) {
+      result = filterSankeyDataByFlowValueRange(result, minVal, maxVal);
     }
 
     return result as RegionalSankeyData;

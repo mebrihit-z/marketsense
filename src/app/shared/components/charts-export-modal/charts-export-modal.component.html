@@ -12,16 +12,16 @@
 
     <!-- Export Options -->
     <div class="export-options">
-      <!-- XLS Option -->
-      <button class="export-option" (click)="onExportXLS()">
+      <!-- PNG Option -->
+      <button class="export-option" (click)="onExportPNG()">
         <div class="option-content">
           <div class="option-header">
-            <div class="option-icon excel-icon">
-              <img src="assets/icons/excel-icon.svg" alt="Excel" class="excel-icon">
+            <div class="option-icon png-icon">
+              <img src="assets/icons/download-icon.svg" alt="PNG" class="png-icon-img">
             </div>
-            <span class="option-title">XLS (Excel)</span>
+            <span class="option-title">PNG</span>
           </div>
-          <p class="option-description">Download underlying data and metrics</p>
+          <p class="option-description">Export chart snapshot as PNG image</p>
         </div>
       </button>
 
@@ -34,10 +34,9 @@
             </div>
             <span class="option-title">PDF</span>
           </div>
-          <p class="option-description">Export formatted market flow card</p>
+          <p class="option-description">Export chart data report as PDF</p>
         </div>
       </button>
     </div>
   </div>
 </div>
-

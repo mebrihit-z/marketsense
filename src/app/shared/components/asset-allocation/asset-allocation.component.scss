@@ -182,25 +182,16 @@
   width: fit-content;
   padding: 17px;
 }
-.min-flow-value-select {
-  padding: 6px 12px;
-  border: 1px solid $primary-colors-midnight-blue;
-  background-color: $bg-white;
-  font-size: 12px;
-  color: $primary-colors-midnight-blue;
-}
 .min-flow-value-container {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.min-flow-value-select {
-  padding: 6px 12px;
-  border: 1px solid $primary-colors-midnight-blue;
-  background-color: $bg-white;
-  font-size: 12px;
-  color: $primary-colors-midnight-blue;
+.min-flow-range-embed {
+  flex: 1;
+  min-width: 0;
+  max-width: 340px;
 }
 
 // Toggle Section

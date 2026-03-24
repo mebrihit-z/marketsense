@@ -16,7 +16,7 @@
           <img [src]="isPinned ? 'assets/icons/pined-pin-icon.svg' : 'assets/icons/pin-icon.svg'" alt="Pin Button">
         </button>
         <!-- Download Button -->
-        <button class="more-options-btn" aria-label="More options">
+        <button class="more-options-btn" aria-label="Export Treemap chart" (click)="onOpenExportModal()">
           <img src="assets/icons/download-icon.svg" alt="More options">
         </button>
       </div>
@@ -40,18 +40,16 @@
       <ng-container *ngIf="minFlowValueOptions.length">
         <div class="dimension-selector-container min-flow-value-container">
           <span class="dimension-number-label">Min flow value:</span>
-          <select
-            class="min-flow-value-select"
-            [ngModel]="minFlowValue"
-            (ngModelChange)="minFlowValue = +$event">
-            <option *ngFor="let opt of minFlowValueOptions" [value]="opt.value">{{ opt.label }}</option>
-          </select>
+          <app-min-flow-range-slider
+            class="min-flow-range-embed"
+            [options]="minFlowValueOptions"
+            [(range)]="minFlowRange" />
         </div>
       </ng-container>
     </div>
   </div>
   <!-- Treemap Visualization -->
-  <div class="visualization-container">
+  <div class="visualization-container" #chartExportRoot>
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="treemap-region-container">
       <div class="reallocation-treemap-section">
         <app-treemap
@@ -59,7 +57,8 @@
           [selectedInvestorRegions]="regionData.investorRegions"
           [selectedProductTypes]="cachedSelectedProductTypes"
           [selectedProductSubTypes]="cachedSelectedProductSubTypes"
-          [minFlowValue]="minFlowValue"
+          [minFlowValue]="chartMinFlowLower"
+          [maxFlowValue]="chartMaxFlowUpper"
           [timeHorizon]="timeHorizon"
           [timeHorizonStart]="timeHorizonStart"
           [timeHorizonEnd]="timeHorizonEnd">
@@ -76,4 +75,13 @@
   (close)="onCloseModal()"
   (askAI)="onAskAI()">
 </app-treemap-cell-modal>
+
+<app-charts-export-modal
+  [isVisible]="showExportModal"
+  [title]="'Export Asset Allocation'"
+  [subtitle]="'PNG or PDF snapshot of the treemap'"
+  (close)="onCloseExportModal()"
+  (exportPNG)="onExportPNG()"
+  (exportPDF)="onExportPDF()">
+</app-charts-export-modal>
 

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core'
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
@@ -11,6 +11,17 @@ import {
 } from '../../utils/sankey-data.utils';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
+import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
+import {
+  MinFlowRangeSliderComponent,
+  type MinFlowRange,
+} from '../min-flow-range-slider/min-flow-range-slider.component';
+import { jsPDF } from 'jspdf';
+import {
+  captureChartAreaToPng,
+  downloadDataUrlAsPng,
+  saveChartAsMultiPagePdf,
+} from '../../utils/chart-dom-export.util';
 
 export type { FlowDimension };
 
@@ -37,7 +48,15 @@ export interface AssetFlowData {
 @Component({
   selector: 'app-asset-flows',
   standalone: true,
-  imports: [CommonModule, FormsModule, SankeyComponent, TitleComponent, FlowDimensionsComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SankeyComponent,
+    TitleComponent,
+    FlowDimensionsComponent,
+    ChartsExportModalComponent,
+    MinFlowRangeSliderComponent,
+  ],
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })
@@ -98,6 +117,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   
   // Filter options extracted from data
   filterOptions: FilterOptions | undefined;
+  showExportModal: boolean = false;
+
+  @ViewChild('chartExportRoot', { read: ElementRef }) chartExportRoot?: ElementRef<HTMLElement>;
 
   // Available dimensions for Dimension 1, 2, and 3 dropdowns (includes Product Region for Dimension 1)
   availableDimensions: FlowDimension[] = [
@@ -113,11 +135,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
 
-  /** Minimum flow value in billions to show in Sankey (0 = show all). */
-  minFlowValue: number = 0;
-  /** Preset options for min flow value filter (value in billions, label for display). */
+  /** Preset stops for flow value range (value in billions, label for display). */
   minFlowValueOptions: { value: number; label: string }[] = [
     { value: 0, label: 'All flows' },
+    { value: 0.05, label: '≥ $50M' },
+    { value: 0.1, label: '≥ $100M' },
+    { value: 0.25, label: '≥ $250M' },
+    { value: 0.5, label: '≥ $500M' },
     { value: 1, label: '≥ $1B' },
     { value: 5, label: '≥ $5B' },
     { value: 10, label: '≥ $10B' },
@@ -126,6 +150,22 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     { value: 50000, label: '≥ $50,000B' },
     { value: 100000, label: '≥ $100,000B' }
   ];
+
+  /** Selected index range on minFlowValueOptions (inclusive); default = full span. */
+  minFlowRange: MinFlowRange = { startIndex: 0, endIndex: 0 };
+
+  get chartMinFlowLower(): number {
+    return this.minFlowValueOptions[this.minFlowRange.startIndex]?.value ?? 0;
+  }
+
+  /** Null when the end handle is on the last stop (no upper cap). */
+  get chartMaxFlowUpper(): number | null {
+    const opts = this.minFlowValueOptions;
+    const last = opts.length - 1;
+    if (last < 0) return null;
+    if (this.minFlowRange.endIndex >= last) return null;
+    return opts[this.minFlowRange.endIndex]?.value ?? null;
+  }
 
   constructor(private assetFlowsData: AssetFlowsDataService) {}
   
@@ -153,6 +193,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   };
 
   ngOnInit(): void {
+    const n = this.minFlowValueOptions.length;
+    this.minFlowRange = { startIndex: 0, endIndex: Math.max(0, n - 1) };
     this.updateDimensions();
     // Set default dimensions
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
@@ -649,6 +691,217 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   onPinClick(): void {
     this.isPinned = !this.isPinned;
     this.pinToggle.emit();
+  }
+
+  onOpenExportModal(): void {
+    this.showExportModal = true;
+  }
+
+  onCloseExportModal(): void {
+    this.showExportModal = false;
+  }
+
+  async onExportPNG(): Promise<void> {
+    await this.waitForChartExportPaint();
+    const root = this.chartExportRoot?.nativeElement;
+    if (root && this.regionDataArray.length > 0) {
+      try {
+        const dataUrl = await captureChartAreaToPng(root);
+        if (dataUrl) {
+          downloadDataUrlAsPng(dataUrl, `${this.getExportBaseName()}-sankey.png`);
+          return;
+        }
+      } catch (e) {
+        console.warn('Sankey chart PNG capture failed; falling back to data table', e);
+      }
+    }
+    const rows = this.buildExportRows();
+    if (rows.length === 0) {
+      return;
+    }
+    const canvas = this.buildTableCanvas('Asset Flows - Sankey Export', rows, 35);
+    this.downloadCanvasAsPng(canvas, `${this.getExportBaseName()}-sankey.png`);
+  }
+
+  async onExportPDF(): Promise<void> {
+    await this.waitForChartExportPaint();
+    const root = this.chartExportRoot?.nativeElement;
+    if (root && this.regionDataArray.length > 0) {
+      try {
+        const dataUrl = await captureChartAreaToPng(root);
+        if (dataUrl) {
+          await saveChartAsMultiPagePdf({
+            imageDataUrl: dataUrl,
+            title: 'Asset Flows — Sankey',
+            timeLine: `Time horizon: ${this.getExportTimeLine()}`,
+            filename: `${this.getExportBaseName()}-sankey.pdf`,
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('Sankey chart PDF capture failed; falling back to data table', e);
+      }
+    }
+    const rows = this.buildExportRows();
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 40;
+    let y = margin;
+
+    pdf.setFontSize(16);
+    pdf.text('Asset Flows - Sankey Export', margin, y);
+    y += 20;
+    pdf.setFontSize(10);
+    pdf.text(`Time Horizon: ${this.timeHorizonStart && this.timeHorizonEnd ? `${this.timeHorizonStart} to ${this.timeHorizonEnd}` : this.timeHorizon}`, margin, y);
+    y += 16;
+
+    const maxRows = 35;
+    const printableRows = rows.slice(0, maxRows);
+    const cols = ['Region', 'Source', 'Target', 'Flow ($B)'];
+    const colX = [margin, margin + 150, margin + 360, pageWidth - margin - 120];
+
+    pdf.setFontSize(11);
+    cols.forEach((col, idx) => pdf.text(col, colX[idx], y));
+    y += 12;
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 14;
+    pdf.setFontSize(9);
+
+    printableRows.forEach((row) => {
+      if (y > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+      pdf.text(String(row.Region ?? ''), colX[0], y);
+      pdf.text(String(row.Source ?? ''), colX[1], y);
+      pdf.text(String(row.Target ?? ''), colX[2], y);
+      pdf.text(String(row['Flow ($B)'] ?? ''), colX[3], y);
+      y += 12;
+    });
+
+    if (rows.length > maxRows) {
+      y += 8;
+      pdf.setFontSize(9);
+      pdf.text(`Showing ${maxRows} of ${rows.length} rows. Use XLS for full dataset.`, margin, y);
+    }
+
+    pdf.save(`${this.getExportBaseName()}-sankey.pdf`);
+  }
+
+  private buildTableCanvas(
+    heading: string,
+    rows: Array<{ Region: string; Source: string; Target: string; 'Flow ($B)': number }>,
+    maxRows: number
+  ): HTMLCanvasElement {
+    const printableRows = rows.slice(0, maxRows);
+    const width = 1400;
+    const rowHeight = 28;
+    const height = 170 + (printableRows.length * rowHeight) + (rows.length > maxRows ? 40 : 0);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return canvas;
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#00113f';
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText(heading, 40, 48);
+    ctx.font = '16px Arial';
+    const horizon = this.timeHorizonStart && this.timeHorizonEnd ? `${this.timeHorizonStart} to ${this.timeHorizonEnd}` : this.timeHorizon;
+    ctx.fillText(`Time Horizon: ${horizon}`, 40, 78);
+
+    const colX = [40, 290, 720, 1200];
+    const headers = ['Region', 'Source', 'Target', 'Flow ($B)'];
+    ctx.font = 'bold 16px Arial';
+    headers.forEach((h, idx) => ctx.fillText(h, colX[idx], 115));
+    ctx.strokeStyle = '#d1d5db';
+    ctx.beginPath();
+    ctx.moveTo(40, 126);
+    ctx.lineTo(width - 40, 126);
+    ctx.stroke();
+
+    ctx.font = '14px Arial';
+    printableRows.forEach((row, idx) => {
+      const y = 152 + (idx * rowHeight);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(String(row.Region ?? ''), colX[0], y);
+      ctx.fillText(String(row.Source ?? ''), colX[1], y);
+      ctx.fillText(String(row.Target ?? ''), colX[2], y);
+      ctx.fillText(String(row['Flow ($B)'] ?? ''), colX[3], y);
+    });
+
+    if (rows.length > maxRows) {
+      ctx.fillStyle = '#475569';
+      ctx.font = '13px Arial';
+      ctx.fillText(`Showing ${maxRows} of ${rows.length} rows.`, 40, height - 18);
+    }
+    return canvas;
+  }
+
+  private downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string): void {
+    if (canvas.toBlob) {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  private buildExportRows(): Array<{ Region: string; Source: string; Target: string; 'Flow ($B)': number }> {
+    const rows: Array<{ Region: string; Source: string; Target: string; 'Flow ($B)': number }> = [];
+    this.regionDataArray.forEach((regionData) => {
+      const region = regionData.key;
+      const links = regionData.data?.links ?? [];
+      links.forEach((link) => {
+        rows.push({
+          Region: region,
+          Source: link.source,
+          Target: link.target,
+          'Flow ($B)': Number(link.value ?? 0),
+        });
+      });
+    });
+    return rows;
+  }
+
+  private getExportBaseName(): string {
+    const horizon = (this.timeHorizonStart && this.timeHorizonEnd)
+      ? `${this.timeHorizonStart}-to-${this.timeHorizonEnd}`
+      : this.timeHorizon;
+    return `asset-flows-${horizon}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  private getExportTimeLine(): string {
+    return this.timeHorizonStart && this.timeHorizonEnd
+      ? `${this.timeHorizonStart} to ${this.timeHorizonEnd}`
+      : this.timeHorizon;
+  }
+
+  /** Let the export modal close and the chart repaint before reading the DOM. */
+  private async waitForChartExportPaint(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    await new Promise((r) => setTimeout(r, 100));
   }
 
   /**

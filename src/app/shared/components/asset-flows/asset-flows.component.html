@@ -16,7 +16,7 @@
           <img [src]="isPinned ? 'assets/icons/pined-pin-icon.svg' : 'assets/icons/pin-icon.svg'" alt="Pin Button">
         </button>
         <!-- Download Button -->
-        <button class="more-options-btn" aria-label="More options">
+        <button class="more-options-btn" aria-label="Export Sankey chart" (click)="onOpenExportModal()">
           <img src="assets/icons/download-icon.svg" alt="More options">
         </button>
       </div>
@@ -41,18 +41,16 @@
       <ng-container *ngIf="minFlowValueOptions.length">
         <div class="dimension-selector-container min-flow-value-container">
           <span class="dimension-number-label">Min flow value:</span>
-          <select
-            class="min-flow-value-select"
-            [ngModel]="minFlowValue"
-            (ngModelChange)="minFlowValue = +$event">
-            <option *ngFor="let opt of minFlowValueOptions" [value]="opt.value">{{ opt.label }}</option>
-          </select>
+          <app-min-flow-range-slider
+            class="min-flow-range-embed"
+            [options]="minFlowValueOptions"
+            [(range)]="minFlowRange" />
         </div>
       </ng-container>
     </div>
   </div>
   <!-- Regional Sankey Diagram Visualization -->
-  <div class="visualization-container">
+  <div class="visualization-container" #chartExportRoot>
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="sankey-region-container">
       <app-title [title]="regionData.key" level="h3"></app-title>
       <app-sankey
@@ -61,7 +59,8 @@
         [selectedInvestorRegions]="regionData.investorRegions"
         [selectedProductTypes]="cachedSelectedProductTypes"
         [selectedProductSubTypes]="cachedSelectedProductSubTypes"
-        [minFlowValue]="minFlowValue"
+        [minFlowValue]="chartMinFlowLower"
+        [maxFlowValue]="chartMaxFlowUpper"
         [dimension1Label]="selectedDimension1?.label"
         [dimension2Label]="selectedDimension2?.label"
         [timeHorizon]="timeHorizon"
@@ -72,3 +71,12 @@
     </div>
   </div>
 </div>
+
+<app-charts-export-modal
+  [isVisible]="showExportModal"
+  [title]="'Export Asset Flows'"
+  [subtitle]="'PNG or PDF snapshot of the Sankey view'"
+  (close)="onCloseExportModal()"
+  (exportPNG)="onExportPNG()"
+  (exportPDF)="onExportPDF()">
+</app-charts-export-modal>

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, AfterViewInit, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
@@ -25,7 +25,7 @@ export interface FilterOptionTotals {
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss'
 })
-export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
+export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterViewInit {
   @Input() forceCloseDropdown = 0;
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('timeHorizonSliderFull', { static: false }) timeHorizonSliderContainerFull!: ElementRef<HTMLElement>;
@@ -69,7 +69,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   constructor(
     private assetFlowsData: AssetFlowsDataService,
     private savedViewsService: SavedViewsService,
-    private userProfileService: UserProfileService
+    private userProfileService: UserProfileService,
+    private hostRef: ElementRef<HTMLElement>
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -102,9 +103,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   dataType: 'historical' | 'forecasted' = 'forecasted';
   selectedTimeHorizon: string = 'Today';
   
-  // Scroll state for condensed layout
+  // Scroll state for condensed layout (only after full bar has fully left the viewport)
   isScrolled = false;
-  scrollThreshold = 50; // Pixels to scroll before showing condensed layout
+  /** Last measured document Y range of the full bar (sticky layout); used to restore when scrolling back. */
+  private fullBarTopDocumentY = 0;
+  private fullBarBottomDocumentY = 0;
 
   /** When true, the condensed bar is expanded (visible); when false, only the thin strip with expand button is shown. */
   condensedBarExpanded = true;
@@ -153,6 +156,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     this.checkScrollPosition();
   }
 
+  ngAfterViewInit(): void {
+    setTimeout(() => this.checkScrollPosition(), 0);
+  }
+
   ngOnDestroy(): void {
     if (typeof document !== 'undefined') {
       document.removeEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
@@ -179,17 +186,40 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
   
   /**
-   * Checks the current scroll position and updates isScrolled state.
-   * @returns {void}
+   * Condensed mode only when the full filters bar has scrolled completely above the viewport.
+   * While the bar is still visible (including when sticky at the top), stay on the full layout.
    */
   private checkScrollPosition(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
     // Don't enable condensed mode on mobile devices and iPad (screen width <= 1024px)
     if (window.innerWidth <= 1024) {
       this.isScrolled = false;
       return;
     }
+
     const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-    this.isScrolled = scrollY > this.scrollThreshold;
+    const vh = window.innerHeight;
+    const host = this.hostRef.nativeElement;
+    const rect = host.getBoundingClientRect();
+
+    if (!this.isScrolled) {
+      this.fullBarTopDocumentY = rect.top + scrollY;
+      this.fullBarBottomDocumentY = this.fullBarTopDocumentY + rect.height;
+      // Entire bar is above the viewport — user cannot see the full bar anymore
+      if (rect.bottom <= 0) {
+        this.isScrolled = true;
+      }
+    } else {
+      // Fixed condensed bar: host rect is not the in-document position; use cached range
+      const viewportOverlapsFullBarZone =
+        scrollY < this.fullBarBottomDocumentY && scrollY + vh > this.fullBarTopDocumentY;
+      if (viewportOverlapsFullBarZone) {
+        this.isScrolled = false;
+        this.condensedBarExpanded = true;
+      }
+    }
   }
 
   /**
@@ -244,7 +274,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
          const defaultSubTypes = filterOptions.productSubTypes
            .filter(group => this.state.productType.includes(group.productType))
            .flatMap(group => group.subTypes);
-         this.state.productSubType = defaultSubTypes;
+         this.state.productSubType = Array.from(new Set(defaultSubTypes));
           
           // Initialize investorRegion selection with all regions selected by default
           this.state.investorRegion = [...filterOptions.investorRegions];
@@ -328,9 +358,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * display selected/total badges (e.g., Flow Dimensions chips).
    */
   private emitFilterOptionTotals(): void {
-    const productSubTypeTotal = this.productSubTypeOptions.reduce((sum, group) => {
-      return sum + (group.options?.length || 0);
-    }, 0);
+    const productSubTypeTotal = this.getUniqueProductSubTypeValues().length;
 
     this.filterOptionTotalsChange.emit({
       productTypeTotal: this.productTypeOptions.length,
@@ -389,6 +417,17 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   private hasAttemptedApplyDefaultSavedView: boolean = false;
 
   /**
+   * Returns unique product sub-type values across all groups.
+   * Product sub-type labels can repeat under different product types.
+   */
+  private getUniqueProductSubTypeValues(): string[] {
+    const allValues = this.productSubTypeOptions.flatMap(group =>
+      group.options.map(opt => opt.value)
+    );
+    return Array.from(new Set(allValues));
+  }
+
+  /**
    * Local storage key for saved filter views.
    */
   private readonly SAVED_VIEWS_STORAGE_KEY = 'marketsense.savedViews';
@@ -400,7 +439,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    */
   onChange(key: keyof typeof this.state, values: string[]) {
     const previousValues = [...this.state[key]];
-    this.state[key] = values;
+    this.state[key] = key === 'productSubType'
+      ? Array.from(new Set(values))
+      : values;
     
     // Hide "Select All Filters" button when any filter is manually selected
     if (values.length > 0) {
@@ -412,7 +453,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       this.handleProductTypeChange(previousValues, values);
       this.productTypeChange.emit(values);
     } else if (key === 'productSubType') {
-      this.productSubTypeChange.emit(values);
+      this.productSubTypeChange.emit(this.state.productSubType);
     } else if (key === 'productRegion') {
       this.productRegionChange.emit(values);
     } else if (key === 'investorRegion') {
@@ -571,8 +612,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     
     // Select all product sub-type options
     if (this.productSubTypeOptions.length > 0) {
-      const allSubTypes = this.productSubTypeOptions.flatMap(group => group.options.map(opt => opt.value));
-      this.state.productSubType = allSubTypes;
+      this.state.productSubType = this.getUniqueProductSubTypeValues();
     }
     
     // Select all investor region options

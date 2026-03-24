@@ -2,7 +2,11 @@
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
-import { filterSankeyData, filterSankeyDataByMinValue, type SankeyData } from '../../../utils/sankey-data.utils';
+import {
+  filterSankeyData,
+  filterSankeyDataByFlowValueRange,
+  type SankeyData,
+} from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 
@@ -46,8 +50,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() selectedInvestorRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
-  /** Minimum flow value in billions ($B) to show; links below this are hidden. Use 0 to show all. */
+  /** Minimum flow value in billions ($B); links below this are hidden when greater than 0. */
   @Input() minFlowValue: number = 0;
+  /** Maximum flow in billions; links above are hidden when set. Null = no upper cap. */
+  @Input() maxFlowValue: number | null = null;
   @Input() timeHorizon: string = 'Today';
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
@@ -85,7 +91,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const filterChanged = changes['selectedInvestorRegions'] || 
                           changes['selectedProductTypes'] || 
                           changes['selectedProductSubTypes'] ||
-                          changes['minFlowValue'];
+                          changes['minFlowValue'] ||
+                          changes['maxFlowValue'];
     
     // Handle time horizon changes
     const timeHorizonChanged = changes['timeHorizon'] || 
@@ -295,10 +302,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.selectedProductTypes,
       this.selectedProductSubTypes
     );
-    // Apply minimum flow value filter
     const minVal = this.minFlowValue ?? 0;
-    if (minVal > 0) {
-      filteredData = filterSankeyDataByMinValue(filteredData, minVal);
+    const maxVal = this.maxFlowValue;
+    if (minVal > 0 || (maxVal != null && Number.isFinite(maxVal))) {
+      filteredData = filterSankeyDataByFlowValueRange(filteredData, minVal, maxVal);
     }
     // Convert back to local format
     this.loadedData = {
