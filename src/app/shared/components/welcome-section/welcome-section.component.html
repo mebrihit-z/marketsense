@@ -40,35 +40,34 @@
               [class.active]="option.isActive"
               (click)="selectViewingOption(option)">
               <div class="option-content">
-                <div class="option-header">
-                  <div class="option-header-left">
-                    <app-title [title]="option.name" level="h5" class="option-title"></app-title>
-                    <span class="active-badge" *ngIf="option.isDefault">Default</span>
-                    <span class="active-badge" *ngIf="!option.isDefault && option.isActive">Active</span>
+                <div class="option-top-row">
+                  <div class="option-header">
+                    <div class="option-header-left">
+                      <app-title [title]="option.name" level="h5" class="option-title"></app-title>
+                      <span class="active-badge" *ngIf="option.isActive">Active</span>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    class="delete-btn"
+                    (click)="deleteOption(option, $event)"
+                    aria-label="Delete preset">
+                    <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
+                  </button>
                 </div>
                 <p class="option-saved-date">Saved {{ option.savedDate }}</p>
                 <div class="option-tags">
                   <span class="option-tag" *ngFor="let tag of option.tags">{{ tag }}</span>
                 </div>
-              </div>
-              <div class="option-actions">
-                <label class="default-toggle" (click)="$event.stopPropagation()">
+                <label class="option-set-default" (click)="$event.stopPropagation()">
                   <input
                     type="checkbox"
                     [checked]="option.isDefault"
                     (click)="$event.stopPropagation()"
                     (change)="toggleDefaultForOption(option, $event)"
-                    aria-label="Set as default preset" />
-                  <span class="default-toggle-slider" aria-hidden="true"></span>
+                    aria-label="Set as default" />
+                  <span class="option-set-default-label">Set as default</span>
                 </label>
-                <button
-                  type="button"
-                  class="delete-btn"
-                  (click)="deleteOption(option, $event)"
-                  aria-label="Delete preset">
-                  <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
-                </button>
               </div>
             </div>
           </div>

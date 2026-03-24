@@ -1,11 +1,15 @@
 <div class="filters-bar-container" #filtersRoot [class.condensed]="isScrolled" [class.condensed-collapsed]="isScrolled && !condensedBarExpanded">
   <!-- Collapsed strip: when condensed but user closed the bar -->
   <div class="condensed-bar-collapsed" *ngIf="isScrolled && !condensedBarExpanded">
-    <button type="button" class="condensed-bar-expand-btn" (click)="toggleCondensedBar()" title="Show filters" aria-label="Show filters">
+    <button type="button" class="condensed-bar-expand-btn" (click)="toggleCondensedBar()" title="Show filters" aria-label="Open filters">
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="14" viewBox="0 0 15 14" fill="none">
         <path d="M5.99813 11.9983C5.99807 12.1222 6.03254 12.2437 6.09766 12.3491C6.16278 12.4545 6.25598 12.5396 6.3668 12.595L7.70013 13.2617C7.8018 13.3125 7.91476 13.3364 8.02829 13.3313C8.14183 13.3261 8.25216 13.2921 8.34882 13.2323C8.44547 13.1725 8.52524 13.089 8.58055 12.9897C8.63585 12.8904 8.66485 12.7786 8.6648 12.665V7.99833C8.66495 7.66791 8.78777 7.34933 9.00947 7.10433L13.8248 1.77833C13.9111 1.6827 13.9679 1.56412 13.9882 1.43692C14.0085 1.30972 13.9916 1.17935 13.9394 1.06158C13.8872 0.943805 13.802 0.843675 13.6941 0.773294C13.5862 0.702914 13.4603 0.665297 13.3315 0.664993H1.33147C1.20254 0.66504 1.07639 0.70247 0.968298 0.772751C0.860209 0.843031 0.774818 0.943146 0.722468 1.06097C0.670119 1.17879 0.653056 1.30927 0.673348 1.43659C0.693641 1.56391 0.750416 1.68262 0.836799 1.77833L5.65346 7.10433C5.87516 7.34933 5.99798 7.66791 5.99813 7.99833V11.9983Z" stroke="#FFB70E" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="condensed-bar-expand-label">Filters</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#FFB70E" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9 3V21M5.5 3H18M5.5 21H18M14 14L16 12L14 10" stroke="#FFB70E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </button>
   </div>
   <div class="filters-root" #filtersRoot [class.condensed]="isScrolled" [class.condensed-expanded]="isScrolled && condensedBarExpanded" *ngIf="!isScrolled || condensedBarExpanded">
@@ -301,7 +305,10 @@
             <!-- Right side: close (X) + Clear all / Save view (condensed) -->
             <div class="condensed-bar-actions-right" *ngIf="isScrolled">
               <button type="button" class="condensed-bar-close-btn" (click)="toggleCondensedBar()" title="Close filters" aria-label="Close filters">
-                <img src="assets/icons/x-icon.svg" alt="" class="condensed-bar-close-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#00113F" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M9 3V21M5.5 3H18M5.5 21H18M16 10L14 12L16 14" stroke="#00113F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </button>
               <div class="clear-all-container-condensed">
                 <button class="clear-all-condensed" *ngIf="!showSelectAll" (click)="clearAll()" title="Clear All Filters" aria-label="Clear All Filters">
