@@ -64,7 +64,8 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   }
 
   get startLabel(): string {
-    return this.options?.[this.activeRange?.startIndex]?.label ?? '';
+    const raw = this.options?.[this.activeRange?.startIndex]?.label ?? '';
+    return this.formatMinLabel(raw);
   }
 
   /**
@@ -76,23 +77,23 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     const endIdx = this.activeRange?.endIndex;
     if (!opts?.length || endIdx == null) return '';
     const last = opts.length - 1;
-    if (endIdx >= last) return 'No max';
+    if (endIdx >= last) return 'Max';
     const val = opts[endIdx]?.value;
     if (val == null || !Number.isFinite(val)) return '';
     return this.formatUpperBoundLabel(val);
   }
 
   private formatUpperBoundLabel(valueBn: number): string {
-    if (valueBn <= 0) return 'No max';
+    if (valueBn <= 0) return 'Max';
     if (valueBn < 1) {
       const m = valueBn * 1000;
       const s = Number.isInteger(m) ? String(m) : m.toFixed(0);
-      return `≤ $${s}M`;
+      return `$${s}M`;
     }
     const s = Number.isInteger(valueBn)
       ? valueBn.toLocaleString('en-US')
       : valueBn.toLocaleString('en-US', { maximumFractionDigits: 2 });
-    return `≤ $${s}B`;
+    return `$${s}B`;
   }
 
   getHandlePosition(type: 'start' | 'end'): number {
@@ -111,6 +112,49 @@ export class MinFlowRangeSliderComponent implements OnChanges {
 
   dotLeftPercent(i: number): number {
     return (i / this.numSteps) * 100;
+  }
+
+  get labelStops(): Array<{ index: number; label: string; leftPercent: number }> {
+    const opts = this.options ?? [];
+    if (!opts.length) return [];
+
+    const last = opts.length - 1;
+    if (last <= 0) {
+      return [
+        {
+          index: 0,
+          label: opts[0]?.label ?? '',
+          leftPercent: this.dotLeftPercent(0),
+        },
+      ];
+    }
+
+    // Min flow has many steps; show a small, evenly spaced set (similar vibe to Time Horizon).
+    const maxLabels = 5;
+    const desired = Math.min(maxLabels, opts.length);
+    const indices = new Set<number>();
+    indices.add(0);
+    indices.add(last);
+
+    if (desired >= 3) indices.add(Math.round(last / 2));
+    if (desired >= 4) indices.add(Math.round(last / 4));
+    if (desired >= 5) indices.add(Math.round((last * 3) / 4));
+
+    return Array.from(indices)
+      .filter((i) => i >= 0 && i <= last)
+      .sort((a, b) => a - b)
+      .map((i) => ({
+        index: i,
+        label: this.formatMinLabel(opts[i]?.label ?? ''),
+        leftPercent: this.dotLeftPercent(i),
+      }));
+  }
+
+  private formatMinLabel(raw: string): string {
+    // Options are authored like "≥ $50M". For this slider's UI we want "$50M".
+    const cleaned = (raw ?? '').replace(/^\s*≥\s*/u, '').trim();
+    if (cleaned.toLowerCase() === 'all flows') return '$0';
+    return cleaned;
   }
 
   startDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end'): void {

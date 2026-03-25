@@ -10,8 +10,8 @@
         <div class="min-flow-range-dots">
           <div
             class="dot"
-            *ngFor="let opt of options; let i = index"
-            [style.left.%]="dotLeftPercent(i)"></div>
+            *ngFor="let stop of labelStops"
+            [style.left.%]="stop.leftPercent"></div>
         </div>
         <div class="min-flow-range-track-bg"></div>
         <div
@@ -44,7 +44,17 @@
         [attr.aria-valuetext]="endLabel"
         aria-label="Minimum flow range end"></div>
     </div>
+    <div class="min-flow-range-labels" aria-hidden="true">
+      <span
+        class="min-flow-range-label"
+        *ngFor="let stop of labelStops"
+        [style.left.%]="stop.leftPercent"
+        [style.transform]="'translateX(-50%)'">
+        {{ stop.label }}
+      </span>
+    </div>
     <div class="min-flow-range-summary" aria-live="polite">
+      <span class="min-flow-range-summary-label">Flow range:</span>
       <span class="min-flow-range-summary-start">{{ startLabel }}</span>
       <span class="min-flow-range-summary-sep">—</span>
       <span class="min-flow-range-summary-end">{{ endLabel }}</span>

@@ -148,7 +148,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     { value: 50, label: '≥ $50B' },
     { value: 100, label: '≥ $100B' },
     { value: 50000, label: '≥ $50,000B' },
-    { value: 100000, label: '≥ $100,000B' }
+    { value: 100000, label: 'Max' }
   ];
 
   /** Selected index range on minFlowValueOptions (inclusive); default = full span. */
