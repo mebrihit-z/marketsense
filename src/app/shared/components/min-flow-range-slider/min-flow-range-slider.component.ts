@@ -25,6 +25,8 @@ export interface MinFlowRange {
   styleUrl: './min-flow-range-slider.component.scss',
 })
 export class MinFlowRangeSliderComponent implements OnChanges {
+  private static readonly DEFAULT_TRACK_WIDTH = 320;
+
   @Input({ required: true }) options!: { value: number; label: string }[];
   @Input() range: MinFlowRange = { startIndex: 0, endIndex: 0 };
   @Output() rangeChange = new EventEmitter<MinFlowRange>();
@@ -40,13 +42,13 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   private dragSnapshot: MinFlowRange | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['options'] && this.options?.length) {
+    if (changes['options'] && this.options.length > 0) {
       this.clampAndEmitRangeIfNeeded();
     }
   }
 
   get numSteps(): number {
-    const n = this.options?.length ?? 0;
+    const n = this.options.length;
     return Math.max(1, n - 1);
   }
 
@@ -64,7 +66,7 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   }
 
   get startLabel(): string {
-    const raw = this.options?.[this.activeRange?.startIndex]?.label ?? '';
+    const raw = this.options[this.activeRange.startIndex]?.label ?? '';
     return this.formatMinLabel(raw);
   }
 
@@ -74,8 +76,8 @@ export class MinFlowRangeSliderComponent implements OnChanges {
    */
   get endLabel(): string {
     const opts = this.options;
-    const endIdx = this.activeRange?.endIndex;
-    if (!opts?.length || endIdx == null) return '';
+    const endIdx = this.activeRange.endIndex;
+    if (!opts.length) return '';
     const last = opts.length - 1;
     if (endIdx >= last) return 'Max';
     const val = opts[endIdx]?.value;
@@ -115,7 +117,7 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   }
 
   get labelStops(): Array<{ index: number; label: string; leftPercent: number }> {
-    const opts = this.options ?? [];
+    const opts = this.options;
     if (!opts.length) return [];
 
     const last = opts.length - 1;
@@ -209,7 +211,7 @@ export class MinFlowRangeSliderComponent implements OnChanges {
       clientX = (event as MouseEvent).clientX;
     }
 
-    const trackWidth = rect.width > 0 ? rect.width : 280;
+    const trackWidth = rect.width > 0 ? rect.width : MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
     const x = Math.max(0, Math.min(trackWidth, clientX - rect.left));
     const percentage = (x / trackWidth) * 100;
     const stepIndex = Math.round((percentage / 100) * this.numSteps);
@@ -267,7 +269,7 @@ export class MinFlowRangeSliderComponent implements OnChanges {
         : (event as MouseEvent).clientX;
     if (clientX == null) return;
 
-    const trackWidth = rect.width > 0 ? rect.width : 280;
+    const trackWidth = rect.width > 0 ? rect.width : MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
     const x = Math.max(0, Math.min(trackWidth, clientX - rect.left));
     const percentage = (x / trackWidth) * 100;
     const stepIndex = Math.round((percentage / 100) * this.numSteps);
@@ -295,9 +297,9 @@ export class MinFlowRangeSliderComponent implements OnChanges {
 
   private getTrackWidth(): number {
     const el = this.sliderContainer?.nativeElement;
-    if (!el) return 280;
+    if (!el) return MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
     const w = el.getBoundingClientRect().width;
-    return w > 0 ? w : 280;
+    return w > 0 ? w : MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
   }
 
   private clampAndEmitRangeIfNeeded(): void {
