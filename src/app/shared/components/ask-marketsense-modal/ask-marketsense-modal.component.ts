@@ -12,6 +12,7 @@ export interface AnalysisResult {
   timestamp: string;
   summary: string;
   key_points: string[];
+  key_drivers: string[];
   visualization_image_base64?: string;
   /** Table data for Query Results */
   row_count?: number;
@@ -179,6 +180,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
       summary: res.summary,
       key_points: res.key_points ?? [],
+      key_drivers: res.key_drivers ?? [],
       visualization_image_base64: res.visualization_image_base64,
       row_count: res.row_count,
       columns: (res.columns ?? []) as string[],

@@ -9,6 +9,11 @@
       "Real estate outflows accelerating, now -6.8% of total assets; commercial office headwinds across client types",
       "Fixed income flows stabilizing near long-term average of 8–9% of assets; retail inflows offset institutional rotation"
     ],
+    "key_drivers": [
+      "Institutional risk appetite improved as macro volatility normalized",
+      "Persistent demand for private market exposure supported alternatives",
+      "Duration positioning increased ahead of expected policy easing"
+    ],
     "row_count": 4,
     "columns": ["portfolio_id", "portfolio_name", "total_inflow"],
     "rows": [
@@ -27,6 +32,11 @@
       "Alternatives net flows remain strong at 15.4% of AUM, concentrated in private equity and infrastructure",
       "Real estate outflows (-6.8%) primarily from institutional; retail real estate flows near flat",
       "Fixed income: retail inflows offset institutional outflows; overall 8–9% of AUM in line with history"
+    ],
+    "key_drivers": [
+      "Rotation away from rate-sensitive real estate continued",
+      "Stronger earnings backdrop favored equity reallocations",
+      "Retail demand for yield kept fixed income flows resilient"
     ],
     "row_count": 5,
     "columns": ["portfolio_id", "portfolio_name", "total_inflow"],
@@ -47,6 +57,11 @@
       "Alternatives net flows remain strong at 15.4% of AUM, concentrated in private equity and infrastructure",
       "Real estate outflows (-6.8%) primarily from institutional; retail real estate flows near flat",
       "Fixed income: retail inflows offset institutional outflows; overall 8–9% of AUM in line with history"
+    ],
+    "key_drivers": [
+      "Client rebalancing favored equity and alternatives",
+      "Outflows in real estate reflected office demand weakness",
+      "Retail fixed income buying offset institutional reductions"
     ],
     "row_count": 4,
     "columns": ["asset_class", "client", "inflow", "outflow", "pct_assets"],

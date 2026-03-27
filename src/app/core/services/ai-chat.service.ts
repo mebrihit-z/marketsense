@@ -25,6 +25,8 @@ export interface AiChatResponse {
   summary: string;
   /** Key points list from backend */
   key_points?: string[];
+  /** Key drivers list from backend */
+  key_drivers?: string[];
   /** Number of data rows returned */
   row_count?: number;
   /** Column metadata for tabular data */
@@ -150,6 +152,7 @@ export class AiChatService {
       timestamp: res.timestamp ?? this.formatTimestamp(),
       summary: res.summary ?? '',
       key_points: Array.isArray(res.key_points) ? res.key_points : [],
+      key_drivers: Array.isArray(res.key_drivers) ? res.key_drivers : [],
       visualization_image_base64: res.visualization_image_base64,
       row_count: res.row_count,
       columns: Array.isArray(res.columns) ? res.columns : [],
@@ -166,6 +169,11 @@ export class AiChatService {
         'Equity inflows up vs prior quarter',
         'Alternatives showing highest net flow percentage',
         'Fixed income flows stabilizing near long-term average',
+      ],
+      key_drivers: [
+        'Institutional reallocation into large-cap equity',
+        'Private market allocations supporting alternatives growth',
+        'Rate outlook improving fixed income sentiment',
       ],
     };
   }

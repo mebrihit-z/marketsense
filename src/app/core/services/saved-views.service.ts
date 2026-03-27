@@ -18,16 +18,25 @@ export interface SavedView {
   name: string;
   savedAt?: string;
   isDefault?: boolean;
-  /** Creator identifier (if provided by backend / caller). */
-  userId?: string;
-  /** Creator display name (if provided by backend / caller). */
-  userName?: string;
   state: SavedViewState;
   dataType?: 'historical' | 'forecasted';
   timeHorizonRange?: { startIndex: number; endIndex: number };
   timeHorizonRangeLabels?: { start: string; end: string };
   selectedTimeHorizon?: string;
   aiConfidenceRange?: { min: number; max: number };
+}
+
+export interface UserPreference {
+  userId: string;
+  userName?: string;
+  role?: string;
+  lastLogin?: string;
+  savedViews: SavedView[];
+}
+
+interface UserPreferenceStoreV2 {
+  version: 2;
+  users: UserPreference[];
 }
 
 /**
@@ -43,39 +52,81 @@ export interface SavedView {
 })
 export class SavedViewsService {
   private readonly storageKey = 'marketsense.savedViews';
+  private readonly anonymousUserId = 'anonymous';
   /** When true, use localStorage instead of backend API (local/dev). */
   private readonly useLocalStorage = !('savedViewsApiUrl' in environment) || !environment['savedViewsApiUrl'];
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Normalize creator identity fields from various backend payload shapes.
-   * (Backend may return `userId/userName` or nested/underscored equivalents.)
-   */
   private normalizeSavedView(view: SavedView): SavedView {
-    const anyView = view as any;
-    const userId =
-      anyView.userId ??
-      anyView.user_id ??
-      anyView.user?.id ??
-      anyView.user?.sub ??
-      anyView.user?.userId ??
-      undefined;
+    return { ...view };
+  }
 
+  private resolveUserId(userId?: string): string | null {
+    if (!userId) return null;
+    const normalized = String(userId).trim();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private slugifyUserName(userName: string): string {
+    return userName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private resolveEffectiveUserId(
+    store: UserPreferenceStoreV2,
+    userId?: string,
+    userName?: string
+  ): string | null {
+    const resolvedFromId = this.resolveUserId(userId);
+    if (resolvedFromId) {
+      return resolvedFromId;
+    }
+    const normalizedUserName = (userName ?? '').trim();
+    if (!normalizedUserName) {
+      return null;
+    }
+    const existing = store.users.find(
+      (u) => (u.userName ?? '').trim().toLowerCase() === normalizedUserName.toLowerCase()
+    );
+    if (existing?.userId) {
+      return existing.userId;
+    }
+    const slug = this.slugifyUserName(normalizedUserName);
+    return slug || null;
+  }
+
+  private isRemovableAnonymousUser(pref: UserPreference): boolean {
+    return (
+      pref.userId === this.anonymousUserId &&
+      !pref.userName &&
+      !pref.role &&
+      !pref.lastLogin &&
+      (!pref.savedViews || pref.savedViews.length === 0)
+    );
+  }
+
+  private getLegacyOwner(view: any): { userId: string; userName?: string } {
+    const userIdRaw =
+      view?.userId ??
+      view?.user_id ??
+      view?.user?.id ??
+      view?.user?.sub ??
+      view?.user?.userId ??
+      this.anonymousUserId;
     const userName =
-      anyView.userName ??
-      anyView.user_name ??
-      anyView.user?.name ??
-      anyView.user?.given_name ??
-      anyView.user?.preferred_username ??
-      anyView.user?.userName ??
+      view?.userName ??
+      view?.user_name ??
+      view?.user?.name ??
+      view?.user?.given_name ??
+      view?.user?.preferred_username ??
+      view?.user?.userName ??
       undefined;
-
-    return {
-      ...view,
-      ...(userId != null ? { userId } : {}),
-      ...(userName != null ? { userName } : {}),
-    };
+    const userId = String(userIdRaw ?? this.anonymousUserId).trim() || this.anonymousUserId;
+    return { userId, userName };
   }
 
   /**
@@ -85,7 +136,9 @@ export class SavedViewsService {
    */
   getSavedViews(): Observable<SavedView[]> {
     if (this.useLocalStorage) {
-      return of(this.readFromLocalStorage().map((v) => this.normalizeSavedView(v)));
+      const store = this.readPreferenceStoreFromLocalStorage();
+      const allViews = store.users.flatMap((u) => u.savedViews || []);
+      return of(allViews.map((v) => this.normalizeSavedView(v)));
     }
 
     const url = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
@@ -104,31 +157,50 @@ export class SavedViewsService {
     );
   }
 
+  getSavedViewsForUser(userId?: string): Observable<SavedView[]> {
+    if (!this.useLocalStorage) {
+      return this.getSavedViews();
+    }
+    const targetUserId = this.resolveUserId(userId);
+    if (!targetUserId) {
+      // Fallback: when profile isn't ready yet, do not hide existing saved views.
+      return this.getSavedViews();
+    }
+    const store = this.readPreferenceStoreFromLocalStorage();
+    const pref = store.users.find((u) => u.userId === targetUserId);
+    return of((pref?.savedViews ?? []).map((v) => this.normalizeSavedView(v)));
+  }
+
   /**
    * Persist a saved view.
    * Caller is responsible for constructing the SavedView payload.
    */
-  saveView(view: SavedView): Observable<void> {
+  saveView(view: SavedView, userId?: string, userName?: string): Observable<void> {
     if (this.useLocalStorage) {
-      const existing = this.readFromLocalStorage();
+      const store = this.readPreferenceStoreFromLocalStorage();
+      const targetUserId = this.resolveEffectiveUserId(store, userId, userName);
+      if (!targetUserId) {
+        // Avoid creating implicit "anonymous" users before auth/profile is ready.
+        return of(void 0);
+      }
       const now = new Date();
+      const userPref = this.getOrCreateUserPreference(store, targetUserId);
+      if (!userPref.userName && userName) {
+        userPref.userName = userName;
+      }
       const withMeta: SavedView = {
         ...view,
         id: view.id ?? `${now.getTime()}`,
         savedAt: view.savedAt ?? now.toISOString(),
       };
       if (withMeta.isDefault) {
-        // Ensure only one default view per user (same userId) in local/dev.
-        const targetUserId = withMeta.userId ?? null;
-        existing.forEach((v) => {
-          const vUserId = v.userId ?? null;
-          if (vUserId === targetUserId) {
-            v.isDefault = false;
-          }
+        // Ensure only one default view per user in local/dev.
+        userPref.savedViews.forEach((v) => {
+          v.isDefault = false;
         });
       }
-      existing.push(withMeta);
-      this.writeToLocalStorage(existing);
+      userPref.savedViews.push(withMeta);
+      this.writePreferenceStoreToLocalStorage(store);
       return of(void 0);
     }
 
@@ -146,17 +218,20 @@ export class SavedViewsService {
    */
   deleteView(identifier: { id?: string; name?: string }): Observable<void> {
     if (this.useLocalStorage) {
-      const existing = this.readFromLocalStorage();
-      const updated = existing.filter((item) => {
-        if (identifier.id != null) {
-          return item.id !== identifier.id;
-        }
-        if (identifier.name) {
-          return item.name !== identifier.name;
-        }
-        return true;
+      const store = this.readPreferenceStoreFromLocalStorage();
+      store.users = store.users.map((user) => {
+        const updatedViews = user.savedViews.filter((item) => {
+          if (identifier.id != null) {
+            return item.id !== identifier.id;
+          }
+          if (identifier.name) {
+            return item.name !== identifier.name;
+          }
+          return true;
+        });
+        return { ...user, savedViews: updatedViews };
       });
-      this.writeToLocalStorage(updated);
+      this.writePreferenceStoreToLocalStorage(store);
       return of(void 0);
     }
 
@@ -182,25 +257,29 @@ export class SavedViewsService {
    * - Local/dev: updates localStorage in-place and ensures only one default per user.
    * - Backend/VDI: best-effort persists the flag (other defaults are not forcibly cleared here).
    */
-  setDefaultView(view: SavedView, isDefault: boolean): Observable<void> {
+  setDefaultView(view: SavedView, isDefault: boolean, userId?: string): Observable<void> {
     if (this.useLocalStorage) {
-      const existing = this.readFromLocalStorage();
-      const targetUserId = view.userId ?? null;
+      const store = this.readPreferenceStoreFromLocalStorage();
+      const targetUserId = this.resolveEffectiveUserId(
+        store,
+        userId,
+        this.userNameForSavedViewHeuristic(view)
+      );
+      if (!targetUserId) {
+        return of(void 0);
+      }
+      const userPref = this.getOrCreateUserPreference(store, targetUserId);
       const targetId = view.id ?? null;
       const targetName = view.name ?? null;
 
       // Update in-place rather than appending duplicates.
-      const updated = existing.map((v) => {
+      const updated = userPref.savedViews.map((v) => {
         const matchesTarget =
           (targetId != null && v.id === targetId) ||
           (targetId == null && targetName != null && v.name === targetName);
 
         if (isDefault) {
-          // Clear default for all views of the same user except the target.
-          const vUserId = v.userId ?? null;
-          if (vUserId === targetUserId) {
-            return matchesTarget ? { ...v, isDefault: true } : { ...v, isDefault: false };
-          }
+          return matchesTarget ? { ...v, isDefault: true } : { ...v, isDefault: false };
         }
 
         // Unset default only for the target.
@@ -211,7 +290,8 @@ export class SavedViewsService {
         return v;
       });
 
-      this.writeToLocalStorage(updated);
+      userPref.savedViews = updated;
+      this.writePreferenceStoreToLocalStorage(store);
       return of(void 0);
     }
 
@@ -219,32 +299,135 @@ export class SavedViewsService {
     return this.saveView({ ...view, isDefault });
   }
 
-  private readFromLocalStorage(): SavedView[] {
+  /**
+   * Update user profile preferences in local storage. This keeps saved views scoped
+   * to a user record that also stores display metadata (userName/role/lastLogin).
+   */
+  syncUserPreference(profile: {
+    userId?: string;
+    userName?: string;
+    role?: string;
+    lastLogin?: string;
+  }): Observable<void> {
+    if (!this.useLocalStorage) {
+      return of(void 0);
+    }
+    const store = this.readPreferenceStoreFromLocalStorage();
+    const userId = this.resolveEffectiveUserId(store, profile.userId, profile.userName);
+    if (!userId) {
+      return of(void 0);
+    }
+    const userPref = this.getOrCreateUserPreference(store, userId);
+    userPref.userName = profile.userName ?? userPref.userName;
+    userPref.role = profile.role ?? userPref.role;
+    userPref.lastLogin = profile.lastLogin ?? userPref.lastLogin;
+    this.writePreferenceStoreToLocalStorage(store);
+    return of(void 0);
+  }
+
+  private userNameForSavedViewHeuristic(view: SavedView): string | undefined {
+    const legacy = this.getLegacyOwner(view as any);
+    return legacy.userName;
+  }
+
+  getUserPreference(userId?: string): Observable<UserPreference | null> {
+    if (!this.useLocalStorage) {
+      return of(null);
+    }
+    const targetUserId = this.resolveUserId(userId);
+    if (!targetUserId) {
+      return of(null);
+    }
+    const store = this.readPreferenceStoreFromLocalStorage();
+    const pref = store.users.find((u) => u.userId === targetUserId) ?? null;
+    return of(pref);
+  }
+
+  private readPreferenceStoreFromLocalStorage(): UserPreferenceStoreV2 {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      return [];
+      return { version: 2, users: [] };
     }
     try {
       const raw = localStorage.getItem(this.storageKey);
       if (!raw) {
-        return [];
+        return { version: 2, users: [] };
       }
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as SavedView[]) : [];
+      if (Array.isArray(parsed)) {
+        // Legacy v1 format: a flat saved views array.
+        const migrated = this.migrateLegacyViews(parsed as SavedView[]);
+        this.writePreferenceStoreToLocalStorage(migrated);
+        return migrated;
+      }
+      const maybeStore = parsed as Partial<UserPreferenceStoreV2>;
+      if (maybeStore?.version === 2 && Array.isArray(maybeStore.users)) {
+        const normalizedUsers = maybeStore.users
+          .map((u) => ({
+            userId: (u.userId ?? this.anonymousUserId).trim() || this.anonymousUserId,
+            userName: u.userName ?? (u as any).name,
+            role: u.role,
+            lastLogin: u.lastLogin,
+            savedViews: Array.isArray(u.savedViews) ? u.savedViews.map((v) => this.normalizeSavedView(v)) : [],
+          }))
+          .filter((u) => !this.isRemovableAnonymousUser(u));
+        return {
+          version: 2,
+          users: normalizedUsers,
+        };
+      }
+      return { version: 2, users: [] };
     } catch (e) {
-      console.error('Failed to read saved views from localStorage', e);
-      return [];
+      console.error('Failed to read user preferences from localStorage', e);
+      return { version: 2, users: [] };
     }
   }
 
-  private writeToLocalStorage(views: SavedView[]): void {
+  private writePreferenceStoreToLocalStorage(store: UserPreferenceStoreV2): void {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       return;
     }
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(views));
+      localStorage.setItem(this.storageKey, JSON.stringify(store));
     } catch (e) {
-      console.error('Failed to write saved views to localStorage', e);
+      console.error('Failed to write user preferences to localStorage', e);
     }
+  }
+
+  private getOrCreateUserPreference(store: UserPreferenceStoreV2, userId: string): UserPreference {
+    const existing = store.users.find((u) => u.userId === userId);
+    if (existing) {
+      if (!Array.isArray(existing.savedViews)) {
+        existing.savedViews = [];
+      }
+      return existing;
+    }
+    const created: UserPreference = {
+      userId,
+      savedViews: [],
+    };
+    store.users.push(created);
+    return created;
+  }
+
+  private migrateLegacyViews(legacyViews: SavedView[]): UserPreferenceStoreV2 {
+    const usersById = new Map<string, UserPreference>();
+    legacyViews.forEach((view) => {
+      const normalized = this.normalizeSavedView(view);
+      const { userId, userName } = this.getLegacyOwner(view as any);
+      let pref = usersById.get(userId);
+      if (!pref) {
+        pref = { userId, userName, savedViews: [] };
+        usersById.set(userId, pref);
+      }
+      pref.savedViews.push({ ...normalized });
+      if (!pref.userName && userName) {
+        pref.userName = userName;
+      }
+    });
+    return {
+      version: 2,
+      users: Array.from(usersById.values()),
+    };
   }
 }
 

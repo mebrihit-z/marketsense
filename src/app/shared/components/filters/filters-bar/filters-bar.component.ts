@@ -131,6 +131,20 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @returns {void} Initializes filter state and time horizon defaults.
    */
   ngOnInit() {
+    // Keep a user preference record so saved views are user-scoped.
+    const currentUser = this.userProfileService.getuser();
+    this.savedViewsService
+      .syncUserPreference({
+        userId: this.userProfileService.getUserId() ?? currentUser?.sub,
+        userName:
+          this.userProfileService.getGivenName() ??
+          currentUser?.name ??
+          currentUser?.given_name,
+        role: this.userProfileService.getRoleName(),
+        lastLogin: this.userProfileService.getLastLogin(),
+      })
+      .subscribe();
+
     // Load product sub-types and investor regions from asset-flows-data.json (async)
     this.loadFilterOptionsFromAssetFlows();
     
@@ -335,13 +349,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
 
     const currentUserId = this.userProfileService.getUserId();
 
-    this.savedViewsService.getSavedViews().subscribe({
+    this.savedViewsService.getSavedViewsForUser(currentUserId).subscribe({
       next: (views: SavedView[]) => {
-        const scopedViews = currentUserId
-          ? views.filter((v) => !v?.userId || v.userId === currentUserId)
-          : views;
-
-        const defaultView = scopedViews.find((v) => v?.isDefault === true) ?? null;
+        const defaultView = views.find((v) => v?.isDefault === true) ?? null;
         if (!defaultView) return;
 
         // Reuse existing apply logic.
@@ -663,8 +673,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
 
     const savedView: SavedView = {
       name: filterSetName,
-      userId,
-      userName,
       isDefault,
       // Full filter state so it can be reapplied by whatever
       // consumes these presets (e.g., a service or container component).
@@ -685,7 +693,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       aiConfidenceRange: { ...this.aiConfidenceRange },
     };
 
-    this.savedViewsService.saveView(savedView).subscribe({
+    this.savedViewsService.saveView(savedView, userId, userName).subscribe({
       next: () => {
         // Notify other parts of the app (e.g., welcome section) that saved views changed.
         if (typeof window !== 'undefined') {

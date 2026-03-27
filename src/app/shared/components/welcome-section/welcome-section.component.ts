@@ -13,10 +13,6 @@ export interface ViewingOption {
   isActive: boolean;
   /** Marks which saved view should be treated as default. */
   isDefault?: boolean;
-  /** Creator identity (if provided by backend saved view). */
-  userId?: string;
-  /** Creator display name (if provided by backend saved view). */
-  userName?: string;
   /** Optional backing payload from localStorage (full saved view). */
   raw?: any;
 }
@@ -29,8 +25,8 @@ export interface ViewingOption {
   styleUrls: ['./welcome-section.component.scss']
 })
 export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
-  @Input() userName: string = 'Mick';
-  @Input() lastLogin: string = 'Today, 9:42 AM';
+  @Input() userName: string = '';
+  @Input() lastLogin: string = '';
   @Input() viewingFilter: string = 'High-confidence Equities';
   @Input() isViewingDropdownOpen: boolean = false;
 
@@ -41,7 +37,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
 
   /** Last login: from UserProfileService or fallback to lastLogin input. */
   get displayLastLogin(): string {
-    return this.userProfileService.getLastLogin() ?? this.lastLogin;
+    const fallbackLastLogin = this.lastLogin || this.getTodayDateLabel();
+    return this.userProfileService.getLastLogin() ?? fallbackLastLogin;
   }
 
   get savedViewsCount(): number {
@@ -61,6 +58,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
   viewingOptions: ViewingOption[] = [];
 
   ngOnInit(): void {
+    this.hydrateProfileFromPreference();
+    this.syncProfileToUserPreference();
     this.loadSavedViews();
   }
 
@@ -75,30 +74,24 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    * If nothing has been saved yet, the list stays empty.
    */
   private loadSavedViews(): void {
-    this.savedViewsService.getSavedViews().subscribe({
+    const currentUserId = this.userProfileService.getUserId();
+    this.savedViewsService.getSavedViewsForUser(currentUserId).subscribe({
       next: (views: SavedView[]) => {
         if (!Array.isArray(views) || views.length === 0) {
           this.viewingOptions = [];
           return;
         }
 
-        // Scope saved views by the currently logged-in user.
-        // Keep legacy saved views that don't include userId.
-        const currentUserId = this.userProfileService.getUserId();
-        const scopedViews = currentUserId
-          ? views.filter((v) => !v?.userId || v.userId === currentUserId)
-          : views;
-
-        if (scopedViews.length === 0) {
+        if (views.length === 0) {
           this.viewingOptions = [];
           return;
         }
 
-        const defaultView = scopedViews.find((v) => v?.isDefault === true) ?? null;
-        const activeView = defaultView ?? scopedViews[0];
+        const defaultView = views.find((v) => v?.isDefault === true) ?? null;
+        const activeView = defaultView ?? views[0];
         const activeKey = activeView ? (activeView.id ?? activeView.name) : null;
 
-        const mapped = scopedViews.map((item, index) => {
+        const mapped = views.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
           const tags = this.deriveTagsFromState(item?.state);
@@ -107,8 +100,6 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
             name,
             savedDate,
             tags,
-            userId: item?.userId,
-            userName: item?.userName,
             isDefault: item?.isDefault === true,
             isActive: activeKey != null ? key === activeKey : index === 0,
             raw: item,
@@ -126,6 +117,60 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
         console.error('Failed to load saved views', e);
         this.viewingOptions = this.getDefaultViewingOptions();
       },
+    });
+  }
+
+  /**
+   * Restore profile metadata from user preference storage when available.
+   */
+  private hydrateProfileFromPreference(): void {
+    const currentUserId = this.userProfileService.getUserId();
+    this.savedViewsService.getUserPreference(currentUserId).subscribe({
+      next: (pref) => {
+        if (!pref) return;
+        if (pref.userName && !this.userProfileService.getGivenName()) {
+          this.userProfileService.setGivenName(pref.userName);
+        }
+        if (pref.role && !this.userProfileService.getRoleName()) {
+          this.userProfileService.setRoleName(pref.role);
+        }
+        if (pref.lastLogin && !this.userProfileService.getLastLogin()) {
+          this.userProfileService.setLastLogin(pref.lastLogin);
+        }
+        // Persist merged profile fields back to preference store.
+        this.syncProfileToUserPreference();
+      },
+      error: (e) => {
+        console.error('Failed to load user preference metadata', e);
+      },
+    });
+  }
+
+  /**
+   * Persist profile metadata from Welcome section into user preference storage.
+   * This keeps `lastLogin` in sync even when profile fields are initialized here.
+   */
+  private syncProfileToUserPreference(): void {
+    const currentUserId = this.userProfileService.getUserId();
+    const userName = this.displayName;
+    const role = this.userProfileService.getRoleName();
+    const lastLogin = this.displayLastLogin;
+
+    this.savedViewsService
+      .syncUserPreference({
+        userId: currentUserId,
+        userName,
+        role,
+        lastLogin,
+      })
+      .subscribe();
+  }
+
+  private getTodayDateLabel(): string {
+    return new Date().toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   }
 
@@ -305,7 +350,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     const raw = (option as any).raw as SavedView | undefined;
     if (!raw) return;
 
-    this.savedViewsService.setDefaultView(raw, nextIsDefault).subscribe({
+    const currentUserId = this.userProfileService.getUserId();
+    this.savedViewsService.setDefaultView(raw, nextIsDefault, currentUserId).subscribe({
       next: () => {
         // Keep dropdown UI consistent immediately.
         if (nextIsDefault) {

@@ -117,6 +117,15 @@
               </div>
             </section>
 
+            <section class="analysis-section insights-section" *ngIf="analysis.key_drivers?.length">
+              <h4 class="section-label">Key Drivers</h4>
+              <div class="insights-list-container">
+                <ul class="insights-list">
+                  <li *ngFor="let driver of analysis.key_drivers">{{ driver }}</li>
+                </ul>
+              </div>
+            </section>
+
             <!-- Query Results Table (when columns/rows present) -->
             <section class="analysis-section query-results-section" *ngIf="analysis.columns?.length && analysis.rows?.length">
               <div class="query-results-header">
