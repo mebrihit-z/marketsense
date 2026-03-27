@@ -52,7 +52,6 @@
   <!-- Regional Sankey Diagram Visualization -->
   <div class="visualization-container" #chartExportRoot>
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="sankey-region-container">
-      <app-title [title]="regionData.key" level="h3"></app-title>
       <app-sankey
         [data]="regionData.data"
         [regionKey]="regionData.key"

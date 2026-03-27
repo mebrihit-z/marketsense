@@ -30,6 +30,8 @@ interface SankeyLinkExtra {
   source: number | SankeyNodeExtra;
   target: number | SankeyNodeExtra;
   value: number;
+  /** Original flow value ($B); tooltips and totals use this when set. */
+  rawValue?: number;
   color?: string;
   width?: number;
   date?: string;
@@ -82,6 +84,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() minFlowValue: number = 0;
   /** Maximum flow value in billions; links above this are hidden when set. Null = no upper cap. */
   @Input() maxFlowValue: number | null = null;
+  /**
+   * For Net New / Capital Withdrawn links only: floor layout value to this fraction of the
+   * largest link value so those nodes stay visible (matches treemap emphasis). Does not change raw $ in tooltips.
+   */
+  @Input() structuralFlowLayoutFloorFraction: number = 0.06;
 
   // Getter to ensure TypeScript recognizes the input
   get shouldShowLegend(): boolean {
@@ -114,6 +121,33 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   ) {
     // Generate unique tooltip ID for this instance
     this.tooltipId = `sankey-tooltip-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private isStructuralCapitalFlowName(name: string): boolean {
+    return typeof name === 'string' &&
+      (name.includes('Net New Capital') || name.includes('Capital Withdrawn'));
+  }
+
+  private layoutValueForLink(
+    raw: number,
+    maxRaw: number,
+    sourceName: string,
+    targetName: string
+  ): number {
+    const floorFrac = Math.max(0, Math.min(1, this.structuralFlowLayoutFloorFraction ?? 0.06));
+    const safeMax = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 1;
+    const v = Math.max(0, Number.isFinite(raw) ? raw : 0);
+    if (this.isStructuralCapitalFlowName(sourceName) || this.isStructuralCapitalFlowName(targetName)) {
+      if (v <= 0) return v;
+      const cap = safeMax * floorFrac;
+      const boosted = Math.max(v * 6, safeMax * 0.012);
+      return Math.max(v, Math.min(cap, boosted));
+    }
+    return v;
+  }
+
+  private linkFlowForTotals(link: SankeyLinkExtra): number {
+    return link.rawValue != null ? link.rawValue : link.value;
   }
   
   /**
@@ -244,6 +278,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       formatted = formatted.replace(/\s*\(Destination\)\s*$/, '');
       formatted = formatted.replace(/\s*\(Start\)\s*$/, '');
       formatted = formatted.replace(/\s*\(End\)\s*$/, '');
+      // Scoped parent/sub/pool nodes: "Super: Product (…)" → show "Product" / "Reallocation Pool" only;
+      // Super Start/End stay "Name (Super Start)" (no colon), Net New / Withdrawn stay "Net New Capital (…)".
+      if (/^.+:\s*.+/.test(formatted) && !/\(Super\s+(Start|End)\)\s*$/.test(name.trim())) {
+        formatted = formatted.replace(/^[^:]+:\s*/, '').trim();
+      }
       // On global sankey only, remove "Global" prefix from labels (title already says Global)
       if (this.regionKey === 'Global') {
         formatted = formatted.replace(/^Global\s*:\s*/, '').replace(/^Global\s*-\s*/, '').replace(/^Global\s+/, '').trim();
@@ -352,6 +391,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Create links with source and target indices
     // Colors will be assigned after sankey layout computes node positions
+    const maxRawLinkValue = d3.max(dataToUse.links, l => l.value) || 1;
     const links: SankeyLinkExtra[] = dataToUse.links.map(link => {
       const sourceIndex = nodeMap.get(link.source);
       const targetIndex = nodeMap.get(link.target);
@@ -360,11 +400,17 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return null;
       }
 
+      const raw = link.value;
+      const sourceName = typeof link.source === 'string' ? link.source : '';
+      const targetName = typeof link.target === 'string' ? link.target : '';
+      const layoutValue = this.layoutValueForLink(raw, maxRawLinkValue, sourceName, targetName);
+
       // Color will be set after layout based on horizontal position
       return {
         source: sourceIndex,
         target: targetIndex,
-        value: link.value,
+        value: layoutValue,
+        rawValue: raw,
         date: link.date // Preserve date information
       };
     }).filter(link => link !== null) as SankeyLinkExtra[];
@@ -436,7 +482,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     graph.links.forEach(link => {
       const source = link.source as SankeyNodeExtra;
       const target = link.target as SankeyNodeExtra;
-      const value = (link as SankeyLinkExtra).value ?? 0;
+      const le = link as SankeyLinkExtra;
+      const value = this.linkFlowForTotals(le);
       
       // Start -> Source: parent passes value to sub
       if (source.name && source.name.includes('(Start)') && !source.name.includes('Super Start') && target.name && target.name.includes('(Source)')) {
@@ -550,7 +597,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const link = d as SankeyLinkExtra;
         const source = link.source as SankeyNodeExtra;
         const target = link.target as SankeyNodeExtra;
-        const value = link.value;
+        const value = component.linkFlowForTotals(link);
         const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
         
         // Check if this is a subasset link (connected to Source or Destination nodes)
@@ -622,7 +669,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     graph.links.forEach(link => {
       const source = link.source as SankeyNodeExtra;
       const target = link.target as SankeyNodeExtra;
-      const value = (link as SankeyLinkExtra).value;
+      const le = link as SankeyLinkExtra;
+      const value = this.linkFlowForTotals(le);
       
       nodeOutgoing.set(source, nodeOutgoing.get(source)! + value);
       nodeIncoming.set(target, nodeIncoming.get(target)! + value);
@@ -693,32 +741,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return { class: `sankey-node-rect sankey-node-${effectiveCls}` };
     };
 
-    // Display labels and order for legend (dynamic entries from nodes; flows added at end)
-    const legendLabelByClass: Record<string, string> = {
-      'reallocation-pool': 'Reallocation Pool',
-      'net-new-capital': 'Net New Capital',
-      'capital-withdrawn': 'Capital Withdrawn',
-      'regions': 'Regions',
-      'equity': 'Equity',
-      'fixed-income': 'Fixed Income',
-      'cash': 'Cash',
-      'multi-asset': 'Multi-Asset',
-      'other-specialized': 'Other / Specialized',
-      'private-markets': 'Private Markets',
-      'alternatives': 'Alternatives',
-      'outflow': 'Outflows',
-      'inflow': 'Inflows',
-      'new-capital': 'New Capital'
-    };
-    const legendOrder: Record<string, number> = {
-      'private-markets': 1, 'alternatives': 2, 'equity': 3, 'other-specialized': 4,
-      'fixed-income': 5, 'multi-asset': 6, 'cash': 7,
-      'regions': 10, 'capital-withdrawn': 11, 'net-new-capital': 12, 'reallocation-pool': 13,
-      'outflow': 20, 'inflow': 21, 'new-capital': 22,
-      'default': 50
-    };
-    const defaultOrder = 99;
-
     // -----------------------------------------
     // 7. Draw Nodes
     // -----------------------------------------
@@ -771,7 +793,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
                  const linkExtra = link as SankeyLinkExtra;
                  subassets.push({
                    name: linkSource.name,
-                   value: linkExtra.value,
+                   value: component.linkFlowForTotals(linkExtra),
                    date: linkExtra.date
                  });
                }
@@ -938,6 +960,12 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     nodeLabels.append('tspan')
       .attr('class', 'sankey-node-label-name')
       .text(d => {
+        if (d.name.includes('Net New Capital')) {
+          return 'Net New Capital:';
+        }
+        if (d.name.includes('Capital Withdrawn')) {
+          return 'Withdrawn:';
+        }
         // Use short label for Reallocation Pool to avoid overlap
         if (d.name.includes('Reallocation Pool')) {
           return 'Realloc:';
@@ -964,92 +992,29 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
-        const sign = isLeftOfReallocation ? '-' : '';
+        let sign = '';
+        if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) {
+          sign = '';
+        } else {
+          sign = isLeftOfReallocation ? '-' : '';
+        }
         return '$' + sign + formattedValue + 'B';
       });
 
     // Link values are not drawn – only node labels show values (next to each node)
 
     // -----------------------------------------
-    // 9. Build dynamic legend sections (Product Types from displayed parent nodes, Other Nodes, Flows)
+    // 9. Legend: flows only (aligned with treemap legend colors)
     // -----------------------------------------
-    const getNodeDisplayLabel = (nodeName: string): string => {
-      if (nodeName.includes('Reallocation Pool')) return 'Realloc';
-      const formatted = this.formatNodeName(nodeName);
-      const maxLength = 28;
-      return formatted.length > maxLength ? formatted.substring(0, maxLength) + '...' : formatted;
-    };
-
-    // Product Types: one legend entry per displayed parent node (Start/End, excluding Super Start/Super End)
-    const productTypeParentNodes = graph.nodes.filter(node =>
-      (node.name.includes('(Start)') || node.name.includes('(End)')) &&
-      !node.name.includes('Super Start') &&
-      !node.name.includes('Super End')
-    );
-    const productTypeItemsMap = new Map<string, SankeyLegendItem>(); // key = displayLabel to dedupe
-    productTypeParentNodes.forEach(node => {
-      const cls = getNodeColorClass(node.name);
-      const label = getNodeDisplayLabel(node.name);
-      if (!productTypeItemsMap.has(label)) {
-        const swatchClass = (cls === 'source-destination' || cls === 'default') ? 'default' : cls;
-        productTypeItemsMap.set(label, {
-          swatchClass,
-          label,
-          ...(cls === 'default' && { color: defaultNodeColorScale(node.name) })
-        });
-      }
-    });
-    const productTypeItems = Array.from(productTypeItemsMap.values())
-      .sort((a, b) => (legendOrder[a.swatchClass] ?? defaultOrder) - (legendOrder[b.swatchClass] ?? defaultOrder));
-    const dimension2Header = (this.dimension2Label || 'Product Types').trim();
-    const productTypes: SankeyLegendSection | null = productTypeItems.length > 0
-      ? { header: dimension2Header + (dimension2Header.endsWith(':') ? '' : ':'), items: productTypeItems }
-      : null;
-
-    const otherNodeClasses = ['regions', 'capital-withdrawn', 'net-new-capital', 'reallocation-pool'];
-    const uniqueClasses = new Set<string>();
-    graph.nodes.forEach(node => {
-      const cls = getNodeColorClass(node.name);
-      if (cls !== 'source-destination' && cls !== 'default') {
-        uniqueClasses.add(cls);
-      }
-    });
-    const hasNewCapital = graph.links.some(link => {
-      const s = link.source as SankeyNodeExtra;
-      const t = link.target as SankeyNodeExtra;
-      return (s.name && s.name.includes('Net New Capital')) || (t.name && t.name.includes('Net New Capital'));
-    });
-
-    const toSection = (classes: string[], header: string): SankeyLegendSection | null => {
-      const present = classes.filter(cls => uniqueClasses.has(cls));
-      if (present.length === 0) return null;
-      const labelByCls: Record<string, string> = {};
-      graph.nodes.forEach(node => {
-        const cls = getNodeColorClass(node.name);
-        if (present.includes(cls) && !labelByCls[cls]) {
-          labelByCls[cls] = getNodeDisplayLabel(node.name);
-        }
-      });
-      return {
-        header,
-        items: present
-          .sort((a, b) => (legendOrder[a] ?? defaultOrder) - (legendOrder[b] ?? defaultOrder))
-          .map(cls => ({ swatchClass: cls, label: labelByCls[cls] ?? legendLabelByClass[cls] ?? cls }))
-      };
-    };
-    const otherNodes = toSection(otherNodeClasses, 'Other Nodes:');
     const flowItems: SankeyLegendItem[] = [
-      { swatchClass: 'inflow', label: 'Inflows' },
-      { swatchClass: 'outflow', label: 'Outflows' }
+      { swatchClass: 'inflow', label: 'Inflows', color: '#2ca02c' },
+      { swatchClass: 'outflow', label: 'Outflows', color: '#d62728' },
+      { swatchClass: 'net-new-capital', label: 'Net New Capital', color: '#1f77b4' },
+      { swatchClass: 'capital-withdrawn', label: 'Capital Withdrawn', color: '#ff7f0e' }
     ];
-    if (hasNewCapital) flowItems.push({ swatchClass: 'new-capital', label: 'New Capital' });
     const flowsSection: SankeyLegendSection = { header: 'Flows:', items: flowItems };
 
-    this.legendSections = [
-      ...(productTypes ? [productTypes] : []),
-      ...(otherNodes ? [otherNodes] : []),
-      flowsSection
-    ];
+    this.legendSections = [flowsSection];
     this.cdr.markForCheck();
   }
 

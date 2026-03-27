@@ -226,10 +226,12 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       this.updateDimensions();
     }
     
-    // Handle data updates when filters or time horizon change
-    const filterChanged = changes['selectedInvestorRegions'] || 
-                          changes['selectedProductTypes'] || 
-                          changes['selectedProductSubTypes'];
+    // Handle data updates when filters or time horizon change (match asset-flows / filter bar)
+    const filterChanged = changes['selectedInvestorRegions'] ||
+      changes['selectedInvestorTypes'] ||
+      changes['selectedProductRegions'] ||
+      changes['selectedProductTypes'] ||
+      changes['selectedProductSubTypes'];
     const timeHorizonChanged = changes['timeHorizon'] || 
                                changes['timeHorizonStart'] || 
                                changes['timeHorizonEnd'];
@@ -640,6 +642,36 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Applies dashboard filter-bar selections to raw rows (same logic as asset-flows Sankey).
+   */
+  private filterDataByFilterBar(data: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!data || data.length === 0) return data;
+    let result = data;
+
+    if (this.selectedInvestorRegions?.length) {
+      result = result.filter(r => this.selectedInvestorRegions!.includes(r.Investor_Region));
+    }
+    if (this.selectedInvestorTypes?.length) {
+      result = result.filter(r => {
+        const t = r.Plan_Type ?? r.Investor_Types;
+        return t && this.selectedInvestorTypes!.includes(t);
+      });
+    }
+    if (this.selectedProductRegions?.length) {
+      result = result.filter(
+        r => r.Product_Region != null && this.selectedProductRegions!.includes(r.Product_Region)
+      );
+    }
+    if (this.selectedProductTypes?.length) {
+      result = result.filter(r => this.selectedProductTypes!.includes(r.Product_Type));
+    }
+    if (this.selectedProductSubTypes?.length) {
+      result = result.filter(r => this.selectedProductSubTypes!.includes(r.Product_Sub_Type));
+    }
+    return result;
+  }
+
+  /**
    * Updates treemap data based on current filters, time horizon, and flow dimensions.
    * Dimension 1 = super, Dimension 2 = parent, Dimension 3 = leaf (or 'none').
    */
@@ -650,6 +682,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     }
 
     let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    filteredData = this.filterDataByFilterBar(filteredData);
     if (!filteredData || filteredData.length === 0) {
       console.warn('AssetAllocation: No data after time horizon filter');
       this.treemapDataMap.clear();

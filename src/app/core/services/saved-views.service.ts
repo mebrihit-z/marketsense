@@ -34,6 +34,13 @@ export interface UserPreference {
   savedViews: SavedView[];
 }
 
+export interface UserPreferenceProfile {
+  userId?: string;
+  userName?: string;
+  role?: string;
+  lastLogin?: string;
+}
+
 interface UserPreferenceStoreV2 {
   version: 2;
   users: UserPreference[];
@@ -60,6 +67,16 @@ export class SavedViewsService {
 
   private normalizeSavedView(view: SavedView): SavedView {
     return { ...view };
+  }
+
+  private normalizeText(value?: string): string | undefined {
+    if (value == null) return undefined;
+    const normalized = String(value).trim();
+    return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private resolveLastLogin(lastLogin?: string): string {
+    return this.normalizeText(lastLogin) ?? new Date().toISOString();
   }
 
   private resolveUserId(userId?: string): string | null {
@@ -175,19 +192,22 @@ export class SavedViewsService {
    * Persist a saved view.
    * Caller is responsible for constructing the SavedView payload.
    */
-  saveView(view: SavedView, userId?: string, userName?: string): Observable<void> {
+  saveView(
+    view: SavedView,
+    userId?: string,
+    userName?: string,
+    metadata?: Pick<UserPreferenceProfile, 'role' | 'lastLogin'>
+  ): Observable<void> {
     if (this.useLocalStorage) {
       const store = this.readPreferenceStoreFromLocalStorage();
-      const targetUserId = this.resolveEffectiveUserId(store, userId, userName);
-      if (!targetUserId) {
-        // Avoid creating implicit "anonymous" users before auth/profile is ready.
-        return of(void 0);
-      }
+      const targetUserId = this.resolveEffectiveUserId(store, userId, userName) ?? this.anonymousUserId;
       const now = new Date();
       const userPref = this.getOrCreateUserPreference(store, targetUserId);
       if (!userPref.userName && userName) {
         userPref.userName = userName;
       }
+      userPref.role = this.normalizeText(metadata?.role) ?? userPref.role;
+      userPref.lastLogin = this.resolveLastLogin(metadata?.lastLogin);
       const withMeta: SavedView = {
         ...view,
         id: view.id ?? `${now.getTime()}`,
@@ -303,24 +323,16 @@ export class SavedViewsService {
    * Update user profile preferences in local storage. This keeps saved views scoped
    * to a user record that also stores display metadata (userName/role/lastLogin).
    */
-  syncUserPreference(profile: {
-    userId?: string;
-    userName?: string;
-    role?: string;
-    lastLogin?: string;
-  }): Observable<void> {
+  syncUserPreference(profile: UserPreferenceProfile): Observable<void> {
     if (!this.useLocalStorage) {
       return of(void 0);
     }
     const store = this.readPreferenceStoreFromLocalStorage();
-    const userId = this.resolveEffectiveUserId(store, profile.userId, profile.userName);
-    if (!userId) {
-      return of(void 0);
-    }
+    const userId = this.resolveEffectiveUserId(store, profile.userId, profile.userName) ?? this.anonymousUserId;
     const userPref = this.getOrCreateUserPreference(store, userId);
-    userPref.userName = profile.userName ?? userPref.userName;
-    userPref.role = profile.role ?? userPref.role;
-    userPref.lastLogin = profile.lastLogin ?? userPref.lastLogin;
+    userPref.userName = this.normalizeText(profile.userName) ?? userPref.userName;
+    userPref.role = this.normalizeText(profile.role) ?? userPref.role;
+    userPref.lastLogin = this.resolveLastLogin(profile.lastLogin);
     this.writePreferenceStoreToLocalStorage(store);
     return of(void 0);
   }

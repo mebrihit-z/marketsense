@@ -27,6 +27,9 @@ export interface ViewingOption {
 export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
   @Input() userName: string = '';
   @Input() lastLogin: string = '';
+  /** Snapshot of the previously saved login time to show before we write today's value. */
+  private previousLastLoginForDisplay?: string;
+
   @Input() viewingFilter: string = 'High-confidence Equities';
   @Input() isViewingDropdownOpen: boolean = false;
 
@@ -37,6 +40,9 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
 
   /** Last login: from UserProfileService or fallback to lastLogin input. */
   get displayLastLogin(): string {
+    if (this.previousLastLoginForDisplay) {
+      return this.previousLastLoginForDisplay;
+    }
     const fallbackLastLogin = this.lastLogin || this.getTodayDateLabel();
     return this.userProfileService.getLastLogin() ?? fallbackLastLogin;
   }
@@ -59,7 +65,6 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
 
   ngOnInit(): void {
     this.hydrateProfileFromPreference();
-    this.syncProfileToUserPreference();
     this.loadSavedViews();
   }
 
@@ -127,18 +132,18 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     const currentUserId = this.userProfileService.getUserId();
     this.savedViewsService.getUserPreference(currentUserId).subscribe({
       next: (pref) => {
-        if (!pref) return;
-        if (pref.userName && !this.userProfileService.getGivenName()) {
+        if (pref?.userName && !this.userProfileService.getGivenName()) {
           this.userProfileService.setGivenName(pref.userName);
         }
-        if (pref.role && !this.userProfileService.getRoleName()) {
+        if (pref?.role && !this.userProfileService.getRoleName()) {
           this.userProfileService.setRoleName(pref.role);
         }
-        if (pref.lastLogin && !this.userProfileService.getLastLogin()) {
-          this.userProfileService.setLastLogin(pref.lastLogin);
+        if (pref?.lastLogin) {
+          this.previousLastLoginForDisplay = pref.lastLogin;
         }
-        // Persist merged profile fields back to preference store.
-        this.syncProfileToUserPreference();
+
+        // After showing the previous value in UI, record today's login for next visit.
+        this.syncProfileToUserPreference(this.getTodayIsoTimestamp());
       },
       error: (e) => {
         console.error('Failed to load user preference metadata', e);
@@ -150,11 +155,11 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    * Persist profile metadata from Welcome section into user preference storage.
    * This keeps `lastLogin` in sync even when profile fields are initialized here.
    */
-  private syncProfileToUserPreference(): void {
+  private syncProfileToUserPreference(lastLoginOverride?: string): void {
     const currentUserId = this.userProfileService.getUserId();
     const userName = this.displayName;
     const role = this.userProfileService.getRoleName();
-    const lastLogin = this.displayLastLogin;
+    const lastLogin = lastLoginOverride ?? this.displayLastLogin;
 
     this.savedViewsService
       .syncUserPreference({
@@ -164,6 +169,10 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
         lastLogin,
       })
       .subscribe();
+  }
+
+  private getTodayIsoTimestamp(): string {
+    return new Date().toISOString();
   }
 
   private getTodayDateLabel(): string {

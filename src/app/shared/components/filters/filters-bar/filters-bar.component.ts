@@ -141,7 +141,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
           currentUser?.name ??
           currentUser?.given_name,
         role: this.userProfileService.getRoleName(),
-        lastLogin: this.userProfileService.getLastLogin(),
+        lastLogin: this.getCurrentLoginTimestamp(),
       })
       .subscribe();
 
@@ -425,6 +425,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
 
   // Ensure the default saved view is applied only once during initialization.
   private hasAttemptedApplyDefaultSavedView: boolean = false;
+  private getCurrentLoginTimestamp(): string {
+    return this.userProfileService.getLastLogin() ?? new Date().toISOString();
+  }
 
   /**
    * Returns unique product sub-type values across all groups.
@@ -670,6 +673,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       this.userProfileService.getGivenName() ??
       currentUser?.name ??
       currentUser?.given_name;
+    const role = this.userProfileService.getRoleName();
+    const lastLogin = this.getCurrentLoginTimestamp();
 
     const savedView: SavedView = {
       name: filterSetName,
@@ -693,7 +698,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       aiConfidenceRange: { ...this.aiConfidenceRange },
     };
 
-    this.savedViewsService.saveView(savedView, userId, userName).subscribe({
+    this.savedViewsService.saveView(savedView, userId, userName, { role, lastLogin }).subscribe({
       next: () => {
         // Notify other parts of the app (e.g., welcome section) that saved views changed.
         if (typeof window !== 'undefined') {

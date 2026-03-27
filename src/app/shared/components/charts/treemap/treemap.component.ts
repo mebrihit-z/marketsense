@@ -20,6 +20,7 @@ interface TreemapNodeData {
   name: string;
   value?: number;
   trueValue?: number;
+  layoutValue?: number;
   group?: string;
   children?: TreemapNodeData[];
 }
@@ -54,6 +55,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() minFlowValue: number = 0;
   /** Maximum flow in billions; links above are hidden when set. Null = no upper cap. */
   @Input() maxFlowValue: number | null = null;
+  /** Minimum share (0..1) of total treemap area per leaf cell. */
+  @Input() minCellShare: number = 0.003;
+  /** Maximum share (0..1) of total treemap area per leaf cell. */
+  @Input() maxCellShare: number = 0.03;
   @Input() timeHorizon: string = 'Today';
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
@@ -422,12 +427,109 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  private buildTooltipHtml(path: string, value: string, timeHorizonDisplay: string): string {
+    return `
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div><strong>${path}</strong></div>
+        <div>Value: ${value}</div>
+        <div>Time Horizon: ${timeHorizonDisplay}</div>
+      </div>
+    `;
+  }
+
   private sizeWeight(d: TreemapNodeData): number {
-    const SIZE_EXPONENT = 0.60;
+    const SIZE_EXPONENT = 0.35;
     const MIN_SIZE_FLOOR = 0.15;
     const raw = Math.abs(+((d && d.value) || 0));
     const floored = Math.max(raw, MIN_SIZE_FLOOR);
     return Math.pow(floored, SIZE_EXPONENT);
+  }
+
+  private collectLeafNodes(node: TreemapNodeData, leaves: TreemapNodeData[]): void {
+    if (!node) return;
+    if (!node.children || node.children.length === 0) {
+      leaves.push(node);
+      return;
+    }
+    for (const child of node.children) this.collectLeafNodes(child, leaves);
+  }
+
+  private computeBoundedShares(weights: number[], minShareRaw: number, maxShareRaw: number): number[] {
+    const n = weights.length;
+    if (n === 0) return [];
+
+    const safeWeights = weights.map(w => (Number.isFinite(w) && w > 0 ? w : 0));
+    const total = d3.sum(safeWeights);
+    const base = total > 0
+      ? safeWeights.map(w => w / total)
+      : Array.from({ length: n }, () => 1 / n);
+
+    const minShare = Math.max(0, Math.min(1, minShareRaw ?? 0));
+    const maxShare = Math.max(0, Math.min(1, maxShareRaw ?? 1));
+    const effectiveMin = Math.min(minShare, 1 / n);
+    // Keep the user cap whenever possible; only relax when mathematically infeasible.
+    let effectiveMax = maxShare;
+    if (effectiveMax < effectiveMin) effectiveMax = effectiveMin;
+    if (effectiveMax * n < 1) effectiveMax = 1 / n;
+
+    const shares = Array.from(base);
+    const fixedLow = new Set<number>();
+    const fixedHigh = new Set<number>();
+
+    for (let iter = 0; iter < 20; iter++) {
+      const fixedSum =
+        Array.from(fixedLow).length * effectiveMin +
+        Array.from(fixedHigh).length * effectiveMax;
+      const free = Array.from({ length: n }, (_, i) => i).filter(i => !fixedLow.has(i) && !fixedHigh.has(i));
+      if (free.length === 0) break;
+
+      const remaining = Math.max(0, 1 - fixedSum);
+      const baseFreeSum = d3.sum(free, i => base[i]);
+
+      for (const i of free) {
+        shares[i] = baseFreeSum > 0 ? (base[i] / baseFreeSum) * remaining : remaining / free.length;
+      }
+
+      let changed = false;
+      for (const i of free) {
+        if (shares[i] < effectiveMin) {
+          fixedLow.add(i);
+          changed = true;
+        } else if (shares[i] > effectiveMax) {
+          fixedHigh.add(i);
+          changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+
+    for (let i = 0; i < n; i++) {
+      if (fixedLow.has(i)) shares[i] = effectiveMin;
+      if (fixedHigh.has(i)) shares[i] = effectiveMax;
+    }
+
+    const outSum = d3.sum(shares);
+    if (outSum > 0) {
+      for (let i = 0; i < n; i++) shares[i] = shares[i] / outSum;
+    } else {
+      for (let i = 0; i < n; i++) shares[i] = 1 / n;
+    }
+
+    return shares;
+  }
+
+  private applyCellSizeBounds(hierarchy: TreemapNodeData): void {
+    const leaves: TreemapNodeData[] = [];
+    this.collectLeafNodes(hierarchy, leaves);
+    if (leaves.length === 0) return;
+
+    const weights = leaves.map(d => this.sizeWeight(d));
+    const shares = this.computeBoundedShares(weights, this.minCellShare, this.maxCellShare);
+
+    for (let i = 0; i < leaves.length; i++) {
+      // D3 treemap uses relative values; normalized shares are sufficient.
+      leaves[i].layoutValue = shares[i];
+    }
   }
 
   private buildHierarchy(sankeyData: SankeyDataLocal): TreemapNodeData {
@@ -697,6 +799,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     container.innerHTML = '';
 
     const hierarchy = this.buildHierarchy(this.loadedData);
+    this.applyCellSizeBounds(hierarchy);
     
     if (!hierarchy.children || hierarchy.children.length === 0) {
       console.warn('ReallocationTreemap: Hierarchy has no children', hierarchy);
@@ -716,7 +819,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     ); // min 420, cap 1600
 
     const root = d3.hierarchy(hierarchy)
-      .sum(d => (d && !d.children && (d.value != null)) ? this.sizeWeight(d) : 0);
+      .sum(d => (d && !d.children && d.layoutValue != null) ? d.layoutValue : 0);
 
     const treemap = d3.treemap<TreemapNodeData>()
       .size([width, height])
@@ -897,7 +1000,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         return '2px';
       })
       .style('color', '#00113F') // $text-midnight-blue
-      .style('pointer-events', 'none')
+      // Keep leaf behavior unchanged, but allow container/parent labels to trigger tooltip.
+      .style('pointer-events', d => d.children ? 'auto' : 'none')
+      .style('cursor', d => d.children ? 'pointer' : 'default')
       .style('white-space', d => {
         const w = (d as TreemapHierarchyNode).x1 - (d as TreemapHierarchyNode).x0;
         const h = (d as TreemapHierarchyNode).y1 - (d as TreemapHierarchyNode).y0;
@@ -986,10 +1091,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
         // Always show labels for all nodes, especially leaf nodes (product sub-types)
         if (d.depth === 2) {
-          return d.data.name + ' — ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
+          return d.data.name + ': ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
         }
         if (d.depth === 3) {
-          return d.data.name + ' — ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
+          return d.data.name + ': ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
         }
         // For very small leaf nodes, include value in label to save space
         if (!d.children && isTiny) {
@@ -1014,6 +1119,44 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('visibility', 'visible') // Explicitly make labels visible
       .style('z-index', '10') // Ensure labels are above other elements
       .style('position', 'relative'); // Ensure proper positioning
+
+    // Parent/group/superparent labels can also trigger tooltip (useful when cell content is clipped by children)
+    labels
+      .filter(d => !!d.children && d.depth !== 1)
+      .on('mousemove', function(event: MouseEvent, d) {
+        const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
+        const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
+        const timeHorizonDisplay = component.getTimeHorizonDisplayString();
+        tooltip.style('opacity', '1');
+        tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay));
+        tooltip.style('left', event.clientX + 'px');
+        tooltip.style('top', event.clientY + 'px');
+
+        d3.select(this.parentNode as HTMLDivElement)
+          .classed('highlighted', true)
+          .style('border-width', () => {
+            if (d.depth === 3) return '3px';
+            return '2px';
+          })
+          .style('border-color', '#0b41ad')
+          .style('box-shadow', '0 0 8px rgba(11, 65, 173, 0.5)')
+          .style('z-index', '2000');
+      })
+      .on('mouseleave', function(event: MouseEvent, d) {
+        tooltip.style('opacity', '0');
+        d3.select(this.parentNode as HTMLDivElement)
+          .classed('highlighted', false)
+          .style('border-width', () => {
+            if (d.depth === 3) return '2px';
+            return '1px';
+          })
+          .style('border-color', () => {
+            if (d.depth === 3) return '#F5F1EB';
+            return 'rgba(0,0,0,0.12)';
+          })
+          .style('box-shadow', 'none')
+          .style('z-index', () => String(1000 + d.depth));
+      });
 
     const values = nodes.append('div')
       .attr('class', 'value')
@@ -1048,11 +1191,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       });
 
     nodes.on('mousemove', function(event: MouseEvent, d) {
+      if (d.depth === 1) {
+        tooltip.style('opacity', '0');
+        return;
+      }
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
       const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
       const timeHorizonDisplay = component.getTimeHorizonDisplayString();
       tooltip.style('opacity', '1');
-      tooltip.text(`${path}\n${value}\nTime Horizon: ${timeHorizonDisplay}`);
+      tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay));
       tooltip.style('left', event.clientX + 'px');
       tooltip.style('top', event.clientY + 'px');
       
