@@ -85,6 +85,27 @@ export class SavedViewsService {
     return normalized.length > 0 ? normalized : null;
   }
 
+  /**
+   * Effective user key for preference sync when not using the multi-user localStorage store (VDI / API).
+   */
+  private resolveUserIdForApiPreference(profile: UserPreferenceProfile): string {
+    const fromId = this.resolveUserId(profile.userId);
+    if (fromId) {
+      return fromId;
+    }
+    const normalizedUserName = this.normalizeText(profile.userName);
+    if (normalizedUserName) {
+      const slug = this.slugifyUserName(normalizedUserName);
+      return slug || this.anonymousUserId;
+    }
+    return this.anonymousUserId;
+  }
+
+  private userPreferenceApiUrl(): string {
+    const base = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
+    return `${base}/user-preference`;
+  }
+
   private slugifyUserName(userName: string): string {
     return userName
       .toLowerCase()
@@ -373,21 +394,35 @@ export class SavedViewsService {
   }
 
   /**
-   * Update user profile preferences in local storage. This keeps saved views scoped
-   * to a user record that also stores display metadata (userName/role/lastLogin).
+   * Update user profile preferences (userName/role/lastLogin).
+   * - Local/dev: reads/writes the v2 store in localStorage.
+   * - VDI: POST JSON to `{savedViewsApiUrl}/user-preference` (backend should accept UserPreferenceProfile).
    */
   syncUserPreference(profile: UserPreferenceProfile): Observable<void> {
-    if (!this.useLocalStorage) {
+    if (this.useLocalStorage) {
+      const store = this.readPreferenceStoreFromLocalStorage();
+      const userId = this.resolveEffectiveUserId(store, profile.userId, profile.userName) ?? this.anonymousUserId;
+      const userPref = this.getOrCreateUserPreference(store, userId);
+      userPref.userName = this.normalizeText(profile.userName) ?? userPref.userName;
+      userPref.role = this.normalizeText(profile.role) ?? userPref.role;
+      userPref.lastLogin = this.resolveLastLogin(profile.lastLogin);
+      this.writePreferenceStoreToLocalStorage(store);
       return of(void 0);
     }
-    const store = this.readPreferenceStoreFromLocalStorage();
-    const userId = this.resolveEffectiveUserId(store, profile.userId, profile.userName) ?? this.anonymousUserId;
-    const userPref = this.getOrCreateUserPreference(store, userId);
-    userPref.userName = this.normalizeText(profile.userName) ?? userPref.userName;
-    userPref.role = this.normalizeText(profile.role) ?? userPref.role;
-    userPref.lastLogin = this.resolveLastLogin(profile.lastLogin);
-    this.writePreferenceStoreToLocalStorage(store);
-    return of(void 0);
+
+    const payload: UserPreferenceProfile = {
+      userId: this.resolveUserIdForApiPreference(profile),
+      userName: this.normalizeText(profile.userName),
+      role: this.normalizeText(profile.role),
+      lastLogin: this.resolveLastLogin(profile.lastLogin),
+    };
+
+    return this.http.post<void>(this.userPreferenceApiUrl(), payload).pipe(
+      catchError((err) => {
+        console.error('Failed to sync user preference to backend', err);
+        throw err;
+      })
+    );
   }
 
   private userNameForSavedViewHeuristic(view: SavedView): string | undefined {
