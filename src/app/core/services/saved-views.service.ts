@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface SavedViewState {
@@ -91,6 +91,50 @@ export class SavedViewsService {
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  /** Match a stored row to the view being updated (id first, then name). */
+  private sameSavedViewIdentity(stored: SavedView, target: SavedView): boolean {
+    const tid = target.id;
+    if (tid != null && tid !== '' && stored.id != null && String(stored.id) === String(tid)) {
+      return true;
+    }
+    const tName = this.normalizeText(target.name);
+    const sName = this.normalizeText(stored.name);
+    return tName != null && sName === tName;
+  }
+
+  /** Find which local user bucket actually holds this view (for setDefault when profile id is missing). */
+  private findUserIdOwningView(store: UserPreferenceStoreV2, view: SavedView): string | null {
+    for (const u of store.users) {
+      if ((u.savedViews || []).some((v) => this.sameSavedViewIdentity(v, view))) {
+        return u.userId;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Where to persist updates for this view: profile-scoped id if resolvable, else the bucket that already
+   * contains the row, else anonymous (same idea as {@link saveView}).
+   */
+  private resolveLocalStorageUserIdForView(
+    store: UserPreferenceStoreV2,
+    profileUserId: string | undefined,
+    profileUserName: string | undefined,
+    view: SavedView
+  ): string {
+    const fromLegacyUserName = this.userNameForSavedViewHeuristic(view);
+    const effectiveName = this.normalizeText(profileUserName) ?? fromLegacyUserName;
+    const fromProfile = this.resolveEffectiveUserId(store, profileUserId, effectiveName);
+    if (fromProfile) {
+      return fromProfile;
+    }
+    const owning = this.findUserIdOwningView(store, view);
+    if (owning) {
+      return owning;
+    }
+    return this.anonymousUserId;
   }
 
   private resolveEffectiveUserId(
@@ -275,34 +319,28 @@ export class SavedViewsService {
   /**
    * Mark a specific saved view as default (or unset it).
    * - Local/dev: updates localStorage in-place and ensures only one default per user.
-   * - Backend/VDI: best-effort persists the flag (other defaults are not forcibly cleared here).
+   * - Backend/VDI: clears other defaults first, then persists the new default.
+   *
+   * @param userName - Display / given name from profile (same as saveView) when `userId` is missing.
    */
-  setDefaultView(view: SavedView, isDefault: boolean, userId?: string): Observable<void> {
+  setDefaultView(
+    view: SavedView,
+    isDefault: boolean,
+    userId?: string,
+    userName?: string
+  ): Observable<void> {
     if (this.useLocalStorage) {
       const store = this.readPreferenceStoreFromLocalStorage();
-      const targetUserId = this.resolveEffectiveUserId(
-        store,
-        userId,
-        this.userNameForSavedViewHeuristic(view)
-      );
-      if (!targetUserId) {
-        return of(void 0);
-      }
+      const targetUserId = this.resolveLocalStorageUserIdForView(store, userId, userName, view);
       const userPref = this.getOrCreateUserPreference(store, targetUserId);
-      const targetId = view.id ?? null;
-      const targetName = view.name ?? null;
 
-      // Update in-place rather than appending duplicates.
       const updated = userPref.savedViews.map((v) => {
-        const matchesTarget =
-          (targetId != null && v.id === targetId) ||
-          (targetId == null && targetName != null && v.name === targetName);
+        const matchesTarget = this.sameSavedViewIdentity(v, view);
 
         if (isDefault) {
           return matchesTarget ? { ...v, isDefault: true } : { ...v, isDefault: false };
         }
 
-        // Unset default only for the target.
         if (!isDefault && matchesTarget) {
           return { ...v, isDefault: false };
         }
@@ -315,8 +353,23 @@ export class SavedViewsService {
       return of(void 0);
     }
 
-    // Backend path: best-effort persist. Backend may enforce uniqueness.
-    return this.saveView({ ...view, isDefault });
+    if (!isDefault) {
+      return this.saveView({ ...view, isDefault: false });
+    }
+
+    const matchesTargetView = (v: SavedView): boolean => this.sameSavedViewIdentity(v, view);
+
+    return this.getSavedViews().pipe(
+      switchMap((views) => {
+        const toClear = views.filter((v) => v.isDefault && !matchesTargetView(v));
+        const afterClear = toClear.reduce(
+          (acc$: Observable<void>, v) =>
+            acc$.pipe(switchMap(() => this.saveView({ ...v, isDefault: false }))),
+          of(void 0)
+        );
+        return afterClear.pipe(switchMap(() => this.saveView({ ...view, isDefault: true })));
+      })
+    );
   }
 
   /**

@@ -37,37 +37,45 @@
             <div
               *ngFor="let option of viewingOptions"
               class="dropdown-option-card"
-              [class.active]="option.isActive"
-              (click)="selectViewingOption(option)">
+              [class.active]="option.isActive">
               <div class="option-content">
-                <div class="option-top-row">
-                  <div class="option-header">
-                    <div class="option-header-left">
-                      <app-title [title]="option.name" level="h5" class="option-title"></app-title>
-                      <span class="active-badge" *ngIf="option.isActive">Active</span>
+                <!-- Only this region applies the preset; default is changed only via the checkbox below. -->
+                <div class="option-apply-zone" (click)="selectViewingOption(option)">
+                  <div class="option-top-row">
+                    <div class="option-header">
+                      <div class="option-header-left">
+                        <app-title [title]="option.name" level="h5" class="option-title"></app-title>
+                        <span class="default-badge" *ngIf="option.isDefault">Default</span>
+                        <span class="active-badge" *ngIf="option.isActive">Active</span>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      class="delete-btn"
+                      (click)="deleteOption(option, $event)"
+                      aria-label="Delete preset">
+                      <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    class="delete-btn"
-                    (click)="deleteOption(option, $event)"
-                    aria-label="Delete preset">
-                    <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
-                  </button>
+                  <p class="option-saved-date">Saved {{ option.savedDate }}</p>
+                  <div class="option-tags">
+                    <span class="option-tag" *ngFor="let tag of option.tags">{{ tag }}</span>
+                  </div>
                 </div>
-                <p class="option-saved-date">Saved {{ option.savedDate }}</p>
-                <div class="option-tags">
-                  <span class="option-tag" *ngFor="let tag of option.tags">{{ tag }}</span>
-                </div>
-                <label class="option-set-default" (click)="$event.stopPropagation()">
+                <div class="option-set-default">
                   <input
                     type="checkbox"
+                    [id]="defaultCheckboxId(option)"
                     [checked]="option.isDefault"
-                    (click)="$event.stopPropagation()"
                     (change)="toggleDefaultForOption(option, $event)"
-                    aria-label="Set as default" />
-                  <span class="option-set-default-label">Set as default</span>
-                </label>
+                    [attr.aria-labelledby]="defaultCheckboxLabelId(option)" />
+                  <label
+                    [for]="defaultCheckboxId(option)"
+                    [id]="defaultCheckboxLabelId(option)"
+                    class="option-set-default-label">
+                    Set as default
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -76,6 +84,32 @@
     </div>
   </div>
 
+  <!-- Remove saved view confirmation -->
+  <div
+    class="saved-view-delete-backdrop"
+    *ngIf="pendingDeleteOption"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="saved-view-delete-title"
+    aria-describedby="saved-view-delete-desc"
+    (click)="cancelDeleteSavedView()">
+    <div class="saved-view-delete-dialog" (click)="$event.stopPropagation()">
+      <h3 id="saved-view-delete-title" class="saved-view-delete-title">Remove saved view?</h3>
+      <p id="saved-view-delete-desc" class="saved-view-delete-desc">
+        This will remove
+        <strong>{{ pendingDeleteOption.name }}</strong>
+        from your saved views. You can save the current filters again anytime, but this preset will be gone.
+      </p>
+      <div class="saved-view-delete-actions">
+        <button type="button" class="saved-view-delete-btn saved-view-delete-btn--cancel" (click)="cancelDeleteSavedView()">
+          Cancel
+        </button>
+        <button type="button" class="saved-view-delete-btn saved-view-delete-btn--remove" (click)="confirmDeleteSavedView()">
+          Remove
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Ask MarketSense Modal -->
   <app-ask-marketsense-modal

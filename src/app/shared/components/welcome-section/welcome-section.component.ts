@@ -56,6 +56,9 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
   dropdownPosition = { top: 0, left: 0 };
   showAskMarketSenseModal: boolean = false;
 
+  /** Set when user clicks delete; confirmed in {@link confirmDeleteSavedView}. */
+  pendingDeleteOption: ViewingOption | null = null;
+
   constructor(
     private readonly userProfileService: UserProfileService,
     private readonly savedViewsService: SavedViewsService
@@ -72,6 +75,41 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     if (this.filterButton?.nativeElement) {
       this.updateDropdownPosition();
     }
+  }
+
+  /** Row key aligned with {@link SavedViewsService.sameSavedViewIdentity} style (id preferred). */
+  private savedViewRowKey(item: SavedView, index: number): string {
+    if (item?.id != null && String(item.id).trim() !== '') {
+      return String(item.id);
+    }
+    const name = item?.name?.trim();
+    if (name) return name;
+    return `__idx_${index}`;
+  }
+
+  private activeOptionKey(option: ViewingOption | undefined): string | null {
+    if (!option) return null;
+    const raw = option.raw as SavedView | undefined;
+    if (raw?.id != null && String(raw.id).trim() !== '') {
+      return String(raw.id);
+    }
+    const name = option.name?.trim();
+    return name || null;
+  }
+
+  /**
+   * Stable row identity (id as string, else name). Lists re-create option objects after default/refresh,
+   * so `===` on ViewingOption is unsafe — use this for Active/apply/delete instead.
+   */
+  private viewingOptionMatches(a: ViewingOption, b: ViewingOption): boolean {
+    const rawA = a.raw as SavedView | undefined;
+    const rawB = b.raw as SavedView | undefined;
+    if (rawA?.id != null && rawB?.id != null && String(rawA.id) === String(rawB.id)) {
+      return true;
+    }
+    const nameA = a.name?.trim();
+    const nameB = b.name?.trim();
+    return !!nameA && nameA === nameB;
   }
 
   /**
@@ -92,15 +130,23 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
           return;
         }
 
+        const prevActiveKey = this.activeOptionKey(this.viewingOptions.find((o) => o.isActive));
         const defaultView = views.find((v) => v?.isDefault === true) ?? null;
-        const activeView = defaultView ?? views[0];
-        const activeKey = activeView ? (activeView.id ?? activeView.name) : null;
+        const fallbackView = defaultView ?? views[0];
+        const fallbackIndex = fallbackView ? views.indexOf(fallbackView) : 0;
+        const fallbackKey = fallbackView ? this.savedViewRowKey(fallbackView, fallbackIndex >= 0 ? fallbackIndex : 0) : null;
+
+        const previousStillHere =
+          prevActiveKey != null && views.some((v, i) => this.savedViewRowKey(v, i) === prevActiveKey);
+
+        // Default preset ≠ Active: keep the card that already has filters applied, unless it disappeared.
+        const activeKey = previousStillHere ? prevActiveKey : fallbackKey;
 
         const mapped = views.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
           const tags = this.deriveTagsFromState(item?.state);
-          const key = item?.id ?? item?.name;
+          const key = this.savedViewRowKey(item, index);
           return {
             name,
             savedDate,
@@ -323,14 +369,28 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
   }
 
   /**
+   * Stable id for the default checkbox + label (avoids wrapping label quirks with row clicks).
+   */
+  defaultCheckboxId(option: ViewingOption): string {
+    const key = (option as any).raw?.id ?? option.name ?? 'view';
+    return `welcome-sv-default-${String(key).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  }
+
+  defaultCheckboxLabelId(option: ViewingOption): string {
+    return `${this.defaultCheckboxId(option)}-label`;
+  }
+
+  /**
    * @param {ViewingOption} option - Selected viewing option
    */
   selectViewingOption(option: ViewingOption): void {
-    this.viewingFilter = option.name;
+    const resolved = this.viewingOptions.find((o) => this.viewingOptionMatches(o, option)) ?? option;
+
+    this.viewingFilter = resolved.name;
     this.viewingOptions = this.orderViewingOptionsForDropdown(
       this.viewingOptions.map((o) => ({
         ...o,
-        isActive: o === option,
+        isActive: this.viewingOptionMatches(o, resolved),
       }))
     );
     this.isViewingDropdownOpen = false;
@@ -338,7 +398,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     // Notify the rest of the app (e.g., filters bar) to apply this saved view's filters.
     if (typeof window !== 'undefined') {
       try {
-        const detail = (option as any).raw ?? null;
+        const detail = resolved.raw ?? null;
         window.dispatchEvent(new CustomEvent('marketsenseApplySavedView', { detail }));
       } catch {
         // Swallow if CustomEvent is not available
@@ -360,29 +420,22 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     if (!raw) return;
 
     const currentUserId = this.userProfileService.getUserId();
-    this.savedViewsService.setDefaultView(raw, nextIsDefault, currentUserId).subscribe({
+    this.savedViewsService
+      .setDefaultView(raw, nextIsDefault, currentUserId, this.displayName)
+      .subscribe({
       next: () => {
-        // Keep dropdown UI consistent immediately.
-        if (nextIsDefault) {
-          this.viewingFilter = option.name;
-          this.viewingOptions = this.viewingOptions.map((o) => ({
+        // Checkbox only changes which preset is default for next visit; Active / filters stay as-is.
+        this.viewingOptions = this.orderViewingOptionsForDropdown(
+          this.viewingOptions.map((o) => ({
             ...o,
-            isActive: (o as any).raw?.id != null && (option as any).raw?.id != null
-              ? (o as any).raw?.id === (option as any).raw?.id
-              : o.name === option.name,
-          }));
+            isDefault: nextIsDefault
+              ? this.viewingOptionMatches(o, option)
+              : this.viewingOptionMatches(o, option)
+                ? false
+                : !!o.isDefault,
+          }))
+        );
 
-          // Apply immediately when user marks default.
-          if (typeof window !== 'undefined') {
-            try {
-              window.dispatchEvent(new CustomEvent('marketsenseApplySavedView', { detail: raw }));
-            } catch {
-              // Ignore if CustomEvent is not available
-            }
-          }
-        }
-
-        // Refresh badge states (Default/Active) and allow FiltersBar to re-apply if needed.
         if (typeof window !== 'undefined') {
           try {
             window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
@@ -403,7 +456,23 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    */
   deleteOption(option: ViewingOption, event: Event): void {
     event.stopPropagation();
-    const index = this.viewingOptions.findIndex(opt => opt === option);
+    const resolved = this.viewingOptions.find((o) => this.viewingOptionMatches(o, option)) ?? option;
+    this.pendingDeleteOption = resolved;
+  }
+
+  cancelDeleteSavedView(): void {
+    this.pendingDeleteOption = null;
+  }
+
+  confirmDeleteSavedView(): void {
+    const option = this.pendingDeleteOption;
+    if (!option) return;
+    this.pendingDeleteOption = null;
+    this.performDeleteSavedView(option);
+  }
+
+  private performDeleteSavedView(option: ViewingOption): void {
+    const index = this.viewingOptions.findIndex((opt) => this.viewingOptionMatches(opt, option));
     if (index === -1) return;
     const wasActive = option.isActive;
     const hadMultiple = this.viewingOptions.length > 1;
@@ -428,7 +497,6 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
       .deleteView({ id: rawId, name: option.name })
       .subscribe({
         next: () => {
-          // Let listeners (e.g., other components) know saved views changed.
           if (typeof window !== 'undefined') {
             try {
               window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
