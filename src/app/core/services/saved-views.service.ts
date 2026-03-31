@@ -27,6 +27,8 @@ export interface SavedView {
 }
 
 export interface UserPreference {
+  /** Mongo (or API) document id — must be sent back on update so the server does not insert a duplicate row. */
+  _id?: string;
   userId: string;
   userName?: string;
   role?: string;
@@ -104,26 +106,53 @@ export class SavedViewsService {
   }
 
   /**
+   * Normalize GET response: body may be one doc, `{ item | data }`, or an array / `{ items: [] }`.
+   * Prefer the document whose `userId` matches the requested id.
+   */
+  private parseUserPreferenceGetResponse(res: unknown, requestedUserId: string): UserPreference | null {
+    if (res == null) return null;
+    const anyRes = res as any;
+    let candidates: any[] = [];
+    if (Array.isArray(anyRes)) {
+      candidates = anyRes;
+    } else if (Array.isArray(anyRes.items)) {
+      candidates = anyRes.items;
+    } else if (Array.isArray(anyRes.results)) {
+      candidates = anyRes.results;
+    } else if (anyRes.userId) {
+      candidates = [anyRes];
+    } else {
+      const one = anyRes.item ?? anyRes.data ?? anyRes.preference;
+      if (one) candidates = [one];
+    }
+    if (candidates.length === 0) return null;
+    const normalizedRequested = String(requestedUserId).trim();
+    const pref =
+      candidates.find((p) => p && String(p.userId ?? '').trim() === normalizedRequested) ?? candidates[0];
+    if (!pref || !pref.userId) return null;
+    const docId = pref._id != null ? String(pref._id) : undefined;
+    return {
+      ...pref,
+      _id: docId,
+      userId: String(pref.userId).trim(),
+      savedViews: Array.isArray(pref.savedViews) ? pref.savedViews.map((v: SavedView) => this.normalizeSavedView(v)) : [],
+    };
+  }
+
+  /**
    * GET user preference from VDI. Errors propagate — callers decide whether to swallow.
    */
   private getUserPreferenceFromBackend(userId: string): Observable<UserPreference | null> {
     const url = `${this.userPreferenceApiUrl()}?userId=${encodeURIComponent(userId)}`;
-    return this.http.get<UserPreference | { item?: UserPreference } | { data?: UserPreference }>(url).pipe(
-      map((res) => {
-        if (!res) return null;
-        const anyRes = res as any;
-        const pref: UserPreference | undefined = anyRes.userId ? (anyRes as UserPreference) : anyRes.item ?? anyRes.data;
-        if (!pref || !pref.userId) return null;
-        return {
-          ...pref,
-          savedViews: Array.isArray(pref.savedViews) ? pref.savedViews.map((v) => this.normalizeSavedView(v)) : [],
-        };
-      })
-    );
+    return this.http.get<unknown>(url).pipe(map((res) => this.parseUserPreferenceGetResponse(res, userId)));
   }
 
   private upsertUserPreferenceToBackend(pref: UserPreference): Observable<void> {
-    return this.http.post<void>(this.userPreferenceApiUrl(), pref).pipe(
+    const body: UserPreference & { _id?: string } = { ...pref };
+    if (body._id === '' || body._id === undefined) {
+      delete (body as any)._id;
+    }
+    return this.http.post<void>(this.userPreferenceApiUrl(), body).pipe(
       catchError((err) => {
         console.error('Failed to upsert user preference to backend', err);
         throw err;
@@ -344,12 +373,14 @@ export class SavedViewsService {
 
       return this.getUserPreferenceFromBackend(apiUserId).pipe(
         switchMap((existing) => {
+          const seed = Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [];
           const next: UserPreference = {
+            ...(existing ?? {}),
             userId: apiUserId,
             userName: this.normalizeText(userName) ?? existing?.userName,
             role: this.normalizeText(metadata?.role) ?? existing?.role,
             lastLogin: this.resolveLastLogin(metadata?.lastLogin ?? existing?.lastLogin),
-            savedViews: Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [],
+            savedViews: seed,
           };
 
           const idx = next.savedViews.findIndex((v) => this.sameSavedViewIdentity(v, withMeta));
@@ -508,12 +539,14 @@ export class SavedViewsService {
 
     return this.getUserPreferenceFromBackend(apiUserId).pipe(
       switchMap((existing) => {
+        const seed = Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [];
         const next: UserPreference = {
+          ...(existing ?? {}),
           userId: apiUserId,
           userName: this.normalizeText(userName) ?? existing?.userName,
           role: existing?.role,
           lastLogin: this.resolveLastLogin(existing?.lastLogin),
-          savedViews: Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [],
+          savedViews: seed,
         };
 
         next.savedViews = next.savedViews.map((v) => {
