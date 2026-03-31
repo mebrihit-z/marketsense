@@ -492,9 +492,10 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
     }
 
     const rawId = (option as any).raw?.id as string | undefined;
+    const currentUserId = this.userProfileService.getUserId();
 
     this.savedViewsService
-      .deleteView({ id: rawId, name: option.name })
+      .deleteView({ id: rawId, name: option.name }, currentUserId)
       .subscribe({
         next: () => {
           if (typeof window !== 'undefined') {
