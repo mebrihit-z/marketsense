@@ -148,11 +148,13 @@ export class SavedViewsService {
   }
 
   private upsertUserPreferenceToBackend(pref: UserPreference): Observable<void> {
-    const body: UserPreference & { _id?: string } = { ...pref };
-    if (body._id === '' || body._id === undefined) {
-      delete (body as any)._id;
-    }
-    return this.http.post<void>(this.userPreferenceApiUrl(), body).pipe(
+    // Important: never send `_id` from the browser.
+    // If the server stores Mongo ObjectId `_id`, sending it back as a string can create a *second*
+    // document where `_id` is a string (duplicate user rows as seen on VDI).
+    // Backend should upsert by `userId` (unique) instead.
+    const body: any = { ...pref };
+    delete body._id;
+    return this.http.post<void>(this.userPreferenceApiUrl(), body as UserPreference).pipe(
       catchError((err) => {
         console.error('Failed to upsert user preference to backend', err);
         throw err;
