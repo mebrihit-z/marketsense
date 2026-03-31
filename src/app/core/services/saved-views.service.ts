@@ -65,6 +65,11 @@ export class SavedViewsService {
 
   constructor(private http: HttpClient) {}
 
+  /** True when saved views / preference sync target the HTTP API (e.g. VDI). */
+  isSavedViewsBackendEnabled(): boolean {
+    return !this.useLocalStorage;
+  }
+
   private normalizeSavedView(view: SavedView): SavedView {
     return { ...view };
   }
@@ -83,22 +88,6 @@ export class SavedViewsService {
     if (!userId) return null;
     const normalized = String(userId).trim();
     return normalized.length > 0 ? normalized : null;
-  }
-
-  /**
-   * Effective user key for preference sync when not using the multi-user localStorage store (VDI / API).
-   */
-  private resolveUserIdForApiPreference(profile: UserPreferenceProfile): string {
-    const fromId = this.resolveUserId(profile.userId);
-    if (fromId) {
-      return fromId;
-    }
-    const normalizedUserName = this.normalizeText(profile.userName);
-    if (normalizedUserName) {
-      const slug = this.slugifyUserName(normalizedUserName);
-      return slug || this.anonymousUserId;
-    }
-    return this.anonymousUserId;
   }
 
   private userPreferenceApiUrl(): string {
@@ -249,7 +238,14 @@ export class SavedViewsService {
       return this.getSavedViews();
     }
     const store = this.readPreferenceStoreFromLocalStorage();
-    const pref = store.users.find((u) => u.userId === targetUserId);
+    const pref = store.users.find((u) => u.userId === targetUserId) ?? null;
+    if (!pref) {
+      // First hit for this user: create an empty preference bucket so future
+      // saved views and metadata are trivially user-scoped.
+      this.getOrCreateUserPreference(store, targetUserId);
+      this.writePreferenceStoreToLocalStorage(store);
+      return of<SavedView[]>([]);
+    }
     return of((pref?.savedViews ?? []).map((v) => this.normalizeSavedView(v)));
   }
 
@@ -397,6 +393,8 @@ export class SavedViewsService {
    * Update user profile preferences (userName/role/lastLogin).
    * - Local/dev: reads/writes the v2 store in localStorage.
    * - VDI: POST JSON to `{savedViewsApiUrl}/user-preference` (backend should accept UserPreferenceProfile).
+   *   Only runs when `profile.userId` is set to the authenticated subject (never slug/name or "anonymous"),
+   *   so the backend does not create duplicate users before OAuth profile is ready.
    */
   syncUserPreference(profile: UserPreferenceProfile): Observable<void> {
     if (this.useLocalStorage) {
@@ -410,8 +408,13 @@ export class SavedViewsService {
       return of(void 0);
     }
 
+    const apiUserId = this.resolveUserId(profile.userId);
+    if (!apiUserId || apiUserId === this.anonymousUserId) {
+      return of(void 0);
+    }
+
     const payload: UserPreferenceProfile = {
-      userId: this.resolveUserIdForApiPreference(profile),
+      userId: apiUserId,
       userName: this.normalizeText(profile.userName),
       role: this.normalizeText(profile.role),
       lastLogin: this.resolveLastLogin(profile.lastLogin),
@@ -440,7 +443,13 @@ export class SavedViewsService {
     }
     const store = this.readPreferenceStoreFromLocalStorage();
     const pref = store.users.find((u) => u.userId === targetUserId) ?? null;
-    return of(pref);
+    if (pref) {
+      return of(pref);
+    }
+    // First time we see this user id locally: initialize their preference bucket.
+    const created = this.getOrCreateUserPreference(store, targetUserId);
+    this.writePreferenceStoreToLocalStorage(store);
+    return of(created);
   }
 
   private readPreferenceStoreFromLocalStorage(): UserPreferenceStoreV2 {

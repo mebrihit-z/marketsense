@@ -1,6 +1,8 @@
 /* eslint-disable */
 import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, AfterViewInit, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+import { distinctUntilChanged, filter, map } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import  FilterDropdownComponent,{ type FilterOption, type GroupedFilterOption } from '../filter-dropdown/filter-dropdown.component';
 import SaveFilterSetModalComponent from '../save-filter-set-modal/save-filter-set-modal.component';
@@ -98,6 +100,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
   timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
   /** Bound document capture listener for time horizon (so we can remove in ngOnDestroy). */
   private _documentTimeHorizonCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentTimeHorizonCapture(e);
+
+  /** VDI: sync user preference only after OAuth `sub` is available (avoids duplicate API users). */
+  private userPreferenceSyncSub?: Subscription;
   
   // Toggle state
   dataType: 'historical' | 'forecasted' = 'forecasted';
@@ -132,18 +137,34 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    */
   ngOnInit() {
     // Keep a user preference record so saved views are user-scoped.
-    const currentUser = this.userProfileService.getuser();
-    this.savedViewsService
-      .syncUserPreference({
-        userId: this.userProfileService.getUserId() ?? currentUser?.sub,
-        userName:
-          this.userProfileService.getGivenName() ??
-          currentUser?.name ??
-          currentUser?.given_name,
-        role: this.userProfileService.getRoleName(),
-        lastLogin: this.getCurrentLoginTimestamp(),
-      })
-      .subscribe();
+    const syncPreference = (explicitUserId?: string): void => {
+      const currentUser = this.userProfileService.getuser();
+      this.savedViewsService
+        .syncUserPreference({
+          userId: explicitUserId ?? this.userProfileService.getUserId() ?? currentUser?.sub,
+          userName:
+            this.userProfileService.getGivenName() ??
+            currentUser?.name ??
+            currentUser?.given_name,
+          role: this.userProfileService.getRoleName(),
+          lastLogin: this.getCurrentLoginTimestamp(),
+        })
+        .subscribe();
+    };
+
+    if (this.savedViewsService.isSavedViewsBackendEnabled()) {
+      // Defer until OAuth `sub` is available so the API does not create slug/anonymous users first.
+      this.userPreferenceSyncSub = this.userProfileService.user$
+        .pipe(
+          map((user) => this.userProfileService.getUserId() ?? user?.sub ?? null),
+          map((id) => (id != null && String(id).trim() !== '' ? String(id).trim() : null)),
+          filter((id): id is string => id !== null && id !== 'anonymous'),
+          distinctUntilChanged()
+        )
+        .subscribe((userId) => syncPreference(userId));
+    } else {
+      syncPreference();
+    }
 
     // Load product sub-types and investor regions from asset-flows-data.json (async)
     this.loadFilterOptionsFromAssetFlows();
@@ -175,6 +196,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
   }
 
   ngOnDestroy(): void {
+    this.userPreferenceSyncSub?.unsubscribe();
     if (typeof document !== 'undefined') {
       document.removeEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
       document.removeEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
