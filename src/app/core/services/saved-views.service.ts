@@ -71,7 +71,14 @@ export class SavedViewsService {
   }
 
   private normalizeSavedView(view: SavedView): SavedView {
-    return { ...view };
+    const anyView = view as any;
+    const backendId = anyView?._id ?? anyView?.id;
+    return {
+      ...view,
+      // Backend often returns Mongo-style `_id`; normalize to `id` so the app can
+      // set defaults / delete consistently.
+      id: (view as any)?.id ?? (backendId != null ? String(backendId) : undefined),
+    };
   }
 
   private normalizeText(value?: string): string | undefined {
@@ -93,6 +100,35 @@ export class SavedViewsService {
   private userPreferenceApiUrl(): string {
     const base = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
     return `${base}/user-preference`;
+  }
+
+  private getUserPreferenceFromBackend(userId: string): Observable<UserPreference | null> {
+    const url = `${this.userPreferenceApiUrl()}?userId=${encodeURIComponent(userId)}`;
+    return this.http.get<UserPreference | { item?: UserPreference } | { data?: UserPreference }>(url).pipe(
+      map((res) => {
+        if (!res) return null;
+        const anyRes = res as any;
+        const pref: UserPreference | undefined = anyRes.userId ? (anyRes as UserPreference) : anyRes.item ?? anyRes.data;
+        if (!pref || !pref.userId) return null;
+        return {
+          ...pref,
+          savedViews: Array.isArray(pref.savedViews) ? pref.savedViews.map((v) => this.normalizeSavedView(v)) : [],
+        };
+      }),
+      catchError((err) => {
+        console.error('Failed to load user preference from backend', err);
+        return of(null);
+      })
+    );
+  }
+
+  private upsertUserPreferenceToBackend(pref: UserPreference): Observable<void> {
+    return this.http.post<void>(this.userPreferenceApiUrl(), pref).pipe(
+      catchError((err) => {
+        console.error('Failed to upsert user preference to backend', err);
+        throw err;
+      })
+    );
   }
 
   private slugifyUserName(userName: string): string {
@@ -230,7 +266,20 @@ export class SavedViewsService {
 
   getSavedViewsForUser(userId?: string): Observable<SavedView[]> {
     if (!this.useLocalStorage) {
-      return this.getSavedViews();
+      const apiUserId = this.resolveUserId(userId);
+      if (!apiUserId || apiUserId === this.anonymousUserId) {
+        // No authenticated id yet on VDI; fall back to the shared saved-views list.
+        return this.getSavedViews();
+      }
+      return this.getUserPreferenceFromBackend(apiUserId).pipe(
+        switchMap((pref) => {
+          if (pref?.savedViews) {
+            return of(pref.savedViews.map((v) => this.normalizeSavedView(v)));
+          }
+          // Backend preference not ready yet; fall back to the shared saved-views list.
+          return this.getSavedViews();
+        })
+      );
     }
     const targetUserId = this.resolveUserId(userId);
     if (!targetUserId) {
@@ -286,7 +335,52 @@ export class SavedViewsService {
     }
 
     const url = String((environment as any).savedViewsApiUrl).replace(/\/$/, '');
-    return this.http.post<void>(url, view).pipe(
+    const apiUserId = this.resolveUserId(userId);
+
+    // Save the view record as before (backend may return `_id`).
+    // Then, also persist it inside the user's preference doc (savedViews[]).
+    return this.http.post<SavedView | void>(url, view).pipe(
+      map((res) => (res && typeof res === 'object' ? (res as SavedView) : view)),
+      map((saved) => this.normalizeSavedView(saved)),
+      switchMap((saved) => {
+        if (!apiUserId || apiUserId === this.anonymousUserId) {
+          return of(void 0);
+        }
+
+        return this.getUserPreferenceFromBackend(apiUserId).pipe(
+          switchMap((existing) => {
+            const next: UserPreference = {
+              userId: apiUserId,
+              userName: this.normalizeText(userName) ?? existing?.userName,
+              role: this.normalizeText(metadata?.role) ?? existing?.role,
+              lastLogin: this.resolveLastLogin(metadata?.lastLogin ?? existing?.lastLogin),
+              savedViews: Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [],
+            };
+
+            // Upsert: replace existing by id/name if present; otherwise append.
+            const idx = next.savedViews.findIndex((v) => this.sameSavedViewIdentity(v, saved));
+            if (idx >= 0) {
+              next.savedViews[idx] = { ...next.savedViews[idx], ...saved };
+            } else {
+              next.savedViews.push(saved);
+            }
+
+            // If setting default, clear other defaults.
+            if (saved.isDefault) {
+              next.savedViews = next.savedViews.map((v) =>
+                this.sameSavedViewIdentity(v, saved) ? { ...v, isDefault: true } : { ...v, isDefault: false }
+              );
+            }
+
+            return this.upsertUserPreferenceToBackend(next);
+          }),
+          // Don't break "save view" if preference write fails; view is still saved by the primary endpoint.
+          catchError((err) => {
+            console.error('Failed to write saved view into user preference on backend', err);
+            return of(void 0);
+          })
+        );
+      }),
       catchError((err) => {
         console.error('Failed to save view to backend', err);
         throw err;
@@ -370,22 +464,35 @@ export class SavedViewsService {
       return of(void 0);
     }
 
-    if (!isDefault) {
-      return this.saveView({ ...view, isDefault: false });
+    const apiUserId = this.resolveUserId(userId);
+    if (!apiUserId || apiUserId === this.anonymousUserId) {
+      // Without a stable user id on VDI, we cannot reliably update a user preference doc.
+      // Fall back to the legacy saved-views behavior.
+      return this.saveView({ ...view, isDefault });
     }
 
-    const matchesTargetView = (v: SavedView): boolean => this.sameSavedViewIdentity(v, view);
+    return this.getUserPreferenceFromBackend(apiUserId).pipe(
+      switchMap((existing) => {
+        const next: UserPreference = {
+          userId: apiUserId,
+          userName: this.normalizeText(userName) ?? existing?.userName,
+          role: existing?.role,
+          lastLogin: this.resolveLastLogin(existing?.lastLogin),
+          savedViews: Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [],
+        };
 
-    return this.getSavedViews().pipe(
-      switchMap((views) => {
-        const toClear = views.filter((v) => v.isDefault && !matchesTargetView(v));
-        const afterClear = toClear.reduce(
-          (acc$: Observable<void>, v) =>
-            acc$.pipe(switchMap(() => this.saveView({ ...v, isDefault: false }))),
-          of(void 0)
-        );
-        return afterClear.pipe(switchMap(() => this.saveView({ ...view, isDefault: true })));
-      })
+        next.savedViews = next.savedViews.map((v) => {
+          const matchesTarget = this.sameSavedViewIdentity(v, view);
+          if (isDefault) {
+            return matchesTarget ? { ...v, isDefault: true } : { ...v, isDefault: false };
+          }
+          return matchesTarget ? { ...v, isDefault: false } : v;
+        });
+
+        return this.upsertUserPreferenceToBackend(next);
+      }),
+      // If the preference doc isn't available, fall back to legacy saved-views behavior.
+      catchError(() => this.saveView({ ...view, isDefault }))
     );
   }
 
@@ -420,12 +527,17 @@ export class SavedViewsService {
       lastLogin: this.resolveLastLogin(profile.lastLogin),
     };
 
-    return this.http.post<void>(this.userPreferenceApiUrl(), payload).pipe(
-      catchError((err) => {
-        console.error('Failed to sync user preference to backend', err);
-        throw err;
-      })
-    );
+    // Upsert user preference doc on VDI; backend may ignore unknown fields.
+    // This is the "first hit" initializer path (creates the doc even before any view is saved).
+    const toUpsert: UserPreference = {
+      userId: payload.userId ?? apiUserId,
+      userName: payload.userName,
+      role: payload.role,
+      lastLogin: payload.lastLogin,
+      savedViews: [],
+    };
+
+    return this.upsertUserPreferenceToBackend(toUpsert);
   }
 
   private userNameForSavedViewHeuristic(view: SavedView): string | undefined {
@@ -435,7 +547,11 @@ export class SavedViewsService {
 
   getUserPreference(userId?: string): Observable<UserPreference | null> {
     if (!this.useLocalStorage) {
-      return of(null);
+      const apiUserId = this.resolveUserId(userId);
+      if (!apiUserId || apiUserId === this.anonymousUserId) {
+        return of(null);
+      }
+      return this.getUserPreferenceFromBackend(apiUserId);
     }
     const targetUserId = this.resolveUserId(userId);
     if (!targetUserId) {
