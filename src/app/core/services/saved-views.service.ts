@@ -143,8 +143,34 @@ export class SavedViewsService {
    * GET user preference from VDI. Errors propagate — callers decide whether to swallow.
    */
   private getUserPreferenceFromBackend(userId: string): Observable<UserPreference | null> {
-    const url = `${this.userPreferenceApiUrl()}?userId=${encodeURIComponent(userId)}`;
-    return this.http.get<unknown>(url).pipe(map((res) => this.parseUserPreferenceGetResponse(res, userId)));
+    const base = this.userPreferenceApiUrl();
+    const encoded = encodeURIComponent(userId);
+
+    // Different backends expose different GET shapes; try a few common patterns.
+    const candidates = [
+      `${base}?userId=${encoded}`,
+      `${base}/${encoded}`,
+      `${base}/by-user/${encoded}`,
+      `${base}/user/${encoded}`,
+    ];
+
+    const tryNext = (i: number): Observable<UserPreference | null> => {
+      if (i >= candidates.length) {
+        // Let caller decide whether to swallow; surface a consistent error.
+        throw new Error(`No user preference GET route matched for userId=${userId}`);
+      }
+      return this.http.get<unknown>(candidates[i]).pipe(
+        map((res) => this.parseUserPreferenceGetResponse(res, userId)),
+        switchMap((pref) => {
+          // If route responded but didn't return a matching doc, try next.
+          if (!pref) return tryNext(i + 1);
+          return of(pref);
+        }),
+        catchError(() => tryNext(i + 1))
+      );
+    };
+
+    return tryNext(0);
   }
 
   private upsertUserPreferenceToBackend(pref: UserPreference): Observable<void> {

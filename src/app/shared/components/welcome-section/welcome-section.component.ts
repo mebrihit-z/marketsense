@@ -1,6 +1,8 @@
 /* eslint-disable */
-import { Component, Input, HostListener, ElementRef, ViewChild, AfterViewInit, OnInit } from '@angular/core';
+import { Component, Input, HostListener, ElementRef, ViewChild, AfterViewInit, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+import { distinctUntilChanged, filter, map, take } from 'rxjs/operators';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../title/title.component';
 import UserProfileService from '../../services/user-profile.service';
@@ -24,7 +26,7 @@ export interface ViewingOption {
   templateUrl: './welcome-section.component.html',
   styleUrls: ['./welcome-section.component.scss']
 })
-export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
+export default class WelcomeSectionComponent implements AfterViewInit, OnInit, OnDestroy {
   @Input() userName: string = '';
   @Input() lastLogin: string = '';
   /** Snapshot of the previously saved login time to show before we write today's value. */
@@ -66,15 +68,49 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
 
   viewingOptions: ViewingOption[] = [];
 
+  private resolvedUserId(): string | undefined {
+    const fromService = this.userProfileService.getUserId();
+    if (fromService != null && String(fromService).trim() !== '') {
+      return String(fromService).trim();
+    }
+    const fromProfile = this.userProfileService.getuser()?.sub;
+    if (fromProfile != null && String(fromProfile).trim() !== '') {
+      return String(fromProfile).trim();
+    }
+    return undefined;
+  }
+
   ngOnInit(): void {
-    this.hydrateProfileFromPreference();
-    this.loadSavedViews();
+    if (this.savedViewsService.isSavedViewsBackendEnabled()) {
+      // VDI: defer until OAuth `sub` is available, otherwise userId is undefined and the dropdown shows 0.
+      this.userReadySub = this.userProfileService.user$
+        .pipe(
+          map((user) => this.resolvedUserId() ?? user?.sub ?? null),
+          map((id) => (id != null && String(id).trim() !== '' ? String(id).trim() : null)),
+          filter((id): id is string => id !== null && id !== 'anonymous'),
+          distinctUntilChanged(),
+          take(1)
+        )
+        .subscribe(() => {
+          this.hydrateProfileFromPreference();
+          this.loadSavedViews();
+        });
+    } else {
+      this.hydrateProfileFromPreference();
+      this.loadSavedViews();
+    }
   }
 
   ngAfterViewInit(): void {
     if (this.filterButton?.nativeElement) {
       this.updateDropdownPosition();
     }
+  }
+
+  private userReadySub?: Subscription;
+
+  ngOnDestroy(): void {
+    this.userReadySub?.unsubscribe();
   }
 
   /** Row key aligned with {@link SavedViewsService.sameSavedViewIdentity} style (id preferred). */
@@ -117,7 +153,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    * If nothing has been saved yet, the list stays empty.
    */
   private loadSavedViews(): void {
-    const currentUserId = this.userProfileService.getUserId();
+    const currentUserId = this.resolvedUserId();
     this.savedViewsService.getSavedViewsForUser(currentUserId).subscribe({
       next: (views: SavedView[]) => {
         if (!Array.isArray(views) || views.length === 0) {
@@ -175,7 +211,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    * Restore profile metadata from user preference storage when available.
    */
   private hydrateProfileFromPreference(): void {
-    const currentUserId = this.userProfileService.getUserId();
+    const currentUserId = this.resolvedUserId();
     this.savedViewsService.getUserPreference(currentUserId).subscribe({
       next: (pref) => {
         if (pref?.userName && !this.userProfileService.getGivenName()) {
@@ -202,7 +238,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit {
    * This keeps `lastLogin` in sync even when profile fields are initialized here.
    */
   private syncProfileToUserPreference(lastLoginOverride?: string): void {
-    const currentUserId = this.userProfileService.getUserId();
+    const currentUserId = this.resolvedUserId();
     const userName = this.displayName;
     const role = this.userProfileService.getRoleName();
     const lastLogin = lastLoginOverride ?? this.displayLastLogin;
