@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/market-flow-card.component';
 import TitleComponent from '../title/title.component';
 import { AiChatService, type AiChatResponse } from '../../../core/services/ai-chat.service';
+import { loadImageFromDataUrl } from '../../utils/chart-dom-export.util';
+import { coerceVisualizationImageBase64Payload } from '../../utils/visualization-image-base64.util';
 import { jsPDF } from 'jspdf';
 
 export interface AnalysisResult {
@@ -14,6 +16,8 @@ export interface AnalysisResult {
   key_points: string[];
   key_drivers: string[];
   visualization_image_base64?: string;
+  /** Message from backend when no visualization image is available. */
+  visualization_message?: string | null;
   /** Table data for Query Results */
   row_count?: number;
   columns?: string[];
@@ -142,6 +146,20 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   setActiveTab(tab: 'new-question' | 'history'): void {
     this.activeTab = tab;
+    if (tab !== 'new-question') {
+      return;
+    }
+    this._localAnalyses = [];
+    this.userMessage = '';
+    this.followUpMessage = '';
+    this.errorMessage = null;
+    this.isWaitingForResponse = false;
+    this.isVisualizationModalOpen = false;
+    this.expandedAnalysis = null;
+    this.isQueryResultsModalOpen = false;
+    this.expandedTableAnalysis = null;
+    this.clearAnalysis.emit();
+    this.cdr.markForCheck();
   }
 
   onSendMessage(event?: Event | KeyboardEvent): void {
@@ -175,13 +193,22 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   private toAnalysisResult(res: AiChatResponse): AnalysisResult {
     const ts = res.timestamp ?? '';
+    const route = (res as any)?.route as string | undefined;
+    const fallbackMessage = (res as any)?.message as string | undefined;
+    const vizMessage = (res as any)?.visualization_message as string | undefined;
+    const isFallback = route === 'fallback' && !!fallbackMessage;
+
     return {
       question: res.question,
       timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
-      summary: res.summary,
+      // When backend routes to "fallback", show the backend's message as the summary
+      summary: isFallback ? fallbackMessage! : res.summary,
       key_points: res.key_points ?? [],
       key_drivers: res.key_drivers ?? [],
-      visualization_image_base64: res.visualization_image_base64,
+      visualization_image_base64:
+        coerceVisualizationImageBase64Payload(res.visualization_image_base64) ??
+        res.visualization_image_base64,
+      visualization_message: vizMessage ?? null,
       row_count: res.row_count,
       columns: (res.columns ?? []) as string[],
       rows: (res.rows ?? []) as Record<string, unknown>[],
@@ -283,6 +310,117 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.expandAndDownload.emit();
   }
 
+  /** Download chart PNG without opening the expanded visualization modal. */
+  exportVisualizationPngInline(analysis: AnalysisResult): void {
+    const clean = this.cleanVisualizationBase64ForPdf(analysis.visualization_image_base64);
+    if (!clean) return;
+    const dataUrl = this.buildVisualizationDataUrlForPdf(clean);
+    const filename = this.safeVizFilename(analysis, 'png');
+    void loadImageFromDataUrl(dataUrl)
+      .then((img) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+        if (canvas.toBlob) {
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }, 'image/png');
+        } else {
+          const link = document.createElement('a');
+          link.href = canvas.toDataURL('image/png');
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      })
+      .catch(() => this.downloadVisualizationRawBlobFallback(clean, filename, 'image/png'));
+  }
+
+  /** Download chart as a single-page PDF without opening the expanded modal. */
+  exportVisualizationPdfInline(analysis: AnalysisResult): void {
+    const clean = this.cleanVisualizationBase64ForPdf(analysis.visualization_image_base64);
+    if (!clean) return;
+    const dataUrl = this.buildVisualizationDataUrlForPdf(clean);
+    const filename = this.safeVizFilename(analysis, 'pdf');
+    void loadImageFromDataUrl(dataUrl)
+      .then((img) => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0);
+        const pngDataUrl = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: w > h ? 'landscape' : 'portrait',
+          unit: 'px',
+          format: [w, h],
+        });
+        pdf.addImage(pngDataUrl, 'PNG', 0, 0, w, h);
+        pdf.save(filename);
+      })
+      .catch(() => {
+        try {
+          const mime = this.sniffImageMimeFromBase64(clean);
+          const fmt = mime === 'image/jpeg' ? 'JPEG' : 'PNG';
+          const dataUrl = `${mime};base64,${clean}`;
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: [800, 600],
+          });
+          pdf.addImage(dataUrl, fmt, 0, 0, 800, 600);
+          pdf.save(filename);
+        } catch {
+          /* ignore */
+        }
+      });
+  }
+
+  private safeVizFilename(analysis: AnalysisResult, ext: string): string {
+    const safeQuestion = (analysis.question ?? 'chart')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return `${safeQuestion || 'chart'}.${ext}`;
+  }
+
+  private downloadVisualizationRawBlobFallback(clean: string, filename: string, mimeFallback: string): void {
+    try {
+      const bin = atob(clean);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const mime = this.sniffImageMimeFromBase64(clean);
+      const blob = new Blob([bytes], { type: mime || mimeFallback });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      /* ignore */
+    }
+  }
+
   onExpandQueryResults(analysis: AnalysisResult): void {
     this.expandedTableAnalysis = analysis;
     this.isQueryResultsModalOpen = true;
@@ -295,7 +433,11 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   }
 
   onDownloadQueryResultsCsv(): void {
-    const analysis = this.expandedTableAnalysis;
+    this.exportQueryResultsToCsv(this.expandedTableAnalysis);
+  }
+
+  /** Export query results to CSV (inline table or expanded modal). */
+  exportQueryResultsToCsv(analysis: AnalysisResult | null | undefined): void {
     const columns = analysis?.columns ?? [];
     const rows = analysis?.rows ?? [];
     if (!columns.length || !rows.length) return;
@@ -325,6 +467,468 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Question block in conversation PDF: matches in-app `.question-card` (neutral-250 background, padding, label + body). Timestamp omitted from PDF.
+   */
+  private drawQuestionCardInConversationPdf(
+    doc: jsPDF,
+    o: {
+      cursorY: number;
+      marginLeft: number;
+      maxWidth: number;
+      marginTop: number;
+      marginBottom: number;
+      pageHeight: () => number;
+      questionTitle: string;
+      question: string;
+    }
+  ): number {
+    const pad = 16;
+    const gap = 8;
+    const innerW = o.maxWidth - pad * 2;
+    const cardX = o.marginLeft;
+    const labelLineH = 14;
+    const qLineH = 16;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    const labelLines = doc.splitTextToSize(o.questionTitle.toUpperCase(), innerW) as string[];
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    const qWrapped = doc.splitTextToSize(o.question, innerW) as string[];
+
+    const firstBaseline = 9;
+    let h =
+      pad +
+      firstBaseline +
+      labelLines.length * labelLineH +
+      gap +
+      qWrapped.length * qLineH +
+      pad +
+      6;
+
+    let y = o.cursorY;
+    if (y + h > o.pageHeight() - o.marginBottom) {
+      doc.addPage();
+      y = o.marginTop;
+    }
+
+    doc.setFillColor(245, 241, 235);
+    doc.rect(cardX, y, o.maxWidth, h, 'F');
+
+    let ty = y + pad + firstBaseline;
+
+    doc.setTextColor(0, 17, 63);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    labelLines.forEach((line) => {
+      doc.text(line, cardX + pad, ty);
+      ty += labelLineH;
+    });
+
+    ty += gap;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    qWrapped.forEach((line) => {
+      doc.text(line, cardX + pad, ty);
+      ty += qLineH;
+    });
+
+    doc.setTextColor(0, 0, 0);
+    return y + h + 16;
+  }
+
+  /**
+   * Exports the full visible conversation (all questions and analyses) to PDF.
+   * Visualizations are rasterized to a canvas before addImage so they appear reliably in A4/pt layouts.
+   */
+  async exportConversationToPdf(): Promise<void> {
+    const analyses = this.displayAnalyses;
+    if (!analyses.length) {
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4',
+    });
+
+    const marginLeft = 40;
+    const marginTop = 40;
+    const marginBottom = 40;
+    const lineHeight = 16;
+    const pageHeight = () => doc.internal.pageSize.getHeight();
+    const maxWidth = doc.internal.pageSize.getWidth() - marginLeft * 2;
+    let cursorY = marginTop;
+
+    const addTextBlock = (label: string, text: string | string[] | undefined): void => {
+      if (!text || (Array.isArray(text) && text.length === 0)) return;
+      const content = Array.isArray(text) ? text.join('\n') : text;
+
+      if (label) {
+        if (cursorY + lineHeight > pageHeight() - marginTop) {
+          doc.addPage();
+          cursorY = marginTop;
+        }
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label, marginLeft, cursorY);
+        cursorY += lineHeight;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const wrapped = doc.splitTextToSize(content, maxWidth);
+      wrapped.forEach((line: string) => {
+        if (cursorY + lineHeight > pageHeight() - marginTop) {
+          doc.addPage();
+          cursorY = marginTop;
+        }
+        doc.text(line, marginLeft, cursorY);
+        cursorY += lineHeight;
+      });
+      cursorY += lineHeight / 2;
+    };
+
+    /** Key Insights / Key Drivers: gold bullet ($secondary-colors-gold-750) + midnight body text like `.insights-list` */
+    const addGoldBulletListBlock = (label: string, items: string[]): void => {
+      if (!items.length) return;
+      const goldR = 255;
+      const goldG = 183;
+      const goldB = 14;
+      const bodyR = 0;
+      const bodyG = 17;
+      const bodyB = 63;
+
+      if (label) {
+        if (cursorY + lineHeight > pageHeight() - marginTop) {
+          doc.addPage();
+          cursorY = marginTop;
+        }
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(label, marginLeft, cursorY);
+        cursorY += lineHeight;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const bullet = '\u2022';
+      const gapAfterBullet = 4;
+      const bulletColW = doc.getTextWidth(`${bullet} `) + gapAfterBullet;
+      const textStartX = marginLeft + bulletColW;
+      const textInnerW = maxWidth - bulletColW;
+
+      for (const raw of items) {
+        const item = String(raw).replace(/^\s*[•\u2022\-*]\s*/, '');
+        const lines = doc.splitTextToSize(item, textInnerW) as string[];
+        lines.forEach((line, lineIdx) => {
+          if (cursorY + lineHeight > pageHeight() - marginTop) {
+            doc.addPage();
+            cursorY = marginTop;
+          }
+          if (lineIdx === 0) {
+            doc.setTextColor(goldR, goldG, goldB);
+            doc.text(bullet, marginLeft, cursorY);
+          }
+          doc.setTextColor(bodyR, bodyG, bodyB);
+          doc.text(line, textStartX, cursorY);
+          cursorY += lineHeight;
+        });
+      }
+
+      doc.setTextColor(0, 0, 0);
+      cursorY += lineHeight / 2;
+    };
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MarketSense AI Conversation', marginLeft, cursorY);
+    cursorY += lineHeight * 2;
+
+    for (let index = 0; index < analyses.length; index++) {
+      const analysis = analyses[index];
+      if (index > 0 && cursorY + lineHeight * 4 > pageHeight() - marginTop) {
+        doc.addPage();
+        cursorY = marginTop;
+      }
+
+      const questionTitle = index === 0 ? 'Question' : `Follow-up Question ${index}`;
+      cursorY = this.drawQuestionCardInConversationPdf(doc, {
+        cursorY,
+        marginLeft,
+        maxWidth,
+        marginTop,
+        marginBottom,
+        pageHeight,
+        questionTitle,
+        question: analysis.question,
+      });
+      addTextBlock('AI-Generated Summary', analysis.summary);
+
+      if (analysis.key_points?.length) {
+        addGoldBulletListBlock('Key Insights', analysis.key_points);
+      }
+
+      if (analysis.key_drivers?.length) {
+        addGoldBulletListBlock('Key Drivers', analysis.key_drivers);
+      }
+
+      if (analysis.columns?.length && analysis.rows?.length) {
+        const columns = analysis.columns;
+        const rows = analysis.rows;
+
+        if (cursorY + lineHeight * 4 > pageHeight() - marginTop) {
+          doc.addPage();
+          cursorY = marginTop;
+        }
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Query Results', marginLeft, cursorY);
+        cursorY += lineHeight;
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+
+        const maxPreviewRows = 10;
+        const previewRows = rows.slice(0, maxPreviewRows);
+        const colCount = columns.length;
+        const colWidth = maxWidth / colCount;
+
+        const headerY = cursorY;
+        columns.forEach((col, colIndex) => {
+          const x = marginLeft + colIndex * colWidth;
+          const headerLabel = this.formatColumnLabel(col);
+          doc.setFont('helvetica', 'bold');
+          doc.text(headerLabel, x, headerY);
+        });
+        cursorY += lineHeight;
+
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.5);
+        doc.line(
+          marginLeft,
+          cursorY - lineHeight / 2,
+          marginLeft + colWidth * colCount,
+          cursorY - lineHeight / 2
+        );
+
+        doc.setFont('helvetica', 'normal');
+
+        previewRows.forEach((row) => {
+          if (cursorY + lineHeight > pageHeight() - marginTop) {
+            doc.addPage();
+            cursorY = marginTop;
+            const newHeaderY = cursorY;
+            columns.forEach((col, colIndex) => {
+              const x = marginLeft + colIndex * colWidth;
+              const headerLabel = this.formatColumnLabel(col);
+              doc.setFont('helvetica', 'bold');
+              doc.text(headerLabel, x, newHeaderY);
+            });
+            cursorY += lineHeight;
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.5);
+            doc.line(
+              marginLeft,
+              cursorY - lineHeight / 2,
+              marginLeft + colWidth * colCount,
+              cursorY - lineHeight / 2
+            );
+            doc.setFont('helvetica', 'normal');
+          }
+
+          const wrappedPerColumn: string[][] = columns.map((col) => {
+            const cellText = this.formatCellValue(col, row[col]);
+            return doc.splitTextToSize(cellText, colWidth - 4) as string[];
+          });
+
+          const maxLines = wrappedPerColumn.reduce(
+            (max, arr) => Math.max(max, arr.length),
+            1
+          );
+
+          for (let lineIndex = 0; lineIndex < maxLines; lineIndex++) {
+            if (cursorY + lineHeight > pageHeight() - marginTop) {
+              doc.addPage();
+              cursorY = marginTop;
+              const newHeaderY2 = cursorY;
+              columns.forEach((col, colIndex) => {
+                const x = marginLeft + colIndex * colWidth;
+                const headerLabel = this.formatColumnLabel(col);
+                doc.setFont('helvetica', 'bold');
+                doc.text(headerLabel, x, newHeaderY2);
+              });
+              cursorY += lineHeight;
+              doc.setDrawColor(200);
+              doc.setLineWidth(0.5);
+              doc.line(
+                marginLeft,
+                cursorY - lineHeight / 2,
+                marginLeft + colWidth * colCount,
+                cursorY - lineHeight / 2
+              );
+              doc.setFont('helvetica', 'normal');
+            }
+
+            columns.forEach((_, colIndex) => {
+              const x = marginLeft + colIndex * colWidth;
+              const linesForCol = wrappedPerColumn[colIndex];
+              const lineText = linesForCol[lineIndex] ?? '';
+              if (lineText) {
+                doc.text(lineText, x, cursorY);
+              }
+            });
+
+            cursorY += lineHeight;
+          }
+        });
+
+        if (rows.length > maxPreviewRows) {
+          if (cursorY + lineHeight > pageHeight() - marginTop) {
+            doc.addPage();
+            cursorY = marginTop;
+          }
+          doc.text(`(+${rows.length - maxPreviewRows} more rows in app)`, marginLeft, cursorY);
+          cursorY += lineHeight;
+        }
+      }
+
+      const vizB64Clean = this.cleanVisualizationBase64ForPdf(analysis.visualization_image_base64);
+      if (vizB64Clean) {
+        const dataUrl = this.buildVisualizationDataUrlForPdf(vizB64Clean);
+        try {
+          let iw: number;
+          let ih: number;
+          try {
+            const props = doc.getImageProperties(dataUrl);
+            iw = props.width;
+            ih = props.height;
+          } catch {
+            const img = await loadImageFromDataUrl(dataUrl);
+            iw = img.naturalWidth || 1;
+            ih = img.naturalHeight || 1;
+          }
+          if (iw < 1 || ih < 1 || !Number.isFinite(iw) || !Number.isFinite(ih)) {
+            throw new Error('invalid image dimensions');
+          }
+          const headerH = lineHeight * 1.5;
+          const availH = () => pageHeight() - cursorY - marginBottom - headerH;
+          /** Allow modest upscaling so small backend thumbnails fill the content width (was capped at 1, which kept charts fuzzy/small). */
+          const maxScaleUp = 6;
+          let scale = Math.min(maxWidth / iw, Math.max(80, availH()) / ih, maxScaleUp);
+          let imgW = iw * scale;
+          let imgH = ih * scale;
+          if (cursorY + headerH + imgH > pageHeight() - marginBottom) {
+            doc.addPage();
+            cursorY = marginTop;
+          }
+          scale = Math.min(maxWidth / iw, Math.max(80, availH()) / ih, maxScaleUp);
+          imgW = iw * scale;
+          imgH = ih * scale;
+          const imgWpt = Math.max(1, Math.round(imgW));
+          const imgHpt = Math.max(1, Math.round(imgH));
+          const canvas = await this.rasterizeDataUrlToCanvasForPdf(dataUrl, imgWpt, imgHpt);
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Visualization', marginLeft, cursorY);
+          cursorY += headerH;
+          const imgY = Math.round(cursorY);
+          doc.addImage(canvas, 'PNG', marginLeft, imgY, imgWpt, imgHpt);
+          cursorY += imgHpt + lineHeight;
+        } catch (e) {
+          console.warn('Ask MarketSense: conversation PDF visualization embed failed', e);
+          addTextBlock(
+            'Visualization',
+            'A chart was available for this answer but could not be embedded in the PDF. Use PNG/PDF export from Expand & Download if needed.'
+          );
+        }
+      } else if (analysis.visualization_message?.trim()) {
+        addTextBlock('Visualization', analysis.visualization_message.trim());
+      }
+
+      cursorY += lineHeight;
+    }
+
+    doc.save('marketsense-conversation.pdf');
+  }
+
+  /** Strip whitespace and data-URL wrapper so backend payloads embed reliably in PDFs. */
+  private cleanVisualizationBase64ForPdf(raw: string | undefined): string {
+    const coerced = coerceVisualizationImageBase64Payload(raw);
+    const s = (coerced ?? String(raw ?? '').replace(/^data:image\/\w+;base64,/i, '')).replace(/\s/g, '');
+    return s.trim();
+  }
+
+  private buildVisualizationDataUrlForPdf(base64Clean: string): string {
+    const mime = this.sniffImageMimeFromBase64(base64Clean);
+    return `data:${mime};base64,${base64Clean}`;
+  }
+
+  private sniffImageMimeFromBase64(b64: string): string {
+    try {
+      const mod = b64.length % 4;
+      const pad = mod ? '='.repeat(4 - mod) : '';
+      const bin = atob(b64.slice(0, 48) + pad);
+      const u0 = bin.charCodeAt(0);
+      const u1 = bin.charCodeAt(1);
+      if (u0 === 0xff && u1 === 0xd8) return 'image/jpeg';
+      if (u0 === 0x89 && u1 === 0x50) return 'image/png';
+      if (u0 === 0x47 && u1 === 0x49) return 'image/gif';
+    } catch {
+      /* ignore */
+    }
+    return 'image/png';
+  }
+
+  /**
+   * Rasterize chart for PDF at higher pixel density than the final pt size so viewers/prints look sharp
+   * (1 canvas px per 1 PDF pt ≈ 72 PPI — too soft; 3× gives ~216 PPI equivalent when scaled in the PDF).
+   */
+  private rasterizeDataUrlToCanvasForPdf(
+    dataUrl: string,
+    destWPt: number,
+    destHPt: number
+  ): Promise<HTMLCanvasElement> {
+    const wPt = Math.max(1, Math.round(destWPt));
+    const hPt = Math.max(1, Math.round(destHPt));
+    const maxCanvasDim = 6144;
+    let pixelRatio = 3;
+    let pxW = Math.max(1, Math.round(wPt * pixelRatio));
+    let pxH = Math.max(1, Math.round(hPt * pixelRatio));
+    if (pxW > maxCanvasDim || pxH > maxCanvasDim) {
+      pixelRatio = Math.min(maxCanvasDim / wPt, maxCanvasDim / hPt, pixelRatio);
+      pxW = Math.max(1, Math.round(wPt * pixelRatio));
+      pxH = Math.max(1, Math.round(hPt * pixelRatio));
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = pxW;
+        canvas.height = pxH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('canvas 2d'));
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pxW, pxH);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, pxW, pxH);
+        resolve(canvas);
+      };
+      img.onerror = () => reject(new Error('visualization image decode failed'));
+      img.src = dataUrl;
+    });
   }
 
   onDownloadPng(): void {

@@ -18,7 +18,7 @@
       <app-title title="MarketSense AI" subtitle="Ask questions about flows, trends, and signals" level="h3"></app-title>
     </div>
 
-    <!-- Tabs + Clear Analysis -->
+    <!-- Tabs + Actions -->
     <div class="tabs-row">
       <div class="tabs-container">
         <button 
@@ -34,13 +34,22 @@
           Session History
         </button> -->
       </div>
-      <button
-        *ngIf="activeTab === 'new-question' && hasDisplayAnalyses"
-        class="clear-analysis-link"
-        type="button"
-        (click)="onClearAnalysis()">
-        Clear Analysis
-      </button>
+      <div class="tabs-actions" *ngIf="activeTab === 'new-question' && hasDisplayAnalyses">
+        <button
+          class="expand-download-btn export-conversation-link"
+          type="button"
+          (click)="onClearAnalysis()">
+          <img src="assets/icons/refresh-icon.svg" alt="Clear analysis" class="download-btn-icon" />
+          <span>Clear Analysis</span>
+        </button>
+        <button
+          class="expand-download-btn export-conversation-link"
+          type="button"
+          (click)="exportConversationToPdf()">
+          <img src="assets/icons/download-icon.svg" alt="Export conversation as PDF" class="download-btn-icon" />
+          <span>Export Conversation</span>
+        </button>
+      </div>
     </div>
 
     <!-- Session History Message -->
@@ -69,10 +78,16 @@
               [disabled]="!userMessage.trim() || isWaitingForResponse" 
               (click)="onSendMessage()"
               aria-label="Ask Question">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              </svg>
-              <span>{{ isWaitingForResponse ? 'Processing...' : 'Ask Question' }}</span>
+              <ng-container *ngIf="!isWaitingForResponse; else loadingSpinner">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+                <span>Ask Question</span>
+              </ng-container>
+              <ng-template #loadingSpinner>
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Waiting on MarketSense...</span>
+              </ng-template>
             </button>
           </div>
         </div>
@@ -101,14 +116,14 @@
               </div>
             </section>
 
-            <!-- AI-Generated Summary Section -->
-            <section class="analysis-section summary-section">
+            <!-- AI-Generated Summary Section (only when summary text is present) -->
+            <section class="analysis-section summary-section" *ngIf="analysis.summary">
               <h4 class="section-label">AI-Generated Summary</h4>
               <p class="summary-text">{{ analysis.summary }}</p>
             </section>
 
-            <!-- Key Insights Section -->
-            <section class="analysis-section insights-section">
+            <!-- Key Insights Section (only when key_points are present) -->
+            <section class="analysis-section insights-section" *ngIf="analysis.key_points?.length">
               <h4 class="section-label">Key Insights</h4>
               <div class="insights-list-container">
                 <ul class="insights-list">
@@ -130,10 +145,21 @@
             <section class="analysis-section query-results-section" *ngIf="analysis.columns?.length && analysis.rows?.length">
               <div class="query-results-header">
                 <h4 class="section-label query-results-title">Query Results</h4>
-                <button type="button" class="expand-download-btn query-results-expand-btn" (click)="onExpandQueryResults(analysis)" aria-label="Expand">
-                  <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
-                  <span>Expand &amp; Download</span>
-                </button>
+                <div class="query-results-header-actions">
+                  <button
+                    type="button"
+                    class="expand-download-btn query-results-csv-btn"
+                    (click)="exportQueryResultsToCsv(analysis)"
+                    aria-label="Download query results as CSV"
+                  >
+                    <img src="assets/icons/download-icon.svg" alt="" class="download-btn-icon" />
+                    <span>CSV</span>
+                  </button>
+                  <button type="button" class="expand-download-btn query-results-expand-btn" (click)="onExpandQueryResults(analysis)" aria-label="Expand query results">
+                    <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
+                    <span>Expand</span>
+                  </button>
+                </div>
               </div>
               <div class="query-results-card">
                 <table class="query-results-table">
@@ -155,12 +181,35 @@
             <section class="analysis-section visualization-section">
               <div class="visualization-header">
                 <h4 class="section-label">Visualization</h4>
-                <button type="button" class="expand-download-btn" (click)="onExpandAndDownload(analysis)" aria-label="Expand and Download">
-                  <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
-                  <span>Expand &amp; Download</span>
-                </button>
+                <div class="visualization-header-actions">
+                  <button
+                    *ngIf="analysis.visualization_image_base64"
+                    type="button"
+                    class="expand-download-btn visualization-inline-export-btn"
+                    (click)="exportVisualizationPngInline(analysis)"
+                    aria-label="Download visualization as PNG"
+                  >
+                    <img src="assets/icons/download-icon.svg" alt="" class="download-btn-icon" />
+                    <span>PNG</span>
+                  </button>
+                  <button
+                    *ngIf="analysis.visualization_image_base64"
+                    type="button"
+                    class="expand-download-btn visualization-inline-export-btn"
+                    (click)="exportVisualizationPdfInline(analysis)"
+                    aria-label="Download visualization as PDF"
+                  >
+                    <img src="assets/icons/download-icon.svg" alt="" class="download-btn-icon" />
+                    <span>PDF</span>
+                  </button>
+                  <button type="button" class="expand-download-btn" (click)="onExpandAndDownload(analysis)" aria-label="Expand and Download">
+                    <img src="assets/icons/expand-icon.svg" alt="expand-icon" class="expand-icon" />
+                    <span>Expand</span>
+                  </button>
+                </div>
               </div>
-              <div class="visualization-chart">
+              <!-- Only show chart area when there is an image or a visualization message -->
+              <div class="visualization-chart" *ngIf="analysis.visualization_image_base64 || analysis.visualization_message">
                 <!-- Render backend visualization image when available -->
                 <img
                   *ngIf="analysis.visualization_image_base64"
@@ -168,9 +217,9 @@
                   [src]="'data:image/png;base64,' + analysis.visualization_image_base64"
                   alt="MarketSense visualization"
                 />
-                <!-- Fallback placeholder when no visualization is available -->
-                <div class="chart-placeholder" *ngIf="!analysis.visualization_image_base64">
-                  <img src="assets/icons/chart-placeholder.svg" alt="chart-placeholder" class="chart-placeholder-icon" />
+                <!-- If no image but backend provided a visualization_message, show that instead of a generic placeholder -->
+                <div class="chart-placeholder" *ngIf="!analysis.visualization_image_base64 && analysis.visualization_message">
+                  <p class="visualization-message">{{ analysis.visualization_message }}</p>
                 </div>
               </div>
             </section>
@@ -192,10 +241,16 @@
               [disabled]="!followUpMessage.trim() || isWaitingForResponse" 
               (click)="onSendFollowUp()"
               aria-label="Ask Follow-Up Question">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              </svg>
-              <span>{{ isWaitingForResponse ? 'Processing...' : 'Ask Follow-Up Question' }}</span>
+              <ng-container *ngIf="!isWaitingForResponse; else loadingSpinnerFollowUp">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 6L14 2L10 14L8 8L2 6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+                <span>Ask Follow-Up Question</span>
+              </ng-container>
+              <ng-template #loadingSpinnerFollowUp>
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Waiting on MarketSense...</span>
+              </ng-template>
             </button>
           </div>
         </div>
