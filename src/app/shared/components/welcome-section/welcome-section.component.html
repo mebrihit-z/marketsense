@@ -54,7 +54,9 @@
                       class="delete-btn"
                       (click)="deleteOption(option, $event)"
                       aria-label="Delete preset">
-                      <img src="assets/icons/x-icon.svg" alt="Delete" class="delete-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M16.2222 5.2V16.4C16.2222 16.8243 16.0349 17.2313 15.7015 17.5314C15.3681 17.8314 14.9159 18 14.4444 18H5.55556C5.08406 18 4.63187 17.8314 4.29848 17.5314C3.96508 17.2313 3.77778 16.8243 3.77778 16.4V5.2M2 5.2H18M6.44444 5.2V3.6C6.44444 3.17565 6.63175 2.76869 6.96514 2.46863C7.29854 2.16857 7.75073 2 8.22222 2H11.7778C12.2493 2 12.7015 2.16857 13.0349 2.46863C13.3683 2.76869 13.5556 3.17565 13.5556 3.6V5.2" stroke="#BE2E2C" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
                     </button>
                   </div>
                   <p class="option-saved-date">Saved {{ option.savedDate }}</p>
