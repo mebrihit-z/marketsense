@@ -134,6 +134,14 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
 
+  /** Default Dimension 3 — must match synthetic "None" in {@link FlowDimensionsComponent}. */
+  private readonly defaultDimension3None: FlowDimension = {
+    id: 'none',
+    label: 'None',
+    count: 0,
+    active: true,
+  };
+
   constructor(private assetFlowsData: AssetFlowsDataService) {}
   
   // Sample flow data
@@ -164,7 +172,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     // Set default dimensions
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
     this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
-    this.selectedDimension3 = this.availableDimensions.find(d => d.id === 'product-sub-types') || null;
+    this.selectedDimension3 = { ...this.defaultDimension3None };
     
     // Load and convert asset flows data
     this.loadAssetFlowsData();
