@@ -126,6 +126,16 @@
     outline: none;
     border-color: $primary-colors-midnight-blue;
   }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  &:disabled:hover {
+    background-color: #ffff;
+  }
 }
 
 .bookmark-icon {

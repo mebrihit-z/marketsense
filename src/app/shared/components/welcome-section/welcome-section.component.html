@@ -22,14 +22,16 @@
           type="button"
           class="saved-views-btn"
           (click)="toggleViewingDropdown()"
-          [attr.aria-expanded]="isViewingDropdownOpen">
+          [disabled]="savedViewsCount === 0"
+          [attr.aria-expanded]="savedViewsCount > 0 && isViewingDropdownOpen"
+          [attr.aria-haspopup]="savedViewsCount > 0 ? 'menu' : null">
           <img src="assets/icons/bookmark-icon.svg" alt="Saved" class="bookmark-icon">
           <span class="saved-views-text">{{ savedViewsCount }} Saved Views</span>
           <img src="assets/icons/caret-down-icon.svg" alt="Dropdown" class="caret-icon">
         </button>
         <div
           class="viewing-dropdown"
-          *ngIf="isViewingDropdownOpen"
+          *ngIf="isViewingDropdownOpen && savedViewsCount > 0"
           [style.top.px]="dropdownPosition.top"
           [style.left.px]="dropdownPosition.left">
          

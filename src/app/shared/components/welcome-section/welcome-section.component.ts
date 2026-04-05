@@ -165,11 +165,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       next: (views: SavedView[]) => {
         if (!Array.isArray(views) || views.length === 0) {
           this.viewingOptions = [];
-          return;
-        }
-
-        if (views.length === 0) {
-          this.viewingOptions = [];
+          this.isViewingDropdownOpen = false;
           return;
         }
 
@@ -395,6 +391,10 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   toggleViewingDropdown(): void {
+    if (this.savedViewsCount === 0) {
+      this.isViewingDropdownOpen = false;
+      return;
+    }
     this.isViewingDropdownOpen = !this.isViewingDropdownOpen;
     if (this.isViewingDropdownOpen && this.filterButton) {
       setTimeout(() => {
@@ -545,6 +545,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     if (next.length === 0) {
       this.viewingFilter = 'No presets';
       this.viewingOptions = next;
+      this.isViewingDropdownOpen = false;
     } else if (wasActive && hadMultiple) {
       this.viewingFilter = next[0].name;
       next = next.map((o, i) => ({
