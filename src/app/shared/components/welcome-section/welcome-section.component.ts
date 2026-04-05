@@ -40,13 +40,20 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return this.userProfileService.getGivenName() ?? this.userName;
   }
 
-  /** Last login: from UserProfileService or fallback to lastLogin input. */
-  get displayLastLogin(): string {
+  /**
+   * Raw last-login value from preference / profile (often ISO). Used for persistence, not UI.
+   */
+  private get rawLastLoginValue(): string {
     if (this.previousLastLoginForDisplay) {
       return this.previousLastLoginForDisplay;
     }
     const fallbackLastLogin = this.lastLogin || this.getTodayDateLabel();
     return this.userProfileService.getLastLogin() ?? fallbackLastLogin;
+  }
+
+  /** Last login line in the welcome header — human-readable, same intent as filters-bar timestamp. */
+  get displayLastLogin(): string {
+    return this.formatLastLoginForDisplay(this.rawLastLoginValue);
   }
 
   get savedViewsCount(): number {
@@ -241,7 +248,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     const currentUserId = this.resolvedUserId();
     const userName = this.displayName;
     const role = this.userProfileService.getRoleName();
-    const lastLogin = lastLoginOverride ?? this.displayLastLogin;
+    const lastLogin = lastLoginOverride ?? this.rawLastLoginValue;
 
     this.savedViewsService
       .syncUserPreference({
@@ -262,6 +269,28 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+    });
+  }
+
+  /**
+   * Show ISO / backend timestamps as a local date + time; leave already-friendly strings unchanged.
+   */
+  private formatLastLoginForDisplay(value: string): string {
+    const s = value?.trim() ?? '';
+    if (!s) {
+      return this.getTodayDateLabel();
+    }
+    const parsed = Date.parse(s);
+    if (Number.isNaN(parsed)) {
+      return s;
+    }
+    const d = new Date(parsed);
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     });
   }
 
