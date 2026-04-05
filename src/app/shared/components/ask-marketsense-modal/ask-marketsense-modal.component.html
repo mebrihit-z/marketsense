@@ -116,14 +116,14 @@
               </div>
             </section>
 
-            <!-- AI-Generated Summary Section (only when summary text is present) -->
+            <!-- Summary block: same bordered style; heading reflects fallback vs full analysis -->
             <section class="analysis-section summary-section" *ngIf="analysis.summary">
-              <h4 class="section-label">AI-Generated Summary</h4>
+              <h4 class="section-label">{{ analysis.isFallbackResponse ? 'Message' : 'AI-Generated Summary' }}</h4>
               <p class="summary-text">{{ analysis.summary }}</p>
             </section>
 
             <!-- Key Insights Section (only when key_points are present) -->
-            <section class="analysis-section insights-section" *ngIf="analysis.key_points?.length">
+            <section class="analysis-section insights-section" *ngIf="!analysis.isFallbackResponse && analysis.key_points?.length">
               <h4 class="section-label">Key Insights</h4>
               <div class="insights-list-container">
                 <ul class="insights-list">
@@ -132,7 +132,7 @@
               </div>
             </section>
 
-            <section class="analysis-section insights-section" *ngIf="analysis.key_drivers?.length">
+            <section class="analysis-section insights-section" *ngIf="!analysis.isFallbackResponse && analysis.key_drivers?.length">
               <h4 class="section-label">Key Drivers</h4>
               <div class="insights-list-container">
                 <ul class="insights-list">
@@ -142,7 +142,7 @@
             </section>
 
             <!-- Query Results Table (when columns/rows present) -->
-            <section class="analysis-section query-results-section" *ngIf="analysis.columns?.length && analysis.rows?.length">
+            <section class="analysis-section query-results-section" *ngIf="!analysis.isFallbackResponse && analysis.columns?.length && analysis.rows?.length">
               <div class="query-results-header">
                 <h4 class="section-label query-results-title">Query Results</h4>
                 <div class="query-results-header-actions">
@@ -178,7 +178,7 @@
             </section>
 
             <!-- Visualization Section -->
-            <section class="analysis-section visualization-section">
+            <section class="analysis-section visualization-section" *ngIf="!analysis.isFallbackResponse">
               <div class="visualization-header">
                 <h4 class="section-label">Visualization</h4>
                 <div class="visualization-header-actions">

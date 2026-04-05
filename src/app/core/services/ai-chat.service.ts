@@ -36,6 +36,8 @@ export interface AiChatResponse {
   rows?: unknown[];
   /** Optional base64-encoded image for visualization */
   visualization_image_base64?: string;
+  /** Text shown when there is no chart image (passed through from backend). */
+  visualization_message?: string | null;
 
   /**
    * Client-side convenience fields used by the UI.
@@ -148,7 +150,9 @@ export class AiChatService {
   }
 
   private normalizeResponse(res: AiChatResponse, question: string): AiChatResponse {
+    // Spread first so backend-only fields (route, message, intent, etc.) are preserved for the UI.
     return {
+      ...res,
       question: res.question ?? question,
       timestamp: res.timestamp ?? this.formatTimestamp(),
       summary: res.summary ?? '',

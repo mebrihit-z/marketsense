@@ -22,6 +22,8 @@ export interface AnalysisResult {
   row_count?: number;
   columns?: string[];
   rows?: Record<string, unknown>[];
+  /** Backend `route === "fallback"`: only {@link summary} (from `message`) is shown; no chart/table/insights. */
+  isFallbackResponse?: boolean;
 }
 
 @Component({
@@ -193,16 +195,30 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   private toAnalysisResult(res: AiChatResponse): AnalysisResult {
     const ts = res.timestamp ?? '';
-    const route = (res as any)?.route as string | undefined;
-    const fallbackMessage = (res as any)?.message as string | undefined;
-    const vizMessage = (res as any)?.visualization_message as string | undefined;
-    const isFallback = route === 'fallback' && !!fallbackMessage;
+    const routeNorm = res.route?.toString().trim().toLowerCase();
+    const fallbackText = (res.message == null ? '' : String(res.message)).trim();
+    const vizMessage = res.visualization_message;
+
+    if (routeNorm === 'fallback') {
+      return {
+        question: res.question,
+        timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
+        summary: fallbackText,
+        key_points: [],
+        key_drivers: [],
+        visualization_image_base64: undefined,
+        visualization_message: null,
+        row_count: undefined,
+        columns: [],
+        rows: [],
+        isFallbackResponse: true,
+      };
+    }
 
     return {
       question: res.question,
       timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
-      // When backend routes to "fallback", show the backend's message as the summary
-      summary: isFallback ? fallbackMessage! : res.summary,
+      summary: res.summary ?? '',
       key_points: res.key_points ?? [],
       key_drivers: res.key_drivers ?? [],
       visualization_image_base64:
@@ -669,7 +685,10 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         questionTitle,
         question: analysis.question,
       });
-      addTextBlock('AI-Generated Summary', analysis.summary);
+      addTextBlock(
+        analysis.isFallbackResponse ? 'Message' : 'AI-Generated Summary',
+        analysis.summary
+      );
 
       if (analysis.key_points?.length) {
         addGoldBulletListBlock('Key Insights', analysis.key_points);
