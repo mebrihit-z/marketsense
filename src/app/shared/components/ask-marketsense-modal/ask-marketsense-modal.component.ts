@@ -26,6 +26,9 @@ export interface AnalysisResult {
   isFallbackResponse?: boolean;
 }
 
+/** jsPDF body text — matches `$text-midnight-blue` / `#00113F` */
+const PDF_TEXT_MIDNIGHT_RGB: [number, number, number] = [0, 17, 63];
+
 @Component({
   selector: 'app-ask-marketsense-modal',
   standalone: true,
@@ -537,7 +540,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
     let ty = y + pad + firstBaseline;
 
-    doc.setTextColor(0, 17, 63);
+    doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     labelLines.forEach((line) => {
@@ -553,7 +556,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       ty += qLineH;
     });
 
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
     return y + h + 16;
   }
 
@@ -590,12 +593,14 @@ export default class AskMarketsenseModalComponent implements OnChanges {
           doc.addPage();
           cursorY = marginTop;
         }
+        doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text(label, marginLeft, cursorY);
         cursorY += lineHeight;
       }
 
+      doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       const wrapped = doc.splitTextToSize(content, maxWidth);
@@ -627,7 +632,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         }
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0);
+        doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
         doc.text(label, marginLeft, cursorY);
         cursorY += lineHeight;
       }
@@ -658,10 +663,11 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         });
       }
 
-      doc.setTextColor(0, 0, 0);
+      doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
       cursorY += lineHeight / 2;
     };
 
+    doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('MarketSense AI Conversation', marginLeft, cursorY);
@@ -707,11 +713,13 @@ export default class AskMarketsenseModalComponent implements OnChanges {
           cursorY = marginTop;
         }
 
+        doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text('Query Results', marginLeft, cursorY);
         cursorY += lineHeight;
 
+        doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
 
@@ -814,6 +822,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
             doc.addPage();
             cursorY = marginTop;
           }
+          doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
           doc.text(`(+${rows.length - maxPreviewRows} more rows in app)`, marginLeft, cursorY);
           cursorY += lineHeight;
         }
@@ -854,6 +863,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
           const imgWpt = Math.max(1, Math.round(imgW));
           const imgHpt = Math.max(1, Math.round(imgH));
           const canvas = await this.rasterizeDataUrlToCanvasForPdf(dataUrl, imgWpt, imgHpt);
+          doc.setTextColor(...PDF_TEXT_MIDNIGHT_RGB);
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
           doc.text('Visualization', marginLeft, cursorY);

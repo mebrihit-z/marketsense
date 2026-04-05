@@ -517,10 +517,10 @@
   width: 100%;
   font-style: normal;
   font-family: 'Noto Sans', sans-serif;
-  color: $black;
+  color: $text-midnight-blue;
 
   &::placeholder {
-    color: $neutral-colors-neutral-750
+    color: $text-neutral-750;
   }
 
   &:focus {
