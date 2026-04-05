@@ -9,10 +9,13 @@
 
       <!-- Ask MarketSense AI Section -->
       <app-ask-marketsense-section></app-ask-marketsense-section>
-      
-      <!-- Filters Bar -->
+    </div>
+
+    <!-- Direct child of .dashboard-container so position:sticky works; margin cancels row-gap so cream does not show -->
+    <div class="dashboard-filters-sticky" #filtersSticky>
       <app-filters-bar
         [forceCloseDropdown]="forceCloseFiltersDropdown"
+        [stickyEngaged]="isFiltersStickyEngaged"
         (dataTypeChange)="onDataTypeChange($event)"
         (timeHorizonChange)="onTimeHorizonChange($event)"
         (timeHorizonRangeChange)="onTimeHorizonRangeChange($event)"
@@ -22,7 +25,8 @@
         (investorRegionChange)="onInvestorRegionChange($event)"
         (investorTypeChange)="onInvestorTypeChange($event)"
         (filterOptionTotalsChange)="onFilterOptionTotalsChange($event)"
-        (filterDropdownOpened)="onFilterDropdownOpened()">
+        (filterDropdownOpened)="onFilterDropdownOpened()"
+        (minFlowValueRangeChange)="onMinFlowValueRangeChange($event)">
       </app-filters-bar>
     </div>
 
@@ -65,6 +69,8 @@
         [timeHorizon]="carouselTimeHorizon"
         [timeHorizonStart]="timeHorizonRange?.start"
         [timeHorizonEnd]="timeHorizonRange?.end"
+        [minFlowValue]="chartMinFlowLower"
+        [maxFlowValue]="chartMaxFlowUpper"
         [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
         (pinToggle)="onAssetFlowsPinToggle()"
         (dimensionDropdownOpened)="onDimensionDropdownOpened()">
@@ -86,6 +92,8 @@
         [timeHorizon]="carouselTimeHorizon"
         [timeHorizonStart]="timeHorizonRange?.start"
         [timeHorizonEnd]="timeHorizonRange?.end"
+        [minFlowValue]="chartMinFlowLower"
+        [maxFlowValue]="chartMaxFlowUpper"
         [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
         (pinToggle)="onAssetAllocationPinToggle()"
         (dimensionDropdownOpened)="onDimensionDropdownOpened()">

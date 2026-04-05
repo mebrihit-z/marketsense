@@ -1,7 +1,8 @@
 /* eslint-disable */
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FiltersBarComponent, type FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
+import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
+import type { FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
 import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
@@ -12,6 +13,12 @@ import AskMarketsenseSectionComponent from '../../shared/components/ask-marketse
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
 import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../core/services/asset-flows-data.service';
+import {
+  getMinFlowLowerBound,
+  getMaxFlowUpperBound,
+  createDefaultMinFlowRange,
+  type MinFlowRangeSelection,
+} from '../../shared/utils/min-flow-value-options.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,9 +27,14 @@ import { AssetFlowsDataService } from '../../core/services/asset-flows-data.serv
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export default class DashboardComponent implements OnInit {
+export default class DashboardComponent implements OnInit, AfterViewInit {
+  @ViewChild('filtersSticky', { read: ElementRef }) private filtersStickyRef?: ElementRef<HTMLElement>;
+
+  /** True while the filters strip is pinned (sticky) at the top of the viewport. */
+  isFiltersStickyEngaged = false;
+
   carouselDataType: 'historical' | 'forecasted' = 'forecasted';
-  carouselTimeHorizon: string = 'Today';
+  carouselTimeHorizon: string = '+3 mo';
   timeHorizonRange: { start: string; end: string } | null = null;
   selectedProductSubTypes: string[] = [];
   selectedProductTypes: string[] = [];
@@ -36,6 +48,9 @@ export default class DashboardComponent implements OnInit {
     investorTypeTotal: 0,
     productRegionTotal: 0
   };
+  /** Lower / upper flow value band (billions) for Sankey and Treemap; driven by filters bar. */
+  chartMinFlowLower = getMinFlowLowerBound(createDefaultMinFlowRange());
+  chartMaxFlowUpper: number | null = getMaxFlowUpperBound(createDefaultMinFlowRange());
   pinnedCardIds: string[] = [];
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
@@ -49,6 +64,31 @@ export default class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAssetFlowsData();
+  }
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.updateFiltersStickyEngaged());
+  }
+
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  onWindowScrollOrResize(): void {
+    this.updateFiltersStickyEngaged();
+  }
+
+  private updateFiltersStickyEngaged(): void {
+    const el = this.filtersStickyRef?.nativeElement;
+    if (!el || typeof window === 'undefined') {
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    // Pinned to top: use height, not bottom>28px — collapsed strip is shorter and r.bottom can be < 28px
+    // while still valid, which falsely flipped sticky off and reset minimize (see filters-bar ngOnChanges).
+    const engaged = r.top <= 2 && r.height > 12;
+    if (engaged !== this.isFiltersStickyEngaged) {
+      this.isFiltersStickyEngaged = engaged;
+      this.cdr.markForCheck();
+    }
   }
 
   private loadAssetFlowsData(): void {
@@ -131,6 +171,11 @@ export default class DashboardComponent implements OnInit {
 
   onFilterOptionTotalsChange(totals: FilterOptionTotals): void {
     this.filterOptionTotals = totals;
+  }
+
+  onMinFlowValueRangeChange(range: MinFlowRangeSelection): void {
+    this.chartMinFlowLower = getMinFlowLowerBound(range);
+    this.chartMaxFlowUpper = getMaxFlowUpperBound(range);
   }
 
   onAssetAllocationPinToggle(): void {
@@ -333,12 +378,6 @@ export default class DashboardComponent implements OnInit {
         const totalValue = data.total; // Net flow (sum of all positive and negative values)
         const previousValue = previousAggregatedData.get(subType) || 0;
         
-        // PERCENTAGE CHANGE CALCULATION:
-        // Primary formula when we have a non-zero previous period:
-        //   ((current - previous) / |previous|) * 100
-        // Fallback when previous period is zero or unavailable:
-        //   Normalize current value against the max absolute value across sub-types
-        //   so cards show different percentage magnitudes instead of all being 100%
         let percentageChange = 0;
         const hasPreviousData = previousDateRange !== null && previousDateRange !== undefined;
         
@@ -346,40 +385,9 @@ export default class DashboardComponent implements OnInit {
           // Standard calculation: change relative to previous period
           const change = totalValue - previousValue;
           const denominator = Math.abs(previousValue);
-          const calculatedPercentage = (change / denominator) * 100;
-          
-          // Ensure percentage sign matches the value sign
-          if (totalValue > 0) {
-            percentageChange = Math.abs(calculatedPercentage);
-          } else if (totalValue < 0) {
-            percentageChange = -Math.abs(calculatedPercentage);
-          } else {
-            percentageChange = calculatedPercentage;
-          }
-        } else if (hasPreviousData && previousValue === 0 && totalValue !== 0) {
-          // Edge case: previous was 0, now has value.
-          // Instead of a flat 100%, scale based on how large this sub-type is
-          // relative to the largest sub-type in the current period.
-          if (maxAbsTotalAcrossSubTypes > 0) {
-            let normalized = (Math.abs(totalValue) / maxAbsTotalAcrossSubTypes) * 100;
-            // Avoid showing an exact 100% so the largest sub-type isn't displayed as a hard 100
-            if (normalized > 99.9) normalized = 99.9;
-            percentageChange = totalValue > 0 ? normalized : -normalized;
-          } else {
-            percentageChange = 0;
-          }
-        } else if (!hasPreviousData && totalValue !== 0) {
-          // No previous period data - normalize against the max absolute total
-          if (maxAbsTotalAcrossSubTypes > 0) {
-            let normalized = (Math.abs(totalValue) / maxAbsTotalAcrossSubTypes) * 100;
-            // Avoid showing an exact 100% in this fallback case as well
-            if (normalized > 99.9) normalized = 99.9;
-            percentageChange = totalValue > 0 ? normalized : -normalized;
-          } else {
-            percentageChange = 0;
-          }
+          percentageChange = (change / denominator) * 100;
         }
-        // If both current and previous are 0, percentageChange remains 0
+        // If there is no previous data or previous is 0, leave percentageChange at 0.
 
         const isPositive = totalValue >= 0;
         const valueColor: 'red' | 'green' = isPositive ? 'green' : 'red';

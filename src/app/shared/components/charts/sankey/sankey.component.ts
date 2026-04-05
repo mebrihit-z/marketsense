@@ -233,6 +233,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const dataToUse = this.loadedData || this.data;
     if (!dataToUse) return undefined;
 
+    // When no investor regions are selected, do not render any Sankey data.
+    if (this.selectedInvestorRegions && this.selectedInvestorRegions.length === 0) {
+      return undefined;
+    }
+
     let result = dataToUse as SankeyData;
 
     // Apply category filters when any are selected
@@ -273,13 +278,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       // Replace "United States" with "U.S" and "United Kingdom" with "U.K"
       let formatted = name.replace(/United States/g, 'U.S');
       formatted = formatted.replace(/United Kingdom/g, 'U.K');
-      // Remove (Source), (Destination), (Start), and (End) from display
+      // Remove (Source), (Destination), (Start), (End), and Super Start/End from display
       formatted = formatted.replace(/\s*\(Source\)\s*$/, '');
       formatted = formatted.replace(/\s*\(Destination\)\s*$/, '');
       formatted = formatted.replace(/\s*\(Start\)\s*$/, '');
       formatted = formatted.replace(/\s*\(End\)\s*$/, '');
+      formatted = formatted.replace(/\s*\(Super Start\)\s*$/, '');
+      formatted = formatted.replace(/\s*\(Super End\)\s*$/, '');
       // Scoped parent/sub/pool nodes: "Super: Product (…)" → show "Product" / "Reallocation Pool" only;
-      // Super Start/End stay "Name (Super Start)" (no colon), Net New / Withdrawn stay "Net New Capital (…)".
+      // Net New / Withdrawn stay "Net New Capital (…)".
       if (/^.+:\s*.+/.test(formatted) && !/\(Super\s+(Start|End)\)\s*$/.test(name.trim())) {
         formatted = formatted.replace(/^[^:]+:\s*/, '').trim();
       }
@@ -329,13 +336,17 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   // -----------------------------------------
   private createSankey() {
     const dataToUse = this.getFilteredData();
+    const element = this.el.nativeElement.querySelector('.regional-sankey');
     if (!dataToUse) {
+      // No data for current filters: clear any existing SVG and tooltip and legend.
+      if (element) {
+        d3.select(element).select('svg').remove();
+      }
+      d3.select('body').select(`#${this.tooltipId}`).remove();
       this.legendSections = [];
       this.cdr.markForCheck();
       return;
     }
-
-    const element = this.el.nativeElement.querySelector('.regional-sankey');
     
     // Clear any existing SVG and tooltip for this instance
     d3.select(element).select('svg').remove();
@@ -524,7 +535,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Assign link colors based on position relative to Reallocation Pool
     // Links to the right of Reallocation Pool are green, others are red
-    // Net New Capital links are always blue
+    // Net New Capital links are always blue; Capital Withdrawn links are orange
     graph.links.forEach(link => {
       const linkExtra = link as SankeyLinkExtra;
       const source = link.source as SankeyNodeExtra;
@@ -537,10 +548,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return;
       }
       
-      // Check if link is connected to Capital Withdrawn - same color as Net New Capital
+      // Check if link is connected to Capital Withdrawn - use dedicated orange color
       if ((source.name && source.name.includes('Capital Withdrawn')) || 
           (target.name && target.name.includes('Capital Withdrawn'))) {
-        linkExtra.color = this.getCssVariable('--blue-link') || 'rgba(0,100,200,0.7)';
+        linkExtra.color = this.getCssVariable('--capital-withdrawn-link') || '#ff7f0e';
         return;
       }
       
@@ -931,8 +942,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       if (d.name.includes('Reallocation Pool')) return d.x1! + 12;
       if (d.name.includes('(Source)')) return d.x1! + 12;
       if (d.name.includes('(Destination)')) return d.x0! - 12;
+      // Place New Capital and Capital Withdrawn labels to the right of the node
+      if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return d.x1! + 12;
       if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return d.x0! - 12;
-      if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return d.x0! - 12;
       if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return d.x1! + 12;
       return (d.x0! + d.x1!) / 2;
     };
@@ -948,6 +960,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('text-anchor', d => {
         if (d.name.includes('(Source)')) return 'start';
         if (d.name.includes('(Destination)')) return 'end';
+        if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return 'start';
         // Positive/inflow side: anchor at end so text sits to the left of the node
         if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return 'end';
         // Negative/outflow side: anchor at start so text sits to the right of the node
@@ -961,7 +974,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('class', 'sankey-node-label-name')
       .text(d => {
         if (d.name.includes('Net New Capital')) {
-          return 'Net New Capital:';
+          return 'New Capital:';
         }
         if (d.name.includes('Capital Withdrawn')) {
           return 'Withdrawn:';
@@ -978,9 +991,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return label + ':';
       });
     
-    // Add value text as tspan – on next line for Net New Capital, Realloc, Super Start, Super End to avoid overlap
+    // Add value text as tspan – on next line for Realloc, Super Start, Super End to avoid overlap
     const putValueOnNextLine = (d: SankeyNodeExtra) =>
-      d.name.includes('Net New Capital') || d.name.includes('Reallocation Pool') ||
+      d.name.includes('Reallocation Pool') ||
       d.name.includes('Super Start') || d.name.includes('Super End');
     nodeLabels.append('tspan')
       .attr('class', 'sankey-node-label-value')
@@ -1009,7 +1022,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const flowItems: SankeyLegendItem[] = [
       { swatchClass: 'inflow', label: 'Inflows', color: '#2ca02c' },
       { swatchClass: 'outflow', label: 'Outflows', color: '#d62728' },
-      { swatchClass: 'net-new-capital', label: 'Net New Capital', color: '#1f77b4' },
+      { swatchClass: 'net-new-capital', label: 'New Capital', color: '#1f77b4' },
       { swatchClass: 'capital-withdrawn', label: 'Capital Withdrawn', color: '#ff7f0e' }
     ];
     const flowsSection: SankeyLegendSection = { header: 'Flows:', items: flowItems };

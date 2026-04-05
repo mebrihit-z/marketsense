@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, map, catchError, delay } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { coerceVisualizationImageBase64Payload } from '../../shared/utils/visualization-image-base64.util';
 
 /** Response shape from backend AI chat or mock JSON */
 export interface AiChatResponse {
@@ -153,7 +154,9 @@ export class AiChatService {
       summary: res.summary ?? '',
       key_points: Array.isArray(res.key_points) ? res.key_points : [],
       key_drivers: Array.isArray(res.key_drivers) ? res.key_drivers : [],
-      visualization_image_base64: res.visualization_image_base64,
+      visualization_image_base64:
+        coerceVisualizationImageBase64Payload(res.visualization_image_base64) ??
+        res.visualization_image_base64,
       row_count: res.row_count,
       columns: Array.isArray(res.columns) ? res.columns : [],
       rows: Array.isArray(res.rows) ? res.rows : [],

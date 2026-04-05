@@ -34,9 +34,9 @@
             <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
             <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
           </div>
-          <div class="metric-box expected-change" [class.positive]="card.percentageColor === 'green'" [class.negative]="card.percentageColor === 'red'">
+          <div class="metric-box expected-change" [class.positive]="getExpectedChange() >= 0" [class.negative]="getExpectedChange() < 0">
             <div class="metric-label">EXPECTED CHANGE</div>
-            <div class="metric-value">{{ card.percentageChange }}</div>
+            <div class="metric-value">{{ getExpectedChange() | number:'1.0-1' }}%</div>
           </div>
         </div>
         <!-- AI Summary Section -->
@@ -113,9 +113,9 @@
           <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
           <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
         </div>
-        <div class="metric-box expected-change" [class.positive]="card.percentageColor === 'green'" [class.negative]="card.percentageColor === 'red'">
+        <div class="metric-box expected-change" [class.positive]="getExpectedChange() >= 0" [class.negative]="getExpectedChange() < 0">
           <div class="metric-label">EXPECTED CHANGE</div>
-          <div class="metric-value">{{ card.percentageChange }}</div>
+          <div class="metric-value">{{ getExpectedChange() | number:'1.0-1' }}%</div>
         </div>
       </div>
       <div class="description-section" *ngIf="card.description">

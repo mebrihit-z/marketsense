@@ -21,7 +21,7 @@
         </button>
       </div>
     </div>
-    <!-- Flow Dimensions & Min Flow Section -->
+    <!-- Flow Dimensions -->
     <div class="dimensions-section">
       <div class="dimensions-section-inner">
         <app-flow-dimensions
@@ -37,15 +37,6 @@
           (dimensionDropdownOpened)="dimensionDropdownOpened.emit()">
         </app-flow-dimensions>
       </div>
-      <ng-container *ngIf="minFlowValueOptions.length">
-        <div class="dimension-selector-container min-flow-value-container">
-          <span class="dimension-number-label">Min flow value:</span>
-          <app-min-flow-range-slider
-            class="min-flow-range-embed"
-            [options]="minFlowValueOptions"
-            [(range)]="minFlowRange" />
-        </div>
-      </ng-container>
     </div>
   </div>
   <!-- Treemap Visualization -->
@@ -53,12 +44,13 @@
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="treemap-region-container">
       <div class="reallocation-treemap-section">
         <app-treemap
+          *ngIf="regionData.investorRegions?.length"
           [data]="regionData.data"
           [selectedInvestorRegions]="regionData.investorRegions"
           [selectedProductTypes]="cachedSelectedProductTypes"
           [selectedProductSubTypes]="cachedSelectedProductSubTypes"
-          [minFlowValue]="chartMinFlowLower"
-          [maxFlowValue]="chartMaxFlowUpper"
+          [minFlowValue]="minFlowValue"
+          [maxFlowValue]="maxFlowValue"
           [timeHorizon]="timeHorizon"
           [timeHorizonStart]="timeHorizonStart"
           [timeHorizonEnd]="timeHorizonEnd">

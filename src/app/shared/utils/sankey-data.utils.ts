@@ -230,7 +230,13 @@ export function extractRegionFromNodeName(nodeName: string): string | null {
   if (netNewCapitalMatch && netNewCapitalMatch[1]) {
     return netNewCapitalMatch[1].trim();
   }
-  
+
+  // Check for "Capital Withdrawn (Region)" format
+  const capitalWithdrawnMatch = nodeName.match(/Capital Withdrawn \((.+?)\)/);
+  if (capitalWithdrawnMatch && capitalWithdrawnMatch[1]) {
+    return capitalWithdrawnMatch[1].trim();
+  }
+
   // Check for "Region: ..." format
   const colonMatch = nodeName.match(/^(.+?):/);
   if (colonMatch && colonMatch[1]) {

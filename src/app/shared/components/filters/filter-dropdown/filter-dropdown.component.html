@@ -65,9 +65,14 @@
 
       <!-- Regular Options -->
       <div class="options" *ngIf="!isGrouped">
-        <label class="option" *ngFor="let opt of options">
+        <label class="option" *ngFor="let opt of options" [class.disabled]="!!opt.disabled">
           <div class="checkbox-wrapper">
-            <input type="checkbox" [(ngModel)]="pendingMap[opt.value]" (change)="onChange()" />
+            <input
+              type="checkbox"
+              [(ngModel)]="pendingMap[opt.value]"
+              (change)="onChange()"
+              [disabled]="!!opt.disabled"
+            />
             <span class="checkmark"></span>
           </div>
           <span class="opt-label">{{ opt.label || opt.value }}</span>

@@ -1,5 +1,10 @@
 @use '../../../../_variables' as *;
 
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .min-flow-range-root {
   min-width: 0;
 }
@@ -11,6 +16,13 @@
   width: 100%;
   max-width: 320px;
   min-width: 200px;
+}
+
+// Filters bar: stack matches Time Horizon track (20px) + labels (20px) inside 56px card
+:host.min-flow-range--filters-compact .min-flow-range-slider-wrapper {
+  gap: 0;
+  max-width: 520px;
+  min-width: 0;
 }
 
 .min-flow-range-container {
@@ -26,6 +38,10 @@
   &:active {
     cursor: grabbing;
   }
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-container {
+  height: 20px;
 }
 
 .min-flow-range-track {
@@ -90,6 +106,10 @@
   height: 18px;
   overflow: visible;
   pointer-events: none;
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-labels {
+  height: 20px;
 }
 
 .min-flow-range-label {

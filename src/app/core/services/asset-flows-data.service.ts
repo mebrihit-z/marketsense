@@ -7,6 +7,14 @@ import {
   normalizeAssetFlowsData,
 } from '../../shared/utils/asset-flows-to-sankey.util';
 
+function resolveAssetFlowsUrl(): string {
+  const e = environment as {
+    dataUrlConfig?: { assetFlows?: string };
+    assetFlowsDataUrl?: string;
+  };
+  return e.dataUrlConfig?.assetFlows ?? e.assetFlowsDataUrl ?? 'assets/data/asset-flows-data.json';
+}
+
 /**
  * Single source for asset flows data. Loads from environment.dataUrlConfig.assetFlows
  * (local JSON in dev; set to your backend API on VDI, e.g. `/api/asset-flows`).
@@ -16,7 +24,7 @@ import {
   providedIn: 'root',
 })
 export class AssetFlowsDataService {
-  private readonly url = environment.dataUrlConfig.assetFlows;
+  private readonly url = resolveAssetFlowsUrl();
   private cached$: Observable<AssetFlowRecord[]> | null = null;
 
   constructor(private http: HttpClient) {}

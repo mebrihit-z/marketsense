@@ -10,10 +10,6 @@ import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type 
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { filterSankeyData } from '../../utils/sankey-data.utils';
 import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
-import {
-  MinFlowRangeSliderComponent,
-  type MinFlowRange,
-} from '../min-flow-range-slider/min-flow-range-slider.component';
 import { jsPDF } from 'jspdf';
 import {
   captureChartAreaToPng,
@@ -54,7 +50,6 @@ export interface TreemapRegion {
     TitleComponent,
     FlowDimensionsComponent,
     ChartsExportModalComponent,
-    MinFlowRangeSliderComponent,
   ],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
@@ -73,6 +68,8 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() timeHorizon: string = '+9 mo';
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
+  @Input() minFlowValue = 0;
+  @Input() maxFlowValue: number | null = null;
   @Input() forceCloseDimensionDropdown = 0;
   @Output() pinToggle = new EventEmitter<void>();
   @Output() dimensionDropdownOpened = new EventEmitter<void>();
@@ -95,38 +92,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   selectedDimension1: FlowDimension | null = null;
   selectedDimension2: FlowDimension | null = null;
   selectedDimension3: FlowDimension | null = null;
-
-  /** Preset stops for flow value range (value in billions, label for display). */
-  minFlowValueOptions: { value: number; label: string }[] = [
-    { value: 0, label: 'All flows' },
-    { value: 0.05, label: '≥ $50M' },
-    { value: 0.1, label: '≥ $100M' },
-    { value: 0.25, label: '≥ $250M' },
-    { value: 0.5, label: '≥ $500M' },
-    { value: 1, label: '≥ $1B' },
-    { value: 5, label: '≥ $5B' },
-    { value: 10, label: '≥ $10B' },
-    { value: 50, label: '≥ $50B' },
-    { value: 100, label: '≥ $100B' },
-    { value: 50000, label: '≥ $50,000B' },
-    { value: 100000, label: 'Max' }
-  ];
-
-  /** Selected index range on minFlowValueOptions (inclusive); default = full span. */
-  minFlowRange: MinFlowRange = { startIndex: 0, endIndex: 0 };
-
-  get chartMinFlowLower(): number {
-    return this.minFlowValueOptions[this.minFlowRange.startIndex]?.value ?? 0;
-  }
-
-  /** Null when the end handle is on the last stop (no upper cap). */
-  get chartMaxFlowUpper(): number | null {
-    const opts = this.minFlowValueOptions;
-    const last = opts.length - 1;
-    if (last < 0) return null;
-    if (this.minFlowRange.endIndex >= last) return null;
-    return opts[this.minFlowRange.endIndex]?.value ?? null;
-  }
 
   // Modal state
   showCellModal: boolean = false;
@@ -205,8 +170,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
-    const n = this.minFlowValueOptions.length;
-    this.minFlowRange = { startIndex: 0, endIndex: Math.max(0, n - 1) };
     this.updateDimensions();
     // Set default dimensions
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
@@ -678,6 +641,14 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   private updateTreemapData(): void {
     if (!this.rawAssetFlowsData) {
       console.warn('AssetAllocation: No raw asset flows data available');
+      return;
+    }
+
+    // When the Investor Region filter has no selections, clear treemap data entirely.
+    if (this.selectedInvestorRegions && this.selectedInvestorRegions.length === 0) {
+      this.treemapDataMap.clear();
+      this.treemapSuperValuesMap.clear();
+      this.regionDataArray = [];
       return;
     }
 

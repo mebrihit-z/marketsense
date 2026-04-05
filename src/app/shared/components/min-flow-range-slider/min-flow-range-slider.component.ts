@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  HostBinding,
   HostListener,
   Input,
   OnChanges,
@@ -29,7 +30,14 @@ export class MinFlowRangeSliderComponent implements OnChanges {
 
   @Input({ required: true }) options!: { value: number; label: string }[];
   @Input() range: MinFlowRange = { startIndex: 0, endIndex: 0 };
+  /** When false, hides the summary row (e.g. filters bar — match Time Horizon card height). */
+  @Input() showFlowSummary = true;
   @Output() rangeChange = new EventEmitter<MinFlowRange>();
+
+  @HostBinding('class.min-flow-range--filters-compact')
+  get filtersCompactClass(): boolean {
+    return !this.showFlowSummary;
+  }
 
   @ViewChild('sliderContainer', { static: false }) sliderContainer?: ElementRef<HTMLElement>;
 

@@ -143,23 +143,10 @@
   }
 }
 
-// Condensed layout: shorter dropdown button
-:host-context(.condensed-layout) .btn {
-  height: 45px;
-  padding: 4px 8px;
-  gap: 8px;
-}
-
-
 .info-icon {
   width: 16px;
   height: 16px;
   display: block;
-}
-
-// Condensed filters-bar: hide dropdown info tooltip on all screen sizes (section title tooltips stay)
-:host-context(.condensed-layout) .info-btn-wrapper {
-  display: none;
 }
 
 .info-tooltip {
@@ -271,6 +258,17 @@
   
   &.grouped-option {
     padding-left: 8px;
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    .opt-label {
+      color: $text-neutral-750;
+    }
+    .checkbox-wrapper input[type="checkbox"] {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
   }
 }
 .checkbox-wrapper {

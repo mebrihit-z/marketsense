@@ -24,6 +24,8 @@ export interface SavedView {
   timeHorizonRangeLabels?: { start: string; end: string };
   selectedTimeHorizon?: string;
   aiConfidenceRange?: { min: number; max: number };
+  /** Flow value band for Sankey/Treemap (indices into MIN_FLOW_VALUE_OPTIONS). */
+  minFlowRange?: { startIndex: number; endIndex: number };
 }
 
 export interface UserPreference {

@@ -5,6 +5,7 @@
   --red-link: #DC2626;
   --green-link: #059669;
   --blue-link: rgba(0, 100, 200, 0.7);
+  --capital-withdrawn-link: #ff7f0e;
   --default-gray: #999999;
   --gray-medium: #6b7280;
   --gray-dark: #4b5563;
@@ -140,7 +141,7 @@
     &.swatch-alternatives { background-color: #FFB70E; }
     &.swatch-regions { background-color: #00113F; }
     &.swatch-net-new-capital { background-color: #77B1FF; }
-    &.swatch-capital-withdrawn { background-color: #0C42FE; }
+    &.swatch-capital-withdrawn { background-color: #ff7f0e; }
     &.swatch-reallocation-pool { background-color: #6f6e6a; }
     &.swatch-outflow { background-color: #DC2626; }
     &.swatch-inflow { background-color: #059669; }
@@ -196,8 +197,8 @@
   .sankey-node-alternatives { fill: #FFB70E; stroke: #FFB70E; }
   .sankey-node-alternatives.sankey-node-hovered { fill: #FFB70E; stroke: #FFB70E; stroke-width: 3; }
 
-  .sankey-node-capital-withdrawn { fill: #0C42FE; stroke: #0C42FE; }
-  .sankey-node-capital-withdrawn.sankey-node-hovered { fill: #3d6afe; stroke: #3d6afe; stroke-width: 3; }
+  .sankey-node-capital-withdrawn { fill: #ff7f0e; stroke: #ff7f0e; }
+  .sankey-node-capital-withdrawn.sankey-node-hovered { fill: #ff9d3b; stroke: #ff9d3b; stroke-width: 3; }
 
   .sankey-node-source-destination,
   .sankey-node-default {
@@ -224,7 +225,7 @@
   .sankey-legend-rect-private-markets { fill: #C28834; stroke: #C28834; }
   .sankey-legend-rect-other-specialized { fill: #2A6907; stroke: #2A6907; }
   .sankey-legend-rect-alternatives { fill: #6366f1; stroke: #6366f1; }
-  .sankey-legend-rect-capital-withdrawn { fill: #0C42FE; stroke: #0C42FE; }
+  .sankey-legend-rect-capital-withdrawn { fill: #ff7f0e; stroke: #ff7f0e; }
   .sankey-legend-rect-source { fill: var(--red-primary, #ef4444); stroke: var(--red-primary, #ef4444); }
   .sankey-legend-rect-destination { fill: var(--green-primary, #22c55e); stroke: var(--green-primary, #22c55e); }
   .sankey-legend-rect-outflow { fill: var(--red-link, #DC2626); stroke: var(--red-link, #DC2626); }

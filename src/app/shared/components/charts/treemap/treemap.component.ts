@@ -293,6 +293,18 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (!this.originalData) {
       return;
     }
+    // When no investor regions are selected, treat as no data for this treemap.
+    if (this.selectedInvestorRegions && this.selectedInvestorRegions.length === 0) {
+      this.loadedData = {
+        nodes: [],
+        links: [],
+        summary: this.originalData.summary
+      };
+      if (this.el?.nativeElement) {
+        setTimeout(() => this.createTreemap(), 100);
+      }
+      return;
+    }
     // Convert to SankeyData format for filtering
     const sankeyData: SankeyData = {
       nodes: this.originalData.nodes,
@@ -785,18 +797,19 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private createTreemap(): void {
-    if (!this.loadedData || !this.loadedData.nodes || this.loadedData.nodes.length === 0) {
-      console.warn('ReallocationTreemap: No data loaded or data is empty');
-      return;
-    }
-
     const container = this.el.nativeElement.querySelector('.chart-container') as HTMLElement;
     if (!container) {
       console.error('ReallocationTreemap: Chart container not found');
       return;
     }
 
+    // Always clear any existing content first so empty data does not leave stale chart visible.
     container.innerHTML = '';
+
+    if (!this.loadedData || !this.loadedData.nodes || this.loadedData.nodes.length === 0) {
+      console.warn('ReallocationTreemap: No data loaded or data is empty');
+      return;
+    }
 
     const hierarchy = this.buildHierarchy(this.loadedData);
     this.applyCellSizeBounds(hierarchy);

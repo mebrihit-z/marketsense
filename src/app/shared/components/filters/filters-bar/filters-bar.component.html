@@ -1,455 +1,388 @@
-<div class="filters-bar-container" #filtersRoot [class.condensed]="isScrolled" [class.condensed-collapsed]="isScrolled && !condensedBarExpanded">
-  <!-- Collapsed strip: when condensed but user closed the bar -->
-  <div class="condensed-bar-collapsed" *ngIf="isScrolled && !condensedBarExpanded">
-    <button type="button" class="condensed-bar-expand-btn" (click)="toggleCondensedBar()" title="Show filters" aria-label="Open filters">
-      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="14" viewBox="0 0 15 14" fill="none">
-        <path d="M5.99813 11.9983C5.99807 12.1222 6.03254 12.2437 6.09766 12.3491C6.16278 12.4545 6.25598 12.5396 6.3668 12.595L7.70013 13.2617C7.8018 13.3125 7.91476 13.3364 8.02829 13.3313C8.14183 13.3261 8.25216 13.2921 8.34882 13.2323C8.44547 13.1725 8.52524 13.089 8.58055 12.9897C8.63585 12.8904 8.66485 12.7786 8.6648 12.665V7.99833C8.66495 7.66791 8.78777 7.34933 9.00947 7.10433L13.8248 1.77833C13.9111 1.6827 13.9679 1.56412 13.9882 1.43692C14.0085 1.30972 13.9916 1.17935 13.9394 1.06158C13.8872 0.943805 13.802 0.843675 13.6941 0.773294C13.5862 0.702914 13.4603 0.665297 13.3315 0.664993H1.33147C1.20254 0.66504 1.07639 0.70247 0.968298 0.772751C0.860209 0.843031 0.774818 0.943146 0.722468 1.06097C0.670119 1.17879 0.653056 1.30927 0.673348 1.43659C0.693641 1.56391 0.750416 1.68262 0.836799 1.77833L5.65346 7.10433C5.87516 7.34933 5.99798 7.66791 5.99813 7.99833V11.9983Z" stroke="#FFB70E" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="condensed-bar-expand-label">Filters</span>
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+<div class="filters-bar-root" #filtersRoot>
+
+
+
+  <div class="filters-bar-sticky-collapsed" *ngIf="stickyEngaged && stickyBarCollapsed">
+    <button
+      type="button"
+      class="filters-bar-sticky-collapsed-btn"
+      (click)="toggleStickyBarCollapse()"
+      title="Show filters"
+      aria-label="Show filters bar">
+      <span>Filters</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#FFB70E" stroke-width="2" stroke-linejoin="round"/>
         <path d="M9 3V21M5.5 3H18M5.5 21H18M14 14L16 12L14 10" stroke="#FFB70E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
+
     </button>
+
   </div>
-  <div class="filters-root" #filtersRoot [class.condensed]="isScrolled" [class.condensed-expanded]="isScrolled && condensedBarExpanded" *ngIf="!isScrolled || condensedBarExpanded">
-    <div class="filters-and-toggles-content" #filtersRoot [class.condensed]="isScrolled" *ngIf="!isScrolled || condensedBarExpanded">
+
+
+
+  <ng-container *ngIf="!stickyEngaged || !stickyBarCollapsed">
+
+    <div class="filters-bar-container">
+
+      <div class="filters-sticky-minimize-row" *ngIf="stickyEngaged">
+
+        <button
+
+          type="button"
+
+          class="filters-sticky-minimize-btn"
+
+          (click)="toggleStickyBarCollapse()"
+
+          title="Hide filters bar"
+
+          aria-label="Hide filters bar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#00113F" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M9 3V21M5.5 3H18M5.5 21H18M16 10L14 12L16 14" stroke="#00113F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+        </button>
+
+      </div>
+
+  <div class="filters-root">
+
+    <div class="filters-and-toggles-content">
+
         <div class="filter-icon-container">
+
           <img src="assets/icons/filter-icon.svg" alt="Filter" class="filter-icon">
-          <span class="filters-label" *ngIf="!isScrolled">Filters:</span>
+
+          <span class="filters-label">Filters:</span>
+
         </div>
+
         <div class="filters-and-toggles-content-inner">
-          <div class="filters-container" [class.condensed-layout]="isScrolled">
-            <!-- <div class="filter-icon-container">
-              <img src="assets/icons/filter-icon.svg" alt="Filter" class="filter-icon">
-              <span class="filters-label" *ngIf="!isScrolled">Filters:</span>
-            </div> -->
-            
-            <!-- Original Layout (when not scrolled) -->
-            <div class="filters-list" *ngIf="!isScrolled">
+
+          <div class="filters-container">
+
+            <div class="filters-list">
+
               <app-filter-dropdown
+
                 title="Investor Region"
+
                 [options]="investorRegionOptions"
+
                 [selected]="state.investorRegion"
+
                 [isOpen]="isDropdownOpen('investorRegion')"
+
                 [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Region' && openFilterDropdownTooltip !== null)"
+
                 infoTooltip="Select the geographic source of capital flows (e.g., U.S., Europe) to understand where money is coming from."
+
                 (selectedChange)="onChange('investorRegion', $event)"
+
                 (openChange)="onDropdownOpenChange('investorRegion', $event)"
+
                 (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
+
               ></app-filter-dropdown>
 
+
+
               <app-filter-dropdown
+
                 title="Investor Type"
+
                 [options]="investorTypeOptions"
+
                 [selected]="state.investorType"
+
                 [isOpen]="isDropdownOpen('investorType')"
+
                 [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Plan Type' && openFilterDropdownTooltip !== null)"
+
                 infoTooltip="Filter by the type of investor (e.g., Institutional, Retail, Corporate) to analyze capital flows by investor category."
+
                 (selectedChange)="onChange('investorType', $event)"
+
                 (openChange)="onDropdownOpenChange('investorType', $event)"
+
                 (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
+
               ></app-filter-dropdown>
 
+
+
               <app-filter-dropdown
+
                 title="Product Region"
+
                 [options]="productRegionOptions"
+
                 [selected]="state.productRegion"
+
                 [isOpen]="isDropdownOpen('productRegion')"
+
                 [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Region' && openFilterDropdownTooltip !== null)"
+
                 infoTooltip="Choose the geographic destination of capital flows to see where investments are being directed."
+
                 (selectedChange)="onChange('productRegion', $event)"
+
                 (openChange)="onDropdownOpenChange('productRegion', $event)"
+
                 (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
+
               ></app-filter-dropdown>
 
+
+
               <app-filter-dropdown
+
                 title="Product Type"
+
                 [options]="productTypeOptions"
+
                 [selected]="state.productType"
+
                 [isOpen]="isDropdownOpen('productType')"
+
                 [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Type' && openFilterDropdownTooltip !== null)"
+
                 infoTooltip="Filter by asset class categories (e.g., Equity, Fixed Income, Alternatives) to analyze flows by investment type."
+
                 (selectedChange)="onChange('productType', $event)"
+
                 (openChange)="onDropdownOpenChange('productType', $event)"
+
                 (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
+
               ></app-filter-dropdown>
+
+
 
               <app-filter-dropdown
+
                 #productSubTypeDropdown
+
                 title="Product Sub-Type"
+
                 [groupedOptions]="productSubTypeOptions"
+
                 [selected]="state.productSubType"
+
                 [isOpen]="isDropdownOpen('productSubType')"
+
                 [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Sub-Type' && openFilterDropdownTooltip !== null)"
+
                 infoTooltip="Select specific sub-categories within asset classes for detailed analysis of capital movements."
+
                 (selectedChange)="onChange('productSubType', $event)"
+
                 (openChange)="onDropdownOpenChange('productSubType', $event)"
+
                 (tooltipOpenChange)="onFilterDropdownTooltipChange($event.title, $event.isOpen)"
+
               ></app-filter-dropdown>
+
             </div>
 
-            <!-- Condensed Layout (when scrolled) -->
-            <div class="filters-grouped" *ngIf="isScrolled">
-              <!-- Investor Filters Group -->
-              <div class="filter-group">
-                <div class="label-with-info-condensed filter-group-label-row">
-                  <label class="filter-group-label">Investor</label>
-                  <div class="info-btn-wrapper">
-                    <button type="button" #investorGroupInfoBtn class="info-btn" (click)="onInfoClick('investorGroup', $event)" aria-label="Investor filters info">
-                      <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
-                    </button>
-                    <div
-                      #investorGroupTooltip
-                      class="info-tooltip"
-                      *ngIf="isTooltipOpen('investorGroup')"
-                      (click)="$event.stopPropagation()">
-                      <div class="tooltip-content">
-                        {{ getTooltipText('investorGroup') }}
-                      </div>
-                      <div class="tooltip-arrow"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="filter-group-horizontal-divider"></div>
-                <div class="filter-group-dropdowns">
-                  <app-filter-dropdown
-                    title="Region"
-                    [options]="investorRegionOptions"
-                    [selected]="state.investorRegion"
-                    [isOpen]="isDropdownOpen('investorRegion')"
-                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Investor Region' && openFilterDropdownTooltip !== null)"
-                    infoTooltip="Select the geographic source of capital flows (e.g., U.S., Europe) to understand where money is coming from."
-                    (selectedChange)="onChange('investorRegion', $event)"
-                    (openChange)="onDropdownOpenChange('investorRegion', $event)"
-                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Investor Region', $event.isOpen)"
-                  ></app-filter-dropdown>
-
-                  <app-filter-dropdown
-                    title="Type"
-                    [options]="investorTypeOptions"
-                    [selected]="state.investorType"
-                    [isOpen]="isDropdownOpen('investorType')"
-                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Plan Type' && openFilterDropdownTooltip !== null)"
-                    infoTooltip="Filter by the type of investor (e.g., Institutional, Retail, Corporate) to analyze capital flows by investor category."
-                    (selectedChange)="onChange('investorType', $event)"
-                    (openChange)="onDropdownOpenChange('investorType', $event)"
-                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Plan Type', $event.isOpen)"
-                  ></app-filter-dropdown>
-                </div>
-              </div>
-
-              <!-- Product Filters Group -->
-              <div class="filter-group">
-                <div class="label-with-info-condensed filter-group-label-row">
-                  <label class="filter-group-label">Product</label>
-                  <div class="info-btn-wrapper">
-                    <button type="button" #productGroupInfoBtn class="info-btn" (click)="onInfoClick('productGroup', $event)" aria-label="Product filters info">
-                      <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
-                    </button>
-                    <div
-                      #productGroupTooltip
-                      class="info-tooltip"
-                      *ngIf="isTooltipOpen('productGroup')"
-                      (click)="$event.stopPropagation()">
-                      <div class="tooltip-content">
-                        {{ getTooltipText('productGroup') }}
-                      </div>
-                      <div class="tooltip-arrow"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="filter-group-horizontal-divider"></div>
-                <div class="filter-group-dropdowns">
-                  <app-filter-dropdown
-                    title="Region"
-                    [options]="productRegionOptions"
-                    [selected]="state.productRegion"
-                    [isOpen]="isDropdownOpen('productRegion')"
-                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Region' && openFilterDropdownTooltip !== null)"
-                    infoTooltip="Choose the geographic destination of capital flows to see where investments are being directed."
-                    (selectedChange)="onChange('productRegion', $event)"
-                    (openChange)="onDropdownOpenChange('productRegion', $event)"
-                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Product Region', $event.isOpen)"
-                  ></app-filter-dropdown>
-
-                  <app-filter-dropdown
-                    title="Type"
-                    [options]="productTypeOptions"
-                    [selected]="state.productType"
-                    [isOpen]="isDropdownOpen('productType')"
-                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Type' && openFilterDropdownTooltip !== null)"
-                    infoTooltip="Filter by asset class categories (e.g., Equity, Fixed Income, Alternatives) to analyze flows by investment type."
-                    (selectedChange)="onChange('productType', $event)"
-                    (openChange)="onDropdownOpenChange('productType', $event)"
-                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Product Type', $event.isOpen)"
-                  ></app-filter-dropdown>
-
-                  <app-filter-dropdown
-                    #productSubTypeDropdown
-                    title="Sub-Type"
-                    [groupedOptions]="productSubTypeOptions"
-                    [selected]="state.productSubType"
-                    [isOpen]="isDropdownOpen('productSubType')"
-                    [isTooltipOpenExternal]="closeAllFilterDropdownTooltips || (openFilterDropdownTooltip !== 'Product Sub-Type' && openFilterDropdownTooltip !== null)"
-                    infoTooltip="Select specific sub-categories within asset classes for detailed analysis of capital movements."
-                    (selectedChange)="onChange('productSubType', $event)"
-                    (openChange)="onDropdownOpenChange('productSubType', $event)"
-                    (tooltipOpenChange)="onFilterDropdownTooltipChange('Product Sub-Type', $event.isOpen)"
-                  ></app-filter-dropdown>
-                </div>
-              </div>
-            </div>
-
-            <!-- Data Type Toggle (condensed) -->
-            <div class="toggle-group-condensed" *ngIf="isScrolled">
-              <div class="label-with-info-condensed">
-                <label class="toggle-label-condensed">Data Type</label>
-                <div class="info-btn-wrapper">
-                  <button type="button" #dataTypeInfoBtn class="info-btn" (click)="onInfoClick('dataType', $event)" aria-label="Data Type Info">
-                    <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
-                  </button>
-                  <!-- Info Tooltip -->
-                  <div 
-                    #dataTypeTooltip 
-                    class="info-tooltip" 
-                    *ngIf="isTooltipOpen('dataType')"
-                    (click)="$event.stopPropagation()">
-                    <div class="tooltip-content">
-                      {{ getTooltipText('dataType') }}
-                    </div>
-                    <div class="tooltip-arrow"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="filter-group-horizontal-divider"></div>
-              <div class="toggle-buttons-condensed">
-                <button 
-                  class="toggle-btn-condensed" 
-                  [class.active]="dataType === 'historical'"
-                  (click)="setDataType('historical')">
-                  <img src="assets/icons/historical-icon.svg" alt="Historical" class="icon-historical">
-                  Historical
-                </button>
-                <button 
-                  class="toggle-btn-condensed" 
-                  [class.active]="dataType === 'forecasted'"
-                  (click)="setDataType('forecasted')">
-                  <img src="assets/icons/forecasted-icon.svg" alt="Forecasted" class="icon-forecasted">
-                  Forecasted
-                </button>
-              </div>
-            </div>
-
-            <!-- Time Horizon Range Slider (condensed) -->
-            <div class="time-horizon-container-condensed" *ngIf="isScrolled">
-              <div class="label-with-info-condensed">
-                <label class="toggle-label-condensed">Time Horizon</label>
-                <div class="info-btn-wrapper">
-                  <button type="button" #timeHorizonInfoBtn class="info-btn" (click)="onInfoClick('timeHorizon', $event)" aria-label="Time Horizon Info">
-                    <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
-                  </button>
-                  <!-- Info Tooltip -->
-                  <div 
-                    #timeHorizonTooltip 
-                    class="info-tooltip" 
-                    *ngIf="isTooltipOpen('timeHorizon')"
-                    (click)="$event.stopPropagation()">
-                    <div class="tooltip-content">
-                      {{ getTooltipText('timeHorizon') }}
-                    </div>
-                    <div class="tooltip-arrow"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="filter-group-horizontal-divider"></div>
-              <div class="time-horizon-slider-wrapper-condensed">
-                <div class="time-horizon-slider-container-condensed" #timeHorizonSliderCondensed
-                    (mousedown)="onTimeHorizonTrackClick($event)"
-                    (touchend)="onTimeHorizonTrackClick($event)">
-                  <div class="time-horizon-slider-track-condensed">
-                    <div class="time-horizon-dots-condensed">
-                      <div class="time-horizon-dot-condensed" 
-                          *ngFor="let horizon of timeHorizons; let i = index"
-                          [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
-                          [class.active]="i >= timeHorizonRange.startIndex && i <= timeHorizonRange.endIndex"></div>
-                    </div>
-                    <div class="time-horizon-track-background-condensed"></div>
-                    <div class="time-horizon-track-active-condensed" 
-                        [style.left.px]="getTimeHorizonActiveTrackLeft()" 
-                        [style.width.px]="getTimeHorizonActiveTrackWidth()"></div>
-                  </div>
-                  <div class="time-horizon-handle time-horizon-handle-start" 
-                      [style.left.px]="getTimeHorizonHandlePosition('start')"
-                      (mousedown)="startTimeHorizonDrag($event, 'start')"
-                      (touchstart)="startTimeHorizonDrag($event, 'start')"
-                      (click)="$event.stopPropagation()"></div>
-                  <div class="time-horizon-handle time-horizon-handle-end" 
-                      [style.left.px]="getTimeHorizonHandlePosition('end')"
-                      (mousedown)="startTimeHorizonDrag($event, 'end')"
-                      (touchstart)="startTimeHorizonDrag($event, 'end')"
-                      (click)="$event.stopPropagation()"></div>
-                </div>
-                <div class="time-horizon-labels-condensed">
-                  <span class="time-horizon-label-condensed" 
-                        *ngFor="let horizon of timeHorizons; let i = index"
-                        [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
-                        [style.transform]="'translateX(-50%)'"
-                        [class.active]="i >= timeHorizonRange.startIndex && i <= timeHorizonRange.endIndex">
-                    {{ horizon }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Right side: close (X) + Clear all / Save view (condensed) -->
-            <div class="condensed-bar-actions-right" *ngIf="isScrolled">
-              <button type="button" class="condensed-bar-close-btn" (click)="toggleCondensedBar()" title="Close filters" aria-label="Close filters">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#00113F" stroke-width="2" stroke-linejoin="round"/>
-                  <path d="M9 3V21M5.5 3H18M5.5 21H18M16 10L14 12L16 14" stroke="#00113F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <div class="clear-all-container-condensed">
-                <button class="clear-all-condensed" *ngIf="!showSelectAll" (click)="clearAll()" title="Clear All Filters" aria-label="Clear All Filters">
-                  <img src="assets/icons/refresh-icon.svg" alt="" class="action-icon-condensed" aria-hidden="true">
-                  <span class="condensed-btn-label">Clear All Filters</span>
-                </button>
-                <button class="select-all-condensed" *ngIf="showSelectAll" (click)="selectAll()" title="Select All Filters" aria-label="Select All Filters">
-                  <img src="assets/icons/select-all-icon.svg" alt="" class="action-icon-condensed" aria-hidden="true">
-                  <span class="condensed-btn-label">Select All Filters</span>
-                </button>
-                <button class="save-filter-condensed" (click)="saveFilterSet()" title="Save View" aria-label="Save Filter Set">
-                  <img src="assets/icons/bookmark-icon.svg" alt="" class="action-icon-condensed" aria-hidden="true">
-                  <span class="condensed-btn-label">Save View</span>
-                </button>
-              </div>
-            </div>
           </div>
-          <!-- Toggles Section (original when not scrolled) -->
-          <div class="toggles-container" *ngIf="!isScrolled">
-            <!-- Data Type Toggle -->
-            <div class="toggle-group">
-              <div class="label-with-info">
-                <label class="toggle-label">Data Type:</label>
-                <div class="info-btn-wrapper">
-                  <button type="button" #dataTypeInfoBtn class="info-btn" (click)="onInfoClick('dataType', $event)" aria-label="Data Type Info">
-                    <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
-                  </button>
-                  <!-- Info Tooltip -->
-                  <div 
-                    #dataTypeTooltip 
-                    class="info-tooltip" 
-                    *ngIf="isTooltipOpen('dataType')"
-                    (click)="$event.stopPropagation()">
-                    <div class="tooltip-content">
-                      {{ getTooltipText('dataType') }}
-                    </div>
-                    <div class="tooltip-arrow"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="toggle-buttons">
-                <button 
-                  class="toggle-btn" 
-                  [class.active]="dataType === 'historical'"
-                  (click)="setDataType('historical')">
-                  <img src="assets/icons/historical-icon.svg" alt="Historical" class="icon-historical">
-                  Historical
-                </button>
-                <button 
-                  class="toggle-btn" 
-                  [class.active]="dataType === 'forecasted'"
-                  (click)="setDataType('forecasted')">
-                  <img src="assets/icons/forecasted-icon.svg" alt="Forecasted" class="icon-forecasted">
-                  Forecasted
-                </button>
-              </div>
-            </div>
 
-            <!-- Time Horizon Range Slider -->
+          <!-- Toggles Section -->
+
+          <div class="toggles-container">
+
+            <!-- Time Horizon: own white card -->
+
             <div class="time-horizon-container">
+
               <div class="label-with-info">
+
                 <label class="toggle-label">Time Horizon:</label>
+
                 <div class="info-btn-wrapper">
+
                   <button type="button" #timeHorizonInfoBtn class="info-btn" (click)="onInfoClick('timeHorizon', $event)" aria-label="Time Horizon Info">
+
                     <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+
                   </button>
-                  <!-- Info Tooltip -->
+
                   <div 
+
                     #timeHorizonTooltip 
+
                     class="info-tooltip" 
+
                     *ngIf="isTooltipOpen('timeHorizon')"
+
                     (click)="$event.stopPropagation()">
+
                     <div class="tooltip-content">
+
                       {{ getTooltipText('timeHorizon') }}
+
                     </div>
+
                     <div class="tooltip-arrow"></div>
+
                   </div>
+
                 </div>
+
               </div>
+
               <div class="time-horizon-slider-wrapper time-horizon-slider-wrapper-full">
+
                 <div class="time-horizon-slider-container time-horizon-slider-container-full" #timeHorizonSliderFull
+
                     (mousedown)="onTimeHorizonTrackClick($event)"
+
                     (click)="onTimeHorizonTrackClick($event)"
+
                     (touchend)="onTimeHorizonTrackClick($event)">
+
                   <div class="time-horizon-slider-track">
+
                     <div class="time-horizon-dots">
+
                       <div class="dot" *ngFor="let horizon of timeHorizons; let i = index" 
+
                           [style.left.%]="(i / (timeHorizons.length - 1)) * 100"></div>
+
                     </div>
+
                     <div class="time-horizon-track-background"></div>
+
                     <div class="time-horizon-track-active" 
+
                         [style.left.px]="getTimeHorizonActiveTrackLeft()" 
+
                         [style.width.px]="getTimeHorizonActiveTrackWidth()"></div>
+
                   </div>
+
                   <div class="time-horizon-handle time-horizon-handle-start" 
+
                       [style.left.px]="getTimeHorizonHandlePosition('start')"
+
                       (mousedown)="startTimeHorizonDrag($event, 'start')"
+
                       (touchstart)="startTimeHorizonDrag($event, 'start')"
+
                       (click)="$event.stopPropagation()"></div>
+
                   <div class="time-horizon-handle time-horizon-handle-end" 
+
                       [style.left.px]="getTimeHorizonHandlePosition('end')"
+
                       (mousedown)="startTimeHorizonDrag($event, 'end')"
+
                       (touchstart)="startTimeHorizonDrag($event, 'end')"
+
                       (click)="$event.stopPropagation()"></div>
+
                 </div>
+
                 <div class="time-horizon-labels">
+
                   <span class="time-horizon-label" 
+
                         *ngFor="let horizon of timeHorizons; let i = index"
+
                         [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
+
                         [style.transform]="'translateX(-50%)'"
+
                         (click)="onTimeHorizonLabelClick(i, $event)"
+
                         (touchend)="onTimeHorizonLabelClick(i, $event)">
+
                     {{ horizon }}
+
                   </span>
+
                 </div>
+
               </div>
+
             </div>
+
+            <!-- Min flow value: separate white card -->
+
+            <div class="time-horizon-container min-flow-value-in-bar" *ngIf="minFlowValueOptions.length">
+
+              <div class="label-with-info">
+                <label class="toggle-label">Min flow value:</label>
+              </div>
+
+              <div class="time-horizon-slider-wrapper min-flow-slider-wrapper-filters">
+                <app-min-flow-range-slider
+                  class="min-flow-range-filters-embed"
+                  [options]="minFlowValueOptions"
+                  [(range)]="minFlowRange"
+                  [showFlowSummary]="false"
+                  (rangeChange)="emitMinFlowValueRange()" />
+              </div>
+
+            </div>
+
           </div>
+
         </div>
+
       </div>
+
+    </div>
+
       <!-- Action Buttons (bottom right) -->
-      <div class="action-buttons-container" *ngIf="!isScrolled">
+
+      <div class="action-buttons-container">
+
         <button class="action-btn clear-all-btn" *ngIf="!showSelectAll" (click)="clearAll()">
+
           <img src="assets/icons/refresh-icon.svg" alt="Refresh" class="action-icon">
+
           <span>Clear All Filters</span>
+
         </button>
+
         <button class="action-btn select-all-btn" *ngIf="showSelectAll" (click)="selectAll()">
+
           <img src="assets/icons/select-all-icon.svg" alt="Refresh" class="action-icon">
+
           <span>Select All Filters</span>
+
         </button>
+
         <button class="action-btn save-filter-btn" (click)="saveFilterSet()">
+
           <img src="assets/icons/bookmark-icon.svg" alt="Bookmark" class="action-icon">
+
           <span>Save View</span>
+
         </button>
+
       </div>
-  </div>
+
+    </div>
+
+  </ng-container>
+
 </div>
 
+
+
 <!-- Save Filter Set Modal -->
+
 <app-save-filter-set-modal
+
   [isVisible]="isSaveFilterSetModalOpen"
+
   (close)="onCloseSaveFilterSetModal()"
+
   (save)="onSaveFilterSet($event)">
+
 </app-save-filter-set-modal>
+

@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- Flow Dimensions & Min Flow Section -->
+    <!-- Flow Dimensions -->
     <div class="dimensions-section">
       <div class="dimensions-section-inner">
         <app-flow-dimensions
@@ -38,28 +38,20 @@
           (dimensionDropdownOpened)="dimensionDropdownOpened.emit()">
         </app-flow-dimensions>
       </div>
-      <ng-container *ngIf="minFlowValueOptions.length">
-        <div class="dimension-selector-container min-flow-value-container">
-          <span class="dimension-number-label">Min flow value:</span>
-          <app-min-flow-range-slider
-            class="min-flow-range-embed"
-            [options]="minFlowValueOptions"
-            [(range)]="minFlowRange" />
-        </div>
-      </ng-container>
     </div>
   </div>
   <!-- Regional Sankey Diagram Visualization -->
   <div class="visualization-container" #chartExportRoot>
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="sankey-region-container">
       <app-sankey
+        *ngIf="regionData.investorRegions?.length"
         [data]="regionData.data"
         [regionKey]="regionData.key"
         [selectedInvestorRegions]="regionData.investorRegions"
         [selectedProductTypes]="cachedSelectedProductTypes"
         [selectedProductSubTypes]="cachedSelectedProductSubTypes"
-        [minFlowValue]="chartMinFlowLower"
-        [maxFlowValue]="chartMaxFlowUpper"
+        [minFlowValue]="minFlowValue"
+        [maxFlowValue]="maxFlowValue"
         [dimension1Label]="selectedDimension1?.label"
         [dimension2Label]="selectedDimension2?.label"
         [timeHorizon]="timeHorizon"

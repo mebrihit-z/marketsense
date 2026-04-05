@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 export interface FilterOption {
   value: string;
   label?: string;
+  disabled?: boolean;
 }
 
 export interface GroupedFilterOption {
@@ -27,7 +28,7 @@ export default class FilterDropdownComponent {
   @Input() selected: string[] = []; // parent's array reference
   @Input() isOpen = false; // Controlled by parent
   @Input() infoTooltip?: string; // Optional tooltip text
-  @Input() showInfoTooltip = true; // When false, hides the info icon (e.g. in condensed layout)
+  @Input() showInfoTooltip = true; // When false, hides the info icon
   @Input() isTooltipOpenExternal = false; // Controlled by parent to close tooltip
   @Output() selectedChange = new EventEmitter<string[]>();
   @Output() openChange = new EventEmitter<boolean>(); // Emit when open state should change
@@ -40,6 +41,8 @@ export default class FilterDropdownComponent {
   pendingMap: Record<string, boolean> = {}; // Pending selections (not yet applied)
   private isApplyingChanges = false; // Flag to track if we're applying changes via Done button
   isTooltipOpen = false; // Track tooltip visibility
+
+  constructor(private host: ElementRef<HTMLElement>) {}
   
   get open(): boolean {
     return this.isOpen;
@@ -402,11 +405,18 @@ export default class FilterDropdownComponent {
    */
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const clickedInsideComponent = this.host?.nativeElement?.contains(target);
+
+    // Close dropdown when clicking anywhere outside this component
+    if (!clickedInsideComponent && this.isOpen) {
+      this.openChange.emit(false);
+    }
+
+    // Close tooltip when clicking outside tooltip / info button
     if (this.isTooltipOpen) {
-      const target = event.target as HTMLElement;
       const clickedInsideTooltip = this.tooltip?.nativeElement?.contains(target);
       const clickedOnInfoButton = this.infoButton?.nativeElement?.contains(target);
-      
       if (!clickedInsideTooltip && !clickedOnInfoButton) {
         this.isTooltipOpen = false;
       }

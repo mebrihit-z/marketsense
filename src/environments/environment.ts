@@ -5,11 +5,14 @@
 export const environment = {
   version: '1.0.0',
   production: false,
+  apiUrl: 'http://localhost:3000/api',
   apiBaseUrl: 'http://localhost:3000/api/v1',
   appName: 'MarketSense',
+  assetFlowsDataUrl: 'assets/data/asset-flows-data.json',
   dataUrlConfig: {
     assetFlows: 'assets/data/asset-flows-data.json',
   },
+  enableDebug: true,
   /** When set, saved views will be loaded from and persisted to this backend API instead of localStorage. */
   savedViewsApiUrl: undefined as string | undefined,
   /** AI chat API URL. When undefined/empty, service uses mock JSON locally. */

@@ -45,8 +45,41 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    background: rgba(199, 234, 255, 0.40);
+    background-color: #e9f7ff;
 }
+
+// Sticky must stay a direct flex child of .dashboard-container (nested wrapper breaks sticky).
+// Negative margin + equal padding eats .dashboard-container row-gap so $bg-cream never shows between Ask and filters.
+.dashboard-filters-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    width: 100%;
+    max-width: 100%;
+    align-self: flex-start;
+    background-color: #e9f7ff;
+    box-shadow: 0 1px 0 rgba(0, 17, 63, 0.08);
+    margin-top: -2rem;
+
+    @media (max-width: 1200px) {
+        margin-top: -1.5rem;
+        padding-top: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        margin-top: -1rem;
+        padding-top: 1rem;
+    }
+
+    // Collapsed sticky state: show only the navy "Show filters" button, no full-width ice-blue bar.
+    &:has(app-filters-bar.filters-bar-host-collapsed) {
+        background-color: transparent;
+        box-shadow: none;
+        padding-top: 0;
+    }
+}
+
 .dashboard-content {
     display: flex;
     flex-direction: column;

@@ -193,11 +193,73 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * @returns {string} Projected value from card or '$0'
+   * Formats a numeric value in billions to a display string like "-$98.4B".
+   */
+  private formatBillions(value: number): string {
+    if (!Number.isFinite(value) || value === 0) return '$0B';
+    const isNegative = value < 0;
+    const absVal = Math.abs(value);
+    const formatted = absVal.toLocaleString('en-US', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    return `${isNegative ? '-' : ''}$${formatted}B`;
+  }
+
+  /**
+   * Computes the projected value from filtered raw data as the total net flow
+   * (in billions) for the selected product sub-type and filters.
+   */
+  private computeFilteredProjectedValue(): number | null {
+    if (!this.card || !this.rawAssetFlowsData || this.rawAssetFlowsData.length === 0) {
+      return null;
+    }
+    const productSubType = this.card.productSubType;
+    if (!productSubType) return null;
+
+    const filteredData = this.applyChartDataFilters(productSubType);
+    if (!filteredData.length) return null;
+
+    // Sum net flows over the filtered set and convert to billions
+    const totalBillions = filteredData.reduce((sum, r) => {
+      const v = Number(r.Asset_Flow_Value) || 0;
+      return sum + v / 1_000_000;
+    }, 0);
+
+    return totalBillions;
+  }
+
+  /**
+   * @returns {string} Projected/forecast value based on current filters and time horizon,
+   *          falling back to the card's static value when raw data is unavailable.
    */
   getProjectedValue(): string {
-    if (!this.card) return '$0';
+    const dynamic = this.computeFilteredProjectedValue();
+    if (dynamic != null) {
+      return this.formatBillions(dynamic);
+    }
+    if (!this.card) return '$0B';
+    // Fall back to the precomputed card value when we can't derive a filtered one
     return this.card.value;
+  }
+
+  /**
+   * Computes EXPECTED CHANGE as the percentage change between the first and last
+   * points of the line chart data: (last - first) / |first| * 100.
+   * Returns 0 when there is insufficient data.
+   */
+  getExpectedChange(): number {
+    const data = this.getChartData();
+    if (!data || data.length < 2) return 0;
+
+    const first = data[0];
+    const last = data[data.length - 1];
+    if (!Number.isFinite(first) || first === 0) return 0;
+
+    const change = last - first;
+    const pct = (change / Math.abs(first)) * 100;
+    if (!Number.isFinite(pct)) return 0;
+    return pct;
   }
 
   /**

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, AfterViewInit, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged, filter, map } from 'rxjs/operators';
@@ -11,6 +11,12 @@ import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util'
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 import { SavedViewsService, type SavedView } from '../../../../core/services/saved-views.service';
 import UserProfileService from '../../../services/user-profile.service';
+import { MinFlowRangeSliderComponent } from '../../min-flow-range-slider/min-flow-range-slider.component';
+import {
+  MIN_FLOW_VALUE_OPTIONS,
+  createDefaultMinFlowRange,
+  type MinFlowRangeSelection,
+} from '../../../utils/min-flow-value-options.util';
 
 export interface FilterOptionTotals {
   productTypeTotal: number;
@@ -23,28 +29,35 @@ export interface FilterOptionTotals {
 @Component({
   selector: 'app-filters-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterDropdownComponent, SaveFilterSetModalComponent],
+  imports: [CommonModule, FormsModule, FilterDropdownComponent, SaveFilterSetModalComponent, MinFlowRangeSliderComponent],
   templateUrl: './filters-bar.component.html',
-  styleUrl: './filters-bar.component.scss'
+  styleUrl: './filters-bar.component.scss',
+  /** Declared in metadata so parent templates always resolve `[stickyEngaged]` (strictTemplates + language service). */
+  inputs: ['stickyEngaged'],
 })
-export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterViewInit {
+export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @Input() forceCloseDropdown = 0;
+  /** When true (set by dashboard while the bar is position:sticky at the top), user can minimize the bar. */
+  public stickyEngaged = false;
+  /** While sticky: when true, only the compact "Show filters" strip is visible. */
+  stickyBarCollapsed = false;
+
+  /** Lets the dashboard strip stay transparent when only "Show filters" is visible (see `.dashboard-filters-sticky:has(...)`). */
+  @HostBinding('class.filters-bar-host-collapsed')
+  get filtersBarHostCollapsedClass(): boolean {
+    return this.stickyEngaged && this.stickyBarCollapsed;
+  }
+
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('timeHorizonSliderFull', { static: false }) timeHorizonSliderContainerFull!: ElementRef<HTMLElement>;
-  @ViewChild('timeHorizonSliderCondensed', { static: false }) timeHorizonSliderContainerCondensed!: ElementRef<HTMLElement>;
-  /** Resolves to the currently visible time horizon slider (full or condensed). */
   get timeHorizonSliderContainer(): ElementRef<HTMLElement> | null {
-    return this.isScrolled
-      ? (this.timeHorizonSliderContainerCondensed ?? null)
-      : (this.timeHorizonSliderContainerFull ?? null);
+    return this.timeHorizonSliderContainerFull ?? null;
   }
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
   @ViewChild('aiConfidenceInfoBtn', { static: false }) aiConfidenceInfoBtn!: ElementRef<HTMLButtonElement>;
-  @ViewChild('dataTypeInfoBtn', { static: false }) dataTypeInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('timeHorizonInfoBtn', { static: false }) timeHorizonInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('aiConfidenceTooltip', { static: false }) aiConfidenceTooltip!: ElementRef<HTMLDivElement>;
-  @ViewChild('dataTypeTooltip', { static: false }) dataTypeTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('timeHorizonTooltip', { static: false }) timeHorizonTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('investorGroupInfoBtn', { static: false }) investorGroupInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('investorGroupTooltip', { static: false }) investorGroupTooltip!: ElementRef<HTMLDivElement>;
@@ -67,17 +80,36 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
   @Output() investorTypeChange = new EventEmitter<string[]>();
   @Output() filterOptionTotalsChange = new EventEmitter<FilterOptionTotals>();
   @Output() filterDropdownOpened = new EventEmitter<void>();
+  @Output() minFlowValueRangeChange = new EventEmitter<MinFlowRangeSelection>();
+
+  readonly minFlowValueOptions = MIN_FLOW_VALUE_OPTIONS;
+  minFlowRange: MinFlowRangeSelection = createDefaultMinFlowRange();
 
   constructor(
     private assetFlowsData: AssetFlowsDataService,
     private savedViewsService: SavedViewsService,
-    private userProfileService: UserProfileService,
-    private hostRef: ElementRef<HTMLElement>
+    private userProfileService: UserProfileService
   ) {}
+
+  emitMinFlowValueRange(): void {
+    this.minFlowValueRangeChange.emit({ ...this.minFlowRange });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['forceCloseDropdown'] && changes['forceCloseDropdown'].currentValue > 0) {
       this.openDropdown = null;
+    }
+    const se = changes['stickyEngaged'];
+    if (se && se.previousValue === true && se.currentValue === false) {
+      this.stickyBarCollapsed = false;
+    }
+  }
+
+  toggleStickyBarCollapse(): void {
+    this.stickyBarCollapsed = !this.stickyBarCollapsed;
+    if (this.stickyBarCollapsed) {
+      this.openDropdown = null;
+      this.openTooltip = null;
     }
   }
   
@@ -86,18 +118,17 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
   dragType: 'min' | 'max' | null = null;
   hasDragged = false; // Track if user actually dragged vs just clicked
   sliderTrackWidth = 142; // Width of the slider track in pixels (normal)
-  sliderTrackWidthCondensed = 56; // Width of the slider track in pixels (condensed)
   
-  // Time Horizon range slider state
-  timeHorizonRange = { startIndex: 0, endIndex: 1 }; // Default: Today to +3mo for forecasted
+  // Time Horizon range slider state (indices into timeHorizons; default = Today → +3 mo)
+  timeHorizonRange = { startIndex: 5, endIndex: 6 };
   isTimeHorizonDragging = false;
   timeHorizonDragType: 'start' | 'end' | null = null;
   timeHorizonHasDragged = false; // Track if user actually dragged vs just clicked
-  /** Container element when dragging (set from handle's parent so it works for both full and condensed). */
+  /** Container element when dragging (set from handle's parent). */
   private timeHorizonDragContainer: HTMLElement | null = null;
   /** Timestamp of last mousedown on track, to avoid handling click twice for same gesture. */
   private _lastTimeHorizonTrackMousedownAt: number | null = null;
-  timeHorizonSliderTrackWidth = 400; // Width of the time horizon slider track in pixels
+  timeHorizonSliderTrackWidth = 520; // Width of the time horizon slider track in pixels (desktop full layout)
   /** Bound document capture listener for time horizon (so we can remove in ngOnDestroy). */
   private _documentTimeHorizonCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentTimeHorizonCapture(e);
 
@@ -106,32 +137,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
   
   // Toggle state
   dataType: 'historical' | 'forecasted' = 'forecasted';
-  selectedTimeHorizon: string = 'Today';
+  selectedTimeHorizon: string = '+3 mo';
   
-  // Scroll state for condensed layout (only after full bar has fully left the viewport)
-  isScrolled = false;
-  /** Last measured document Y range of the full bar (sticky layout); used to restore when scrolling back. */
-  private fullBarTopDocumentY = 0;
-  private fullBarBottomDocumentY = 0;
-
-  /** When true, the condensed bar is expanded (visible); when false, only the thin strip with expand button is shown. */
-  condensedBarExpanded = true;
-
-  /** When true, host gets class 'condensed' so the bar can use position: fixed and stay at top. */
-  @HostBinding('class.condensed') get hostCondensed(): boolean {
-    return this.isScrolled;
-  }
-
-  /** When true, condensed bar is collapsed (icon only, no blue row). */
-  @HostBinding('class.condensed-collapsed') get hostCondensedCollapsed(): boolean {
-    return this.isScrolled && !this.condensedBarExpanded;
-  }
-
-  /** Toggles the condensed filter bar open/closed (only applies when isScrolled). */
-  toggleCondensedBar(): void {
-    this.condensedBarExpanded = !this.condensedBarExpanded;
-  }
-
   /**
    * @returns {void} Initializes filter state and time horizon defaults.
    */
@@ -181,18 +188,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     // Initialize time horizon range based on selectedTimeHorizon
     this.initializeTimeHorizonRange();
 
+    this.emitMinFlowValueRange();
+
     // Document capture listeners for full time horizon (handle drag + track click); capture so they run first
     if (typeof document !== 'undefined') {
       document.addEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
       document.addEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
     }
-    
-    // Check initial scroll position
-    this.checkScrollPosition();
-  }
-
-  ngAfterViewInit(): void {
-    setTimeout(() => this.checkScrollPosition(), 0);
   }
 
   ngOnDestroy(): void {
@@ -200,61 +202,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     if (typeof document !== 'undefined') {
       document.removeEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
       document.removeEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
-    }
-  }
-  
-  /**
-   * Handles window scroll events to toggle condensed layout.
-   * @returns {void}
-   */
-  @HostListener('window:scroll')
-  onWindowScroll(): void {
-    this.checkScrollPosition();
-  }
-  
-  /**
-   * Handles window resize events to update condensed layout state on mobile.
-   * @returns {void}
-   */
-  @HostListener('window:resize')
-  onWindowResize(): void {
-    this.checkScrollPosition();
-  }
-  
-  /**
-   * Condensed mode only when the full filters bar has scrolled completely above the viewport.
-   * While the bar is still visible (including when sticky at the top), stay on the full layout.
-   */
-  private checkScrollPosition(): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    // Don't enable condensed mode on mobile devices and iPad (screen width <= 1024px)
-    if (window.innerWidth <= 1024) {
-      this.isScrolled = false;
-      return;
-    }
-
-    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-    const vh = window.innerHeight;
-    const host = this.hostRef.nativeElement;
-    const rect = host.getBoundingClientRect();
-
-    if (!this.isScrolled) {
-      this.fullBarTopDocumentY = rect.top + scrollY;
-      this.fullBarBottomDocumentY = this.fullBarTopDocumentY + rect.height;
-      // Entire bar is above the viewport — user cannot see the full bar anymore
-      if (rect.bottom <= 0) {
-        this.isScrolled = true;
-      }
-    } else {
-      // Fixed condensed bar: host rect is not the in-document position; use cached range
-      const viewportOverlapsFullBarZone =
-        scrollY < this.fullBarBottomDocumentY && scrollY + vh > this.fullBarTopDocumentY;
-      if (viewportOverlapsFullBarZone) {
-        this.isScrolled = false;
-        this.condensedBarExpanded = true;
-      }
     }
   }
 
@@ -280,6 +227,20 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
           
           // Set investor regions from data (no Global option)
           this.investorRegionOptions = filterOptions.investorRegions.map(region => ({ value: region }));
+
+          // Append static investor regions that are not yet available in the data,
+          // and mark them as disabled in the dropdown.
+          const staticRegions: FilterOption[] = [
+            { value: 'United Kingdom', label: 'United Kingdom', disabled: true },
+            { value: 'Europe', label: 'Europe', disabled: true },
+            { value: 'Canada', label: 'Canada', disabled: true },
+            { value: 'Asia/Pacific', label: 'Asia/Pacific', disabled: true },
+          ];
+          const existingValues = new Set(this.investorRegionOptions.map(o => o.value));
+          this.investorRegionOptions = [
+            ...this.investorRegionOptions,
+            ...staticRegions.filter(o => !existingValues.has(o.value)),
+          ];
           
           // Set investor types
           this.investorTypeOptions = filterOptions.investorTypes.map(type => ({ value: type }));
@@ -312,7 +273,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
            .flatMap(group => group.subTypes);
          this.state.productSubType = Array.from(new Set(defaultSubTypes));
           
-          // Initialize investorRegion selection with all regions selected by default
+          // Initialize investorRegion selection with all *data-backed* regions selected by default.
+          // Static "coming soon" regions are NOT selected (and will be disabled in the UI).
           this.state.investorRegion = [...filterOptions.investorRegions];
           
           // Initialize investorType selection with all options selected
@@ -406,20 +368,24 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    */
   private initializeTimeHorizonRange(): void {
     const horizons = this.timeHorizons;
-    const selectedIndex = horizons.indexOf(this.selectedTimeHorizon);
-    if (selectedIndex >= 0) {
-      // Set range from start (Today/First option) to selected index
-      this.timeHorizonRange = { startIndex: 0, endIndex: selectedIndex || 1 };
+    const todayIdx = horizons.indexOf('Today');
+    const plus3Idx = horizons.indexOf('+3 mo');
+    const minus3Idx = horizons.indexOf('-3 mo');
+
+    if (this.dataType === 'historical' && minus3Idx >= 0 && todayIdx >= 0) {
+      this.timeHorizonRange = { startIndex: minus3Idx, endIndex: todayIdx };
+    } else if (todayIdx >= 0 && plus3Idx >= 0) {
+      // Forecasted default: Today → +3 mo
+      this.timeHorizonRange = { startIndex: todayIdx, endIndex: plus3Idx };
     } else {
-      // Default: Today to first option (+3mo for forecasted)
-      this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
+      const n = horizons.length - 1;
+      this.timeHorizonRange = { startIndex: Math.max(0, n - 1), endIndex: n };
     }
-    // Always emit the initial range
     this.updateSelectedTimeHorizon();
   }
 
   // Filter options loaded from asset-flows-data.json
-  investorRegionOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
+  investorRegionOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json (plus static disabled options)
   investorTypeOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
   productRegionOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
   productTypeOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
@@ -440,7 +406,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
   showSelectAll: boolean = false;
 
   // Track which tooltip is open
-  openTooltip: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup' | null = null;
+  openTooltip: 'aiConfidence' | 'timeHorizon' | 'investorGroup' | 'productGroup' | null = null;
 
   // Save filter set modal state
   isSaveFilterSetModalOpen: boolean = false;
@@ -628,6 +594,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     this.productRegionChange.emit([]);
     this.investorRegionChange.emit([]);
     this.investorTypeChange.emit([]);
+    this.minFlowRange = createDefaultMinFlowRange();
+    this.emitMinFlowValueRange();
   }
 
   /**
@@ -718,6 +686,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       },
       selectedTimeHorizon: this.selectedTimeHorizon,
       aiConfidenceRange: { ...this.aiConfidenceRange },
+      minFlowRange: { ...this.minFlowRange },
     };
 
     this.savedViewsService.saveView(savedView, userId, userName, { role, lastLogin }).subscribe({
@@ -818,6 +787,23 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
         this.aiConfidenceRange = { min, max };
       }
     }
+
+    const mfr = detail.minFlowRange;
+    const n = this.minFlowValueOptions.length;
+    const last = Math.max(0, n - 1);
+    if (
+      mfr &&
+      typeof mfr === 'object' &&
+      typeof mfr.startIndex === 'number' &&
+      typeof mfr.endIndex === 'number' &&
+      mfr.startIndex >= 0 &&
+      mfr.endIndex >= mfr.startIndex &&
+      mfr.startIndex <= last &&
+      mfr.endIndex <= last
+    ) {
+      this.minFlowRange = { startIndex: mfr.startIndex, endIndex: mfr.endIndex };
+      this.emitMinFlowValueRange();
+    }
   }
 
   /**
@@ -885,13 +871,16 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * or track click. Registered in ngOnInit with capture: true so it fires before child elements.
    */
   onDocumentTimeHorizonCapture(event: MouseEvent | TouchEvent): void {
-    if (this.isScrolled) return;
+    const targetEl = event.target as HTMLElement;
+    if (targetEl?.closest?.('.filters-sticky-minimize-btn, .filters-bar-sticky-collapsed-btn')) {
+      return;
+    }
     const container = this.timeHorizonSliderContainerFull?.nativeElement;
     if (!container) return;
     const clientX = 'touches' in event ? (event as TouchEvent).touches[0]?.clientX : (event as MouseEvent).clientX;
     const clientY = 'touches' in event ? (event as TouchEvent).touches[0]?.clientY : (event as MouseEvent).clientY;
     if (clientX == null || clientY == null) return;
-    const target = event.target as HTMLElement;
+    const target = targetEl;
     // Start drag when mousedown/touchstart is on a handle (by target or by hit-test)
     let handleEl = target?.closest?.('.time-horizon-handle');
     if (!handleEl) {
@@ -952,9 +941,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       if (this.openTooltip === 'aiConfidence') {
         clickedInside = this.aiConfidenceTooltip?.nativeElement?.contains(target) ||
                        this.aiConfidenceInfoBtn?.nativeElement?.contains(target);
-      } else if (this.openTooltip === 'dataType') {
-        clickedInside = this.dataTypeTooltip?.nativeElement?.contains(target) ||
-                       this.dataTypeInfoBtn?.nativeElement?.contains(target);
       } else if (this.openTooltip === 'timeHorizon') {
         clickedInside = this.timeHorizonTooltip?.nativeElement?.contains(target) ||
                        this.timeHorizonInfoBtn?.nativeElement?.contains(target);
@@ -980,11 +966,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    */
   getKnobPosition(type: 'min' | 'max'): number {
     const value = type === 'min' ? this.aiConfidenceRange.min : this.aiConfidenceRange.max;
-    if (this.isScrolled) {
-      // In condensed mode, track starts at 0.32px, so we need to add that offset
-      const trackWidth = this.sliderTrackWidthCondensed;
-      return 0.32 + (value / 100) * trackWidth;
-    }
     return (value / 100) * this.sliderTrackWidth;
   }
 
@@ -992,11 +973,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @returns {number} The pixel offset for the left edge of the active AI confidence range.
    */
   getActiveTrackLeft(): number {
-    if (this.isScrolled) {
-      // In condensed mode, track starts at 0.32px
-      const trackWidth = this.sliderTrackWidthCondensed;
-      return 0.32 + (this.aiConfidenceRange.min / 100) * trackWidth;
-    }
     return (this.aiConfidenceRange.min / 100) * this.sliderTrackWidth;
   }
 
@@ -1004,8 +980,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @returns {number} The pixel width of the active AI confidence range.
    */
   getActiveTrackWidth(): number {
-    const trackWidth = this.isScrolled ? this.sliderTrackWidthCondensed : this.sliderTrackWidth;
-    return ((this.aiConfidenceRange.max - this.aiConfidenceRange.min) / 100) * trackWidth;
+    return ((this.aiConfidenceRange.max - this.aiConfidenceRange.min) / 100) * this.sliderTrackWidth;
   }
 
   /**
@@ -1019,17 +994,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
     const x = clientX - rect.left;
     // Calculate percentage based on track width (142px)
-    // Track starts at left: 0 within the container, so we use track width directly
-    let percentage: number;
-    if (this.isScrolled) {
-      // In condensed mode, account for the 0.32px offset
-      const trackWidth = this.sliderTrackWidthCondensed;
-      const adjustedX = Math.max(0, x - 0.32);
-      percentage = Math.max(0, Math.min(100, (adjustedX / trackWidth) * 100));
-    } else {
-      const trackWidth = this.sliderTrackWidth;
-      percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
-    }
+    const trackWidth = this.sliderTrackWidth;
+    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
 
     if (this.dragType === 'min') {
       this.aiConfidenceRange.min = Math.min(percentage, this.aiConfidenceRange.max - 1);
@@ -1062,16 +1028,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       clientX = (event as MouseEvent).clientX;
     }
     const x = clientX - rect.left;
-    let percentage: number;
-    if (this.isScrolled) {
-      // In condensed mode, account for the 0.32px offset
-      const trackWidth = this.sliderTrackWidthCondensed;
-      const adjustedX = Math.max(0, x - 0.32);
-      percentage = Math.max(0, Math.min(100, (adjustedX / trackWidth) * 100));
-    } else {
-      const trackWidth = this.sliderTrackWidth;
-      percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
-    }
+    const trackWidth = this.sliderTrackWidth;
+    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
     
     // Determine which knob is closer to the click position
     const minDistance = Math.abs(percentage - this.aiConfidenceRange.min);
@@ -1092,9 +1050,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @returns {string[]} A list of time horizon labels matching the current data type.
    */
   get timeHorizons(): string[] {
-    return this.dataType === 'historical' 
-      ? ['-18 mo', '-12 mo', '-9 mo', '-6 mo', '-3 mo', 'Today']
-      : ['Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
+    // Unified time horizon scale combining historical and forecasted periods
+    return ['-18 mo', '-12 mo', '-9 mo', '-6 mo', '-3 mo', 'Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   }
 
   /**
@@ -1103,13 +1060,14 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    */
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
-    // Reset time horizon range based on data type
-    if (type === 'historical') {
-      // For historical: Today (index 5) to -3 mo (index 4)
-      this.timeHorizonRange = { startIndex: 4, endIndex: 5 };
-    } else {
-      // For forecasted: Today (index 0) to +3 mo (index 1)
-      this.timeHorizonRange = { startIndex: 0, endIndex: 1 };
+    const horizons = this.timeHorizons;
+    const todayIdx = horizons.indexOf('Today');
+    const plus3Idx = horizons.indexOf('+3 mo');
+    const minus3Idx = horizons.indexOf('-3 mo');
+    if (type === 'historical' && minus3Idx >= 0 && todayIdx >= 0) {
+      this.timeHorizonRange = { startIndex: minus3Idx, endIndex: todayIdx };
+    } else if (type === 'forecasted' && todayIdx >= 0 && plus3Idx >= 0) {
+      this.timeHorizonRange = { startIndex: todayIdx, endIndex: plus3Idx };
     }
     this.updateSelectedTimeHorizon();
     this.dataTypeChange.emit(type);
@@ -1119,9 +1077,20 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @returns {void} Updates and emits the currently selected time horizon.
    */
   private updateSelectedTimeHorizon(): void {
+    const horizons = this.timeHorizons;
+    const endHorizon = horizons[this.timeHorizonRange.endIndex];
+    const startHorizon = horizons[this.timeHorizonRange.startIndex];
+
+    // Derive data type implicitly from the selected range relative to "Today"
+    const todayIndex = horizons.indexOf('Today');
+    if (todayIndex >= 0) {
+      // If the range extends into the future (beyond Today), treat as forecasted;
+      // otherwise treat as historical.
+      this.dataType = this.timeHorizonRange.endIndex > todayIndex ? 'forecasted' : 'historical';
+      this.dataTypeChange.emit(this.dataType);
+    }
+
     // Emit the end value (right handle) as the selected time horizon (for backward compatibility)
-    const endHorizon = this.timeHorizons[this.timeHorizonRange.endIndex];
-    const startHorizon = this.timeHorizons[this.timeHorizonRange.startIndex];
     this.selectedTimeHorizon = endHorizon;
     this.timeHorizonChange.emit(endHorizon);
     // Also emit the range for components that need both start and end
@@ -1140,12 +1109,12 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     this.timeHorizonHasDragged = false;
     this.timeHorizonDragType = type;
     if (typeof document !== 'undefined' && document.body) document.body.classList.add('time-horizon-dragging');
-    // Store container: for full layout use ViewChild so drag always works; for condensed use closest from handle
-    if (!this.isScrolled && this.timeHorizonSliderContainerFull?.nativeElement) {
+    // Store container: prefer ViewChild so drag always works
+    if (this.timeHorizonSliderContainerFull?.nativeElement) {
       this.timeHorizonDragContainer = this.timeHorizonSliderContainerFull.nativeElement;
     } else {
       const target = event.target as HTMLElement;
-      this.timeHorizonDragContainer = target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-full, .time-horizon-slider-container-condensed') ?? target?.parentElement ?? null;
+      this.timeHorizonDragContainer = target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-full') ?? target?.parentElement ?? null;
     }
     this.handleTimeHorizonDrag(event);
   }
@@ -1165,7 +1134,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       return;
     }
     // Full layout: handler is on the wrapper; ignore clicks on labels (they have their own handler)
-    if (!this.isScrolled && target?.closest?.('.time-horizon-labels')) {
+    if (target?.closest?.('.time-horizon-labels')) {
       return;
     }
     // Avoid handling both mousedown and click for the same gesture (click fires after mousedown)
@@ -1180,10 +1149,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     }
     event.preventDefault();
     event.stopPropagation();
-    // Full layout: handler is on the container, so currentTarget is the container. Condensed: same.
-    const container = this.isScrolled
-      ? (event.currentTarget as HTMLElement)
-      : (this.timeHorizonSliderContainerFull?.nativeElement ?? (event.currentTarget as HTMLElement));
+    const container = this.timeHorizonSliderContainerFull?.nativeElement ?? (event.currentTarget as HTMLElement);
     if (!container) return;
     this.applyTimeHorizonTrackClick(event, container);
   }
@@ -1204,9 +1170,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const x = clientX - rect.left;
     let trackWidth: number;
     let xAdjusted = x;
-    if (this.isScrolled) {
-      trackWidth = 252;
-    } else if (isMobile) {
+    if (isMobile) {
       const padding = 6;
       xAdjusted = x - padding;
       trackWidth = rect.width - padding * 2;
@@ -1220,10 +1184,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
     const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
     const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
+
     if (startDistance <= endDistance) {
-      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex);
+      // Move start handle, but keep at least one step between start and end
+      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex - 1);
     } else {
-      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex);
+      // Move end handle, but keep at least one step between start and end
+      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex + 1);
     }
     this.updateSelectedTimeHorizon();
   }
@@ -1252,13 +1219,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
     const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
     
-    // Move the closer handle, or start handle if equidistant
+    // Move the closer handle, or start handle if equidistant, but always keep a range
     if (startDistance <= endDistance) {
-      // Move start handle, but ensure it doesn't go past end
-      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex);
+      // Move start handle, but ensure it stays at least one step before end
+      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex - 1);
     } else {
-      // Move end handle, but ensure it doesn't go before start
-      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex);
+      // Move end handle, but ensure it stays at least one step after start
+      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex + 1);
     }
     
     this.updateSelectedTimeHorizon();
@@ -1279,8 +1246,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const clientX = 'touches' in event ? event.touches[0]?.clientX : (event as MouseEvent).clientX;
     if (clientX == null) return;
     const x = clientX - rect.left;
-    // Use actual container width (works for both full and condensed)
-    const trackWidth = rect.width > 0 ? rect.width : (this.isScrolled ? 252 : this.timeHorizonSliderTrackWidth);
+    // Use actual container width
+    const trackWidth = rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth;
     const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
     
     // Calculate which index this percentage corresponds to
@@ -1289,11 +1256,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const clampedIndex = Math.max(0, Math.min(numSteps, stepIndex));
 
     if (this.timeHorizonDragType === 'start') {
-      // Ensure start is not greater than end
-      this.timeHorizonRange.startIndex = Math.min(clampedIndex, this.timeHorizonRange.endIndex);
+      // Ensure start is at least one step before end
+      this.timeHorizonRange.startIndex = Math.min(clampedIndex, this.timeHorizonRange.endIndex - 1);
     } else {
-      // Ensure end is not less than start
-      this.timeHorizonRange.endIndex = Math.max(clampedIndex, this.timeHorizonRange.startIndex);
+      // Ensure end is at least one step after start
+      this.timeHorizonRange.endIndex = Math.max(clampedIndex, this.timeHorizonRange.startIndex + 1);
     }
     
     this.timeHorizonHasDragged = true;
@@ -1311,13 +1278,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     // Check if on mobile/tablet (screen width <= 1024px)
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
     
-    if (this.isScrolled) {
-      const trackWidth = 252; // Condensed track width
-      return (index / numSteps) * trackWidth;
-    }
-    
     // On mobile, use actual container width (track is now 100% width minus padding, no compression)
-    if (isMobile && !this.isScrolled) {
+    if (isMobile) {
       // Try to get actual container width from ViewChild if available
       let containerWidth = 400; // Default fallback
       if (this.timeHorizonSliderContainer?.nativeElement) {
@@ -1336,7 +1298,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       return padding + (index / numSteps) * trackWidth;
     }
     
-    // Full (non-condensed) desktop: use actual container width so handles match track
+    // Desktop: use actual container width so handles match track
     const trackWidth = this.timeHorizonSliderContainer?.nativeElement
       ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
       : this.timeHorizonSliderTrackWidth;
@@ -1350,13 +1312,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const numSteps = this.timeHorizons.length - 1;
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
     
-    if (this.isScrolled) {
-      const trackWidth = 252; // Condensed track width
-      return (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
-    }
-    
     // On mobile, use actual container width (track is now 100% width minus padding)
-    if (isMobile && !this.isScrolled) {
+    if (isMobile) {
       let containerWidth = 400;
       if (this.timeHorizonSliderContainer?.nativeElement) {
         const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
@@ -1369,7 +1326,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       return padding + (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
     }
     
-    // Full (non-condensed) desktop: use actual container width
     const trackWidth = this.timeHorizonSliderContainer?.nativeElement
       ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
       : this.timeHorizonSliderTrackWidth;
@@ -1384,13 +1340,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
     
-    if (this.isScrolled) {
-      const trackWidth = 252; // Condensed track width
-      return (range / numSteps) * trackWidth;
-    }
-    
     // On mobile, use actual container width (track is now 100% width minus padding)
-    if (isMobile && !this.isScrolled) {
+    if (isMobile) {
       let containerWidth = 400;
       if (this.timeHorizonSliderContainer?.nativeElement) {
         const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
@@ -1402,7 +1353,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
       return (range / numSteps) * trackWidth;
     }
     
-    // Full (non-condensed) desktop: use actual container width
     const trackWidth = this.timeHorizonSliderContainer?.nativeElement
       ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
       : this.timeHorizonSliderTrackWidth;
@@ -1415,7 +1365,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @param ev - The event object to stop propagation
    * @returns {void}
    */
-  onInfoClick(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup', ev: Event): void {
+  onInfoClick(tooltipType: 'aiConfidence' | 'timeHorizon' | 'investorGroup' | 'productGroup', ev: Event): void {
     ev.stopPropagation();
     if (this.openTooltip === tooltipType) {
       this.openTooltip = null;
@@ -1461,7 +1411,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges, AfterV
    * @param tooltipType - The type of tooltip to check
    * @returns {boolean} True if the tooltip is open
    */
-  isTooltipOpen(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup'): boolean {
+  isTooltipOpen(tooltipType: 'aiConfidence' | 'timeHorizon' | 'investorGroup' | 'productGroup'): boolean {
     return this.openTooltip === tooltipType;
   }
 

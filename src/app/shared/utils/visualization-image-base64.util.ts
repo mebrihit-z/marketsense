@@ -1,3 +1,4 @@
+/* eslint-disable */
 /** Normalize optional visualization payload from API (snake/camel keys, data-URL prefix). */
 export function pickVisualizationImageBase64FromResponseBody(body: unknown): string | undefined {
   if (body == null || typeof body !== 'object') return undefined;
