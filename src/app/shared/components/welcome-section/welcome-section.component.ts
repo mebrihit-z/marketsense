@@ -6,7 +6,7 @@ import { distinctUntilChanged, filter, map, take } from 'rxjs/operators';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../title/title.component';
 import UserProfileService from '../../services/user-profile.service';
-import { SavedViewsService, type SavedView } from '../../../core/services/saved-views.service';
+import { SavedViewsService, type SavedView, type SavedViewState } from '../../../core/services/saved-views.service';
 
 export interface ViewingOption {
   name: string;
@@ -88,24 +88,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   ngOnInit(): void {
-    if (this.savedViewsService.isSavedViewsBackendEnabled()) {
-      // VDI: defer until OAuth `sub` is available, otherwise userId is undefined and the dropdown shows 0.
-      this.userReadySub = this.userProfileService.user$
-        .pipe(
-          map((user) => this.resolvedUserId() ?? user?.sub ?? null),
-          map((id) => (id != null && String(id).trim() !== '' ? String(id).trim() : null)),
-          filter((id): id is string => id !== null && id !== 'anonymous'),
-          distinctUntilChanged(),
-          take(1)
-        )
-        .subscribe(() => {
-          this.hydrateProfileFromPreference();
-          this.loadSavedViews();
-        });
-    } else {
-      this.hydrateProfileFromPreference();
-      this.loadSavedViews();
-    }
+    this.hydrateProfileFromPreference();
+    this.loadSavedViews();
   }
 
   ngAfterViewInit(): void {
@@ -169,17 +153,21 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
           return;
         }
 
-        const prevActiveKey = this.activeOptionKey(this.viewingOptions.find((o) => o.isActive));
         const defaultView = views.find((v) => v?.isDefault === true) ?? null;
-        const fallbackView = defaultView ?? views[0];
-        const fallbackIndex = fallbackView ? views.indexOf(fallbackView) : 0;
-        const fallbackKey = fallbackView ? this.savedViewRowKey(fallbackView, fallbackIndex >= 0 ? fallbackIndex : 0) : null;
+        const defaultIndex = defaultView ? views.indexOf(defaultView) : -1;
+        const defaultRowKey =
+          defaultView != null && defaultIndex >= 0
+            ? this.savedViewRowKey(defaultView, defaultIndex)
+            : null;
 
+        const prevActiveKey = this.activeOptionKey(this.viewingOptions.find((o) => o.isActive));
         const previousStillHere =
-          prevActiveKey != null && views.some((v, i) => this.savedViewRowKey(v, i) === prevActiveKey);
+          prevActiveKey != null &&
+          views.some((v, i) => this.savedViewRowKey(v, i) === prevActiveKey);
 
-        // Default preset ≠ Active: keep the card that already has filters applied, unless it disappeared.
-        const activeKey = previousStillHere ? prevActiveKey : fallbackKey;
+        // If the user already marked a preset Active and it is still present, keep it. Otherwise tag the
+        // default preset — that matches what the filters bar applies on load (see applyDefaultSavedViewIfPresent).
+        const activeKey = previousStillHere ? prevActiveKey : defaultRowKey;
 
         const mapped = views.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
@@ -191,7 +179,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
             savedDate,
             tags,
             isDefault: item?.isDefault === true,
-            isActive: activeKey != null ? key === activeKey : index === 0,
+            isActive: activeKey != null && key === activeKey,
             raw: item,
           };
         });
@@ -323,45 +311,144 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   /**
-   * Convert ISO timestamp into a simple human-readable "saved" label.
+   * Calendar date when the view was saved (from ISO {@link SavedView.savedAt}).
    */
   private formatSavedDate(savedAt?: string): string {
-    if (!savedAt) {
-      return 'recently';
+    if (!savedAt?.trim()) {
+      return '—';
     }
     const saved = new Date(savedAt);
     if (Number.isNaN(saved.getTime())) {
-      return 'recently';
+      return '—';
     }
-    const now = new Date();
-    const diffMs = now.getTime() - saved.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays <= 0) return 'today';
-    if (diffDays === 1) return '1 day ago';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    const diffWeeks = Math.floor(diffDays / 7);
-    if (diffWeeks === 1) return '1 week ago';
-    return `${diffWeeks} weeks ago`;
+    return saved.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   }
 
   /**
-   * Derive simple tags from a saved filter state to surface in the UI.
+   * Saved Views dropdown chips: first value per dimension; if more are selected, (+n) = how many are not shown.
    */
-  private deriveTagsFromState(state: any): string[] {
-    if (!state || typeof state !== 'object') return [];
+  private deriveTagsFromState(state: SavedViewState | string | null | undefined): string[] {
+    let raw: unknown = state;
+    if (typeof state === 'string') {
+      const t = state.trim();
+      if (!t) return [];
+      try {
+        raw = JSON.parse(t);
+      } catch {
+        return [];
+      }
+    }
+    if (!raw || typeof raw !== 'object') return [];
+    const coerced = this.coerceSavedViewStateForTags(raw as SavedViewState);
     const tags: string[] = [];
-    if (Array.isArray(state.productType) && state.productType.length > 0) {
-      tags.push(...state.productType.slice(0, 2));
-    }
-    if (Array.isArray(state.productRegion) && state.productRegion.length > 0) {
-      // Show only the primary product region as a tag
-      tags.push(state.productRegion[0]);
-    }
-    if (Array.isArray(state.investorRegion) && state.investorRegion.length > 0) {
-      // Show only the primary investor region as a tag
-      tags.push(state.investorRegion[0]);
-    }
-    return tags.slice(0, 3);
+    const investorTag = this.formatSavedViewInvestorTag(coerced);
+    const productTag = this.formatSavedViewProductTag(coerced);
+    if (investorTag) tags.push(investorTag);
+    if (productTag) tags.push(productTag);
+    return tags;
+  }
+
+  /**
+   * Normalize saved `state` from API/localStorage: camelCase + snake_case, plural keys,
+   * arrays, or comma-/semicolon-separated strings (so multi-select counts are not lost).
+   */
+  private coerceSavedViewStateForTags(state: SavedViewState): SavedViewState {
+    const s = state as unknown as Record<string, unknown>;
+
+    const expandToStringList = (value: unknown): string[] => {
+      if (value == null) return [];
+      if (Array.isArray(value)) {
+        const out: string[] = [];
+        for (const x of value) {
+          out.push(...expandToStringList(x));
+        }
+        return out.map((t) => t.trim()).filter(Boolean);
+      }
+      const str = String(value).trim();
+      if (!str) return [];
+      if (str.includes(',') || str.includes(';')) {
+        return str
+          .split(/[,;]/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+      }
+      return [str];
+    };
+
+    const isPresent = (v: unknown): boolean => {
+      if (v == null) return false;
+      if (typeof v === 'string') return v.trim().length > 0;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    };
+
+    const firstDefined = (...keys: string[]): unknown => {
+      for (const k of keys) {
+        const v = s[k];
+        if (isPresent(v)) return v;
+      }
+      return undefined;
+    };
+
+    const toStrings = (...keys: string[]): string[] => expandToStringList(firstDefined(...keys));
+
+    return {
+      investorRegion: toStrings('investorRegion', 'investor_region', 'investorRegions', 'investor_regions'),
+      investorType: toStrings('investorType', 'investor_type', 'investorTypes', 'investor_types'),
+      productRegion: toStrings('productRegion', 'product_region', 'productRegions', 'product_regions'),
+      productType: toStrings('productType', 'product_type', 'productTypes', 'product_types'),
+      productSubType: toStrings(
+        'productSubType',
+        'product_sub_type',
+        'productSubTypes',
+        'product_sub_types'
+      ),
+    };
+  }
+
+  /**
+   * First selected label only when it is the sole value; otherwise same label plus (+n)
+   * where n is how many additional values are not listed.
+   */
+  private formatSavedViewSegmentLabel(label: string, totalSelected: number): string {
+    if (!label) return '';
+    const notShown = totalSelected - 1;
+    if (notShown <= 0) return label;
+    return `${label} (+${notShown})`;
+  }
+
+  private formatSavedViewInvestorTag(state: SavedViewState): string | null {
+    const regions = state.investorRegion;
+    const types = state.investorType;
+    const region = regions?.[0];
+    const type = types?.[0];
+    if (!region && !type) return null;
+    const rCount = regions?.length ?? 0;
+    const tCount = types?.length ?? 0;
+    const rSeg = region ? this.formatSavedViewSegmentLabel(region, rCount) : '';
+    const tSeg = type ? this.formatSavedViewSegmentLabel(type, tCount) : '';
+    if (region && type) return `Investor - ${rSeg} / ${tSeg}`;
+    if (region) return `Investor - ${rSeg}`;
+    return `Investor - ${tSeg}`;
+  }
+
+  private formatSavedViewProductTag(state: SavedViewState): string | null {
+    const regions = state.productRegion;
+    const ptypes = state.productType;
+    const region = regions?.[0];
+    const ptype = ptypes?.[0];
+    if (!region && !ptype) return null;
+    const rCount = regions?.length ?? 0;
+    const tCount = ptypes?.length ?? 0;
+    const rSeg = region ? this.formatSavedViewSegmentLabel(region, rCount) : '';
+    const tSeg = ptype ? this.formatSavedViewSegmentLabel(ptype, tCount) : '';
+    if (region && ptype) return `Product - ${rSeg} / ${tSeg}`;
+    if (region) return `Product - ${rSeg}`;
+    return `Product - ${tSeg}`;
   }
 
   /**
@@ -371,20 +458,20 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return [
       {
         name: 'High-confidence Equities',
-        savedDate: '2 days ago',
-        tags: ['Equity', 'North America, Europe'],
-        isActive: true,
+        savedDate: 'Mar 28, 2026',
+        tags: ['Investor - United States (+1) / Endowment', 'Product - North America / Equities (+1)'],
+        isActive: false,
       },
       {
         name: 'Global Alternatives View',
-        savedDate: '5 days ago',
-        tags: ['Alternatives, Private Equity'],
+        savedDate: 'Mar 25, 2026',
+        tags: ['Investor - Europe (+2) / Foundation (+1)', 'Product - US (+1) / Alternatives'],
         isActive: false,
       },
       {
         name: 'All Equities',
-        savedDate: '1 week ago',
-        tags: ['Equity'],
+        savedDate: 'Mar 20, 2026',
+        tags: ['Investor - United States / Pensions (+1)', 'Product - Global (+1) / Equities (+2)'],
         isActive: false,
       },
     ];
@@ -548,10 +635,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       this.isViewingDropdownOpen = false;
     } else if (wasActive && hadMultiple) {
       this.viewingFilter = next[0].name;
-      next = next.map((o, i) => ({
-        ...o,
-        isActive: i === 0,
-      }));
+      next = next.map((o) => ({ ...o, isActive: false }));
       this.viewingOptions = this.orderViewingOptionsForDropdown(next);
     } else {
       this.viewingOptions = this.orderViewingOptionsForDropdown(next);

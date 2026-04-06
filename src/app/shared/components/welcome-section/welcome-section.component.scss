@@ -290,12 +290,19 @@
   &:hover {
     background-color: $dropdown-hover-background;
   }
-  
+  .option-tag {
+    padding: 2px 8px;
+  }
   &.active {
-    background-color:$neutral-colors-neutral-250;
-    .option-tag{
-      padding: 8px;
+    background-color: $neutral-colors-neutral-250;
+
+    .option-tag {
+      background-color: $white;
     }
+  }
+
+  &:not(.active) .option-tag {
+    background-color: $neutral-colors-neutral-250;
   }
 }
 
@@ -422,8 +429,7 @@
 .option-tag {
   display: inline-flex;
   align-items: center;
-  height: 20px;
-  background-color: $white;
+  min-height: 20px;
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
