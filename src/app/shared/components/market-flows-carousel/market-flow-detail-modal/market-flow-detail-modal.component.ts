@@ -27,6 +27,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Output() close = new EventEmitter<void>();
+  /** Inline layout: parent should open a root-level export dialog (correct z-index vs sticky filters). */
+  @Output() openExport = new EventEmitter<void>();
 
   showExportModal: boolean = false;
   yAxisLabelText: string = 'Billions (USD)';
@@ -384,6 +386,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
 
   onDownload(): void {
+    if (this.inline) {
+      this.openExport.emit();
+      return;
+    }
     this.showExportModal = true;
   }
 

@@ -150,12 +150,3 @@
     </div>
   </div>
 </div>
-
-<!-- Export Modal (also used when inline) -->
-<app-export-modal
-  *ngIf="inline"
-  [isVisible]="showExportModal"
-  (close)="onCloseExportModal()"
-  (exportXLS)="onExportXLS()"
-  (exportPDF)="onExportPDF()">
-</app-export-modal>

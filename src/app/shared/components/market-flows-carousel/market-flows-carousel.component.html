@@ -62,7 +62,8 @@
         [selectedInvestorTypes]="selectedInvestorTypes"
         [selectedProductRegions]="selectedProductRegions"
         [selectedProductTypes]="selectedProductTypes"
-        (close)="onCloseDetailModal()">
+        (close)="onCloseDetailModal()"
+        (openExport)="onDownload()">
       </app-market-flow-detail-modal>
     </div>
     <div class="stacked-cards-column">
