@@ -12,6 +12,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { displayMinFlowEndLabel, displayMinFlowStartLabel } from '../../utils/min-flow-value-options.util';
 
 export interface MinFlowRange {
   startIndex: number;
@@ -75,7 +76,7 @@ export class MinFlowRangeSliderComponent implements OnChanges {
 
   get startLabel(): string {
     const raw = this.options[this.activeRange.startIndex]?.label ?? '';
-    return this.formatMinLabel(raw);
+    return displayMinFlowStartLabel(raw);
   }
 
   /**
@@ -83,27 +84,7 @@ export class MinFlowRangeSliderComponent implements OnChanges {
    * so we show ≤… / “No max”, not the option’s “≥ …” minimum-threshold wording.
    */
   get endLabel(): string {
-    const opts = this.options;
-    const endIdx = this.activeRange.endIndex;
-    if (!opts.length) return '';
-    const last = opts.length - 1;
-    if (endIdx >= last) return 'Max';
-    const val = opts[endIdx]?.value;
-    if (val == null || !Number.isFinite(val)) return '';
-    return this.formatUpperBoundLabel(val);
-  }
-
-  private formatUpperBoundLabel(valueBn: number): string {
-    if (valueBn <= 0) return 'Max';
-    if (valueBn < 1) {
-      const m = valueBn * 1000;
-      const s = Number.isInteger(m) ? String(m) : m.toFixed(0);
-      return `$${s}M`;
-    }
-    const s = Number.isInteger(valueBn)
-      ? valueBn.toLocaleString('en-US')
-      : valueBn.toLocaleString('en-US', { maximumFractionDigits: 2 });
-    return `$${s}B`;
+    return displayMinFlowEndLabel(this.options, this.activeRange.endIndex);
   }
 
   getHandlePosition(type: 'start' | 'end'): number {
@@ -155,16 +136,9 @@ export class MinFlowRangeSliderComponent implements OnChanges {
       .sort((a, b) => a - b)
       .map((i) => ({
         index: i,
-        label: this.formatMinLabel(opts[i]?.label ?? ''),
+        label: displayMinFlowStartLabel(opts[i]?.label ?? ''),
         leftPercent: this.dotLeftPercent(i),
       }));
-  }
-
-  private formatMinLabel(raw: string): string {
-    // Options are authored like "≥ $50M". For this slider's UI we want "$50M".
-    const cleaned = (raw ?? '').replace(/^\s*≥\s*/u, '').trim();
-    if (cleaned.toLowerCase() === 'all flows') return '$0';
-    return cleaned;
   }
 
   startDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end'): void {

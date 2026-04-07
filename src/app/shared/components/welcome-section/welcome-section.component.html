@@ -63,7 +63,17 @@
                   </div>
                   <p class="option-saved-date">Saved {{ option.savedDate }}</p>
                   <div class="option-tags">
-                    <span class="option-tag" *ngFor="let tag of option.tags">{{ tag }}</span>
+                    <span class="option-tag" *ngFor="let tag of option.tags; let tagIndex = index">
+                      <span class="option-tag-text">{{ tag }}</span>
+                      <span class="option-tag-tooltip" *ngIf="savedViewTagTooltipFields(option, tagIndex) as tipFields">
+                        <span class="option-tag-tooltip-stack">
+                          <div class="option-tag-tooltip-field" *ngFor="let field of tipFields">
+                            <div class="option-tag-tooltip-field-label">{{ field.label }}</div>
+                            <div class="option-tag-tooltip-field-value">{{ field.value }}</div>
+                          </div>
+                        </span>
+                      </span>
+                    </span>
                   </div>
                 </div>
                 <div class="option-set-default">

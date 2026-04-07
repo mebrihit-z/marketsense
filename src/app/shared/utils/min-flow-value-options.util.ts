@@ -41,3 +41,37 @@ export function getMaxFlowUpperBound(
   if (range.endIndex >= last) return null;
   return options[range.endIndex]?.value ?? null;
 }
+
+/**
+ * Lower-handle summary text (matches {@link MinFlowRangeSliderComponent} start label).
+ * Strips a leading "≥" from option copy; maps "All flows" to "$0".
+ */
+export function displayMinFlowStartLabel(rawLabel: string): string {
+  const cleaned = (rawLabel ?? '').replace(/^\s*≥\s*/u, '').trim();
+  if (cleaned.toLowerCase() === 'all flows') return '$0';
+  return cleaned;
+}
+
+/**
+ * Upper-handle summary: inclusive max in $M / $B, or "Max" when the end handle is at the last stop.
+ */
+export function displayMinFlowEndLabel(
+  options: readonly { value: number; label: string }[],
+  endIndex: number
+): string {
+  if (!options.length) return '';
+  const last = options.length - 1;
+  if (endIndex >= last) return 'Max';
+  const valueBn = options[endIndex]?.value;
+  if (valueBn == null || !Number.isFinite(valueBn)) return '';
+  if (valueBn <= 0) return 'Max';
+  if (valueBn < 1) {
+    const m = valueBn * 1000;
+    const s = Number.isInteger(m) ? String(m) : m.toFixed(0);
+    return `$${s}M`;
+  }
+  const s = Number.isInteger(valueBn)
+    ? valueBn.toLocaleString('en-US')
+    : valueBn.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  return `$${s}B`;
+}

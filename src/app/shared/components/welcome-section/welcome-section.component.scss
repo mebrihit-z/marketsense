@@ -169,7 +169,7 @@
 
 .viewing-dropdown {
   position: fixed !important;
-  min-width: 318px;
+  min-width: 360px;
   max-width: calc(100vw - 32px); /* prevent right-edge cut-off */
   background: $bg-white !important;
   border: 1px solid $border-gray-medium;
@@ -317,6 +317,8 @@
 
 .option-apply-zone {
   cursor: pointer;
+  min-width: 0;
+  width: 100%;
 }
 
 .option-top-row {
@@ -418,23 +420,97 @@
 
 .option-tags {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  /* Allow tags to wrap to multiple lines without being clipped */
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
   min-height: 20px;
   margin-top: 2px;
 }
 
 .option-tag {
-  display: inline-flex;
-  align-items: center;
+  position: relative;
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  vertical-align: top;
   min-height: 20px;
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
   color: $text-midnight-blue;
-  flex-shrink: 0;
+
+  &:has(.option-tag-tooltip) {
+    cursor: help;
+  }
+}
+
+.option-tag-text {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.option-tag-tooltip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 6;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: #2d2d2d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #fff;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.option-tag-tooltip-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+
+.option-tag-tooltip-field {
+  display: block;
+
+  &:not(:first-child) {
+    margin-top: 10px;
+  }
+}
+
+.option-tag-tooltip-field-label {
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #fff;
+}
+
+.option-tag-tooltip-field-value {
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.45;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.option-tag:hover .option-tag-tooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
 .delete-btn {

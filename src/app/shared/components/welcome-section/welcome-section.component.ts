@@ -7,11 +7,24 @@ import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsen
 import TitleComponent from '../title/title.component';
 import UserProfileService from '../../services/user-profile.service';
 import { SavedViewsService, type SavedView, type SavedViewState } from '../../../core/services/saved-views.service';
+import {
+  MIN_FLOW_VALUE_OPTIONS,
+  displayMinFlowEndLabel,
+  displayMinFlowStartLabel,
+} from '../../utils/min-flow-value-options.util';
+
+/** One block in the saved-view hover tooltip: bold label line, value line below. */
+export interface SavedViewTagTooltipField {
+  label: string;
+  value: string;
+}
 
 export interface ViewingOption {
   name: string;
   savedDate: string;
   tags: string[];
+  /** Same length as `tags`: tooltip fields per chip (label above value). */
+  tagTooltipFields?: SavedViewTagTooltipField[][];
   isActive: boolean;
   /** Marks which saved view should be treated as default. */
   isDefault?: boolean;
@@ -172,12 +185,13 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
         const mapped = views.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
-          const tags = this.deriveTagsFromState(item?.state);
+          const { tags, tagTooltipFields } = this.buildSavedViewTagsAndTooltips(item);
           const key = this.savedViewRowKey(item, index);
           return {
             name,
             savedDate,
             tags,
+            tagTooltipFields,
             isDefault: item?.isDefault === true,
             isActive: activeKey != null && key === activeKey,
             raw: item,
@@ -329,27 +343,56 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   /**
-   * Saved Views dropdown chips: first value per dimension; if more are selected, (+n) = how many are not shown.
+   * Saved Views dropdown chips plus hover tooltips (filters, time horizon).
    */
-  private deriveTagsFromState(state: SavedViewState | string | null | undefined): string[] {
+  private buildSavedViewTagsAndTooltips(
+    view: SavedView | null | undefined
+  ): { tags: string[]; tagTooltipFields: SavedViewTagTooltipField[][] } {
+    const tags: string[] = [];
+    const tagTooltipFields: SavedViewTagTooltipField[][] = [];
+
+    const state: unknown = view?.state;
     let raw: unknown = state;
     if (typeof state === 'string') {
       const t = state.trim();
-      if (!t) return [];
-      try {
-        raw = JSON.parse(t);
-      } catch {
-        return [];
+      if (t) {
+        try {
+          raw = JSON.parse(t);
+        } catch {
+          raw = null;
+        }
+      } else {
+        raw = null;
       }
     }
-    if (!raw || typeof raw !== 'object') return [];
-    const coerced = this.coerceSavedViewStateForTags(raw as SavedViewState);
-    const tags: string[] = [];
-    const investorTag = this.formatSavedViewInvestorTag(coerced);
-    const productTag = this.formatSavedViewProductTag(coerced);
-    if (investorTag) tags.push(investorTag);
-    if (productTag) tags.push(productTag);
-    return tags;
+
+    if (raw && typeof raw === 'object') {
+      const coerced = this.coerceSavedViewStateForTags(raw as SavedViewState);
+      const investorTag = this.formatSavedViewInvestorTag(coerced);
+      if (investorTag) {
+        tags.push(investorTag);
+        tagTooltipFields.push(this.buildInvestorTooltipFields(coerced));
+      }
+      const productTag = this.formatSavedViewProductTag(coerced);
+      if (productTag) {
+        tags.push(productTag);
+        tagTooltipFields.push(this.buildProductTooltipFields(coerced));
+      }
+    }
+
+    const timeTag = this.formatSavedViewTimeHorizonTag(view);
+    if (timeTag && view) {
+      tags.push(timeTag);
+      tagTooltipFields.push(this.buildTimeHorizonTooltipFields(view));
+    }
+
+    const minFlowTag = this.formatSavedViewMinFlowTag(view);
+    if (minFlowTag && view) {
+      tags.push(minFlowTag);
+      tagTooltipFields.push(this.buildMinFlowTooltipFields(view));
+    }
+
+    return { tags, tagTooltipFields };
   }
 
   /**
@@ -451,6 +494,82 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return `Product - ${tSeg}`;
   }
 
+  /** Chip label from {@link SavedView} time-horizon fields saved by the filters bar. */
+  private formatSavedViewTimeHorizonTag(view: SavedView | null | undefined): string | null {
+    if (!view || typeof view !== 'object') return null;
+    const labels = view.timeHorizonRangeLabels;
+    if (labels && typeof labels === 'object') {
+      const a = String(labels.start ?? '').trim();
+      const b = String(labels.end ?? '').trim();
+      if (a && b) {
+        if (a === b) return `Time horizon - ${a}`;
+        return `Time horizon - ${a} to ${b}`;
+      }
+    }
+    const sel = view.selectedTimeHorizon != null ? String(view.selectedTimeHorizon).trim() : '';
+    if (sel) return `Time horizon - ${sel}`;
+    return null;
+  }
+
+  private buildTimeHorizonTooltipFields(view: SavedView): SavedViewTagTooltipField[] {
+    const tag = this.formatSavedViewTimeHorizonTag(view);
+    if (!tag) return [];
+    const value = tag.replace(/^Time horizon -\s*/i, '').trim();
+    return [{ label: 'Time horizon:', value: value.length > 0 ? value : tag }];
+  }
+
+  /** Chip label from {@link SavedView.minFlowRange} (indices into {@link MIN_FLOW_VALUE_OPTIONS}). */
+  private formatSavedViewMinFlowTag(view: SavedView | null | undefined): string | null {
+    const mfr = view?.minFlowRange;
+    if (!mfr || typeof mfr !== 'object') return null;
+    const opts = MIN_FLOW_VALUE_OPTIONS;
+    const n = opts.length;
+    if (n <= 0) return null;
+    let start = Number(mfr.startIndex);
+    let end = Number(mfr.endIndex);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    start = Math.max(0, Math.min(n - 1, Math.floor(start)));
+    end = Math.max(0, Math.min(n - 1, Math.floor(end)));
+    if (end < start) {
+      const t = start;
+      start = end;
+      end = t;
+    }
+    const startRaw = opts[start]?.label ?? '';
+    const startDisplay = displayMinFlowStartLabel(startRaw);
+    const endDisplay = displayMinFlowEndLabel(opts, end);
+    if (!startDisplay || !endDisplay) return null;
+    if (startDisplay === endDisplay) {
+      return `Min flow value - ${startDisplay}`;
+    }
+    return `Min flow value - ${startDisplay} to ${endDisplay}`;
+  }
+
+  private buildMinFlowTooltipFields(view: SavedView): SavedViewTagTooltipField[] {
+    const tag = this.formatSavedViewMinFlowTag(view);
+    if (!tag) return [];
+    const value = tag.replace(/^Min flow value -\s*/i, '').trim();
+    return [{ label: 'Min flow value:', value: value.length > 0 ? value : tag }];
+  }
+
+  private buildInvestorTooltipFields(coerced: SavedViewState): SavedViewTagTooltipField[] {
+    const out: SavedViewTagTooltipField[] = [];
+    const r = coerced.investorRegion;
+    const t = coerced.investorType;
+    if (r?.length) out.push({ label: 'Investor Region:', value: r.join(', ') });
+    if (t?.length) out.push({ label: 'Investor Type:', value: t.join(', ') });
+    return out;
+  }
+
+  private buildProductTooltipFields(coerced: SavedViewState): SavedViewTagTooltipField[] {
+    const out: SavedViewTagTooltipField[] = [];
+    const r = coerced.productRegion;
+    const t = coerced.productType;
+    if (r?.length) out.push({ label: 'Product Region:', value: r.join(', ') });
+    if (t?.length) out.push({ label: 'Product Type:', value: t.join(', ') });
+    return out;
+  }
+
   /**
    * Original static presets used as a fallback when no local saved views exist.
    */
@@ -459,22 +578,78 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       {
         name: 'High-confidence Equities',
         savedDate: 'Mar 28, 2026',
-        tags: ['Investor - United States (+1) / Endowment', 'Product - North America / Equities (+1)'],
+        tags: [
+          'Investor - United States (+1) / Endowment',
+          'Product - North America / Equities (+1)',
+          'Time horizon - Today to +3 mo',
+          'Min flow value - $0 to Max',
+        ],
+        tagTooltipFields: [
+          [
+            { label: 'Investor Region:', value: 'United States, Europe' },
+            { label: 'Investor Type:', value: 'Endowment' },
+          ],
+          [
+            { label: 'Product Region:', value: 'North America' },
+            { label: 'Product Type:', value: 'Equities, Fixed Income' },
+          ],
+          [{ label: 'Time horizon:', value: 'Today to +3 mo' }],
+          [{ label: 'Min flow value:', value: '$0 to Max' }],
+        ],
         isActive: false,
       },
       {
         name: 'Global Alternatives View',
         savedDate: 'Mar 25, 2026',
-        tags: ['Investor - Europe (+2) / Foundation (+1)', 'Product - US (+1) / Alternatives'],
+        tags: [
+          'Investor - Europe (+2) / Foundation (+1)',
+          'Product - US (+1) / Alternatives',
+          'Time horizon - -6 mo to Today',
+        ],
+        tagTooltipFields: [
+          [
+            { label: 'Investor Region:', value: 'Europe, Asia, Americas' },
+            { label: 'Investor Type:', value: 'Foundation, Pension' },
+          ],
+          [
+            { label: 'Product Region:', value: 'US, UK' },
+            { label: 'Product Type:', value: 'Alternatives' },
+          ],
+          [{ label: 'Time horizon:', value: '-6 mo to Today' }],
+        ],
         isActive: false,
       },
       {
         name: 'All Equities',
         savedDate: 'Mar 20, 2026',
-        tags: ['Investor - United States / Pensions (+1)', 'Product - Global (+1) / Equities (+2)'],
+        tags: [
+          'Investor - United States / Pensions (+1)',
+          'Product - Global (+1) / Equities (+2)',
+          'Time horizon - Today to +12 mo',
+          'Min flow value - $500M to Max',
+        ],
+        tagTooltipFields: [
+          [
+            { label: 'Investor Region:', value: 'United States' },
+            { label: 'Investor Type:', value: 'Pensions, Endowment' },
+          ],
+          [
+            { label: 'Product Region:', value: 'Global, Emerging Markets' },
+            { label: 'Product Type:', value: 'Equities, Private Equity, Real Estate' },
+          ],
+          [{ label: 'Time horizon:', value: 'Today to +12 mo' }],
+          [{ label: 'Min flow value:', value: '$500M to Max' }],
+        ],
         isActive: false,
       },
     ];
+  }
+
+  /** Fields for the hover tooltip on a tag chip; null when there is nothing to show. */
+  savedViewTagTooltipFields(option: ViewingOption, index: number): SavedViewTagTooltipField[] | null {
+    const rows = option.tagTooltipFields?.[index];
+    if (!rows?.length) return null;
+    return rows;
   }
 
   toggleViewingDropdown(): void {
@@ -491,7 +666,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   /** Min width of the dropdown (must match .viewing-dropdown min-width in SCSS). */
-  private readonly dropdownMinWidth = 318;
+  private readonly dropdownMinWidth = 360;
   private readonly viewportPadding = 32;
 
   updateDropdownPosition(): void {
