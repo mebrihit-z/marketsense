@@ -6,7 +6,10 @@ import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/m
 import TitleComponent from '../title/title.component';
 import { AiChatService, type AiChatResponse } from '../../../core/services/ai-chat.service';
 import { loadImageFromDataUrl } from '../../utils/chart-dom-export.util';
-import { coerceVisualizationImageBase64Payload } from '../../utils/visualization-image-base64.util';
+import {
+  coerceVisualizationImageBase64Payload,
+  pickVisualizationImageBase64FromResponseBody,
+} from '../../utils/visualization-image-base64.util';
 import { jsPDF } from 'jspdf';
 
 export interface AnalysisResult {
@@ -189,11 +192,26 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message ?? err?.message ?? 'Failed to get AI response. Please try again.';
+        this.errorMessage = this.resolveAiChatErrorMessage(err);
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /** HTTP errors and service-thrown failures: nested `error.message` (API envelope) or flat message. */
+  private resolveAiChatErrorMessage(err: unknown): string {
+    const e = err as {
+      error?: { message?: string; error?: { message?: string } };
+      message?: string;
+    };
+    const nested = e?.error?.error?.message;
+    if (typeof nested === 'string' && nested.trim()) return nested.trim();
+    const flat = e?.error?.message;
+    if (typeof flat === 'string' && flat.trim()) return flat.trim();
+    const top = e?.message;
+    if (typeof top === 'string' && top.trim()) return top.trim();
+    return 'Failed to get AI response. Please try again.';
   }
 
   private toAnalysisResult(res: AiChatResponse): AnalysisResult {
@@ -201,6 +219,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     const routeNorm = res.route?.toString().trim().toLowerCase();
     const fallbackText = (res.message == null ? '' : String(res.message)).trim();
     const vizMessage = res.visualization_message;
+    const hasVizMessage = typeof vizMessage === 'string' && vizMessage.trim().length > 0;
 
     if (routeNorm === 'fallback') {
       return {
@@ -218,19 +237,31 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       };
     }
 
+    const summaryTrimmed = (res.summary == null ? '' : String(res.summary)).trim();
+    /** e.g. genie + intent data with `message: "No data is available for this query."` and empty summary */
+    const useBackendMessageAsSummary = !summaryTrimmed && !!fallbackText;
+    const summary = summaryTrimmed || fallbackText || '';
+    const cols = (res.columns ?? []) as string[];
+    const rows = (res.rows ?? []) as Record<string, unknown>[];
+    const hasTable = cols.length > 0 && rows.length > 0;
+    /**
+     * Match fallback UX (section label "Message", hide empty blocks) only when there is no results table
+     * and nothing to show under Visualization (image or backend visualization_message).
+     */
+    const useFallbackLayout = useBackendMessageAsSummary && !hasTable && !hasVizMessage;
+
     return {
       question: res.question,
       timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
-      summary: res.summary ?? '',
+      summary,
       key_points: res.key_points ?? [],
       key_drivers: res.key_drivers ?? [],
-      visualization_image_base64:
-        coerceVisualizationImageBase64Payload(res.visualization_image_base64) ??
-        res.visualization_image_base64,
+      visualization_image_base64: pickVisualizationImageBase64FromResponseBody(res),
       visualization_message: vizMessage ?? null,
       row_count: res.row_count,
-      columns: (res.columns ?? []) as string[],
-      rows: (res.rows ?? []) as Record<string, unknown>[],
+      columns: cols,
+      rows: rows,
+      ...(useFallbackLayout ? { isFallbackResponse: true } : {}),
     };
   }
 
@@ -302,7 +333,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message ?? err?.message ?? 'Failed to get AI response. Please try again.';
+        this.errorMessage = this.resolveAiChatErrorMessage(err);
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
       },

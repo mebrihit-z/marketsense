@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, map, catchError, delay } from 'rxjs';
+import { Observable, of, map, catchError, delay, mergeMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { coerceVisualizationImageBase64Payload } from '../../shared/utils/visualization-image-base64.util';
+import { pickVisualizationImageBase64FromResponseBody } from '../../shared/utils/visualization-image-base64.util';
 
 /** Response shape from backend AI chat or mock JSON */
 export interface AiChatResponse {
@@ -45,6 +45,13 @@ export interface AiChatResponse {
    * populated in the service for easier rendering.
    */
   timestamp?: string;
+}
+
+/** Backend may return HTTP 200 with this envelope when the query fails (e.g. gateway timeout). */
+interface AiChatFailureEnvelope {
+  success: false;
+  error?: { code?: string; message?: string };
+  message?: string;
 }
 
 /** Request payload for AI chat (backend API shape) */
@@ -102,15 +109,42 @@ export class AiChatService {
 
   private postToBackend(req: AiChatRequest): Observable<AiChatResponse> {
     const url = `${environment.aiChatApiUrl}`.replace(/\/$/, '');
-    return this.http
-      .post<AiChatResponse>(url, req)
-      .pipe(
-        map((res) => this.normalizeResponse(res, req.question)),
-        catchError((err) => {
-          console.error('AI Chat API error:', err);
-          throw err;
-        })
-      );
+    return this.http.post<AiChatResponse | AiChatFailureEnvelope>(url, req).pipe(
+      mergeMap((res) => {
+        if (this.isAiChatFailureEnvelope(res)) {
+          const message = this.extractAiChatApiErrorMessage(res);
+          return throwError(() => ({
+            error: { message, code: res.error?.code },
+          }));
+        }
+        return of(res as AiChatResponse);
+      }),
+      map((res) => this.normalizeResponse(res, req.question)),
+      catchError((err) => {
+        console.error('AI Chat API error:', err);
+        throw err;
+      })
+    );
+  }
+
+  private isAiChatFailureEnvelope(res: unknown): res is AiChatFailureEnvelope {
+    return (
+      typeof res === 'object' &&
+      res !== null &&
+      (res as AiChatFailureEnvelope).success === false
+    );
+  }
+
+  private extractAiChatApiErrorMessage(res: AiChatFailureEnvelope): string {
+    const fromNested = res.error?.message;
+    if (typeof fromNested === 'string' && fromNested.trim()) {
+      return fromNested.trim();
+    }
+    const top = res.message;
+    if (typeof top === 'string' && top.trim()) {
+      return top.trim();
+    }
+    return 'Request failed. Please try again.';
   }
 
   private getMockResponse(question: string, isFollowUp: boolean): Observable<AiChatResponse> {
@@ -158,9 +192,7 @@ export class AiChatService {
       summary: res.summary ?? '',
       key_points: Array.isArray(res.key_points) ? res.key_points : [],
       key_drivers: Array.isArray(res.key_drivers) ? res.key_drivers : [],
-      visualization_image_base64:
-        coerceVisualizationImageBase64Payload(res.visualization_image_base64) ??
-        res.visualization_image_base64,
+      visualization_image_base64: pickVisualizationImageBase64FromResponseBody(res),
       row_count: res.row_count,
       columns: Array.isArray(res.columns) ? res.columns : [],
       rows: Array.isArray(res.rows) ? res.rows : [],
