@@ -1,12 +1,15 @@
 /* eslint-disable */
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   EventEmitter,
   HostBinding,
   HostListener,
   Input,
+  NgZone,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
@@ -42,6 +45,14 @@ export class MinFlowRangeSliderComponent implements OnChanges {
 
   @ViewChild('sliderContainer', { static: false }) sliderContainer?: ElementRef<HTMLElement>;
 
+  /**
+   * Measured track width, updated outside the synchronous CD pass to avoid NG0100
+   * (getBoundingClientRect can change when flex/ResizeObserver settles).
+   */
+  private trackWidthPx = MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
+  private resizeObserver?: ResizeObserver;
+  private observedElement: HTMLElement | null = null;
+
   private isDragging = false;
   private dragType: 'start' | 'end' | null = null;
   private hasDragged = false;
@@ -50,10 +61,36 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   /** Snapshot while dragging so handle positions stay in sync before parent CD runs. */
   private dragSnapshot: MinFlowRange | null = null;
 
+  constructor(private readonly ngZone: NgZone) {}
+
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['options'] && this.options.length > 0) {
-      this.clampAndEmitRangeIfNeeded();
+    if (!changes['options']) return;
+
+    if (this.options.length === 0) {
+      this.resizeObserver?.disconnect();
+      this.resizeObserver = undefined;
+      this.observedElement = null;
+      return;
     }
+
+    this.clampAndEmitRangeIfNeeded();
+    queueMicrotask(() => {
+      this.ensureResizeObserver();
+      this.scheduleTrackWidthMeasure();
+    });
+  }
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => {
+      this.ensureResizeObserver();
+      this.scheduleTrackWidthMeasure();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
+    this.observedElement = null;
   }
 
   get numSteps(): number {
@@ -278,10 +315,37 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   }
 
   private getTrackWidth(): number {
+    return this.trackWidthPx;
+  }
+
+  private ensureResizeObserver(): void {
     const el = this.sliderContainer?.nativeElement;
-    if (!el) return MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
-    const w = el.getBoundingClientRect().width;
-    return w > 0 ? w : MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    if (this.observedElement === el) return;
+
+    this.resizeObserver?.disconnect();
+    this.observedElement = el;
+    this.resizeObserver = new ResizeObserver(() => this.scheduleTrackWidthMeasure());
+    this.resizeObserver.observe(el);
+  }
+
+  /** Defer DOM read/write past the current CD cycle to prevent ExpressionChangedAfterItHasBeenCheckedError. */
+  private scheduleTrackWidthMeasure(): void {
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => {
+        this.ngZone.run(() => this.refreshTrackWidthFromDom());
+      });
+    });
+  }
+
+  private refreshTrackWidthFromDom(): void {
+    const el = this.sliderContainer?.nativeElement;
+    const w = el?.getBoundingClientRect().width;
+    const next =
+      w != null && w > 0 ? w : MinFlowRangeSliderComponent.DEFAULT_TRACK_WIDTH;
+    if (next !== this.trackWidthPx) {
+      this.trackWidthPx = next;
+    }
   }
 
   private clampAndEmitRangeIfNeeded(): void {

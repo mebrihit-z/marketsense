@@ -44,7 +44,7 @@
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="treemap-region-container">
       <div class="reallocation-treemap-section">
         <app-treemap
-          *ngIf="regionData.investorRegions?.length"
+          *ngIf="regionData.investorRegions.length"
           [data]="regionData.data"
           [selectedInvestorRegions]="regionData.investorRegions"
           [selectedProductTypes]="cachedSelectedProductTypes"

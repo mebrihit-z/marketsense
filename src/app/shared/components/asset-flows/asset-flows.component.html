@@ -44,7 +44,7 @@
   <div class="visualization-container" #chartExportRoot>
     <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="sankey-region-container">
       <app-sankey
-        *ngIf="regionData.investorRegions?.length"
+        *ngIf="regionData.investorRegions.length"
         [data]="regionData.data"
         [regionKey]="regionData.key"
         [selectedInvestorRegions]="regionData.investorRegions"

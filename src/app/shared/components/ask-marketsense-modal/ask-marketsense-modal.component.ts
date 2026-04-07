@@ -766,11 +766,11 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         analysis.summary
       );
 
-      if (analysis.key_points?.length) {
+      if (analysis.key_points.length) {
         addGoldBulletListBlock('Key Insights', analysis.key_points);
       }
 
-      if (analysis.key_drivers?.length) {
+      if (analysis.key_drivers.length) {
         addGoldBulletListBlock('Key Drivers', analysis.key_drivers);
       }
 

@@ -123,7 +123,7 @@
             </section>
 
             <!-- Key Insights Section (only when key_points are present) -->
-            <section class="analysis-section insights-section" *ngIf="!analysis.isFallbackResponse && analysis.key_points?.length">
+            <section class="analysis-section insights-section" *ngIf="!analysis.isFallbackResponse && analysis.key_points.length">
               <h4 class="section-label">Key Insights</h4>
               <div class="insights-list-container">
                 <ul class="insights-list">
@@ -132,7 +132,7 @@
               </div>
             </section>
 
-            <section class="analysis-section insights-section" *ngIf="!analysis.isFallbackResponse && analysis.key_drivers?.length">
+            <section class="analysis-section insights-section" *ngIf="!analysis.isFallbackResponse && analysis.key_drivers.length">
               <h4 class="section-label">Key Drivers</h4>
               <div class="insights-list-container">
                 <ul class="insights-list">
