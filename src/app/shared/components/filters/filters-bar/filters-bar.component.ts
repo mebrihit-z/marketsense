@@ -235,6 +235,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
             { value: 'Europe', label: 'Europe', disabled: true },
             { value: 'Canada', label: 'Canada', disabled: true },
             { value: 'Asia/Pacific', label: 'Asia/Pacific', disabled: true },
+            {value: 'Global', label: 'Global', disabled: true },
           ];
           const existingValues = new Set(this.investorRegionOptions.map(o => o.value));
           this.investorRegionOptions = [
