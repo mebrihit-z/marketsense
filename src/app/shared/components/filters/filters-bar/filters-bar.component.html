@@ -2,22 +2,19 @@
 
 
 
-  <div class="filters-bar-sticky-collapsed" *ngIf="stickyEngaged && stickyBarCollapsed">
-    <button
-      type="button"
-      class="filters-bar-sticky-collapsed-btn"
-      (click)="toggleStickyBarCollapse()"
-      title="Show filters"
-      aria-label="Show filters bar">
-      <span>Filters</span>
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#FFB70E" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M9 3V21M5.5 3H18M5.5 21H18M14 14L16 12L14 10" stroke="#FFB70E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-
-    </button>
-
-  </div>
+  <button
+    *ngIf="stickyEngaged && stickyBarCollapsed"
+    type="button"
+    class="filters-bar-sticky-collapsed-btn"
+    (click)="toggleStickyBarCollapse()"
+    title="Show filters"
+    aria-label="Show filters bar">
+    <span>Filters</span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#FFB70E" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M9 3V21M5.5 3H18M5.5 21H18M14 14L16 12L14 10" stroke="#FFB70E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
 
 
 
@@ -25,27 +22,18 @@
 
     <div class="filters-bar-container">
 
-      <div class="filters-sticky-minimize-row" *ngIf="stickyEngaged">
-
-        <button
-
-          type="button"
-
-          class="filters-sticky-minimize-btn"
-
-          (click)="toggleStickyBarCollapse()"
-
-          title="Hide filters bar"
-
-          aria-label="Hide filters bar">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#00113F" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M9 3V21M5.5 3H18M5.5 21H18M16 10L14 12L16 14" stroke="#00113F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-
-        </button>
-
-      </div>
+      <button
+        *ngIf="stickyEngaged"
+        type="button"
+        class="filters-sticky-minimize-btn"
+        (click)="toggleStickyBarCollapse()"
+        title="Hide filters bar"
+        aria-label="Hide filters bar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M19.5 3H4.5C3.67157 3 3 3.67157 3 4.5V19.5C3 20.3284 3.67157 21 4.5 21H19.5C20.3284 21 21 20.3284 21 19.5V4.5C21 3.67157 20.3284 3 19.5 3Z" stroke="#00113F" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M9 3V21M5.5 3H18M5.5 21H18M16 10L14 12L16 14" stroke="#00113F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
 
   <div class="filters-root">
 
