@@ -9,6 +9,7 @@ import {
 } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
+import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -413,7 +414,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   private formatValue(x: number): string {
     const v = +x || 0;
-    return '$ ' + d3.format(',.2f')(v) + 'B';
+    return formatFlowCurrencyFromBillions(v);
   }
 
   /** Cells below this size cannot display readable text; hide labels and rely on tooltip */

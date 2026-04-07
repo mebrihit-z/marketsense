@@ -14,6 +14,7 @@ import {
   extractProductTypeFromNodeName,
   type SankeyData,
 } from '../../../utils/sankey-data.utils';
+import { formatFlowCurrencyFromBillions, formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 
 // ----------------------
 // TypeScript Models
@@ -295,14 +296,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         formatted = formatted.replace(/^Global\s*:\s*/, '').replace(/^Global\s*-\s*/, '').replace(/^Global\s+/, '').trim();
       }
       return formatted;
-    }
-
-    /** Formats a number with thousand separators e.g. 57644.15 -> "57,644.15" */
-    private formatValueWithCommas(value: number, decimals: number = 2): string {
-      return value.toLocaleString('en-US', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-      });
     }
 
     /** Formats a date string (ISO or YYYY-MM-DD) to a readable tooltip format e.g. "Mar 31, 2026" */
@@ -609,7 +602,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const source = link.source as SankeyNodeExtra;
         const target = link.target as SankeyNodeExtra;
         const value = component.linkFlowForTotals(link);
-        const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
+        const formattedValue = formatFlowCurrencyFromBillions(value);
         
         // Check if this is a subasset link (connected to Source or Destination nodes)
         const isSubassetLink = (source.name && (source.name.includes('(Source)') || source.name.includes('(Destination)'))) ||
@@ -617,7 +610,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
-          <div style="margin-top: 4px;">Value: $${formattedValue}B</div>
+          <div style="margin-top: 4px;">Value: ${formattedValue}</div>
         `;
         
         // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
@@ -771,7 +764,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
         const value = nodeValues.get(node) || 0;
-        const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
+        const formattedValue = formatFlowCurrencyFromBillions(value);
         const incoming = nodeIncoming.get(node) || 0;
         const outgoing = nodeOutgoing.get(node) || 0;
         
@@ -790,7 +783,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
                  const linkExtra = link as SankeyLinkExtra;
                  subassets.push({
                    name: linkTarget.name,
-                   value: linkExtra.value,
+                   value: component.linkFlowForTotals(linkExtra),
                    date: linkExtra.date
                  });
                }
@@ -848,8 +841,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
-               const subassetValue = component.formatValueWithCommas(subasset.value, subasset.value >= 0.1 ? 2 : 3);
-               const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>$${subassetValue}B</strong>`;
+               const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${formatFlowCurrencyFromBillions(subasset.value)}</strong>`;
                subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
              });
              if (remainingCount > 0) {
@@ -863,9 +855,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(node.name)}</strong></div>
-          <div style="margin-top: 4px;">Total Value: $${formattedValue}B</div>
-          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: $${component.formatValueWithCommas(incoming, 2)}B</div>
-          <div style="font-size: 13px; opacity: 0.9;">Outgoing: $${component.formatValueWithCommas(outgoing, 2)}B</div>
+          <div style="margin-top: 4px;">Total Value: ${formattedValue}</div>
+          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formatFlowCurrencyFromBillions(incoming)}</div>
+          <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formatFlowCurrencyFromBillions(outgoing)}</div>
         `;
         
         if (timeInfo) {
@@ -1002,16 +994,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('x', d => putValueOnNextLine(d) ? getLabelX(d) : null)
       .text(d => {
         const value = nodeValues.get(d) || 0;
-        const formattedValue = component.formatValueWithCommas(value, value >= 0.1 ? 2 : 3);
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
-        let sign = '';
+        const dollars = value * 1_000_000_000;
         if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) {
-          sign = '';
-        } else {
-          sign = isLeftOfReallocation ? '-' : '';
+          return formatFlowCurrencyFromBillions(value);
         }
-        return '$' + sign + formattedValue + 'B';
+        const signed = isLeftOfReallocation ? -dollars : dollars;
+        return formatFlowCurrencyUsd(signed);
       });
 
     // Link values are not drawn – only node labels show values (next to each node)

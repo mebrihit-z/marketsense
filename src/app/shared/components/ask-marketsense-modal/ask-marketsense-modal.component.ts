@@ -10,6 +10,7 @@ import {
   coerceVisualizationImageBase64Payload,
   pickVisualizationImageBase64FromResponseBody,
 } from '../../utils/visualization-image-base64.util';
+import { formatFlowCurrencyUsd } from '../../utils/flow-currency-format.util';
 import { jsPDF } from 'jspdf';
 
 export interface AnalysisResult {
@@ -92,13 +93,13 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       id: 1,
       title: 'ANALYSIS 1',
       question: 'What trends do we see in the increase or decrease of these inflows and outflows when comparing the last 12, 24, and 36 months? (3M)',
-      timestamp: 'Today at 07:12 PM'
+      timestamp: 'Mar 15, 2025, 7:12 PM'
     },
     {
       id: 2,
       title: 'ANALYSIS 2',
       question: 'Which client types account for the largest share of net inflows by asset class, and where is client concentration increasing or decreasing?',
-      timestamp: 'Today at 03:27 PM'
+      timestamp: 'Mar 15, 2025, 3:27 PM'
     }
   ];
 
@@ -214,8 +215,42 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     return 'Failed to get AI response. Please try again.';
   }
 
+  /** Shown under each question: calendar date and time (not "Today at …"). */
+  private formatLocaleDateTime(d: Date): string {
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  /**
+   * Prefer a parseable datetime from the API; otherwise use the moment the response is applied
+   * (service often sends time-only — clock time matches receive time within a few seconds).
+   */
+  private formatAnalysisTimestamp(res: AiChatResponse): string {
+    const raw = (res.timestamp ?? '').trim();
+    if (raw) {
+      if (/^\d{4}-\d{2}-\d{2}T/.test(raw) || /^\d{4}-\d{2}-\d{2}\s+\d/.test(raw)) {
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+          return this.formatLocaleDateTime(parsed);
+        }
+      }
+      if (/^\d{13}$/.test(raw)) {
+        const parsed = new Date(Number(raw));
+        if (!Number.isNaN(parsed.getTime())) {
+          return this.formatLocaleDateTime(parsed);
+        }
+      }
+    }
+    return this.formatLocaleDateTime(new Date());
+  }
+
   private toAnalysisResult(res: AiChatResponse): AnalysisResult {
-    const ts = res.timestamp ?? '';
     const routeNorm = res.route?.toString().trim().toLowerCase();
     const fallbackText = (res.message == null ? '' : String(res.message)).trim();
     const vizMessage = res.visualization_message;
@@ -224,7 +259,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (routeNorm === 'fallback') {
       return {
         question: res.question,
-        timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
+        timestamp: this.formatAnalysisTimestamp(res),
         summary: fallbackText,
         key_points: [],
         key_drivers: [],
@@ -252,7 +287,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
     return {
       question: res.question,
-      timestamp: ts.includes('Today') ? ts : `Today at ${ts}`,
+      timestamp: this.formatAnalysisTimestamp(res),
       summary,
       key_points: res.key_points ?? [],
       key_drivers: res.key_drivers ?? [],
@@ -277,9 +312,13 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   formatCellValue(key: string, value: unknown): string {
     if (value == null) return '—';
     if (typeof value === 'number') {
-      if (key.toLowerCase().includes('inflow') || key.toLowerCase().includes('outflow') || key.toLowerCase().includes('total')) {
-        const billions = value / 1e9;
-        return `$${billions.toFixed(1)}B`;
+      const keyLower = key.toLowerCase();
+      if (
+        keyLower.includes('inflow') ||
+        keyLower.includes('outflow') ||
+        keyLower.includes('total')
+      ) {
+        return formatFlowCurrencyUsd(value);
       }
       if (Number.isInteger(value)) return String(value);
       return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
