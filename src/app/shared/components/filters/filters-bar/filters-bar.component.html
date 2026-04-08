@@ -235,9 +235,12 @@
 
                     <div class="time-horizon-dots">
 
-                      <div class="dot" *ngFor="let horizon of timeHorizons; let i = index" 
-
-                          [style.left.%]="(i / (timeHorizons.length - 1)) * 100"></div>
+                      <div
+                        class="dot"
+                        *ngFor="let horizon of timeHorizons; let i = index"
+                        [class.dot--today]="i === getTimeHorizonTodayIndex()"
+                        [class.dot--in-active-range]="isTimeHorizonTickInActiveRange(i)"
+                        [style.left.%]="(i / (timeHorizons.length - 1)) * 100"></div>
 
                     </div>
 
@@ -251,25 +254,45 @@
 
                   </div>
 
-                  <div class="time-horizon-handle time-horizon-handle-start" 
+                  <div
+                    class="time-horizon-handle-cluster time-horizon-handle-cluster-start"
+                    [style.left.px]="getTimeHorizonHandlePosition('start')">
 
-                      [style.left.px]="getTimeHorizonHandlePosition('start')"
+                    <div
+                      class="time-horizon-value-tooltip"
+                      [class.time-horizon-value-tooltip--spread-start]="timeHorizonTooltipsTooClose()">
+                      {{ getTimeHorizonHandleTooltipDate('start') }}
+                    </div>
 
-                      (mousedown)="startTimeHorizonDrag($event, 'start')"
+                    <div class="time-horizon-handle time-horizon-handle-start" 
 
-                      (touchstart)="startTimeHorizonDrag($event, 'start')"
+                        (mousedown)="startTimeHorizonDrag($event, 'start')"
 
-                      (click)="$event.stopPropagation()"></div>
+                        (touchstart)="startTimeHorizonDrag($event, 'start')"
 
-                  <div class="time-horizon-handle time-horizon-handle-end" 
+                        (click)="$event.stopPropagation()"></div>
 
-                      [style.left.px]="getTimeHorizonHandlePosition('end')"
+                  </div>
 
-                      (mousedown)="startTimeHorizonDrag($event, 'end')"
+                  <div
+                    class="time-horizon-handle-cluster time-horizon-handle-cluster-end"
+                    [style.left.px]="getTimeHorizonHandlePosition('end')">
 
-                      (touchstart)="startTimeHorizonDrag($event, 'end')"
+                    <div
+                      class="time-horizon-value-tooltip"
+                      [class.time-horizon-value-tooltip--spread-end]="timeHorizonTooltipsTooClose()">
+                      {{ getTimeHorizonHandleTooltipDate('end') }}
+                    </div>
 
-                      (click)="$event.stopPropagation()"></div>
+                    <div class="time-horizon-handle time-horizon-handle-end" 
+
+                        (mousedown)="startTimeHorizonDrag($event, 'end')"
+
+                        (touchstart)="startTimeHorizonDrag($event, 'end')"
+
+                        (click)="$event.stopPropagation()"></div>
+
+                  </div>
 
                 </div>
 
@@ -279,9 +302,13 @@
 
                         *ngFor="let horizon of timeHorizons; let i = index"
 
-                        [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
+                        [class.time-horizon-label--active]="isTimeHorizonLabelActive(i)"
 
-                        [style.transform]="compactTimeHorizonAxis ? null : 'translateX(-50%)'"
+                        [class.time-horizon-label--today]="i === getTimeHorizonTodayIndex()"
+
+                        [style.left.px]="getTimeHorizonMilestoneCenterPx(i)"
+
+                        [style.transform]="'translateX(-50%)'"
 
                         [attr.aria-label]="horizon"
 
@@ -304,7 +331,7 @@
             <div class="time-horizon-container min-flow-value-in-bar" *ngIf="minFlowValueOptions.length">
 
               <div class="label-with-info">
-                <label class="toggle-label">Min flow value:</label>
+                <label class="toggle-label">Value Range:</label>
                 <div class="info-btn-wrapper">
                   <button type="button" #minFlowValueInfoBtn class="info-btn" (click)="onInfoClick('minFlowValue', $event)" aria-label="Min flow value info">
                     <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">

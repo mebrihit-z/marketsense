@@ -1,5 +1,11 @@
 @use '../../../../_variables' as *;
 
+/* Align with Time Horizon rail in filters-bar.component.scss */
+$min-flow-rail-inactive: #cbd5e1;
+$min-flow-tick-in-active-range: #cbd5e1;
+$min-flow-label-muted: #88a7bd;
+$min-flow-tooltip-spread: 36px;
+
 :host {
   display: block;
   min-width: 0;
@@ -18,7 +24,14 @@
   min-width: 200px;
 }
 
-// Filters bar: fill the white card width (no 520px cap — iPad/tablet cards are full-width while track was staying narrow)
+.min-flow-range-slider-wrapper-full {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
 :host.min-flow-range--filters-compact .min-flow-range-slider-wrapper {
   gap: 0;
   max-width: 100%;
@@ -29,7 +42,8 @@
 .min-flow-range-container {
   position: relative;
   width: 100%;
-  height: 22px;
+  min-height: 52px;
+  height: auto;
   min-width: 0;
   overflow: visible;
   cursor: grab;
@@ -41,154 +55,154 @@
   }
 }
 
-:host.min-flow-range--filters-compact .min-flow-range-container {
-  height: 20px;
-
-  @media (max-width: 768px) {
-    height: 28px;
-    min-height: 28px;
-  }
-}
-
-.min-flow-range-track {
+.min-flow-range-slider-track {
   position: absolute;
   left: 0;
-  top: 9px;
+  top: 40px;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   pointer-events: none;
 
-  :host.min-flow-range--filters-compact & {
-    @media (max-width: 768px) {
-      top: 13px;
-    }
+  @media (max-width: 768px) {
+    top: 44px;
   }
 }
 
 .min-flow-range-dots {
   position: absolute;
   left: 0;
-  top: 0;
+  top: -3px;
   width: 100%;
-  height: 6px;
+  max-width: 100%;
+  height: 11px;
+  z-index: 2;
   pointer-events: none;
-  z-index: 2; // keep dots above track like Time Horizon
 }
 
 .min-flow-range-dots .dot {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 2px;
+  height: 11px;
   background: $primary-colors-midnight-blue;
-  border-radius: 50%;
+  border-radius: 0;
   top: 0;
   transform: translateX(-50%);
-}
 
-:host.min-flow-range--filters-compact .min-flow-range-dots {
-  height: 5px;
-
-  .dot {
-    width: 5px;
-    height: 5px;
+  &.dot--in-active-range {
+    background: $min-flow-tick-in-active-range;
   }
-}
-
-.min-flow-range-dots .min-flow-range-dot-max {
-  left: 100%;
-  transform: translateX(50%);
-  opacity: 0.75;
 }
 
 .min-flow-range-track-bg {
   position: absolute;
   left: 0;
-  top: 0;
   width: 100%;
-  height: 5px;
-  background: $primary-colors-sky-blue;
-  border-radius: 2px;
+  max-width: 100%;
+  height: 3px;
+  top: 2px;
+  background: $min-flow-rail-inactive;
+  border-radius: 0;
   pointer-events: none;
   z-index: 0;
 }
 
 .min-flow-range-track-active {
   position: absolute;
-  top: 0;
-  height: 6px;
+  top: 2px;
+  height: 3px;
+  margin-top: 0;
   background: $primary-colors-midnight-blue;
-  border-radius: 2px;
+  border-radius: 0;
   pointer-events: none;
   z-index: 1;
+  box-shadow: none;
 }
 
-.min-flow-range-labels {
-  position: relative;
-  width: 100%;
-  height: 18px;
-  overflow: visible;
+.min-flow-range-handle-cluster {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
   pointer-events: none;
-}
-
-:host.min-flow-range--filters-compact .min-flow-range-labels {
-  height: 20px;
 
   @media (max-width: 768px) {
-    height: 24px;
-    margin-top: 6px;
-  }
-
-  @media (max-width: 480px) {
-    margin-top: 4px;
+    top: 4px;
   }
 }
 
-.min-flow-range-label {
-  position: absolute;
-  top: 0;
-  font-size: 10px;
-  line-height: 1.2;
-  color: $primary-colors-midnight-blue;
-  white-space: nowrap;
-  opacity: 0.9;
-  max-width: 84px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-:host.min-flow-range--filters-compact .min-flow-range-label {
+.min-flow-range-value-tooltip {
+  pointer-events: none;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 4;
+  padding: 6px 12px;
+  background: $primary-colors-midnight-blue;
+  color: $white;
   font-size: 12px;
-  font-weight: 400;
-  color: $text-midnight-blue;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   max-width: none;
-  opacity: 1;
-}
+  overflow: visible;
+  box-shadow: 0 2px 8px rgba(0, 17, 63, 0.18);
 
-/* $0 / Max sit at 0% and 100%; -50% centers text past the card edge on phone & iPad */
-:host.min-flow-range--filters-compact .min-flow-range-label:first-child {
-  transform: translateX(0) !important;
-}
+  &.min-flow-range-value-tooltip--spread-start {
+    transform: translateX(-$min-flow-tooltip-spread);
+    &::after {
+      left: calc(50% + #{$min-flow-tooltip-spread});
+    }
+  }
 
-:host.min-flow-range--filters-compact .min-flow-range-label:last-child {
-  transform: translateX(-100%) !important;
-}
+  &.min-flow-range-value-tooltip--spread-end {
+    transform: translateX($min-flow-tooltip-spread);
+    &::after {
+      left: calc(50% - #{$min-flow-tooltip-spread});
+    }
+  }
 
-:host.min-flow-range--filters-compact .min-flow-range-label:first-child:last-child {
-  transform: translateX(-50%) !important;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid $primary-colors-midnight-blue;
+  }
 }
 
 .min-flow-range-handle {
-  position: absolute;
+  position: relative;
   width: 15px;
   height: 15px;
+  flex-shrink: 0;
   background: $primary-colors-midnight-blue;
+  border: 2px solid $white;
   border-radius: 50%;
   cursor: grab;
-  transform: translateX(-50%);
-  top: 5px;
   z-index: 2;
   user-select: none;
+  box-shadow:
+    0 2px 4px rgba(0, 27, 61, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.12);
   touch-action: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+
+  @media (max-width: 768px) {
+    box-shadow:
+      0 2px 4px rgba(0, 27, 61, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+  }
 
   &::before {
     content: '';
@@ -203,18 +217,7 @@
     pointer-events: auto;
   }
 
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-:host.min-flow-range--filters-compact .min-flow-range-handle {
   @media (max-width: 768px) {
-    width: 14px;
-    height: 14px;
-    top: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
     &::before {
       width: 44px;
       height: 44px;
@@ -222,14 +225,134 @@
       margin-top: -22px;
     }
   }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.min-flow-range-slider-wrapper-full .min-flow-range-handle {
+  cursor: grab;
+
+  &::before {
+    cursor: grab;
+  }
 }
 
 .min-flow-range-handle-start:hover,
 .min-flow-range-handle-end:hover {
-  transform: translateX(-50%) scale(1.15);
+  transform: scale(1.12);
   box-shadow:
-    0 0 0 3px rgba($time-horizon-handle-hover-background, 0.85),
-    0 2px 4px rgba(0, 0, 0, 0.18);
+    0 0 0 3px rgba($time-horizon-handle-hover-background, 0.9),
+    0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.min-flow-range-labels {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  min-width: 0;
+  margin-top: 10px;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+  overflow: visible;
+  pointer-events: none;
+
+  @media (max-width: 768px) {
+    height: 24px;
+    margin-top: 6px;
+
+    &.min-flow-range-labels--compact {
+      height: 22px;
+      min-height: 22px;
+      margin-top: 4px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    margin-top: 4px;
+
+    &.min-flow-range-labels--compact {
+      height: 20px;
+      min-height: 20px;
+    }
+  }
+}
+
+.min-flow-range-label {
+  position: absolute;
+  top: 0;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: $min-flow-label-muted;
+  white-space: nowrap;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    color 0.15s ease,
+    font-weight 0.15s ease;
+
+  &.min-flow-range-label--active {
+    color: $primary-colors-midnight-blue;
+    font-weight: 700;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 10px;
+    letter-spacing: -0.02em;
+  }
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-label {
+  max-width: none;
+  font-size: 11px;
+  letter-spacing: -0.01em;
+
+  @media (max-width: 768px) {
+    font-size: 10px;
+    letter-spacing: -0.03em;
+  }
+}
+
+.min-flow-range-labels.min-flow-range-labels--compact .min-flow-range-label {
+  top: 0;
+  font-size: 10px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  padding: 0;
+  min-width: 0;
+  text-align: center;
+  transform: translateX(-50%);
+
+  &:first-child {
+    transform: translateX(0);
+  }
+
+  &:last-child {
+    transform: translateX(-100%);
+  }
+
+  @media (max-width: 480px) {
+    font-size: 9px;
+    letter-spacing: -0.04em;
+  }
+}
+
+/* $0 / Max at rail ends in compact card */
+:host.min-flow-range--filters-compact .min-flow-range-labels--compact .min-flow-range-label:first-child {
+  transform: translateX(0) !important;
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-labels--compact .min-flow-range-label:last-child {
+  transform: translateX(-100%) !important;
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-labels--compact .min-flow-range-label:first-child:last-child {
+  transform: translateX(-50%) !important;
 }
 
 .min-flow-range-summary {

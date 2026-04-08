@@ -142,6 +142,21 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     return (i / this.numSteps) * 100;
   }
 
+  /** Ticks between the handles use the muted rail color (same idea as Time Horizon). */
+  isTickInActiveRange(index: number): boolean {
+    const { startIndex, endIndex } = this.activeRange;
+    return index >= startIndex && index <= endIndex;
+  }
+
+  /** Nudge value chips apart when both handles are close on the rail. */
+  minFlowTooltipsTooClose(): boolean {
+    const { startIndex, endIndex } = this.activeRange;
+    if (startIndex === endIndex) return false;
+    const a = this.getHandlePosition('start');
+    const b = this.getHandlePosition('end');
+    return Math.abs(a - b) < 120;
+  }
+
   get labelStops(): Array<{ index: number; label: string; leftPercent: number }> {
     const opts = this.options;
     if (!opts.length) return [];

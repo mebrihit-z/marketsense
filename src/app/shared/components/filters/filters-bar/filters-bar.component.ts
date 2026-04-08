@@ -130,7 +130,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   private timeHorizonDragContainer: HTMLElement | null = null;
   /** Timestamp of last mousedown on track, to avoid handling click twice for same gesture. */
   private _lastTimeHorizonTrackMousedownAt: number | null = null;
-  timeHorizonSliderTrackWidth = 520; // Width of the time horizon slider track in pixels (desktop full layout)
+  timeHorizonSliderTrackWidth = 560; // Fallback outer width; SCSS rail insets must match the constants below
+  /** Horizontal inset to rail — keep in sync with `$time-horizon-axis-inset-*` in filters-bar.component.scss */
+  private static readonly TIME_HORIZON_AXIS_INSET_DESKTOP_PX = 14;
+  private static readonly TIME_HORIZON_AXIS_INSET_MOBILE_PX = 8;
   /** Bound document capture listener for time horizon (so we can remove in ngOnDestroy). */
   private _documentTimeHorizonCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentTimeHorizonCapture(e);
 
@@ -150,7 +153,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     '-9',
     '-6',
     '-3',
-    'Now',
+    'Today',
     '+3',
     '+6',
     '+9',
@@ -1088,6 +1091,100 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     return ['-18 mo', '-12 mo', '-9 mo', '-6 mo', '-3 mo', 'Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
   }
 
+  /** Index of the `Today` tick (for accent styling). */
+  getTimeHorizonTodayIndex(): number {
+    return this.timeHorizons.indexOf('Today');
+  }
+
+  /** True when a handle is snapped to this milestone (bold navy label). */
+  isTimeHorizonLabelActive(index: number): boolean {
+    return index === this.timeHorizonRange.startIndex || index === this.timeHorizonRange.endIndex;
+  }
+
+  /**
+   * Milestones under the selected (navy) segment — ticks use a light color there; outside uses navy on pale rail.
+   */
+  isTimeHorizonTickInActiveRange(index: number): boolean {
+    const { startIndex, endIndex } = this.timeHorizonRange;
+    return index >= startIndex && index <= endIndex;
+  }
+
+  /**
+   * True when tooltips would overlap (Today…+3 mo); template nudges them horizontally apart.
+   */
+  timeHorizonTooltipsTooClose(): boolean {
+    const { startIndex, endIndex } = this.timeHorizonRange;
+    if (startIndex === endIndex) return false;
+    const a = this.getTimeHorizonMilestoneCenterPx(startIndex);
+    const b = this.getTimeHorizonMilestoneCenterPx(endIndex);
+    // ~2× milestone spacing (consecutive or one-apart ticks): keep date chips from merging
+    return Math.abs(a - b) < 120;
+  }
+
+  /**
+   * Center X of milestone `index` from the left edge of `.time-horizon-slider-container` (handles + labels).
+   */
+  getTimeHorizonMilestoneCenterPx(index: number): number {
+    const numSteps = this.timeHorizons.length - 1;
+    if (numSteps <= 0) return 0;
+    const outer = this.getTimeHorizonSliderContainerOuterWidthPx();
+    const { inset, trackWidth } = this.getTimeHorizonAxisMetrics(outer);
+    return inset + (index / numSteps) * trackWidth;
+  }
+
+  private getTimeHorizonSliderContainerOuterWidthPx(): number {
+    const el = this.timeHorizonSliderContainer?.nativeElement ?? this.timeHorizonSliderContainerFull?.nativeElement;
+    if (el) return Math.max(0, el.getBoundingClientRect().width);
+    return this.timeHorizonSliderTrackWidth;
+  }
+
+  private getTimeHorizonAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    const inset = isMobile
+      ? FiltersBarComponent.TIME_HORIZON_AXIS_INSET_MOBILE_PX
+      : FiltersBarComponent.TIME_HORIZON_AXIS_INSET_DESKTOP_PX;
+    const trackWidth = Math.max(0, containerWidth - 2 * inset);
+    return { inset, trackWidth };
+  }
+
+  private getTimeHorizonTrackInnerWidthPx(): number {
+    return this.getTimeHorizonAxisMetrics(this.getTimeHorizonSliderContainerOuterWidthPx()).trackWidth;
+  }
+
+  /**
+   * Calendar date shown above each handle (end-of-month for ±N mo horizons; calendar day for Today).
+   */
+  getTimeHorizonHandleTooltipDate(type: 'start' | 'end'): string {
+    const horizons = this.timeHorizons;
+    const idx = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
+    const label = horizons[idx];
+    return label ? this.formatTimeHorizonTooltipDate(label) : '';
+  }
+
+  private formatTimeHorizonTooltipDate(horizon: string): string {
+    const today = new Date();
+    let d: Date;
+    if (horizon === 'Today') {
+      d = today;
+    } else {
+      const normalized = horizon.trim().toLowerCase();
+      const match = normalized.match(/^([+-]?)(\d+)\s*mo$/);
+      if (!match) return horizon;
+      const isNegative = match[1] === '-';
+      const months = parseInt(match[2], 10);
+      const base = new Date(today.getFullYear(), today.getMonth(), 1);
+      base.setMonth(base.getMonth() + (isNegative ? -months : months));
+      d = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    }
+    return this.formatEnglishShortDate(d);
+  }
+
+  /** Stable "Apr 8, 2026" (avoids locale/narrow layouts truncating years in tooltips). */
+  private formatEnglishShortDate(d: Date): string {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
   /**
    * @param {'historical' | 'forecasted'} type - The data type to set (historical or forecasted)
    * @returns {void} Updates the data type and resets the time horizon range accordingly.
@@ -1200,19 +1297,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       clientX = (event as MouseEvent).clientX;
     }
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
     const x = clientX - rect.left;
-    let trackWidth: number;
-    let xAdjusted = x;
-    if (isMobile) {
-      const padding = 6;
-      xAdjusted = x - padding;
-      trackWidth = rect.width - padding * 2;
-      xAdjusted = Math.max(0, Math.min(xAdjusted, trackWidth));
-    } else {
-      trackWidth = rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth;
-    }
-    const percentage = Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100));
+    const { inset, trackWidth } = this.getTimeHorizonAxisMetrics(rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth);
+    const xAdjusted = Math.max(0, Math.min(x - inset, trackWidth));
+    const percentage = trackWidth > 0 ? Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100)) : 0;
     const numSteps = this.timeHorizons.length - 1;
     const stepIndex = Math.round((percentage / 100) * numSteps);
     const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
@@ -1280,9 +1368,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     const clientX = 'touches' in event ? event.touches[0]?.clientX : (event as MouseEvent).clientX;
     if (clientX == null) return;
     const x = clientX - rect.left;
-    // Use actual container width
-    const trackWidth = rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth;
-    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
+    const { inset, trackWidth } = this.getTimeHorizonAxisMetrics(rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth);
+    const xAdjusted = Math.max(0, Math.min(x - inset, trackWidth));
+    const percentage = trackWidth > 0 ? Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100)) : 0;
     
     // Calculate which index this percentage corresponds to
     const numSteps = this.timeHorizons.length - 1;
@@ -1307,36 +1395,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    */
   getTimeHorizonHandlePosition(type: 'start' | 'end'): number {
     const index = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
-    const numSteps = this.timeHorizons.length - 1;
-    
-    // Check if on mobile/tablet (screen width <= 1024px)
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-    
-    // On mobile, use actual container width (track is now 100% width minus padding, no compression)
-    if (isMobile) {
-      // Try to get actual container width from ViewChild if available
-      let containerWidth = 400; // Default fallback
-      if (this.timeHorizonSliderContainer?.nativeElement) {
-        const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
-        containerWidth = rect.width || 400;
-      } else if (typeof window !== 'undefined') {
-        // Estimate: container is viewport width minus padding (typically 20px on each side on mobile)
-        containerWidth = window.innerWidth - 40;
-      }
-      
-      // Account for 6px padding on each side (12px total) for mobile
-      const trackWidth = containerWidth - 12;
-      const padding = 6;
-      
-      // Position within the track (between padding), then add padding offset
-      return padding + (index / numSteps) * trackWidth;
-    }
-    
-    // Desktop: use actual container width so handles match track
-    const trackWidth = this.timeHorizonSliderContainer?.nativeElement
-      ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
-      : this.timeHorizonSliderTrackWidth;
-    return (index / numSteps) * trackWidth;
+    return this.getTimeHorizonMilestoneCenterPx(index);
   }
 
   /**
@@ -1344,26 +1403,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    */
   getTimeHorizonActiveTrackLeft(): number {
     const numSteps = this.timeHorizons.length - 1;
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-    
-    // On mobile, use actual container width (track is now 100% width minus padding)
-    if (isMobile) {
-      let containerWidth = 400;
-      if (this.timeHorizonSliderContainer?.nativeElement) {
-        const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
-        containerWidth = rect.width || 400;
-      } else if (typeof window !== 'undefined') {
-        containerWidth = window.innerWidth - 40;
-      }
-      const trackWidth = containerWidth - 12;
-      const padding = 6;
-      return padding + (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
-    }
-    
-    const trackWidth = this.timeHorizonSliderContainer?.nativeElement
-      ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
-      : this.timeHorizonSliderTrackWidth;
-    return (this.timeHorizonRange.startIndex / numSteps) * trackWidth;
+    const inner = this.getTimeHorizonTrackInnerWidthPx();
+    return (this.timeHorizonRange.startIndex / numSteps) * inner;
   }
 
   /**
@@ -1372,25 +1413,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   getTimeHorizonActiveTrackWidth(): number {
     const numSteps = this.timeHorizons.length - 1;
     const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-    
-    // On mobile, use actual container width (track is now 100% width minus padding)
-    if (isMobile) {
-      let containerWidth = 400;
-      if (this.timeHorizonSliderContainer?.nativeElement) {
-        const rect = this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect();
-        containerWidth = rect.width || 400;
-      } else if (typeof window !== 'undefined') {
-        containerWidth = window.innerWidth - 40;
-      }
-      const trackWidth = containerWidth - 12;
-      return (range / numSteps) * trackWidth;
-    }
-    
-    const trackWidth = this.timeHorizonSliderContainer?.nativeElement
-      ? Math.max(0, this.timeHorizonSliderContainer.nativeElement.getBoundingClientRect().width) || this.timeHorizonSliderTrackWidth
-      : this.timeHorizonSliderTrackWidth;
-    return (range / numSteps) * trackWidth;
+    const inner = this.getTimeHorizonTrackInnerWidthPx();
+    return (range / numSteps) * inner;
   }
 
   /**

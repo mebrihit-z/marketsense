@@ -508,6 +508,11 @@
     flex: 1 1 320px;
     min-width: 280px;
     max-width: 720px;
+    /* Room for dual-handle value tooltips (match Time Horizon card vertical rhythm) */
+    height: auto;
+    min-height: $filters-height-desktop;
+    padding-top: 12px;
+    padding-bottom: 12px;
     /* Extra horizontal inset so the range control doesn’t sit flush on the card edges */
     padding-left: 20px;
     padding-right: 20px;
@@ -836,6 +841,17 @@
     }
 }
 
+// Time Horizon Range Slider — dual-thumb rail (pale inactive / navy active / gold Today)
+$time-horizon-rail-inactive:#CBD5E1;
+$time-horizon-tick-active-range: #CBD5E1;
+$time-horizon-label-muted: #88a7bd;
+$time-horizon-today-accent: $secondary-colors-gold-750;
+/* Must match FiltersBarComponent TIME_HORIZON_AXIS_INSET_*_PX */
+$time-horizon-axis-inset-desktop: 14px;
+$time-horizon-axis-inset-mobile: 8px;
+/* Horizontal nudge when two date chips are near (consecutive ticks); caret offset keeps tip on the knob */
+$time-horizon-tooltip-spread: 36px;
+
 // Time Horizon Range Slider
 .time-horizon-container {
     display: flex;
@@ -882,11 +898,28 @@
     }
 }
 
+/* Time Horizon card: white surface, room for handle tooltips (not the Min flow card). */
+.time-horizon-container:not(.min-flow-value-in-bar) {
+    background-color: $bg-white;
+    border: 1px solid $border-gray-dark;
+    height: auto;
+    min-height: $filters-height-desktop;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    box-shadow: 0 1px 3px $overlay-shadow-medium;
+
+    .toggle-label {
+        color: $neutral-colors-neutral-1000;
+        font-weight: 500;
+    }
+}
+
 .time-horizon-slider-wrapper {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 520px;
+    max-width: 560px;
+    flex: 1;
     min-width: 0;
     overflow: visible;
     @media (max-width: 1024px) and (min-width: 769px) {
@@ -909,8 +942,9 @@
 .time-horizon-slider-container {
     position: relative;
     width: 100%;
-    max-width: 520px;
-    height: 20px;
+    max-width: 560px;
+    min-height: 52px;
+    height: auto;
     min-width: 0;
     overflow: visible;
     cursor: grab !important;
@@ -924,22 +958,18 @@
     @media (max-width: 768px) {
         width: 100%;
         max-width: 100%;
-        height: 28px;
-        min-height: 28px;
-        padding: 0 8px;
+        min-height: 52px;
         box-sizing: border-box;
-    }
-    @media (max-width: 480px) {
-        padding: 0 4px;
     }
 }
 
 .time-horizon-slider-track {
     position: absolute;
-    left: 0;
-    top: 9px;
-    width: 100%;
-    max-width: 520px;
+    left: $time-horizon-axis-inset-desktop;
+    top: 40px;
+    width: calc(100% - #{$time-horizon-axis-inset-desktop * 2});
+    max-width: 100%;
+    box-sizing: border-box;
     pointer-events: none; /* so handles receive hover/drag; track clicks go to container */
 
     @media (max-width: 1024px) and (min-width: 769px) {
@@ -947,109 +977,146 @@
     }
 
     @media (max-width: 768px) {
-        width: calc(100% - 16px);
-        max-width: calc(100% - 16px);
-        left: 8px;
-        top: 13px;
-    }
-    @media (max-width: 480px) {
-        width: calc(100% - 8px);
-        max-width: calc(100% - 8px);
-        left: 4px;
+        left: $time-horizon-axis-inset-mobile;
+        width: calc(100% - #{$time-horizon-axis-inset-mobile * 2});
+        top: 44px;
     }
 }
 
 .time-horizon-dots {
     position: absolute;
     left: 0;
-    top: 0;
+    top: -3px;
     width: 100%;
-    max-width: 520px;
-    height: 5px;
+    max-width: 100%;
+    height: 11px;
+    z-index: 2;
     pointer-events: none;
-    
-    @media (max-width: 1024px) and (min-width: 769px) {
-        max-width: 100%;
-    }
-    
-    @media (max-width: 768px) {
-        width: calc(100% - 16px);
-        max-width: calc(100% - 16px);
-        left: 8px;
-    }
-    @media (max-width: 480px) {
-        width: calc(100% - 8px);
-        max-width: calc(100% - 8px);
-        left: 4px;
-    }
 }
 
 .time-horizon-dots .dot {
     position: absolute;
-    width: 5px;
-    height: 5px;
+    width: 2px;
+    height: 11px;
     background: $primary-colors-midnight-blue;
-    border-radius: 50%;
+    border-radius: 0;
     top: 0;
+    transform: translateX(-50%);
+
+    /* Ticks on pale (inactive) rail stay navy */
+    &.dot--in-active-range:not(.dot--today) {
+        background: $time-horizon-tick-active-range;
+    }
+
+    &.dot--today {
+        width: 3px;
+        background: $time-horizon-today-accent;
+    }
 }
 
 .time-horizon-track-background {
     position: absolute;
     left: 0;
-    top: 0;
     width: 100%;
-    max-width: 520px;
-    height: 5px;
-    background: $primary-colors-sky-blue;
-    border-radius: 2px;
+    max-width: 100%;
+    height: 3px;
+    top: 2px;
+    background: $time-horizon-rail-inactive;
+    border-radius: 0;
     pointer-events: none;
-    z-index: -1;
-    
-    @media (max-width: 1024px) and (min-width: 769px) {
-        max-width: 100%;
-    }
-    
-    @media (max-width: 768px) {
-        width: calc(100% - 16px);
-        max-width: calc(100% - 16px);
-        left: 8px;
-    }
-    @media (max-width: 480px) {
-        width: calc(100% - 8px);
-        max-width: calc(100% - 8px);
-        left: 4px;
-    }
+    z-index: 0;
 }
 
 .time-horizon-track-active {
     position: absolute;
-    top: 0;
-    height: 6px;
-    background: $primary-colors-midnight-blue; // Darker blue active segment
-    border-radius: 2px;
+    top: 2px;
+    height: 3px;
+    margin-top: 0;
+    background: $primary-colors-midnight-blue;
+    border-radius: 0;
+    pointer-events: none;
+    z-index: 1;
+    box-shadow: none;
+}
+
+.time-horizon-handle-cluster {
+    position: absolute;
+    left: 0;
+    top: 1px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
     pointer-events: none;
 }
 
+.time-horizon-value-tooltip {
+    pointer-events: none;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 4;
+    padding: 6px 12px;
+    background: $primary-colors-midnight-blue;
+    color: $white;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    max-width: none;
+    overflow: visible;
+    box-shadow: 0 2px 8px rgba(0, 17, 63, 0.18);
+
+    &.time-horizon-value-tooltip--spread-start {
+        transform: translateX(-$time-horizon-tooltip-spread);
+        &::after {
+            /* Keep caret tip on the knob while the bubble moves outward */
+            left: calc(50% + #{$time-horizon-tooltip-spread});
+        }
+    }
+
+    &.time-horizon-value-tooltip--spread-end {
+        transform: translateX($time-horizon-tooltip-spread);
+        &::after {
+            left: calc(50% - #{$time-horizon-tooltip-spread});
+        }
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: -5px;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid $primary-colors-midnight-blue;
+    }
+}
+
 .time-horizon-handle {
-    position: absolute;
+    position: relative;
     width: 15px;
     height: 15px;
-    background: $primary-colors-midnight-blue; // Dark blue handle
+    flex-shrink: 0;
+    background: $primary-colors-midnight-blue;
+    border: 2px solid $white;
     border-radius: 50%;
     cursor: grab !important;
-    transform: translateX(-50%);
-    top: 5px; // Centered on track (track center at 10px, handle center = top + 5px)
     z-index: 2;
     user-select: none;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
-    touch-action: none; /* allow drag without browser scroll */
+    box-shadow: 0 2px 4px rgba(0, 27, 61, 0.25), 0 1px 2px rgba(0, 0, 0, 0.12);
+    touch-action: none;
     pointer-events: auto;
     
     @media (max-width: 768px) {
-        width: 14px;
-        height: 14px;
-        top: 8px;
-        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        width: 15px;
+        height: 15px;
+        box-shadow: 0 2px 4px rgba(0, 27, 61, 0.22), 0 1px 2px rgba(0, 0, 0, 0.1);
     }
     
     
@@ -1061,10 +1128,10 @@
 // Hover emphasis specifically for start/end handles
 .time-horizon-handle-start:hover,
 .time-horizon-handle-end:hover {
-    transform: translateX(-50%) scale(1.2);
+    transform: scale(1.12);
     box-shadow:
         0 0 0 3px rgba($time-horizon-handle-hover-background, 0.9),
-        0px 2px 4px rgba(0, 0, 0, 0.18);
+        0px 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 /* Full layout: larger hover hit area so hand shows when hovering over the dots */
@@ -1092,38 +1159,36 @@
     }
 }
 
+.time-horizon-slider-container-full .time-horizon-handle-cluster {
+    top: 3px;
+
+    @media (max-width: 768px) {
+        top: 4px;
+    }
+}
+
 .time-horizon-labels {
     position: relative;
     width: 100%;
-    max-width: 520px;
-    height: 20px;
+    max-width: 560px;
+    height: 22px;
     min-width: 0;
-    padding-left: 16px;
-    padding-right: 16px;
+    margin-top: 10px;
+    padding-left: 0;
+    padding-right: 0;
     box-sizing: border-box;
     overflow: visible;
     
     @media (max-width: 1024px) and (min-width: 769px) {
         max-width: 100%;
-        /* Extra inset so “-18 mo” / “+18 mo” stay inside the card (iPad) */
-        padding-left: 28px;
-        padding-right: 28px;
-    }
-
-    /* iPad landscape (often >1024): same inset while edge-aligned labels are active */
-    @media (min-width: 1025px) and (max-width: 1200px) {
-        padding-left: 24px;
-        padding-right: 24px;
     }
     
     @media (max-width: 768px) {
-        width: calc(100% - 16px);
-        max-width: calc(100% - 16px);
-        margin-left: 8px;
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
         height: 24px;
         margin-top: 6px;
-        padding-left: 12px;
-        padding-right: 12px;
 
         &.time-horizon-labels--compact {
             height: 22px;
@@ -1132,12 +1197,7 @@
         }
     }
     @media (max-width: 480px) {
-        width: calc(100% - 8px);
-        max-width: calc(100% - 8px);
-        margin-left: 4px;
         margin-top: 4px;
-        padding-left: 8px;
-        padding-right: 8px;
 
         &.time-horizon-labels--compact {
             height: 20px;
@@ -1148,36 +1208,35 @@
 
 .time-horizon-label {
     position: absolute;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
-    color: $text-midnight-blue;
+    letter-spacing: -0.01em;
+    color: $time-horizon-label-muted;
     white-space: nowrap;
     top: 0;
-    transform: translateX(-50%);
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
+    transition: color 0.15s ease, font-weight 0.15s ease;
 
-    /* iPad (portrait & landscape) and similar widths: keep “-18 mo” / “+18 mo” inside the card */
-    @media (min-width: 769px) and (max-width: 1200px) {
-        &:first-child {
-            transform: translateX(0) !important;
-        }
-
-        &:last-child {
-            transform: translateX(-100%) !important;
-        }
+    &.time-horizon-label--active:not(.time-horizon-label--today) {
+        color: $primary-colors-midnight-blue;
+        font-weight: 700;
     }
 
-    /* Wide desktop: slight nudge on first tick; last tick flush right inside label strip */
-    @media (min-width: 1201px) {
-        &:first-child {
-            transform: translateX(-40%) !important;
-        }
+    &.time-horizon-label--today {
+        color: $time-horizon-today-accent;
+        font-weight: 700;
+    }
+
+    &.time-horizon-label--today.time-horizon-label--active {
+        color: $time-horizon-today-accent;
+        font-weight: 700;
     }
     
     @media (max-width: 768px) {
-        font-size: 12px;
+        font-size: 10px;
+        letter-spacing: -0.02em;
     }
 }
 

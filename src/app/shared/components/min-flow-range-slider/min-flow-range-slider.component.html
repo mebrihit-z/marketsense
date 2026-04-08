@@ -1,16 +1,17 @@
 <div class="min-flow-range-root" *ngIf="options.length > 0">
-  <div class="min-flow-range-slider-wrapper">
+  <div class="min-flow-range-slider-wrapper min-flow-range-slider-wrapper-full">
     <div
       class="min-flow-range-container"
       #sliderContainer
       (mousedown)="onTrackClick($event)"
       (click)="onTrackClick($event)"
       (touchend)="onTrackClick($event)">
-      <div class="min-flow-range-track">
+      <div class="min-flow-range-slider-track">
         <div class="min-flow-range-dots">
           <div
             class="dot"
             *ngFor="let _ of options; let i = index"
+            [class.dot--in-active-range]="isTickInActiveRange(i)"
             [style.left.%]="dotLeftPercent(i)"></div>
         </div>
         <div class="min-flow-range-track-bg"></div>
@@ -19,35 +20,59 @@
           [style.left.px]="getActiveTrackLeft()"
           [style.width.px]="getActiveTrackWidth()"></div>
       </div>
+
       <div
-        class="min-flow-range-handle min-flow-range-handle-start"
-        [style.left.px]="getHandlePosition('start')"
-        (mousedown)="startDrag($event, 'start')"
-        (touchstart)="startDrag($event, 'start')"
-        (click)="$event.stopPropagation()"
-        role="slider"
-        [attr.aria-valuenow]="displayStartIndex"
-        [attr.aria-valuemin]="0"
-        [attr.aria-valuemax]="numSteps"
-        [attr.aria-valuetext]="startLabel"
-        aria-label="Minimum flow range start"></div>
+        class="min-flow-range-handle-cluster min-flow-range-handle-cluster-start"
+        [style.left.px]="getHandlePosition('start')">
+        <div
+          class="min-flow-range-value-tooltip"
+          [class.min-flow-range-value-tooltip--spread-start]="minFlowTooltipsTooClose()">
+          {{ startLabel }}
+        </div>
+        <div
+          class="min-flow-range-handle min-flow-range-handle-start"
+          (mousedown)="startDrag($event, 'start')"
+          (touchstart)="startDrag($event, 'start')"
+          (click)="$event.stopPropagation()"
+          role="slider"
+          [attr.aria-valuenow]="displayStartIndex"
+          [attr.aria-valuemin]="0"
+          [attr.aria-valuemax]="numSteps"
+          [attr.aria-valuetext]="startLabel"
+          aria-label="Minimum flow range start"></div>
+      </div>
+
       <div
-        class="min-flow-range-handle min-flow-range-handle-end"
-        [style.left.px]="getHandlePosition('end')"
-        (mousedown)="startDrag($event, 'end')"
-        (touchstart)="startDrag($event, 'end')"
-        (click)="$event.stopPropagation()"
-        role="slider"
-        [attr.aria-valuenow]="displayEndIndex"
-        [attr.aria-valuemin]="0"
-        [attr.aria-valuemax]="numSteps"
-        [attr.aria-valuetext]="endLabel"
-        aria-label="Minimum flow range end"></div>
+        class="min-flow-range-handle-cluster min-flow-range-handle-cluster-end"
+        [style.left.px]="getHandlePosition('end')">
+        <div
+          class="min-flow-range-value-tooltip"
+          [class.min-flow-range-value-tooltip--spread-end]="minFlowTooltipsTooClose()">
+          {{ endLabel }}
+        </div>
+        <div
+          class="min-flow-range-handle min-flow-range-handle-end"
+          (mousedown)="startDrag($event, 'end')"
+          (touchstart)="startDrag($event, 'end')"
+          (click)="$event.stopPropagation()"
+          role="slider"
+          [attr.aria-valuenow]="displayEndIndex"
+          [attr.aria-valuemin]="0"
+          [attr.aria-valuemax]="numSteps"
+          [attr.aria-valuetext]="endLabel"
+          aria-label="Minimum flow range end"></div>
+      </div>
     </div>
-    <div class="min-flow-range-labels" aria-hidden="true">
+    <div
+      class="min-flow-range-labels"
+      [class.min-flow-range-labels--compact]="!showFlowSummary"
+      aria-hidden="true">
       <span
         class="min-flow-range-label"
         *ngFor="let stop of labelStops"
+        [class.min-flow-range-label--active]="
+          stop.index === displayStartIndex || stop.index === displayEndIndex
+        "
         [style.left.%]="stop.leftPercent"
         [style.transform]="'translateX(-50%)'">
         {{ stop.label }}
