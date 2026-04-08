@@ -1,0 +1,507 @@
+@use '../../../../_variables' as *;
+
+// Axis inset — keep in sync with TimeHorizonSliderComponent.AXIS_INSET_*_PX
+$time-horizon-rail-inactive: #cbd5e1;
+$time-horizon-tick-active-range: #cbd5e1;
+$time-horizon-label-muted: #88a7bd;
+$time-horizon-today-accent: $secondary-colors-gold-750;
+$time-horizon-axis-inset-desktop: 14px;
+$time-horizon-axis-inset-mobile: 8px;
+$time-horizon-tooltip-spread: 36px;
+
+:host {
+  display: contents;
+}
+
+.time-horizon-container.time-horizon-filter-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  max-width: 100%;
+  width: 720px;
+  background-color: $bg-white;
+  position: relative;
+  z-index: 0;
+  margin-bottom: 16px;
+  overflow: visible;
+  border: 1px solid $border-gray-dark;
+  height: auto;
+  min-height: $filters-height-desktop;
+  padding: 12px 13px;
+  box-shadow: 0 1px 3px $overlay-shadow-medium;
+
+  .toggle-label {
+    font-size: 14px;
+    line-height: 20px;
+    white-space: nowrap;
+    color: $neutral-colors-neutral-1000;
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    gap: 10px;
+  }
+}
+
+.label-with-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.info-btn-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.info-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-colors-midnight-blue;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.info-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.info-tooltip {
+  position: absolute;
+  top: calc(100% + 20px);
+  left: 50%;
+  transform: translateX(-10%);
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 300px;
+  white-space: normal;
+
+  .tooltip-content {
+    background: #374151;
+    border: none;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    color: $bg-white;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 400;
+    letter-spacing: -0.1px;
+  }
+
+  .tooltip-arrow {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid #374151;
+  }
+}
+
+.time-horizon-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  flex: 1;
+  min-width: 0;
+  overflow: visible;
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+  }
+}
+
+.time-horizon-slider-wrapper-full,
+.time-horizon-slider-wrapper:has(.time-horizon-slider-container-full) {
+  cursor: grab;
+}
+
+.time-horizon-slider-container {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  min-height: 52px;
+  height: auto;
+  min-width: 0;
+  overflow: visible;
+  cursor: grab !important;
+  user-select: none;
+  touch-action: none;
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    max-width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+    min-height: 52px;
+    box-sizing: border-box;
+  }
+}
+
+.time-horizon-slider-track {
+  position: absolute;
+  left: $time-horizon-axis-inset-desktop;
+  top: 40px;
+  width: calc(100% - #{$time-horizon-axis-inset-desktop * 2});
+  max-width: 100%;
+  box-sizing: border-box;
+  pointer-events: none;
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    max-width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    left: $time-horizon-axis-inset-mobile;
+    width: calc(100% - #{$time-horizon-axis-inset-mobile * 2});
+    top: 44px;
+  }
+}
+
+.time-horizon-dots {
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 100%;
+  max-width: 100%;
+  height: 11px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.time-horizon-dots .dot {
+  position: absolute;
+  width: 2px;
+  height: 11px;
+  background: $primary-colors-midnight-blue;
+  border-radius: 0;
+  top: 0;
+  transform: translateX(-50%);
+
+  &.dot--in-active-range:not(.dot--today) {
+    background: $time-horizon-tick-active-range;
+  }
+
+  &.dot--today {
+    width: 3px;
+    background: $time-horizon-today-accent;
+  }
+}
+
+.time-horizon-track-background {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 3px;
+  top: 2px;
+  background: $time-horizon-rail-inactive;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.time-horizon-track-active {
+  position: absolute;
+  top: 2px;
+  height: 3px;
+  margin-top: 0;
+  background: $primary-colors-midnight-blue;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: none;
+}
+
+.time-horizon-handle-cluster {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.time-horizon-value-tooltip {
+  pointer-events: none;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 4;
+  padding: 6px 12px;
+  background: $primary-colors-midnight-blue;
+  color: $white;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: none;
+  overflow: visible;
+  box-shadow: 0 2px 8px rgba(0, 17, 63, 0.18);
+
+  &.time-horizon-value-tooltip--spread-start {
+    transform: translateX(-$time-horizon-tooltip-spread);
+    &::after {
+      left: calc(50% + #{$time-horizon-tooltip-spread});
+    }
+  }
+
+  &.time-horizon-value-tooltip--spread-end {
+    transform: translateX($time-horizon-tooltip-spread);
+    &::after {
+      left: calc(50% - #{$time-horizon-tooltip-spread});
+    }
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid $primary-colors-midnight-blue;
+  }
+}
+
+.time-horizon-handle {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  background: $primary-colors-midnight-blue;
+  border: 2px solid $white;
+  border-radius: 50%;
+  cursor: grab !important;
+  z-index: 2;
+  user-select: none;
+  box-shadow:
+    0 2px 4px rgba(0, 27, 61, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+  touch-action: none;
+  pointer-events: auto;
+
+  @media (max-width: 768px) {
+    box-shadow:
+      0 2px 4px rgba(0, 27, 61, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.time-horizon-handle-start:hover,
+.time-horizon-handle-end:hover {
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 3px rgba($time-horizon-handle-hover-background, 0.9),
+    0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.time-horizon-slider-container-full .time-horizon-handle {
+  cursor: grab !important;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    margin-top: -14px;
+    cursor: grab !important;
+    pointer-events: auto;
+  }
+
+  @media (max-width: 768px) {
+    &::before {
+      width: 44px;
+      height: 44px;
+      margin-left: -22px;
+      margin-top: -22px;
+    }
+  }
+}
+
+.time-horizon-slider-container-full .time-horizon-handle-cluster {
+  top: 3px;
+
+  @media (max-width: 768px) {
+    top: 4px;
+  }
+}
+
+.time-horizon-labels {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: 22px;
+  min-width: 0;
+  margin-top: 10px;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+  overflow: visible;
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    max-width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    height: 24px;
+    margin-top: 6px;
+
+    &.time-horizon-labels--compact {
+      height: 22px;
+      min-height: 22px;
+      margin-top: 4px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    margin-top: 4px;
+
+    &.time-horizon-labels--compact {
+      height: 20px;
+      min-height: 20px;
+    }
+  }
+}
+
+.time-horizon-label {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: $time-horizon-label-muted;
+  white-space: nowrap;
+  top: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition:
+    color 0.15s ease,
+    font-weight 0.15s ease;
+
+  &.time-horizon-label--active:not(.time-horizon-label--today) {
+    color: $primary-colors-midnight-blue;
+    font-weight: 700;
+  }
+
+  &.time-horizon-label--today {
+    color: $time-horizon-today-accent;
+    font-weight: 700;
+  }
+
+  &.time-horizon-label--today.time-horizon-label--active {
+    color: $time-horizon-today-accent;
+    font-weight: 700;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 10px;
+    letter-spacing: -0.02em;
+  }
+}
+
+.time-horizon-labels.time-horizon-labels--compact .time-horizon-label {
+  top: 0;
+  font-size: 10px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  padding: 0;
+  min-width: 0;
+  text-align: center;
+  transform: translateX(-50%);
+
+  &:first-child {
+    transform: translateX(0);
+  }
+
+  &:last-child {
+    transform: translateX(-100%);
+  }
+
+  @media (max-width: 480px) {
+    font-size: 9px;
+    letter-spacing: -0.04em;
+  }
+}
+
+::ng-deep body.time-horizon-dragging {
+  cursor: grabbing !important;
+}

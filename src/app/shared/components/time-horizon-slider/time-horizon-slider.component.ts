@@ -1,0 +1,440 @@
+/* eslint-disable */
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  Output,
+  SimpleChanges,
+  ViewChild,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  UNIFIED_TIME_HORIZONS,
+  TIME_HORIZONS_SHORT_LABELS,
+} from '../../constants/time-horizons.constants';
+
+export interface TimeHorizonRangeIndices {
+  startIndex: number;
+  endIndex: number;
+}
+
+@Component({
+  selector: 'app-time-horizon-slider',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './time-horizon-slider.component.html',
+  styleUrl: './time-horizon-slider.component.scss',
+})
+export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges {
+  private static readonly AXIS_INSET_DESKTOP_PX = 14;
+  private static readonly AXIS_INSET_MOBILE_PX = 8;
+
+  readonly horizons = [...UNIFIED_TIME_HORIZONS];
+
+  @Input({ alias: 'range', required: true }) rangeInput!: TimeHorizonRangeIndices;
+
+  @Input() infoTooltipOpen = false;
+  @Input() infoTooltipText = '';
+
+  @Output() rangeChange = new EventEmitter<TimeHorizonRangeIndices>();
+  @Output() timeHorizonChange = new EventEmitter<string>();
+  @Output() timeHorizonRangeChange = new EventEmitter<{ start: string; end: string }>();
+  @Output() inferredDataTypeChange = new EventEmitter<'historical' | 'forecasted'>();
+  @Output() infoToggle = new EventEmitter<Event>();
+
+  @ViewChild('timeHorizonSliderFull', { static: false }) sliderContainerRef!: ElementRef<HTMLElement>;
+
+  private range: TimeHorizonRangeIndices = { startIndex: 5, endIndex: 6 };
+
+  compactAxis = typeof window !== 'undefined' && window.innerWidth <= 768;
+  private sliderTrackWidthFallback = 560;
+  private isDragging = false;
+  private dragType: 'start' | 'end' | null = null;
+  private hasDragged = false;
+  private dragContainer: HTMLElement | null = null;
+  private lastTrackMousedownAt: number | null = null;
+  private documentCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentCapture(e);
+
+  get todayIndex(): number {
+    return this.horizons.indexOf('Today');
+  }
+
+  ngOnInit(): void {
+    this.applyRangeInput();
+    if (typeof document !== 'undefined') {
+      document.addEventListener('mousedown', this.documentCaptureListener, true);
+      document.addEventListener('touchstart', this.documentCaptureListener, true);
+    }
+    this.refreshCompactAxis();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['rangeInput']) {
+      this.applyRangeInput();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('mousedown', this.documentCaptureListener, true);
+      document.removeEventListener('touchstart', this.documentCaptureListener, true);
+      if (document.body) document.body.classList.remove('time-horizon-dragging');
+    }
+  }
+
+  private applyRangeInput(): void {
+    const r = this.rangeInput;
+    if (!r || typeof r.startIndex !== 'number' || typeof r.endIndex !== 'number') return;
+    this.range = { startIndex: r.startIndex, endIndex: r.endIndex };
+  }
+
+  onInfoButtonClick(ev: Event): void {
+    ev.stopPropagation();
+    this.infoToggle.emit(ev);
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.refreshCompactAxis();
+  }
+
+  private refreshCompactAxis(): void {
+    if (typeof window === 'undefined') return;
+    const next = window.innerWidth <= 768;
+    if (next !== this.compactAxis) this.compactAxis = next;
+  }
+
+  tickLabel(index: number): string {
+    const full = this.horizons[index];
+    if (full == null) return '';
+    if (!this.compactAxis) return full;
+    return TIME_HORIZONS_SHORT_LABELS[index] ?? full;
+  }
+
+  isLabelActive(index: number): boolean {
+    return index === this.range.startIndex || index === this.range.endIndex;
+  }
+
+  isTickInActiveRange(index: number): boolean {
+    const { startIndex, endIndex } = this.range;
+    return index >= startIndex && index <= endIndex;
+  }
+
+  tooltipsTooClose(): boolean {
+    const { startIndex, endIndex } = this.range;
+    if (startIndex === endIndex) return false;
+    const a = this.milestoneCenterPx(startIndex);
+    const b = this.milestoneCenterPx(endIndex);
+    return Math.abs(a - b) < 120;
+  }
+
+  milestoneCenterPx(index: number): number {
+    const numSteps = this.horizons.length - 1;
+    if (numSteps <= 0) return 0;
+    const outer = this.getSliderOuterWidthPx();
+    const { inset, trackWidth } = this.getAxisMetrics(outer);
+    return inset + (index / numSteps) * trackWidth;
+  }
+
+  private getSliderOuterWidthPx(): number {
+    const el = this.sliderContainerRef?.nativeElement;
+    if (el) return Math.max(0, el.getBoundingClientRect().width);
+    return this.sliderTrackWidthFallback;
+  }
+
+  private getAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    const inset = isMobile
+      ? TimeHorizonSliderComponent.AXIS_INSET_MOBILE_PX
+      : TimeHorizonSliderComponent.AXIS_INSET_DESKTOP_PX;
+    const trackWidth = Math.max(0, containerWidth - 2 * inset);
+    return { inset, trackWidth };
+  }
+
+  private getTrackInnerWidthPx(): number {
+    return this.getAxisMetrics(this.getSliderOuterWidthPx()).trackWidth;
+  }
+
+  handleTooltipDate(type: 'start' | 'end'): string {
+    const idx = type === 'start' ? this.range.startIndex : this.range.endIndex;
+    const label = this.horizons[idx];
+    return label ? this.formatTooltipDate(label) : '';
+  }
+
+  private formatTooltipDate(horizon: string): string {
+    const today = new Date();
+    let d: Date;
+    if (horizon === 'Today') {
+      d = today;
+    } else {
+      const normalized = horizon.trim().toLowerCase();
+      const match = normalized.match(/^([+-]?)(\d+)\s*mo$/);
+      if (!match) return horizon;
+      const isNegative = match[1] === '-';
+      const months = parseInt(match[2], 10);
+      const base = new Date(today.getFullYear(), today.getMonth(), 1);
+      base.setMonth(base.getMonth() + (isNegative ? -months : months));
+      d = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    }
+    return this.formatEnglishShortDate(d);
+  }
+
+  private formatEnglishShortDate(d: Date): string {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  getHandlePosition(type: 'start' | 'end'): number {
+    const index = type === 'start' ? this.range.startIndex : this.range.endIndex;
+    return this.milestoneCenterPx(index);
+  }
+
+  getActiveTrackLeft(): number {
+    const numSteps = this.horizons.length - 1;
+    const inner = this.getTrackInnerWidthPx();
+    return (this.range.startIndex / numSteps) * inner;
+  }
+
+  getActiveTrackWidth(): number {
+    const numSteps = this.horizons.length - 1;
+    const span = this.range.endIndex - this.range.startIndex;
+    const inner = this.getTrackInnerWidthPx();
+    return (span / numSteps) * inner;
+  }
+
+  startDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+    this.hasDragged = false;
+    this.dragType = type;
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.add('time-horizon-dragging');
+    }
+    if (this.sliderContainerRef?.nativeElement) {
+      this.dragContainer = this.sliderContainerRef.nativeElement;
+    } else {
+      const target = event.target as HTMLElement;
+      this.dragContainer =
+        target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-full') ??
+        target?.parentElement ??
+        null;
+    }
+    this.handlePointerDrag(event);
+  }
+
+  onTrackClick(event: MouseEvent | TouchEvent): void {
+    if (this.hasDragged || this.isDragging) return;
+    const target = event.target as HTMLElement;
+    if (target?.closest?.('.time-horizon-handle')) return;
+    if (target?.closest?.('.time-horizon-labels')) return;
+
+    if (event.type === 'click' && (event as MouseEvent).detail === 1) {
+      const now = Date.now();
+      if (this.lastTrackMousedownAt != null && now - this.lastTrackMousedownAt < 300) {
+        return;
+      }
+    }
+    if (event.type === 'mousedown') {
+      this.lastTrackMousedownAt = Date.now();
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const container =
+      this.sliderContainerRef?.nativeElement ?? (event.currentTarget as HTMLElement);
+    if (!container) return;
+    this.applyTrackClick(event, container);
+  }
+
+  private applyTrackClick(event: MouseEvent | TouchEvent, container: HTMLElement): void {
+    const rect = container.getBoundingClientRect();
+    let clientX: number;
+    if ('touches' in event || 'changedTouches' in event) {
+      const te = event as TouchEvent;
+      clientX = te.changedTouches?.[0]?.clientX ?? te.touches?.[0]?.clientX ?? 0;
+    } else {
+      clientX = (event as MouseEvent).clientX;
+    }
+    const x = clientX - rect.left;
+    const { inset, trackWidth } = this.getAxisMetrics(
+      rect.width > 0 ? rect.width : this.sliderTrackWidthFallback
+    );
+    const xAdjusted = Math.max(0, Math.min(x - inset, trackWidth));
+    const percentage = trackWidth > 0 ? Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100)) : 0;
+    const numSteps = this.horizons.length - 1;
+    const stepIndex = Math.round((percentage / 100) * numSteps);
+    const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
+    const startDistance = Math.abs(clickedIndex - this.range.startIndex);
+    const endDistance = Math.abs(clickedIndex - this.range.endIndex);
+
+    if (startDistance <= endDistance) {
+      this.range = {
+        startIndex: Math.min(clickedIndex, this.range.endIndex - 1),
+        endIndex: this.range.endIndex,
+      };
+    } else {
+      this.range = {
+        startIndex: this.range.startIndex,
+        endIndex: Math.max(clickedIndex, this.range.startIndex + 1),
+      };
+    }
+    this.publishRange();
+  }
+
+  onLabelClick(index: number, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (this.hasDragged || this.isDragging) return;
+
+    const numSteps = this.horizons.length - 1;
+    const clickedIndex = Math.max(0, Math.min(numSteps, index));
+    const startDistance = Math.abs(clickedIndex - this.range.startIndex);
+    const endDistance = Math.abs(clickedIndex - this.range.endIndex);
+
+    if (startDistance <= endDistance) {
+      this.range = {
+        startIndex: Math.min(clickedIndex, this.range.endIndex - 1),
+        endIndex: this.range.endIndex,
+      };
+    } else {
+      this.range = {
+        startIndex: this.range.startIndex,
+        endIndex: Math.max(clickedIndex, this.range.startIndex + 1),
+      };
+    }
+    this.publishRange();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  @HostListener('document:touchmove', ['$event'])
+  onDocumentMove(event: MouseEvent | TouchEvent): void {
+    if (!this.isDragging) return;
+    if (event.cancelable) event.preventDefault();
+    this.handlePointerDrag(event);
+  }
+
+  @HostListener('document:mouseup')
+  @HostListener('document:touchend')
+  onDocumentUp(): void {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.dragType = null;
+    this.dragContainer = null;
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.remove('time-horizon-dragging');
+    }
+    setTimeout(() => {
+      this.hasDragged = false;
+    }, 100);
+  }
+
+  private handlePointerDrag(event: MouseEvent | TouchEvent): void {
+    const container =
+      this.dragContainer ??
+      this.sliderContainerRef?.nativeElement ??
+      null;
+    if (!this.dragType || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    const clientX =
+      'touches' in event && event.touches?.length
+        ? event.touches[0].clientX
+        : (event as MouseEvent).clientX;
+    if (clientX == null) return;
+    const x = clientX - rect.left;
+    const { inset, trackWidth } = this.getAxisMetrics(
+      rect.width > 0 ? rect.width : this.sliderTrackWidthFallback
+    );
+    const xAdjusted = Math.max(0, Math.min(x - inset, trackWidth));
+    const percentage = trackWidth > 0 ? Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100)) : 0;
+    const numSteps = this.horizons.length - 1;
+    const stepIndex = Math.round((percentage / 100) * numSteps);
+    const clampedIndex = Math.max(0, Math.min(numSteps, stepIndex));
+
+    if (this.dragType === 'start') {
+      this.range = {
+        startIndex: Math.min(clampedIndex, this.range.endIndex - 1),
+        endIndex: this.range.endIndex,
+      };
+    } else {
+      this.range = {
+        startIndex: this.range.startIndex,
+        endIndex: Math.max(clampedIndex, this.range.startIndex + 1),
+      };
+    }
+    this.hasDragged = true;
+    this.publishRange();
+  }
+
+  private publishRange(): void {
+    const next = { ...this.range };
+    this.rangeChange.emit(next);
+    const h = this.horizons;
+    const endHorizon = h[next.endIndex];
+    const startHorizon = h[next.startIndex];
+    const todayIndex = h.indexOf('Today');
+    if (todayIndex >= 0) {
+      const inferred: 'historical' | 'forecasted' =
+        next.endIndex > todayIndex ? 'forecasted' : 'historical';
+      this.inferredDataTypeChange.emit(inferred);
+    }
+    this.timeHorizonChange.emit(endHorizon);
+    this.timeHorizonRangeChange.emit({ start: startHorizon, end: endHorizon });
+  }
+
+  private onDocumentCapture(event: MouseEvent | TouchEvent): void {
+    const targetEl = event.target as HTMLElement;
+    if (targetEl?.closest?.('.filters-sticky-minimize-btn, .filters-bar-sticky-collapsed-btn')) {
+      return;
+    }
+    const container = this.sliderContainerRef?.nativeElement;
+    if (!container) return;
+    const clientX =
+      'touches' in event ? (event as TouchEvent).touches[0]?.clientX : (event as MouseEvent).clientX;
+    const clientY =
+      'touches' in event ? (event as TouchEvent).touches[0]?.clientY : (event as MouseEvent).clientY;
+    if (clientX == null || clientY == null) return;
+    const target = targetEl;
+    let handleEl = target?.closest?.('.time-horizon-handle') as HTMLElement | null;
+    if (!handleEl) {
+      const startHandle = container.querySelector('.time-horizon-handle-start') as HTMLElement;
+      const endHandle = container.querySelector('.time-horizon-handle-end') as HTMLElement;
+      if (startHandle) {
+        const r = startHandle.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+          handleEl = startHandle;
+        }
+      }
+      if (!handleEl && endHandle) {
+        const r = endHandle.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+          handleEl = endHandle;
+        }
+      }
+    }
+    if (handleEl) {
+      const isStart = handleEl.classList.contains('time-horizon-handle-start');
+      this.startDrag(event, isStart ? 'start' : 'end');
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (target?.closest?.('.time-horizon-labels')) return;
+    if (this.hasDragged || this.isDragging) return;
+    const rect = container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
+    this.lastTrackMousedownAt = Date.now();
+    this.applyTrackClick(event, container);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}

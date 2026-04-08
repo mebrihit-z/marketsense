@@ -181,150 +181,17 @@
 
           <div class="toggles-container">
 
-            <!-- Time Horizon: own white card -->
+            <!-- Time Horizon: own white card (app component) -->
 
-            <div class="time-horizon-container">
-
-              <div class="label-with-info">
-
-                <label class="toggle-label">Time Horizon:</label>
-
-                <div class="info-btn-wrapper">
-
-                  <button type="button" #timeHorizonInfoBtn class="info-btn" (click)="onInfoClick('timeHorizon', $event)" aria-label="Time Horizon Info">
-
-                    <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
-
-                  </button>
-
-                  <div 
-
-                    #timeHorizonTooltip 
-
-                    class="info-tooltip" 
-
-                    *ngIf="isTooltipOpen('timeHorizon')"
-
-                    (click)="$event.stopPropagation()">
-
-                    <div class="tooltip-content">
-
-                      {{ getTooltipText('timeHorizon') }}
-
-                    </div>
-
-                    <div class="tooltip-arrow"></div>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              <div class="time-horizon-slider-wrapper time-horizon-slider-wrapper-full">
-
-                <div class="time-horizon-slider-container time-horizon-slider-container-full" #timeHorizonSliderFull
-
-                    (mousedown)="onTimeHorizonTrackClick($event)"
-
-                    (click)="onTimeHorizonTrackClick($event)"
-
-                    (touchend)="onTimeHorizonTrackClick($event)">
-
-                  <div class="time-horizon-slider-track">
-
-                    <div class="time-horizon-dots">
-
-                      <div
-                        class="dot"
-                        *ngFor="let horizon of timeHorizons; let i = index"
-                        [class.dot--today]="i === getTimeHorizonTodayIndex()"
-                        [class.dot--in-active-range]="isTimeHorizonTickInActiveRange(i)"
-                        [style.left.%]="(i / (timeHorizons.length - 1)) * 100"></div>
-
-                    </div>
-
-                    <div class="time-horizon-track-background"></div>
-
-                    <div class="time-horizon-track-active" 
-
-                        [style.left.px]="getTimeHorizonActiveTrackLeft()" 
-
-                        [style.width.px]="getTimeHorizonActiveTrackWidth()"></div>
-
-                  </div>
-
-                  <div
-                    class="time-horizon-handle-cluster time-horizon-handle-cluster-start"
-                    [style.left.px]="getTimeHorizonHandlePosition('start')">
-
-                    <div
-                      class="time-horizon-value-tooltip"
-                      [class.time-horizon-value-tooltip--spread-start]="timeHorizonTooltipsTooClose()">
-                      {{ getTimeHorizonHandleTooltipDate('start') }}
-                    </div>
-
-                    <div class="time-horizon-handle time-horizon-handle-start" 
-
-                        (mousedown)="startTimeHorizonDrag($event, 'start')"
-
-                        (touchstart)="startTimeHorizonDrag($event, 'start')"
-
-                        (click)="$event.stopPropagation()"></div>
-
-                  </div>
-
-                  <div
-                    class="time-horizon-handle-cluster time-horizon-handle-cluster-end"
-                    [style.left.px]="getTimeHorizonHandlePosition('end')">
-
-                    <div
-                      class="time-horizon-value-tooltip"
-                      [class.time-horizon-value-tooltip--spread-end]="timeHorizonTooltipsTooClose()">
-                      {{ getTimeHorizonHandleTooltipDate('end') }}
-                    </div>
-
-                    <div class="time-horizon-handle time-horizon-handle-end" 
-
-                        (mousedown)="startTimeHorizonDrag($event, 'end')"
-
-                        (touchstart)="startTimeHorizonDrag($event, 'end')"
-
-                        (click)="$event.stopPropagation()"></div>
-
-                  </div>
-
-                </div>
-
-                <div class="time-horizon-labels" [class.time-horizon-labels--compact]="compactTimeHorizonAxis">
-
-                  <span class="time-horizon-label" 
-
-                        *ngFor="let horizon of timeHorizons; let i = index"
-
-                        [class.time-horizon-label--active]="isTimeHorizonLabelActive(i)"
-
-                        [class.time-horizon-label--today]="i === getTimeHorizonTodayIndex()"
-
-                        [style.left.px]="getTimeHorizonMilestoneCenterPx(i)"
-
-                        [style.transform]="'translateX(-50%)'"
-
-                        [attr.aria-label]="horizon"
-
-                        (click)="onTimeHorizonLabelClick(i, $event)"
-
-                        (touchend)="onTimeHorizonLabelClick(i, $event)">
-
-                    {{ timeHorizonTickLabel(i) }}
-
-                  </span>
-
-                </div>
-
-              </div>
-
-            </div>
+            <app-time-horizon-slider
+              [range]="timeHorizonRange"
+              [infoTooltipOpen]="isTooltipOpen('timeHorizon')"
+              [infoTooltipText]="getTooltipText('timeHorizon')"
+              (rangeChange)="onTimeHorizonRangeFromSlider($event)"
+              (timeHorizonChange)="onTimeHorizonEndFromSlider($event)"
+              (timeHorizonRangeChange)="timeHorizonRangeChange.emit($event)"
+              (inferredDataTypeChange)="onTimeHorizonInferredDataType($event)"
+              (infoToggle)="onInfoClick('timeHorizon', $event)" />
 
             <!-- Min flow value: separate white card -->
 

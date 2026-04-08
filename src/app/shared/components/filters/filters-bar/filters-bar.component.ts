@@ -13,6 +13,11 @@ import { SavedViewsService, type SavedView } from '../../../../core/services/sav
 import UserProfileService from '../../../services/user-profile.service';
 import { MinFlowRangeSliderComponent } from '../../min-flow-range-slider/min-flow-range-slider.component';
 import {
+  TimeHorizonSliderComponent,
+  type TimeHorizonRangeIndices,
+} from '../../time-horizon-slider/time-horizon-slider.component';
+import { UNIFIED_TIME_HORIZONS } from '../../../constants/time-horizons.constants';
+import {
   MIN_FLOW_VALUE_OPTIONS,
   createDefaultMinFlowRange,
   type MinFlowRangeSelection,
@@ -29,7 +34,14 @@ export interface FilterOptionTotals {
 @Component({
   selector: 'app-filters-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterDropdownComponent, SaveFilterSetModalComponent, MinFlowRangeSliderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    FilterDropdownComponent,
+    SaveFilterSetModalComponent,
+    MinFlowRangeSliderComponent,
+    TimeHorizonSliderComponent,
+  ],
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss',
   /** Declared in metadata so parent templates always resolve `[stickyEngaged]` (strictTemplates + language service). */
@@ -49,17 +61,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
-  @ViewChild('timeHorizonSliderFull', { static: false }) timeHorizonSliderContainerFull!: ElementRef<HTMLElement>;
-  get timeHorizonSliderContainer(): ElementRef<HTMLElement> | null {
-    return this.timeHorizonSliderContainerFull ?? null;
-  }
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
   @ViewChild('aiConfidenceInfoBtn', { static: false }) aiConfidenceInfoBtn!: ElementRef<HTMLButtonElement>;
-  @ViewChild('timeHorizonInfoBtn', { static: false }) timeHorizonInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('minFlowValueInfoBtn', { static: false }) minFlowValueInfoBtn?: ElementRef<HTMLButtonElement>;
   @ViewChild('aiConfidenceTooltip', { static: false }) aiConfidenceTooltip!: ElementRef<HTMLDivElement>;
-  @ViewChild('timeHorizonTooltip', { static: false }) timeHorizonTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('minFlowValueTooltip', { static: false }) minFlowValueTooltip?: ElementRef<HTMLDivElement>;
   @ViewChild('investorGroupInfoBtn', { static: false }) investorGroupInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('investorGroupTooltip', { static: false }) investorGroupTooltip!: ElementRef<HTMLDivElement>;
@@ -97,6 +103,20 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     this.minFlowValueRangeChange.emit({ ...this.minFlowRange });
   }
 
+  onTimeHorizonRangeFromSlider(r: TimeHorizonRangeIndices): void {
+    this.timeHorizonRange = { ...r };
+  }
+
+  onTimeHorizonEndFromSlider(end: string): void {
+    this.selectedTimeHorizon = end;
+    this.timeHorizonChange.emit(end);
+  }
+
+  onTimeHorizonInferredDataType(t: 'historical' | 'forecasted'): void {
+    this.dataType = t;
+    this.dataTypeChange.emit(t);
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['forceCloseDropdown'] && changes['forceCloseDropdown'].currentValue > 0) {
       this.openDropdown = null;
@@ -121,21 +141,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   hasDragged = false; // Track if user actually dragged vs just clicked
   sliderTrackWidth = 142; // Width of the slider track in pixels (normal)
   
-  // Time Horizon range slider state (indices into timeHorizons; default = Today → +3 mo)
-  timeHorizonRange = { startIndex: 5, endIndex: 6 };
-  isTimeHorizonDragging = false;
-  timeHorizonDragType: 'start' | 'end' | null = null;
-  timeHorizonHasDragged = false; // Track if user actually dragged vs just clicked
-  /** Container element when dragging (set from handle's parent). */
-  private timeHorizonDragContainer: HTMLElement | null = null;
-  /** Timestamp of last mousedown on track, to avoid handling click twice for same gesture. */
-  private _lastTimeHorizonTrackMousedownAt: number | null = null;
-  timeHorizonSliderTrackWidth = 560; // Fallback outer width; SCSS rail insets must match the constants below
-  /** Horizontal inset to rail — keep in sync with `$time-horizon-axis-inset-*` in filters-bar.component.scss */
-  private static readonly TIME_HORIZON_AXIS_INSET_DESKTOP_PX = 14;
-  private static readonly TIME_HORIZON_AXIS_INSET_MOBILE_PX = 8;
-  /** Bound document capture listener for time horizon (so we can remove in ngOnDestroy). */
-  private _documentTimeHorizonCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentTimeHorizonCapture(e);
+  /** Indices into {@link UNIFIED_TIME_HORIZONS} (default = Today → +3 mo). */
+  timeHorizonRange: TimeHorizonRangeIndices = { startIndex: 5, endIndex: 6 };
 
   /** VDI: sync user preference only after OAuth `sub` is available (avoids duplicate API users). */
   private userPreferenceSyncSub?: Subscription;
@@ -144,23 +151,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   dataType: 'historical' | 'forecasted' = 'forecasted';
   selectedTimeHorizon: string = '+3 mo';
 
-  /** When true, time-axis tick labels use short copy on one row (see SCSS) so they fit on narrow screens. */
-  compactTimeHorizonAxis = typeof window !== 'undefined' && window.innerWidth <= 768;
-
-  private static readonly TIME_HORIZONS_SHORT: readonly string[] = [
-    '-18',
-    '-12',
-    '-9',
-    '-6',
-    '-3',
-    'Today',
-    '+3',
-    '+6',
-    '+9',
-    '+12',
-    '+18',
-  ];
-  
   /**
    * @returns {void} Initializes filter state and time horizon defaults.
    */
@@ -211,46 +201,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     this.initializeTimeHorizonRange();
 
     this.emitMinFlowValueRange();
-
-    this.refreshCompactTimeHorizonAxis();
-
-    // Document capture listeners for full time horizon (handle drag + track click); capture so they run first
-    if (typeof document !== 'undefined') {
-      document.addEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
-      document.addEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
-    }
-  }
-
-  @HostListener('window:resize')
-  onWindowResize(): void {
-    this.refreshCompactTimeHorizonAxis();
-  }
-
-  private refreshCompactTimeHorizonAxis(): void {
-    if (typeof window === 'undefined') return;
-    const next = window.innerWidth <= 768;
-    if (next !== this.compactTimeHorizonAxis) {
-      this.compactTimeHorizonAxis = next;
-    }
-  }
-
-  /**
-   * @param index - Tick index aligned with {@link FiltersBarComponent#timeHorizons}.
-   * @returns Label text for the slider axis (short on narrow viewports).
-   */
-  timeHorizonTickLabel(index: number): string {
-    const full = this.timeHorizons[index];
-    if (full == null) return '';
-    if (!this.compactTimeHorizonAxis) return full;
-    return FiltersBarComponent.TIME_HORIZONS_SHORT[index] ?? full;
   }
 
   ngOnDestroy(): void {
     this.userPreferenceSyncSub?.unsubscribe();
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
-      document.removeEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
-    }
   }
 
   /**
@@ -400,7 +354,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @returns {void} Initializes the time horizon slider range from the current selection.
    */
   private initializeTimeHorizonRange(): void {
-    const horizons = this.timeHorizons;
+    const horizons = UNIFIED_TIME_HORIZONS;
     const todayIdx = horizons.indexOf('Today');
     const plus3Idx = horizons.indexOf('+3 mo');
     const minus3Idx = horizons.indexOf('-3 mo');
@@ -714,8 +668,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       dataType: this.dataType,
       timeHorizonRange: { ...this.timeHorizonRange },
       timeHorizonRangeLabels: {
-        start: this.timeHorizons[this.timeHorizonRange.startIndex],
-        end: this.timeHorizons[this.timeHorizonRange.endIndex],
+        start: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.startIndex],
+        end: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.endIndex],
       },
       selectedTimeHorizon: this.selectedTimeHorizon,
       aiConfidenceRange: { ...this.aiConfidenceRange },
@@ -786,7 +740,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     // are restored exactly as saved (e.g., "+3 mo" to "+12 mo").
     const labels = detail.timeHorizonRangeLabels;
     if (labels && typeof labels === 'object') {
-      const horizons = this.timeHorizons;
+      const horizons = UNIFIED_TIME_HORIZONS;
       const startLabel = labels.start as string | undefined;
       const endLabel = labels.end as string | undefined;
       const startIndex = startLabel != null ? horizons.indexOf(startLabel) : -1;
@@ -855,17 +809,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
 
   /**
    * @param {MouseEvent | TouchEvent} event - The mouse or touch event during dragging
-   * @returns {void} Handles drag events for both AI confidence and time horizon sliders.
+   * @returns {void} Handles drag events for the AI confidence slider.
    */
   @HostListener('document:mousemove', ['$event'])
   @HostListener('document:touchmove', ['$event'])
   onDrag(event: MouseEvent | TouchEvent) {
     if (this.isDragging) {
       this.handleDrag(event);
-    }
-    if (this.isTimeHorizonDragging) {
-      if (event.cancelable) event.preventDefault();
-      this.handleTimeHorizonDrag(event);
     }
   }
 
@@ -881,76 +831,19 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     setTimeout(() => {
       this.hasDragged = false;
     }, 100);
-    if (this.isTimeHorizonDragging) {
-      this.isTimeHorizonDragging = false;
-      this.timeHorizonDragType = null;
-      this.timeHorizonDragContainer = null;
-      if (typeof document !== 'undefined' && document.body) document.body.classList.remove('time-horizon-dragging');
-      // Reset drag flag after a brief delay to allow click handler to check it
-      setTimeout(() => {
-        this.timeHorizonHasDragged = false;
-      }, 100);
-    }
   }
 
   /**
-   * Handles clicks on the document to close any open dropdown when clicking outside the filters area.
-   * Also handles closing tooltips when clicking outside.
-   * @param event - The click event
-   * @returns {void}
+   * Document click: close dropdowns / filters-bar tooltips when clicking outside.
    */
-  /**
-   * Document mousedown/touchstart (capture): when full time horizon slider is visible, start handle drag
-   * or track click. Registered in ngOnInit with capture: true so it fires before child elements.
-   */
-  onDocumentTimeHorizonCapture(event: MouseEvent | TouchEvent): void {
-    const targetEl = event.target as HTMLElement;
-    if (targetEl?.closest?.('.filters-sticky-minimize-btn, .filters-bar-sticky-collapsed-btn')) {
-      return;
-    }
-    const container = this.timeHorizonSliderContainerFull?.nativeElement;
-    if (!container) return;
-    const clientX = 'touches' in event ? (event as TouchEvent).touches[0]?.clientX : (event as MouseEvent).clientX;
-    const clientY = 'touches' in event ? (event as TouchEvent).touches[0]?.clientY : (event as MouseEvent).clientY;
-    if (clientX == null || clientY == null) return;
-    const target = targetEl;
-    // Start drag when mousedown/touchstart is on a handle (by target or by hit-test)
-    let handleEl = target?.closest?.('.time-horizon-handle');
-    if (!handleEl) {
-      const startHandle = container.querySelector('.time-horizon-handle-start') as HTMLElement;
-      const endHandle = container.querySelector('.time-horizon-handle-end') as HTMLElement;
-      if (startHandle) {
-        const r = startHandle.getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) handleEl = startHandle;
-      }
-      if (!handleEl && endHandle) {
-        const r = endHandle.getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) handleEl = endHandle;
-      }
-    }
-    if (handleEl) {
-      const isStart = handleEl.classList.contains('time-horizon-handle-start');
-      this.startTimeHorizonDrag(event, isStart ? 'start' : 'end');
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    if (target?.closest?.('.time-horizon-labels')) return;
-    if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) return;
-    const rect = container.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
-    this._lastTimeHorizonTrackMousedownAt = Date.now();
-    this.applyTimeHorizonTrackClick(event, container);
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     // Don't close if we're dragging sliders
-    if (this.isDragging || this.isTimeHorizonDragging || document.body.classList.contains('min-flow-range-dragging')) {
+    if (
+      this.isDragging ||
+      document.body.classList.contains('time-horizon-dragging') ||
+      document.body.classList.contains('min-flow-range-dragging')
+    ) {
       return;
     }
 
@@ -975,8 +868,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         clickedInside = this.aiConfidenceTooltip?.nativeElement?.contains(target) ||
                        this.aiConfidenceInfoBtn?.nativeElement?.contains(target);
       } else if (this.openTooltip === 'timeHorizon') {
-        clickedInside = this.timeHorizonTooltip?.nativeElement?.contains(target) ||
-                       this.timeHorizonInfoBtn?.nativeElement?.contains(target);
+        clickedInside = !!target.closest?.(
+          '.time-horizon-filter-card .info-btn, .time-horizon-filter-card .info-tooltip'
+        );
       } else if (this.openTooltip === 'investorGroup') {
         clickedInside = this.investorGroupTooltip?.nativeElement?.contains(target) ||
                        this.investorGroupInfoBtn?.nativeElement?.contains(target);
@@ -1082,116 +976,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  // Time Horizon methods
-  /**
-   * @returns {string[]} A list of time horizon labels matching the current data type.
-   */
-  get timeHorizons(): string[] {
-    // Unified time horizon scale combining historical and forecasted periods
-    return ['-18 mo', '-12 mo', '-9 mo', '-6 mo', '-3 mo', 'Today', '+3 mo', '+6 mo', '+9 mo', '+12 mo', '+18 mo'];
-  }
-
-  /** Index of the `Today` tick (for accent styling). */
-  getTimeHorizonTodayIndex(): number {
-    return this.timeHorizons.indexOf('Today');
-  }
-
-  /** True when a handle is snapped to this milestone (bold navy label). */
-  isTimeHorizonLabelActive(index: number): boolean {
-    return index === this.timeHorizonRange.startIndex || index === this.timeHorizonRange.endIndex;
-  }
-
-  /**
-   * Milestones under the selected (navy) segment — ticks use a light color there; outside uses navy on pale rail.
-   */
-  isTimeHorizonTickInActiveRange(index: number): boolean {
-    const { startIndex, endIndex } = this.timeHorizonRange;
-    return index >= startIndex && index <= endIndex;
-  }
-
-  /**
-   * True when tooltips would overlap (Today…+3 mo); template nudges them horizontally apart.
-   */
-  timeHorizonTooltipsTooClose(): boolean {
-    const { startIndex, endIndex } = this.timeHorizonRange;
-    if (startIndex === endIndex) return false;
-    const a = this.getTimeHorizonMilestoneCenterPx(startIndex);
-    const b = this.getTimeHorizonMilestoneCenterPx(endIndex);
-    // ~2× milestone spacing (consecutive or one-apart ticks): keep date chips from merging
-    return Math.abs(a - b) < 120;
-  }
-
-  /**
-   * Center X of milestone `index` from the left edge of `.time-horizon-slider-container` (handles + labels).
-   */
-  getTimeHorizonMilestoneCenterPx(index: number): number {
-    const numSteps = this.timeHorizons.length - 1;
-    if (numSteps <= 0) return 0;
-    const outer = this.getTimeHorizonSliderContainerOuterWidthPx();
-    const { inset, trackWidth } = this.getTimeHorizonAxisMetrics(outer);
-    return inset + (index / numSteps) * trackWidth;
-  }
-
-  private getTimeHorizonSliderContainerOuterWidthPx(): number {
-    const el = this.timeHorizonSliderContainer?.nativeElement ?? this.timeHorizonSliderContainerFull?.nativeElement;
-    if (el) return Math.max(0, el.getBoundingClientRect().width);
-    return this.timeHorizonSliderTrackWidth;
-  }
-
-  private getTimeHorizonAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-    const inset = isMobile
-      ? FiltersBarComponent.TIME_HORIZON_AXIS_INSET_MOBILE_PX
-      : FiltersBarComponent.TIME_HORIZON_AXIS_INSET_DESKTOP_PX;
-    const trackWidth = Math.max(0, containerWidth - 2 * inset);
-    return { inset, trackWidth };
-  }
-
-  private getTimeHorizonTrackInnerWidthPx(): number {
-    return this.getTimeHorizonAxisMetrics(this.getTimeHorizonSliderContainerOuterWidthPx()).trackWidth;
-  }
-
-  /**
-   * Calendar date shown above each handle (end-of-month for ±N mo horizons; calendar day for Today).
-   */
-  getTimeHorizonHandleTooltipDate(type: 'start' | 'end'): string {
-    const horizons = this.timeHorizons;
-    const idx = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
-    const label = horizons[idx];
-    return label ? this.formatTimeHorizonTooltipDate(label) : '';
-  }
-
-  private formatTimeHorizonTooltipDate(horizon: string): string {
-    const today = new Date();
-    let d: Date;
-    if (horizon === 'Today') {
-      d = today;
-    } else {
-      const normalized = horizon.trim().toLowerCase();
-      const match = normalized.match(/^([+-]?)(\d+)\s*mo$/);
-      if (!match) return horizon;
-      const isNegative = match[1] === '-';
-      const months = parseInt(match[2], 10);
-      const base = new Date(today.getFullYear(), today.getMonth(), 1);
-      base.setMonth(base.getMonth() + (isNegative ? -months : months));
-      d = new Date(base.getFullYear(), base.getMonth() + 1, 0);
-    }
-    return this.formatEnglishShortDate(d);
-  }
-
-  /** Stable "Apr 8, 2026" (avoids locale/narrow layouts truncating years in tooltips). */
-  private formatEnglishShortDate(d: Date): string {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  }
-
   /**
    * @param {'historical' | 'forecasted'} type - The data type to set (historical or forecasted)
    * @returns {void} Updates the data type and resets the time horizon range accordingly.
    */
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
-    const horizons = this.timeHorizons;
+    const horizons = UNIFIED_TIME_HORIZONS;
     const todayIdx = horizons.indexOf('Today');
     const plus3Idx = horizons.indexOf('+3 mo');
     const minus3Idx = horizons.indexOf('-3 mo');
@@ -1208,7 +999,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @returns {void} Updates and emits the currently selected time horizon.
    */
   private updateSelectedTimeHorizon(): void {
-    const horizons = this.timeHorizons;
+    const horizons = UNIFIED_TIME_HORIZONS;
     const endHorizon = horizons[this.timeHorizonRange.endIndex];
     const startHorizon = horizons[this.timeHorizonRange.startIndex];
 
@@ -1226,195 +1017,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     this.timeHorizonChange.emit(endHorizon);
     // Also emit the range for components that need both start and end
     this.timeHorizonRangeChange.emit({ start: startHorizon, end: endHorizon });
-  }
-
-  /**
-   * @param {MouseEvent | TouchEvent} event - The mouse or touch event that initiated the drag
-   * @param {'start' | 'end'} type - The type of time horizon drag handle being dragged
-   * @returns {void} Starts dragging for the specified time horizon handle.
-   */
-  startTimeHorizonDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end') {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isTimeHorizonDragging = true;
-    this.timeHorizonHasDragged = false;
-    this.timeHorizonDragType = type;
-    if (typeof document !== 'undefined' && document.body) document.body.classList.add('time-horizon-dragging');
-    // Store container: prefer ViewChild so drag always works
-    if (this.timeHorizonSliderContainerFull?.nativeElement) {
-      this.timeHorizonDragContainer = this.timeHorizonSliderContainerFull.nativeElement;
-    } else {
-      const target = event.target as HTMLElement;
-      this.timeHorizonDragContainer = target?.closest('.time-horizon-slider-container, .time-horizon-slider-container-full') ?? target?.parentElement ?? null;
-    }
-    this.handleTimeHorizonDrag(event);
-  }
-
-  /**
-   * @param {MouseEvent | TouchEvent} event - The mouse or touch click event on the time horizon track
-   * @returns {void} Moves the nearest time horizon handle to the clicked position when not dragging.
-   */
-  onTimeHorizonTrackClick(event: MouseEvent | TouchEvent) {
-    // Don't handle if user was dragging or is dragging
-    if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
-      return;
-    }
-    const target = event.target as HTMLElement;
-    // Ignore if the event target is a handle (handle has its own mousedown for drag)
-    if (target?.closest?.('.time-horizon-handle')) {
-      return;
-    }
-    // Full layout: handler is on the wrapper; ignore clicks on labels (they have their own handler)
-    if (target?.closest?.('.time-horizon-labels')) {
-      return;
-    }
-    // Avoid handling both mousedown and click for the same gesture (click fires after mousedown)
-    if (event.type === 'click' && (event as MouseEvent).detail === 1) {
-      const now = Date.now();
-      if (this._lastTimeHorizonTrackMousedownAt != null && now - this._lastTimeHorizonTrackMousedownAt < 300) {
-        return;
-      }
-    }
-    if (event.type === 'mousedown') {
-      this._lastTimeHorizonTrackMousedownAt = Date.now();
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    const container = this.timeHorizonSliderContainerFull?.nativeElement ?? (event.currentTarget as HTMLElement);
-    if (!container) return;
-    this.applyTimeHorizonTrackClick(event, container);
-  }
-
-  /**
-   * Core logic: move time horizon range to the position of the event inside the given container.
-   */
-  private applyTimeHorizonTrackClick(event: MouseEvent | TouchEvent, container: HTMLElement): void {
-    const rect = container.getBoundingClientRect();
-    let clientX: number;
-    if ('touches' in event || 'changedTouches' in event) {
-      const touchEvent = event as TouchEvent;
-      clientX = touchEvent.changedTouches?.[0]?.clientX ?? touchEvent.touches?.[0]?.clientX ?? 0;
-    } else {
-      clientX = (event as MouseEvent).clientX;
-    }
-    const x = clientX - rect.left;
-    const { inset, trackWidth } = this.getTimeHorizonAxisMetrics(rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth);
-    const xAdjusted = Math.max(0, Math.min(x - inset, trackWidth));
-    const percentage = trackWidth > 0 ? Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100)) : 0;
-    const numSteps = this.timeHorizons.length - 1;
-    const stepIndex = Math.round((percentage / 100) * numSteps);
-    const clickedIndex = Math.max(0, Math.min(numSteps, stepIndex));
-    const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
-    const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
-
-    if (startDistance <= endDistance) {
-      // Move start handle, but keep at least one step between start and end
-      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex - 1);
-    } else {
-      // Move end handle, but keep at least one step between start and end
-      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex + 1);
-    }
-    this.updateSelectedTimeHorizon();
-  }
-
-  /**
-   * Handles clicks on time horizon labels to directly set the range.
-   * @param index - The index of the clicked label
-   * @param event - The click event
-   * @returns {void}
-   */
-  onTimeHorizonLabelClick(index: number, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
-    }
-    
-    // Don't handle clicks if user was dragging
-    if (this.timeHorizonHasDragged || this.isTimeHorizonDragging) {
-      return;
-    }
-    
-    const numSteps = this.timeHorizons.length - 1;
-    const clickedIndex = Math.max(0, Math.min(numSteps, index));
-    
-    // Determine which handle is closer to the clicked label
-    const startDistance = Math.abs(clickedIndex - this.timeHorizonRange.startIndex);
-    const endDistance = Math.abs(clickedIndex - this.timeHorizonRange.endIndex);
-    
-    // Move the closer handle, or start handle if equidistant, but always keep a range
-    if (startDistance <= endDistance) {
-      // Move start handle, but ensure it stays at least one step before end
-      this.timeHorizonRange.startIndex = Math.min(clickedIndex, this.timeHorizonRange.endIndex - 1);
-    } else {
-      // Move end handle, but ensure it stays at least one step after start
-      this.timeHorizonRange.endIndex = Math.max(clickedIndex, this.timeHorizonRange.startIndex + 1);
-    }
-    
-    this.updateSelectedTimeHorizon();
-  }
-
-  /**
-   * @param {MouseEvent | TouchEvent} event - The mouse or touch event during time horizon dragging
-   * @returns {void} Updates the time horizon range while the user drags a handle.
-   */
-  private handleTimeHorizonDrag(event: MouseEvent | TouchEvent) {
-    const container = this.timeHorizonDragContainer
-      ?? this.timeHorizonSliderContainer?.nativeElement
-      ?? (this.timeHorizonSliderContainerFull?.nativeElement)
-      ?? null;
-    if (!this.timeHorizonDragType || !container) return;
-
-    const rect = container.getBoundingClientRect();
-    const clientX = 'touches' in event ? event.touches[0]?.clientX : (event as MouseEvent).clientX;
-    if (clientX == null) return;
-    const x = clientX - rect.left;
-    const { inset, trackWidth } = this.getTimeHorizonAxisMetrics(rect.width > 0 ? rect.width : this.timeHorizonSliderTrackWidth);
-    const xAdjusted = Math.max(0, Math.min(x - inset, trackWidth));
-    const percentage = trackWidth > 0 ? Math.max(0, Math.min(100, (xAdjusted / trackWidth) * 100)) : 0;
-    
-    // Calculate which index this percentage corresponds to
-    const numSteps = this.timeHorizons.length - 1;
-    const stepIndex = Math.round((percentage / 100) * numSteps);
-    const clampedIndex = Math.max(0, Math.min(numSteps, stepIndex));
-
-    if (this.timeHorizonDragType === 'start') {
-      // Ensure start is at least one step before end
-      this.timeHorizonRange.startIndex = Math.min(clampedIndex, this.timeHorizonRange.endIndex - 1);
-    } else {
-      // Ensure end is at least one step after start
-      this.timeHorizonRange.endIndex = Math.max(clampedIndex, this.timeHorizonRange.startIndex + 1);
-    }
-    
-    this.timeHorizonHasDragged = true;
-    this.updateSelectedTimeHorizon();
-  }
-
-  /**
-   * @param {'start' | 'end'} type - The type of time horizon handle (start or end)
-   * @returns {number} The pixel position of the requested time horizon handle.
-   */
-  getTimeHorizonHandlePosition(type: 'start' | 'end'): number {
-    const index = type === 'start' ? this.timeHorizonRange.startIndex : this.timeHorizonRange.endIndex;
-    return this.getTimeHorizonMilestoneCenterPx(index);
-  }
-
-  /**
-   * @returns {number} The pixel offset for the left edge of the active time horizon range.
-   */
-  getTimeHorizonActiveTrackLeft(): number {
-    const numSteps = this.timeHorizons.length - 1;
-    const inner = this.getTimeHorizonTrackInnerWidthPx();
-    return (this.timeHorizonRange.startIndex / numSteps) * inner;
-  }
-
-  /**
-   * @returns {number} The pixel width of the active time horizon range.
-   */
-  getTimeHorizonActiveTrackWidth(): number {
-    const numSteps = this.timeHorizons.length - 1;
-    const range = this.timeHorizonRange.endIndex - this.timeHorizonRange.startIndex;
-    const inner = this.getTimeHorizonTrackInnerWidthPx();
-    return (range / numSteps) * inner;
   }
 
   /**
