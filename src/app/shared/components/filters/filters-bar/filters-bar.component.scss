@@ -508,6 +508,9 @@
     flex: 1 1 320px;
     min-width: 280px;
     max-width: 720px;
+    /* Extra horizontal inset so the range control doesn’t sit flush on the card edges */
+    padding-left: 20px;
+    padding-right: 20px;
 
     @media (max-width: 1024px) {
         width: 100%;
@@ -515,6 +518,18 @@
         flex: none;
         min-width: 0;
         align-self: stretch;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    @media (max-width: 768px) {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    @media (max-width: 480px) {
+        padding-left: 16px;
+        padding-right: 16px;
     }
 }
 
@@ -1158,10 +1173,6 @@
     @media (min-width: 1201px) {
         &:first-child {
             transform: translateX(-40%) !important;
-        }
-
-        &:last-child {
-            transform: translateX(-100%) !important;
         }
     }
     

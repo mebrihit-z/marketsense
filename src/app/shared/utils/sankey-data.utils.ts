@@ -509,17 +509,27 @@ export function filterSankeyData(
   };
 }
 
+/** True if either endpoint is a Net New Capital or Capital Withdrawn structural node. */
+function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
+  const touches = (name: string) =>
+    name.includes('Net New Capital') || name.includes('Capital Withdrawn');
+  return touches(source) || touches(target);
+}
+
 /**
  * Filters Sankey links by optional lower and upper bounds (values in billions).
  * Removes links outside the range and any nodes that are no longer connected.
  *
  * @param minValue - Use 0 or less to apply no lower bound.
  * @param maxValue - Use null/undefined to apply no upper bound.
+ * @param exemptNetNewAndWithdrawnFromFlowValueFilter - When true, links touching Net New Capital or
+ *   Capital Withdrawn nodes skip min/max checks (Sankey only; keeps structural flows visible).
  */
 export function filterSankeyDataByFlowValueRange(
   data: SankeyData,
   minValue: number,
-  maxValue: number | null | undefined
+  maxValue: number | null | undefined,
+  exemptNetNewAndWithdrawnFromFlowValueFilter = false
 ): SankeyData {
   if (!data || !data.links || !Array.isArray(data.links)) {
     return data;
@@ -534,6 +544,14 @@ export function filterSankeyDataByFlowValueRange(
   const max = hasMax ? (maxValue as number) : Infinity;
 
   const filteredLinks = data.links.filter((link) => {
+    const source = typeof link.source === 'string' ? link.source : '';
+    const target = typeof link.target === 'string' ? link.target : '';
+    if (
+      exemptNetNewAndWithdrawnFromFlowValueFilter &&
+      linkTouchesNetNewOrWithdrawn(source, target)
+    ) {
+      return true;
+    }
     const v = link.value ?? 0;
     if (hasMin && v < minValue) return false;
     if (hasMax && v > max) return false;

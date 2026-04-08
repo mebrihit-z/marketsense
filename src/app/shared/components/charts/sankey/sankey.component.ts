@@ -343,7 +343,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const minVal = this.minFlowValue ?? 0;
     const maxVal = this.maxFlowValue;
     if (minVal > 0 || (maxVal != null && Number.isFinite(maxVal))) {
-      result = filterSankeyDataByFlowValueRange(result, minVal, maxVal);
+      result = filterSankeyDataByFlowValueRange(result, minVal, maxVal, true);
     }
 
     return result as RegionalSankeyData;
@@ -448,21 +448,33 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Create tooltip (append to body for positioning; inline styles required because body is outside component)
     d3.select('body').select(`#${this.tooltipId}`).remove();
-    const overlayDarker = this.getCssVariable('--overlay-darker') || 'rgba(0, 0, 0, 0.85)';
-    const bgWhite = this.getCssVariable('--bg-white') || '#ffffff';
+    const tooltipBg =
+      this.getCssVariable('--sankey-tooltip-bg') ||
+      this.getCssVariable('--bg-white') ||
+      '#ffffff';
+    const tooltipText =
+      this.getCssVariable('--sankey-tooltip-text') ||
+      this.getCssVariable('--text-primary') ||
+      '#0a0a0a';
+    const tooltipBorder =
+      this.getCssVariable('--sankey-tooltip-border') || 'rgba(10, 10, 10, 0.12)';
     const tooltip = d3.select('body')
       .append('div')
       .attr('id', this.tooltipId)
       .attr('class', 'sankey-tooltip')
       .style('position', 'absolute')
-      .style('background-color', overlayDarker)
-      .style('color', bgWhite)
-      .style('padding', '8px 12px')
-      .style('border-radius', '4px')
+      .style('background-color', tooltipBg)
+      .style('color', tooltipText)
+      .style('border', `1px solid ${tooltipBorder}`)
+      .style('padding', '10px 14px')
       .style('font-size', '14px')
+      .style('line-height', '1.45')
       .style('pointer-events', 'none')
       .style('z-index', '10000')
-      .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)')
+      .style(
+        'box-shadow',
+        '0 4px 16px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.04)'
+      )
       .style('max-width', 'min(90vw, 520px)')
       .style('opacity', '0')
       .style('display', 'none');
@@ -1001,7 +1013,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              const itemsToShow = aggregatedSubassets.slice(0, maxItemsToShow);
              const remainingCount = aggregatedSubassets.length - maxItemsToShow;
              
-             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 13px;">';
+             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(10, 10, 10, 0.12); font-size: 13px;">';
              subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {

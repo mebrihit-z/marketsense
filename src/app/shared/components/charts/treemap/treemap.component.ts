@@ -78,6 +78,16 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     private assetFlowsData: AssetFlowsDataService
   ) {}
 
+  /** Read CSS variable from component host first, then :root (tooltip vars live on app-treemap). */
+  private getCssVariable(name: string): string {
+    const host = this.el?.nativeElement;
+    if (host) {
+      const value = getComputedStyle(host).getPropertyValue(name).trim();
+      if (value) return value;
+    }
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
   ngAfterViewInit(): void {
     if (this.data) {
       this.originalData = this.data;
@@ -326,7 +336,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const minVal = this.minFlowValue ?? 0;
     const maxVal = this.maxFlowValue;
     if (minVal > 0 || (maxVal != null && Number.isFinite(maxVal))) {
-      filteredData = filterSankeyDataByFlowValueRange(filteredData, minVal, maxVal);
+      filteredData = filterSankeyDataByFlowValueRange(filteredData, minVal, maxVal, true);
     }
     // Convert back to local format
     this.loadedData = {
@@ -449,10 +459,34 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /** Breadcrumb path uses " › "; render each segment on its own line in the tooltip header. */
   private buildTooltipHtml(path: string, value: string, timeHorizonDisplay: string): string {
+    const segments = path.split(' › ').map(s => s.trim()).filter(s => s.length > 0);
+    let headerInner: string;
+    if (segments.length === 0) {
+      headerInner = path
+        ? `<div style="line-height:1.35;"><strong>${this.escapeHtml(path)}</strong></div>`
+        : '';
+    } else {
+      headerInner = segments
+        .map((seg, i) => {
+          const display = i === 0 ? seg : `› ${seg}`;
+          return `<div style="line-height:1.35;"><strong>${this.escapeHtml(display)}</strong></div>`;
+        })
+        .join('');
+    }
+
     return `
       <div style="display:flex; flex-direction:column; gap:4px;">
-        <div><strong>${path}</strong></div>
+        <div style="word-break:break-word;">${headerInner}</div>
         <div>Value: ${value}</div>
         <div>Time Horizon: ${timeHorizonDisplay}</div>
       </div>
@@ -882,21 +916,31 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       // .style('border', '1px solid #e6e6e6')
       // .style('box-shadow', '0 1px 3px rgba(0,0,0,0.06)');
 
+    const tooltipBg =
+      this.getCssVariable('--treemap-tooltip-bg') || '#ffffff';
+    const tooltipText =
+      this.getCssVariable('--treemap-tooltip-text') || '#0a0a0a';
+    const tooltipBorder =
+      this.getCssVariable('--treemap-tooltip-border') || 'rgba(10, 10, 10, 0.12)';
     const tooltip = d3.select(container)
       .append('div')
       .attr('class', 'tooltip')
       .style('position', 'fixed')
       .style('pointer-events', 'none')
-      .style('background', 'rgba(0,0,0,0.85)')
-      .style('color', 'white')
-      .style('padding', '8px 10px')
-      .style('border-radius', '6px')
-      .style('font-size', '12px')
-      .style('line-height', '1.3')
+      .style('background', tooltipBg)
+      .style('color', tooltipText)
+      .style('border', `1px solid ${tooltipBorder}`)
+      .style('padding', '10px 14px')
+      .style('font-size', '14px')
+      .style('line-height', '1.45')
+      .style(
+        'box-shadow',
+        '0 4px 16px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.04)'
+      )
       .style('opacity', '0')
       .style('transform', 'translate(10px, 10px)')
-      .style('max-width', '340px')
-      .style('z-index', '9999');
+      .style('max-width', 'min(90vw, 520px)')
+      .style('z-index', '10000');
 
     const nodes = chartDiv.selectAll('div.node')
       .data(root.descendants().filter(d => d.depth > 0))

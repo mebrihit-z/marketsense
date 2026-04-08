@@ -12,6 +12,10 @@
   --gray-light: #9ca3af;
   --overlay-darker: rgba(0, 0, 0, 0.85);
   --bg-white: #ffffff;
+  /** Appended to document body by D3; read via getCssVariable in TS */
+  --sankey-tooltip-bg: #ffffff;
+  --sankey-tooltip-text: #0a0a0a;
+  --sankey-tooltip-border: rgba(10, 10, 10, 0.12);
   --red-primary: #ef4444;
   --green-primary: #22c55e;
   --red-primary-dark: #dc2626;
@@ -67,7 +71,7 @@
   }
 }
 
-// Tooltip is appended to body by D3 – styles applied inline in TS (component CSS does not apply to body)
+// Tooltip is appended to body by D3 – container look comes from inline TS using --sankey-tooltip-* from :host
 
 // SVG root – fill container
 .sankey-container .regional-sankey ::ng-deep .sankey-svg {
