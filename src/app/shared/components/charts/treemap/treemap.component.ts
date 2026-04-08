@@ -9,7 +9,10 @@ import {
 } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
-import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
+import {
+  formatFlowCurrencyFromBillions,
+  formatFlowCurrencyFromBillionsFull,
+} from '../../../utils/flow-currency-format.util';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -417,6 +420,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     return formatFlowCurrencyFromBillions(v);
   }
 
+  /** Full dollar amount for tooltips (no compact $B one-decimal rounding). */
+  private formatValueForTooltip(x: number): string {
+    const v = +x || 0;
+    return formatFlowCurrencyFromBillionsFull(v);
+  }
+
   /** Cells below this size cannot display readable text; hide labels and rely on tooltip */
   private isLabelUnreadable(w: number, h: number): boolean {
     return w < 80 || h < 32;
@@ -663,6 +672,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Aggregate duplicates
     const aggregateByParent = (leaves: Array<{ parent: string; name: string; value: number }>): TreemapNodeData[] => {
       const parents = new Map<string, Map<string, number>>();
+      const norm = (s: string) => (s || '').trim();
       for (const d of leaves) {
         const p = d.parent || '(Unknown Parent)';
         if (!parents.has(p)) parents.set(p, new Map());
@@ -670,10 +680,17 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         m.set(d.name, (m.get(d.name) || 0) + d.value);
       }
 
-      return Array.from(parents, ([parent, m]) => ({
-        name: parent,
-        children: Array.from(m, ([name, value]) => ({ name, value }))
-      }));
+      return Array.from(parents, ([parent, nameValueMap]) => {
+        const childPairs = Array.from(nameValueMap, ([name, value]) => ({ name, value }));
+        // No third dimension (or sub label equals parent): skip a useless wrapper + inner cell with the same label.
+        if (childPairs.length === 1 && norm(childPairs[0].name) === norm(parent)) {
+          return { name: parent, value: childPairs[0].value };
+        }
+        return {
+          name: parent,
+          children: childPairs.map(({ name, value }) => ({ name, value })),
+        };
+      });
     };
 
     const hierarchy: TreemapNodeData = {
@@ -888,7 +905,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('class', 'node')
       .classed('superparent', d => d.depth === 1)
       .classed('group', d => d.depth === 2)
-      .classed('parent', d => d.depth === 3)
+      .classed('parent', d => d.depth === 3 && !!d.children)
       .classed('leaf', d => !d.children)
       .classed('small-leaf', d => {
         // Add class for small leaf nodes to allow CSS targeting
@@ -1107,7 +1124,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (d.depth === 2) {
           return d.data.name + ': ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
         }
-        if (d.depth === 3) {
+        // Depth 3 container only (has sub-type children). Collapsed depth-3 leaves use leaf labeling below.
+        if (d.depth === 3 && d.children) {
           return d.data.name + ': ' + this.formatValue(this.signedValue(d as TreemapHierarchyNode));
         }
         // For very small leaf nodes, include value in label to save space
@@ -1139,7 +1157,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .filter(d => !!d.children && d.depth !== 1)
       .on('mousemove', function(event: MouseEvent, d) {
         const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
-        const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
+        const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
         const timeHorizonDisplay = component.getTimeHorizonDisplayString();
         tooltip.style('opacity', '1');
         tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay));
@@ -1210,7 +1228,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         return;
       }
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
-      const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
+      const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
       const timeHorizonDisplay = component.getTimeHorizonDisplayString();
       tooltip.style('opacity', '1');
       tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay));

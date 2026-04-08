@@ -10,8 +10,8 @@
         <div class="min-flow-range-dots">
           <div
             class="dot"
-            *ngFor="let stop of labelStops"
-            [style.left.%]="stop.leftPercent"></div>
+            *ngFor="let _ of options; let i = index"
+            [style.left.%]="dotLeftPercent(i)"></div>
         </div>
         <div class="min-flow-range-track-bg"></div>
         <div

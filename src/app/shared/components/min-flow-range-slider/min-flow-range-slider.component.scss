@@ -18,10 +18,11 @@
   min-width: 200px;
 }
 
-// Filters bar: stack matches Time Horizon track (20px) + labels (20px) inside 56px card
+// Filters bar: fill the white card width (no 520px cap — iPad/tablet cards are full-width while track was staying narrow)
 :host.min-flow-range--filters-compact .min-flow-range-slider-wrapper {
   gap: 0;
-  max-width: 520px;
+  max-width: 100%;
+  width: 100%;
   min-width: 0;
 }
 
@@ -42,6 +43,11 @@
 
 :host.min-flow-range--filters-compact .min-flow-range-container {
   height: 20px;
+
+  @media (max-width: 768px) {
+    height: 28px;
+    min-height: 28px;
+  }
 }
 
 .min-flow-range-track {
@@ -50,6 +56,12 @@
   top: 9px;
   width: 100%;
   pointer-events: none;
+
+  :host.min-flow-range--filters-compact & {
+    @media (max-width: 768px) {
+      top: 13px;
+    }
+  }
 }
 
 .min-flow-range-dots {
@@ -70,6 +82,15 @@
   border-radius: 50%;
   top: 0;
   transform: translateX(-50%);
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-dots {
+  height: 5px;
+
+  .dot {
+    width: 5px;
+    height: 5px;
+  }
 }
 
 .min-flow-range-dots .min-flow-range-dot-max {
@@ -110,6 +131,15 @@
 
 :host.min-flow-range--filters-compact .min-flow-range-labels {
   height: 20px;
+
+  @media (max-width: 768px) {
+    height: 24px;
+    margin-top: 6px;
+  }
+
+  @media (max-width: 480px) {
+    margin-top: 4px;
+  }
 }
 
 .min-flow-range-label {
@@ -123,6 +153,27 @@
   max-width: 84px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-midnight-blue;
+  max-width: none;
+  opacity: 1;
+}
+
+/* $0 / Max sit at 0% and 100%; -50% centers text past the card edge on phone & iPad */
+:host.min-flow-range--filters-compact .min-flow-range-label:first-child {
+  transform: translateX(0) !important;
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-label:last-child {
+  transform: translateX(-100%) !important;
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-label:first-child:last-child {
+  transform: translateX(-50%) !important;
 }
 
 .min-flow-range-handle {
@@ -154,6 +205,22 @@
 
   &:active {
     cursor: grabbing;
+  }
+}
+
+:host.min-flow-range--filters-compact .min-flow-range-handle {
+  @media (max-width: 768px) {
+    width: 14px;
+    height: 14px;
+    top: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    &::before {
+      width: 44px;
+      height: 44px;
+      margin-left: -22px;
+      margin-top: -22px;
+    }
   }
 }
 

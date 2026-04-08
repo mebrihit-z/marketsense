@@ -8,17 +8,20 @@ export function formatFlowCurrencyUsd(valueDollars: number): string {
   if (valueDollars == null || !Number.isFinite(valueDollars)) return '$0';
   const sign = valueDollars < 0 ? '-' : '';
   const abs = Math.abs(valueDollars);
+  /** Compact suffix (B/M/K) with thousands separators when the scaled value is large enough. */
+  const fmtScaled = (scaled: number, suffix: string) =>
+    `$${scaled.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}${suffix}`;
   let core: string;
   if (abs >= 1_000_000_000) {
-    core = `$${(abs / 1_000_000_000).toFixed(1)}B`;
+    core = fmtScaled(abs / 1_000_000_000, 'B');
   } else if (abs >= 1_000_000) {
-    core = `$${(abs / 1_000_000).toFixed(1)}M`;
+    core = fmtScaled(abs / 1_000_000, 'M');
   } else if (abs >= 1_000) {
-    core = `$${(abs / 1_000).toFixed(1)}K`;
+    core = fmtScaled(abs / 1_000, 'K');
   } else {
     const formatted = Number.isInteger(abs)
-      ? abs.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : abs.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      ? abs.toLocaleString('en-US', { maximumFractionDigits: 0 })
+      : abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
     core = `$${formatted}`;
   }
   return sign + core;
@@ -31,4 +34,20 @@ export function formatFlowCurrencyUsd(valueDollars: number): string {
 export function formatFlowCurrencyFromBillions(billions: number): string {
   if (billions == null || !Number.isFinite(billions)) return '$0';
   return formatFlowCurrencyUsd(billions * 1_000_000_000);
+}
+
+/**
+ * Formats flow value in billions as full USD with grouping — no compact $B/$M rounding.
+ * Intended for tooltips where the exact amount should be visible.
+ */
+export function formatFlowCurrencyFromBillionsFull(valueBillions: number): string {
+  if (valueBillions == null || !Number.isFinite(valueBillions)) return '$0';
+  const dollars = valueBillions * 1_000_000_000;
+  const sign = dollars < 0 ? '-' : '';
+  const abs = Math.abs(dollars);
+  const formatted = abs.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 20,
+  });
+  return `${sign}$${formatted}`;
 }

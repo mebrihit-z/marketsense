@@ -67,89 +67,6 @@
   }
 }
 
-// Legend inside chart area (bottom of container) so it’s always visible
-.sankey-legend {
-  flex-shrink: 0;
-  display: block;
-  min-height: 72px;
-  padding: 16px 0 8px;
-  background: #fff;
-  border-top: 1px solid #e5e7eb;
-  margin-top: 32px;
-
-  @media (max-width: 1024px) {
-    display:flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .sankey-legend-section {
-    display: flex;
-    gap: 32px;
-    align-items: center;
-    margin-bottom: 12px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-    @media (max-width: 1024px) and (min-width: 769px) {
-      gap: 16px;
-      align-items: flex-start;
-    }
-    @media (max-width: 768px) {
-      flex-direction: column;
-      gap: 12px;
-      align-items: flex-start;
-    }
-  }
-
-  .sankey-legend-header {
-    color: $text-midnight-blue;
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 600;
-    line-height: 16px; /* 133.333% */
-    white-space: nowrap;
-  }
-
-  .sankey-legend-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 16px 24px;
-  }
-
-  .sankey-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: $text-midnight-blue;
-  }
-
-  .sankey-legend-swatch {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-
-    &.swatch-equity { background-color: #FFD581; }
-    &.swatch-fixed-income { background-color: #A7D888; }
-    &.swatch-cash { background-color: #D9A7FF; }
-    &.swatch-private-markets { background-color: #C5730B; }
-    &.swatch-other-specialized { background-color: #2A6907; }
-    &.swatch-multi-asset { background-color: #841DD9; }
-    &.swatch-alternatives { background-color: #FFB70E; }
-    &.swatch-regions { background-color: #00113F; }
-    &.swatch-net-new-capital { background-color: #77B1FF; }
-    &.swatch-capital-withdrawn { background-color: #ff7f0e; }
-    &.swatch-reallocation-pool { background-color: #6f6e6a; }
-    &.swatch-outflow { background-color: #DC2626; }
-    &.swatch-inflow { background-color: #059669; }
-    &.swatch-new-capital { background-color: #77B1FF; }
-    &.swatch-default { background-color: #6b7280; }
-  }
-}
-
 // Tooltip is appended to body by D3 – styles applied inline in TS (component CSS does not apply to body)
 
 // SVG root – fill container
@@ -197,8 +114,13 @@
   .sankey-node-alternatives { fill: #FFB70E; stroke: #FFB70E; }
   .sankey-node-alternatives.sankey-node-hovered { fill: #FFB70E; stroke: #FFB70E; stroke-width: 3; }
 
-  .sankey-node-capital-withdrawn { fill: #ff7f0e; stroke: #ff7f0e; }
-  .sankey-node-capital-withdrawn.sankey-node-hovered { fill: #ff9d3b; stroke: #ff9d3b; stroke-width: 3; }
+  /* Deep rust vs bright link ribbons (#ff7f0e) — clearly different hues/values */
+  .sankey-node-capital-withdrawn { fill: #b45309; stroke: #7c2d12; }
+  .sankey-node-capital-withdrawn.sankey-node-hovered {
+    fill: #ea580c;
+    stroke: #ea580c;
+    stroke-width: 3;
+  }
 
   .sankey-node-source-destination,
   .sankey-node-default {
@@ -225,7 +147,7 @@
   .sankey-legend-rect-private-markets { fill: #C28834; stroke: #C28834; }
   .sankey-legend-rect-other-specialized { fill: #2A6907; stroke: #2A6907; }
   .sankey-legend-rect-alternatives { fill: #6366f1; stroke: #6366f1; }
-  .sankey-legend-rect-capital-withdrawn { fill: #ff7f0e; stroke: #ff7f0e; }
+  .sankey-legend-rect-capital-withdrawn { fill: #b45309; stroke: #7c2d12; }
   .sankey-legend-rect-source { fill: var(--red-primary, #ef4444); stroke: var(--red-primary, #ef4444); }
   .sankey-legend-rect-destination { fill: var(--green-primary, #22c55e); stroke: var(--green-primary, #22c55e); }
   .sankey-legend-rect-outflow { fill: var(--red-link, #DC2626); stroke: var(--red-link, #DC2626); }

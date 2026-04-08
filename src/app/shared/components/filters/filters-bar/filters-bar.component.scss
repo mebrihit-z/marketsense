@@ -502,27 +502,27 @@
     }
 }
 
-// Second white card (Min flow): flexible width, same shadow/height as Time Horizon
+// Second white card (Min flow): share row with Time Horizon on wide screens; full width on tablet/phone like Time Horizon
 .time-horizon-container.min-flow-value-in-bar {
     width: auto;
     flex: 1 1 320px;
     min-width: 280px;
     max-width: 720px;
+
+    @media (max-width: 1024px) {
+        width: 100%;
+        max-width: 100%;
+        flex: none;
+        min-width: 0;
+        align-self: stretch;
+    }
 }
 
 .min-flow-slider-wrapper-filters {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: 520px;
-
-    @media (max-width: 1024px) and (min-width: 769px) {
-        max-width: 100%;
-    }
-
-    @media (max-width: 768px) {
-        width: 100%;
-        max-width: 100%;
-    }
+    width: 100%;
+    max-width: 100%;
 }
 
 .min-flow-range-filters-embed {
@@ -1090,8 +1090,15 @@
     
     @media (max-width: 1024px) and (min-width: 769px) {
         max-width: 100%;
-        padding-left: 20px;
-        padding-right: 20px;
+        /* Extra inset so “-18 mo” / “+18 mo” stay inside the card (iPad) */
+        padding-left: 28px;
+        padding-right: 28px;
+    }
+
+    /* iPad landscape (often >1024): same inset while edge-aligned labels are active */
+    @media (min-width: 1025px) and (max-width: 1200px) {
+        padding-left: 24px;
+        padding-right: 24px;
     }
     
     @media (max-width: 768px) {
@@ -1102,6 +1109,12 @@
         margin-top: 6px;
         padding-left: 12px;
         padding-right: 12px;
+
+        &.time-horizon-labels--compact {
+            height: 22px;
+            min-height: 22px;
+            margin-top: 4px;
+        }
     }
     @media (max-width: 480px) {
         width: calc(100% - 8px);
@@ -1110,6 +1123,11 @@
         margin-top: 4px;
         padding-left: 8px;
         padding-right: 8px;
+
+        &.time-horizon-labels--compact {
+            height: 20px;
+            min-height: 20px;
+        }
     }
 }
 
@@ -1125,25 +1143,55 @@
     touch-action: manipulation;
     user-select: none;
 
-    // Override inline style so edge labels are readable and not cut off/overlapping
-    &:first-child {
-        // Pull the first label further left so "-18 mo" has more room away from "-12 mo"
-        transform: translateX(-40%) !important;
+    /* iPad (portrait & landscape) and similar widths: keep “-18 mo” / “+18 mo” inside the card */
+    @media (min-width: 769px) and (max-width: 1200px) {
+        &:first-child {
+            transform: translateX(0) !important;
+        }
+
+        &:last-child {
+            transform: translateX(-100%) !important;
+        }
     }
-    &:nth-child(2) {
-        // Push the "-12 mo" label slightly right to avoid overlapping "-18 mo"
-        
-    }
-    &:last-child {
-        // Push the "+18 mo" label slightly further right so it has space from "+12 mo"
-        
+
+    /* Wide desktop: slight nudge on first tick; last tick flush right inside label strip */
+    @media (min-width: 1201px) {
+        &:first-child {
+            transform: translateX(-40%) !important;
+        }
+
+        &:last-child {
+            transform: translateX(-100%) !important;
+        }
     }
     
     @media (max-width: 768px) {
         font-size: 12px;
-        padding: 4px 2px;
-        min-width: 32px;
-        text-align: center;
+    }
+}
+
+/* Single row: short tick copy only (see TS); edge nudges reduce clipping */
+.time-horizon-labels.time-horizon-labels--compact .time-horizon-label {
+    top: 0;
+    font-size: 10px;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    padding: 0;
+    min-width: 0;
+    text-align: center;
+    transform: translateX(-50%);
+
+    &:first-child {
+        transform: translateX(0);
+    }
+
+    &:last-child {
+        transform: translateX(-100%);
+    }
+
+    @media (max-width: 480px) {
+        font-size: 9px;
+        letter-spacing: -0.04em;
     }
 }
 

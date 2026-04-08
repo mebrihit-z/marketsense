@@ -14,17 +14,25 @@ import {
   extractProductTypeFromNodeName,
   type SankeyData,
 } from '../../../utils/sankey-data.utils';
-import { formatFlowCurrencyFromBillions, formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
+import {
+  formatFlowCurrencyFromBillions,
+  formatFlowCurrencyFromBillionsFull,
+  formatFlowCurrencyUsd,
+} from '../../../utils/flow-currency-format.util';
 
 // ----------------------
 // TypeScript Models
 // ----------------------
 interface SankeyNodeExtra {
   name: string;
+  /** Set by d3-sankey after layout */
+  index?: number;
   x0?: number;
   x1?: number;
   y0?: number;
   y1?: number;
+  sourceLinks?: SankeyLinkExtra[];
+  targetLinks?: SankeyLinkExtra[];
 }
 
 interface SankeyLinkExtra {
@@ -35,7 +43,11 @@ interface SankeyLinkExtra {
   rawValue?: number;
   color?: string;
   width?: number;
+  y0?: number;
+  y1?: number;
   date?: string;
+  /** Set before layout so we can scale the same logical link across iterations. */
+  layoutIndex?: number;
 }
 
 interface RegionalSankeyData {
@@ -47,17 +59,6 @@ interface RegionalSankeyData {
 // ----------------------
 // Angular Component
 // ----------------------
-export interface SankeyLegendItem {
-  swatchClass: string;
-  label: string;
-  /** When set, overrides swatchClass color (used for nodes without predefined colors) */
-  color?: string;
-}
-export interface SankeyLegendSection {
-  header: string;
-  items: SankeyLegendItem[];
-}
-
 @Component({
   selector: 'app-sankey',
   standalone: true,
@@ -74,12 +75,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() timeHorizon?: string;
   @Input() timeHorizonStart?: string;
   @Input() timeHorizonEnd?: string;
-  @Input() showLegend: boolean = true;
   /** When set to 'Global', node labels will have the "Global" prefix removed for display. */
   @Input() regionKey?: string;
-  /** Label for the parent-node legend section (same as selected dimension 2). Falls back to "Product Types" when not provided. */
+  /** Selected flow dimension 2 label (passed from parent for context). */
   @Input() dimension2Label?: string;
-  /** Label for the super-node legend (Super Start/End, same as selected dimension 1). Falls back to "Regions" when not provided. */
+  /** Selected flow dimension 1 label (passed from parent for context). */
   @Input() dimension1Label?: string;
   /** Minimum flow value in billions ($B); links below this are hidden when greater than 0. */
   @Input() minFlowValue: number = 0;
@@ -89,26 +89,19 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * For Net New / Capital Withdrawn links only: floor layout value to this fraction of the
    * largest link value so those nodes stay visible (matches treemap emphasis). Does not change raw $ in tooltips.
    */
-  @Input() structuralFlowLayoutFloorFraction: number = 0.06;
-
-  // Getter to ensure TypeScript recognizes the input
-  get shouldShowLegend(): boolean {
-    return this.showLegend;
-  }
-
-  /** True when user has made a filter selection (regions, product types, sub-types, or min value) */
-  get hasFilterSelection(): boolean {
-    return (
-      (this.selectedInvestorRegions?.length ?? 0) > 0 ||
-      (this.selectedProductTypes?.length ?? 0) > 0 ||
-      (this.selectedProductSubTypes?.length ?? 0) > 0 ||
-      (this.minFlowValue ?? 0) > 0 ||
-      (this.maxFlowValue != null && Number.isFinite(this.maxFlowValue))
-    );
-  }
-
-  /** Dynamic legend sections (Product Types, Other Nodes, Flows) built from current data */
-  legendSections: SankeyLegendSection[] = [];
+  @Input() structuralFlowLayoutFloorFraction: number = 0.02;
+  /**
+   * For ordinary links: floor layout thickness vs. the largest link so ribbons stay visible.
+   * Does not change raw $ in tooltips or totals.
+   */
+  @Input() linkLayoutVisibilityFloorFraction: number = 0.010;
+  /**
+   * Target minimum node height in pixels; layout link weights are boosted iteratively until met.
+   * Set 0 to disable. Does not change raw $ in tooltips.
+   */
+  @Input() minNodeHeightPx: number = 2;
+  /** Minimum drawn link stroke width in pixels. */
+  @Input() minLinkStrokePx: number = 0.5;
 
   private loadedData?: RegionalSankeyData;
   private lastDataHash: string = '';
@@ -135,22 +128,115 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     sourceName: string,
     targetName: string
   ): number {
-    const floorFrac = Math.max(0, Math.min(1, this.structuralFlowLayoutFloorFraction ?? 0.06));
+    const structuralFrac = Math.max(0, Math.min(1, this.structuralFlowLayoutFloorFraction ?? 0.06));
+    const generalFrac = Math.max(0, Math.min(1, this.linkLayoutVisibilityFloorFraction ?? 0.032));
     const safeMax = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 1;
     const v = Math.max(0, Number.isFinite(raw) ? raw : 0);
-    if (this.isStructuralCapitalFlowName(sourceName) || this.isStructuralCapitalFlowName(targetName)) {
-      if (v <= 0) return v;
-      const cap = safeMax * floorFrac;
-      const boosted = Math.max(v * 6, safeMax * 0.012);
+    if (v <= 0) return v;
+
+    const boostedLayout = (capFrac: number, valueMultiplier: number, minBoostOfMax: number): number => {
+      const cap = safeMax * capFrac;
+      const boosted = Math.max(v * valueMultiplier, safeMax * minBoostOfMax);
       return Math.max(v, Math.min(cap, boosted));
+    };
+
+    if (this.isStructuralCapitalFlowName(sourceName) || this.isStructuralCapitalFlowName(targetName)) {
+      return boostedLayout(structuralFrac, 6, 0.012);
     }
-    return v;
+    return boostedLayout(generalFrac, 8, 0.006);
   }
 
   private linkFlowForTotals(link: SankeyLinkExtra): number {
     return link.rawValue != null ? link.rawValue : link.value;
   }
-  
+
+  /**
+   * Per-link layout bump multipliers can make sum(incoming layout value) ≠ sum(outgoing) at a node.
+   * d3-sankey then sizes the node from the larger sum; with a shared global ky the shorter stack
+   * leaves empty band (one fat inflow vs many outflows looks mismatched). Rebalance layout values
+   * with iterative proportional fitting on internal nodes; tooltips still use rawValue.
+   */
+  private harmonizeInternalNodeLayoutValues(
+    graph: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>
+  ): void {
+    const internal = graph.nodes.filter(
+      n => (n.targetLinks?.length ?? 0) > 0 && (n.sourceLinks?.length ?? 0) > 0
+    );
+    for (let iter = 0; iter < 48; iter++) {
+      let maxRelErr = 0;
+      for (const node of internal) {
+        const ins = node.targetLinks as SankeyLinkExtra[];
+        const outs = node.sourceLinks as SankeyLinkExtra[];
+        const si = d3.sum(ins, l => Number(l.value) || 0);
+        const so = d3.sum(outs, l => Number(l.value) || 0);
+        if (!(si > 1e-12) || !(so > 1e-12)) continue;
+        const ratio = so / si;
+        maxRelErr = Math.max(maxRelErr, Math.abs(1 - ratio));
+        const r = Math.sqrt(ratio);
+        ins.forEach(l => {
+          l.value *= r;
+        });
+        outs.forEach(l => {
+          l.value /= r;
+        });
+      }
+      if (maxRelErr < 1e-8) break;
+    }
+  }
+
+  /**
+   * When layout boosts make sum(link widths) on one side of a node smaller than that node’s bar
+   * height, d3-sankey stacks from the top and leaves empty space. Distribute slack as gaps between
+   * ribbons so inflows (targetLinks → y1) and outflows (sourceLinks → y0) each span the full node
+   * height — Realloc, regional parents, (Start)/(End), etc. Link thicknesses and tooltips unchanged.
+   */
+  private spreadHubLinkStacksToNodeHeight(
+    graph: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>
+  ): void {
+    const spreadSide = (
+      yTop: number,
+      nodeSpan: number,
+      links: SankeyLinkExtra[] | undefined,
+      setCenter: (link: SankeyLinkExtra, centerY: number) => void
+    ) => {
+      if (links == null || links.length === 0) return;
+      const totalW = links.reduce((s, l) => s + (Number(l.width) || 0), 0);
+      if (!(totalW > 1e-6)) return;
+      if (totalW >= nodeSpan - 0.5) return;
+
+      const n = links.length;
+      const slack = nodeSpan - totalW;
+      const gap = n > 1 ? slack / (n - 1) : 0;
+      let y = yTop;
+      if (n === 1) {
+        y = yTop + slack / 2;
+      }
+      for (let i = 0; i < n; i++) {
+        const link = links[i];
+        const w = Number(link.width) || 0;
+        setCenter(link, y + w / 2);
+        y += w;
+        if (i < n - 1) {
+          y += gap;
+        }
+      }
+    };
+
+    for (const node of graph.nodes) {
+      if (node.y0 === undefined || node.y1 === undefined) continue;
+      const nodeSpan = node.y1 - node.y0;
+      if (!(nodeSpan > 1e-6)) continue;
+      const yTop = node.y0;
+
+      spreadSide(yTop, nodeSpan, node.targetLinks, (link, cy) => {
+        link.y1 = cy;
+      });
+      spreadSide(yTop, nodeSpan, node.sourceLinks, (link, cy) => {
+        link.y0 = cy;
+      });
+    }
+  }
+
   /**
    * Generate a simple hash of data to detect actual changes
    */
@@ -167,7 +253,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * Generate a hash of filter values to detect actual changes
    */
   private getFiltersHash(): string {
-    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}`;
+    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}-${this.minNodeHeightPx}-${this.linkLayoutVisibilityFloorFraction}-${this.structuralFlowLayoutFloorFraction}-${this.minLinkStrokePx}`;
   }
 
   ngAfterViewInit(): void {
@@ -202,7 +288,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         changes['selectedProductTypes'] || 
         changes['selectedProductSubTypes'] ||
         changes['minFlowValue'] ||
-        changes['maxFlowValue']) {
+        changes['maxFlowValue'] ||
+        changes['structuralFlowLayoutFloorFraction'] ||
+        changes['linkLayoutVisibilityFloorFraction'] ||
+        changes['minNodeHeightPx'] ||
+        changes['minLinkStrokePx']) {
       const newFiltersHash = this.getFiltersHash();
       if (newFiltersHash !== this.lastFiltersHash) {
         this.lastFiltersHash = newFiltersHash;
@@ -213,11 +303,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       }
     }
 
-    // Dimension labels change updates the legend
-    if ((changes['dimension1Label'] || changes['dimension2Label']) && (this.data || this.loadedData) && this.el?.nativeElement) {
-      shouldRecreate = true;
-    }
-    
     // Only recreate if something actually changed
     if (shouldRecreate && this.el?.nativeElement) {
       setTimeout(() => {
@@ -331,12 +416,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const dataToUse = this.getFilteredData();
     const element = this.el.nativeElement.querySelector('.regional-sankey');
     if (!dataToUse) {
-      // No data for current filters: clear any existing SVG and tooltip and legend.
+      // No data for current filters: clear any existing SVG and tooltip.
       if (element) {
         d3.select(element).select('svg').remove();
       }
       d3.select('body').select(`#${this.tooltipId}`).remove();
-      this.legendSections = [];
       this.cdr.markForCheck();
       return;
     }
@@ -379,56 +463,143 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('pointer-events', 'none')
       .style('z-index', '10000')
       .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)')
-      .style('max-width', '300px')
+      .style('max-width', 'min(90vw, 520px)')
       .style('opacity', '0')
       .style('display', 'none');
 
     // -----------------------------------------
-    // 1. Prepare Data
+    // 1. Prepare link layout definitions (indices + boosted base layout values)
     // -----------------------------------------
-    // Create node map
     const nodeMap = new Map<string, number>();
-    const nodes: SankeyNodeExtra[] = dataToUse.nodes.map((node, i) => {
-      nodeMap.set(node.name, i);
-      return { name: node.name };
-    });
+    dataToUse.nodes.forEach((node, i) => nodeMap.set(node.name, i));
 
-    // Create links with source and target indices
-    // Colors will be assigned after sankey layout computes node positions
     const maxRawLinkValue = d3.max(dataToUse.links, l => l.value) || 1;
-    const links: SankeyLinkExtra[] = dataToUse.links.map(link => {
+
+    interface LayoutLinkDef {
+      source: number;
+      target: number;
+      baseLayoutValue: number;
+      rawValue: number;
+      date?: string;
+      layoutIndex: number;
+    }
+
+    const layoutLinkDefs: LayoutLinkDef[] = [];
+    let defIndex = 0;
+    for (const link of dataToUse.links) {
       const sourceIndex = nodeMap.get(link.source);
       const targetIndex = nodeMap.get(link.target);
-      
       if (sourceIndex === undefined || targetIndex === undefined) {
-        return null;
+        continue;
       }
 
       const raw = link.value;
-      const sourceName = typeof link.source === 'string' ? link.source : '';
-      const targetName = typeof link.target === 'string' ? link.target : '';
+      const linkSrc = link.source;
+      const linkTgt = link.target;
+      const sourceName = typeof linkSrc === 'string' ? linkSrc : '';
+      const targetName = typeof linkTgt === 'string' ? linkTgt : '';
       const layoutValue = this.layoutValueForLink(raw, maxRawLinkValue, sourceName, targetName);
 
-      // Color will be set after layout based on horizontal position
-      return {
+      layoutLinkDefs.push({
         source: sourceIndex,
         target: targetIndex,
-        value: layoutValue,
+        baseLayoutValue: layoutValue,
         rawValue: raw,
-        date: link.date // Preserve date information
+        date: link.date,
+        layoutIndex: defIndex++,
+      });
+    }
+
+    const leftMargin = 8;   // Minimal padding so edge labels aren’t clipped
+    const rightMargin = 8;
+    const topMargin = 15;   // Small padding at top (Outflows/Inflows labels are outside chart)
+    const bottomMargin = 50;
+
+    const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
+      .nodeWidth(20)
+      .nodePadding(10)
+      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
+
+    const minNodePx = Math.max(0, this.minNodeHeightPx ?? 8);
+    let linkMultipliers = layoutLinkDefs.map(() => 1);
+    // Assigned on every iteration of the loop below (always runs ≥ once).
+    let graph!: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>;
+
+    const MAX_LAYOUT_ITERATIONS = 32;
+    const LAYOUT_BUMP = 1.12;
+
+    for (let attempt = 0; attempt < MAX_LAYOUT_ITERATIONS; attempt++) {
+      const sankeyNodes: SankeyNodeExtra[] = dataToUse.nodes.map(n => ({ name: n.name }));
+      const sankeyLinks: SankeyLinkExtra[] = layoutLinkDefs.map((def, i) => ({
+        source: def.source,
+        target: def.target,
+        value: def.baseLayoutValue * linkMultipliers[i],
+        rawValue: def.rawValue,
+        date: def.date,
+        layoutIndex: def.layoutIndex,
+      }));
+
+      graph = sankeyGen({
+        nodes: sankeyNodes,
+        links: sankeyLinks,
+      });
+
+      if (minNodePx <= 0 || layoutLinkDefs.length === 0) {
+        break;
+      }
+
+      const hasThinNode = graph.nodes.some(n => {
+        const h = (n.y1 ?? 0) - (n.y0 ?? 0);
+        return h > 0 && h < minNodePx;
+      });
+
+      if (!hasThinNode) {
+        break;
+      }
+
+      if (attempt === MAX_LAYOUT_ITERATIONS - 1) {
+        break;
+      }
+
+      const nextMults = linkMultipliers.slice();
+      graph.links.forEach(link => {
+        const le = link as SankeyLinkExtra;
+        const idx = le.layoutIndex;
+        if (idx === undefined) return;
+        const s = link.source as SankeyNodeExtra;
+        const t = link.target as SankeyNodeExtra;
+        const sh = (s.y1 ?? 0) - (s.y0 ?? 0);
+        const th = (t.y1 ?? 0) - (t.y0 ?? 0);
+        if ((sh > 0 && sh < minNodePx) || (th > 0 && th < minNodePx)) {
+          nextMults[idx] *= LAYOUT_BUMP;
+        }
+      });
+      linkMultipliers = nextMults;
+    }
+
+    this.harmonizeInternalNodeLayoutValues(graph);
+    const nodesBalanced: SankeyNodeExtra[] = dataToUse.nodes.map(n => ({ name: n.name }));
+    const linksBalanced: SankeyLinkExtra[] = (graph.links as SankeyLinkExtra[]).map(l => {
+      const s = l.source as SankeyNodeExtra;
+      const t = l.target as SankeyNodeExtra;
+      return {
+        source: s.index!,
+        target: t.index!,
+        value: l.value,
+        rawValue: l.rawValue,
+        date: l.date,
+        layoutIndex: l.layoutIndex,
       };
-    }).filter(link => link !== null) as SankeyLinkExtra[];
+    });
+    graph = sankeyGen({
+      nodes: nodesBalanced,
+      links: linksBalanced,
+    });
+
+    this.spreadHubLinkStacksToNodeHeight(graph);
 
     // -----------------------------------------
-    // 2. Prepare Graph for D3 Sankey
-    // -----------------------------------------
-    const graphData: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra> = {
-      nodes,
-      links
-    };
-
-    // -----------------------------------------
-    // 3. Create SVG (no zoom – chart at fixed scale for readable labels)
+    // 2. Create SVG (no zoom – chart at fixed scale for readable labels)
     // -----------------------------------------
     const svg = d3.select(element)
       .append('svg')
@@ -441,18 +612,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Chart group – no zoom/pan so labels stay readable
     const chartGroup = svg.append('g')
       .attr('class', 'sankey-chart-group');
-
-    const leftMargin = 8;   // Minimal padding so edge labels aren’t clipped
-    const rightMargin = 8;
-    const topMargin = 15;   // Small padding at top (Outflows/Inflows labels are outside chart)
-    const bottomMargin = 50;
-
-    const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
-      .nodeWidth(20)
-      .nodePadding(10)
-      .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
-
-    const graph = sankeyGen(graphData);
 
     // Helper: map extracted parent type (from any dimension) to our color class
     const parentTypeToColorClass = (parentType: string | null): string | null => {
@@ -585,7 +744,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // -----------------------------------------
     // Capture component reference for use in callbacks
     const component = this;
-    
+    const minLkStroke = Math.max(0.5, this.minLinkStrokePx ?? 1.5);
+    const linkRestOpacity = 0.52;
+    const linkStrokePx = (link: SankeyLinkExtra) =>
+      Math.max(minLkStroke, Number(link.width) || 0);
+
     chartGroup.append('g')
       .selectAll('path')
       .data(graph.links)
@@ -593,16 +756,18 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .append('path')
       .attr('d', sankeyLinkHorizontal())
       .attr('stroke', d => (d as SankeyLinkExtra).color || this.getCssVariable('--default-gray') || '#999')
-      .attr('stroke-width', d => Math.max(1, (d as SankeyLinkExtra).width || 1))
+      .attr('stroke-width', d => linkStrokePx(d as SankeyLinkExtra))
+      .attr('stroke-linecap', 'butt')
+      .attr('stroke-linejoin', 'miter')
       .attr('fill', 'none')
-      .attr('opacity', 0.45)
+      .attr('opacity', linkRestOpacity)
       .attr('class', 'sankey-link')
       .on('mouseover', function(event, d) {
         const link = d as SankeyLinkExtra;
         const source = link.source as SankeyNodeExtra;
         const target = link.target as SankeyNodeExtra;
         const value = component.linkFlowForTotals(link);
-        const formattedValue = formatFlowCurrencyFromBillions(value);
+        const formattedValue = formatFlowCurrencyFromBillionsFull(value);
         
         // Check if this is a subasset link (connected to Source or Destination nodes)
         const isSubassetLink = (source.name && (source.name.includes('(Source)') || source.name.includes('(Destination)'))) ||
@@ -619,7 +784,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         } else {
           const timeInfo = component.formatTimeInfo();
           if (timeInfo) {
-            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time Horizon: ${timeInfo}</div>`;
           }
         }
         
@@ -634,8 +799,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         d3.select(this)
           .attr('opacity', 1)
           .attr('stroke-width', (d: any) => {
-            const baseWidth = Math.max(1, ((d as SankeyLinkExtra).width || 1));
-            return baseWidth + 3; // More prominent hover effect
+            return linkStrokePx(d as SankeyLinkExtra) + 3;
           })
           .raise(); // Bring to front
         
@@ -652,11 +816,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .on('mouseout', function() {
         tooltip.style('opacity', '0').style('display', 'none');
         d3.select(this)
-          .attr('opacity', 0.45)
-          .attr('stroke-width', (d: any) => Math.max(1, (d as SankeyLinkExtra).width || 1));
+          .attr('opacity', linkRestOpacity)
+          .attr('stroke-width', (d: any) => linkStrokePx(d as SankeyLinkExtra));
         
         // Restore all links opacity
-        chartGroup.selectAll('path').attr('opacity', 0.45);
+        chartGroup.selectAll('path').attr('opacity', linkRestOpacity);
       });
 
     // -----------------------------------------
@@ -764,7 +928,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
         const value = nodeValues.get(node) || 0;
-        const formattedValue = formatFlowCurrencyFromBillions(value);
+        const formattedValue = formatFlowCurrencyFromBillionsFull(value);
         const incoming = nodeIncoming.get(node) || 0;
         const outgoing = nodeOutgoing.get(node) || 0;
         
@@ -841,7 +1005,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
-               const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${formatFlowCurrencyFromBillions(subasset.value)}</strong>`;
+               const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${formatFlowCurrencyFromBillionsFull(subasset.value)}</strong>`;
                subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
              });
              if (remainingCount > 0) {
@@ -856,12 +1020,12 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(node.name)}</strong></div>
           <div style="margin-top: 4px;">Total Value: ${formattedValue}</div>
-          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formatFlowCurrencyFromBillions(incoming)}</div>
-          <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formatFlowCurrencyFromBillions(outgoing)}</div>
+          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formatFlowCurrencyFromBillionsFull(incoming)}</div>
+          <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formatFlowCurrencyFromBillionsFull(outgoing)}</div>
         `;
         
         if (timeInfo) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time Horizon: ${timeInfo}</div>`;
         }
         
         tooltipHtml += subassetHtml;
@@ -888,16 +1052,21 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const nodeLinks = graph.links.filter(link => 
           (link.source as SankeyNodeExtra) === node || (link.target as SankeyNodeExtra) === node
         );
-        
+        const isCapitalWithdrawnHovered = node.name.includes('Capital Withdrawn');
+
         chartGroup.selectAll('path')
           .filter(function(link: any) {
             return nodeLinks.includes(link as SankeyLinkExtra);
           })
           .attr('opacity', 0.8)
-          .attr('stroke-width', (link: any) => {
-            const baseWidth = Math.max(1, ((link as SankeyLinkExtra).width || 1));
-            return baseWidth + 1;
-          });
+          .attr('stroke', function(link: any) {
+            const le = link as SankeyLinkExtra;
+            const base = le.color || component.getCssVariable('--default-gray') || '#999';
+            if (!isCapitalWithdrawnHovered) return base;
+            const c = d3.color(base);
+            return c ? c.darker(0.9).toString() : base;
+          })
+          .attr('stroke-width', (link: any) => linkStrokePx(link as SankeyLinkExtra) + 1);
         
         // Dim other nodes and links
         chartGroup.selectAll('rect')
@@ -924,7 +1093,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         sel.attr('stroke-width', displayStyle.fill ? 1 : null);
         if (displayStyle.stroke) sel.attr('stroke', displayStyle.stroke);
         chartGroup.selectAll('rect').attr('opacity', 1);
-        chartGroup.selectAll('path').attr('opacity', 0.45).attr('stroke-width', (link: any) => Math.max(1, (link as SankeyLinkExtra).width || 1));
+        chartGroup
+          .selectAll('path')
+          .attr('opacity', linkRestOpacity)
+          .attr('stroke-width', (link: any) => linkStrokePx(link as SankeyLinkExtra))
+          .attr('stroke', (link: any) => {
+            const le = link as SankeyLinkExtra;
+            return le.color || component.getCssVariable('--default-gray') || '#999';
+          });
       });
 
     // -----------------------------------------
@@ -1005,20 +1181,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       });
 
     // Link values are not drawn – only node labels show values (next to each node)
-
-    // -----------------------------------------
-    // 9. Legend: flows only (aligned with treemap legend colors)
-    // -----------------------------------------
-    const flowItems: SankeyLegendItem[] = [
-      { swatchClass: 'inflow', label: 'Inflows', color: '#2ca02c' },
-      { swatchClass: 'outflow', label: 'Outflows', color: '#d62728' },
-      { swatchClass: 'net-new-capital', label: 'New Capital', color: '#1f77b4' },
-      { swatchClass: 'capital-withdrawn', label: 'Capital Withdrawn', color: '#ff7f0e' }
-    ];
-    const flowsSection: SankeyLegendSection = { header: 'Flows:', items: flowItems };
-
-    this.legendSections = [flowsSection];
-    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {

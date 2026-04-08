@@ -1,17 +1,10 @@
 <div class="sankey-container">
+  <div class="sankey-flow-labels">
+    <span class="sankey-label-outflows">Outflows</span>
+    <span class="sankey-label-inflows">Inflows</span>
+  </div>
   <div class="sankey-chart-scroll">
     <div class="regional-sankey"></div>
   </div>
-  <div class="sankey-legend" *ngIf="shouldShowLegend && hasFilterSelection && legendSections.length">
-    <div class="sankey-legend-section" *ngFor="let section of legendSections">
-      <div class="sankey-legend-header">{{ section.header }}</div>
-      <div class="sankey-legend-row">
-        <span class="sankey-legend-item" *ngFor="let item of section.items">
-          <span class="sankey-legend-swatch" [ngClass]="item.color ? '' : 'swatch-' + item.swatchClass" [style.background-color]="item.color || null"></span> {{ item.label }}
-        </span>
-      </div>
-    </div>
-  </div>
 </div>
-
 

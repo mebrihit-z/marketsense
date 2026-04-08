@@ -273,7 +273,7 @@
 
                 </div>
 
-                <div class="time-horizon-labels">
+                <div class="time-horizon-labels" [class.time-horizon-labels--compact]="compactTimeHorizonAxis">
 
                   <span class="time-horizon-label" 
 
@@ -281,13 +281,15 @@
 
                         [style.left.%]="(i / (timeHorizons.length - 1)) * 100"
 
-                        [style.transform]="'translateX(-50%)'"
+                        [style.transform]="compactTimeHorizonAxis ? null : 'translateX(-50%)'"
+
+                        [attr.aria-label]="horizon"
 
                         (click)="onTimeHorizonLabelClick(i, $event)"
 
                         (touchend)="onTimeHorizonLabelClick(i, $event)">
 
-                    {{ horizon }}
+                    {{ timeHorizonTickLabel(i) }}
 
                   </span>
 
@@ -303,9 +305,24 @@
 
               <div class="label-with-info">
                 <label class="toggle-label">Min flow value:</label>
+                <div class="info-btn-wrapper">
+                  <button type="button" #minFlowValueInfoBtn class="info-btn" (click)="onInfoClick('minFlowValue', $event)" aria-label="Min flow value info">
+                    <img src="assets/icons/info-icon.svg" alt="Info" class="info-icon">
+                  </button>
+                  <div
+                    #minFlowValueTooltip
+                    class="info-tooltip"
+                    *ngIf="isTooltipOpen('minFlowValue')"
+                    (click)="$event.stopPropagation()">
+                    <div class="tooltip-content">
+                      {{ getTooltipText('minFlowValue') }}
+                    </div>
+                    <div class="tooltip-arrow"></div>
+                  </div>
+                </div>
               </div>
 
-              <div class="time-horizon-slider-wrapper min-flow-slider-wrapper-filters">
+              <div class="time-horizon-slider-wrapper time-horizon-slider-wrapper-full min-flow-slider-wrapper-filters">
                 <app-min-flow-range-slider
                   class="min-flow-range-filters-embed"
                   [options]="minFlowValueOptions"

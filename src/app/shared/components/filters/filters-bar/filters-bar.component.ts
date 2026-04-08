@@ -57,8 +57,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
   @ViewChild('aiConfidenceInfoBtn', { static: false }) aiConfidenceInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('timeHorizonInfoBtn', { static: false }) timeHorizonInfoBtn!: ElementRef<HTMLButtonElement>;
+  @ViewChild('minFlowValueInfoBtn', { static: false }) minFlowValueInfoBtn?: ElementRef<HTMLButtonElement>;
   @ViewChild('aiConfidenceTooltip', { static: false }) aiConfidenceTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('timeHorizonTooltip', { static: false }) timeHorizonTooltip!: ElementRef<HTMLDivElement>;
+  @ViewChild('minFlowValueTooltip', { static: false }) minFlowValueTooltip?: ElementRef<HTMLDivElement>;
   @ViewChild('investorGroupInfoBtn', { static: false }) investorGroupInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('investorGroupTooltip', { static: false }) investorGroupTooltip!: ElementRef<HTMLDivElement>;
   @ViewChild('productGroupInfoBtn', { static: false }) productGroupInfoBtn!: ElementRef<HTMLButtonElement>;
@@ -138,6 +140,23 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   // Toggle state
   dataType: 'historical' | 'forecasted' = 'forecasted';
   selectedTimeHorizon: string = '+3 mo';
+
+  /** When true, time-axis tick labels use short copy on one row (see SCSS) so they fit on narrow screens. */
+  compactTimeHorizonAxis = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+  private static readonly TIME_HORIZONS_SHORT: readonly string[] = [
+    '-18',
+    '-12',
+    '-9',
+    '-6',
+    '-3',
+    'Now',
+    '+3',
+    '+6',
+    '+9',
+    '+12',
+    '+18',
+  ];
   
   /**
    * @returns {void} Initializes filter state and time horizon defaults.
@@ -190,11 +209,37 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
 
     this.emitMinFlowValueRange();
 
+    this.refreshCompactTimeHorizonAxis();
+
     // Document capture listeners for full time horizon (handle drag + track click); capture so they run first
     if (typeof document !== 'undefined') {
       document.addEventListener('mousedown', this._documentTimeHorizonCaptureListener, true);
       document.addEventListener('touchstart', this._documentTimeHorizonCaptureListener, true);
     }
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.refreshCompactTimeHorizonAxis();
+  }
+
+  private refreshCompactTimeHorizonAxis(): void {
+    if (typeof window === 'undefined') return;
+    const next = window.innerWidth <= 768;
+    if (next !== this.compactTimeHorizonAxis) {
+      this.compactTimeHorizonAxis = next;
+    }
+  }
+
+  /**
+   * @param index - Tick index aligned with {@link FiltersBarComponent#timeHorizons}.
+   * @returns Label text for the slider axis (short on narrow viewports).
+   */
+  timeHorizonTickLabel(index: number): string {
+    const full = this.timeHorizons[index];
+    if (full == null) return '';
+    if (!this.compactTimeHorizonAxis) return full;
+    return FiltersBarComponent.TIME_HORIZONS_SHORT[index] ?? full;
   }
 
   ngOnDestroy(): void {
@@ -391,7 +436,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   showSelectAll: boolean = false;
 
   // Track which tooltip is open
-  openTooltip: 'aiConfidence' | 'timeHorizon' | 'investorGroup' | 'productGroup' | null = null;
+  openTooltip: 'aiConfidence' | 'timeHorizon' | 'minFlowValue' | 'investorGroup' | 'productGroup' | null = null;
 
   // Save filter set modal state
   isSaveFilterSetModalOpen: boolean = false;
@@ -902,7 +947,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     // Don't close if we're dragging sliders
-    if (this.isDragging || this.isTimeHorizonDragging) {
+    if (this.isDragging || this.isTimeHorizonDragging || document.body.classList.contains('min-flow-range-dragging')) {
       return;
     }
 
@@ -935,6 +980,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       } else if (this.openTooltip === 'productGroup') {
         clickedInside = this.productGroupTooltip?.nativeElement?.contains(target) ||
                        this.productGroupInfoBtn?.nativeElement?.contains(target);
+      } else if (this.openTooltip === 'minFlowValue') {
+        clickedInside =
+          !!this.minFlowValueTooltip?.nativeElement?.contains(target) ||
+          !!this.minFlowValueInfoBtn?.nativeElement?.contains(target);
       }
 
       if (!clickedInside) {
@@ -1350,7 +1399,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param ev - The event object to stop propagation
    * @returns {void}
    */
-  onInfoClick(tooltipType: 'aiConfidence' | 'timeHorizon' | 'investorGroup' | 'productGroup', ev: Event): void {
+  onInfoClick(tooltipType: 'aiConfidence' | 'timeHorizon' | 'minFlowValue' | 'investorGroup' | 'productGroup', ev: Event): void {
     ev.stopPropagation();
     if (this.openTooltip === tooltipType) {
       this.openTooltip = null;
@@ -1396,7 +1445,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param tooltipType - The type of tooltip to check
    * @returns {boolean} True if the tooltip is open
    */
-  isTooltipOpen(tooltipType: 'aiConfidence' | 'timeHorizon' | 'investorGroup' | 'productGroup'): boolean {
+  isTooltipOpen(tooltipType: 'aiConfidence' | 'timeHorizon' | 'minFlowValue' | 'investorGroup' | 'productGroup'): boolean {
     return this.openTooltip === tooltipType;
   }
 
@@ -1405,7 +1454,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param tooltipType - The type of tooltip
    * @returns {string} The tooltip text
    */
-  getTooltipText(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'investorGroup' | 'productGroup'): string {
+  getTooltipText(tooltipType: 'aiConfidence' | 'dataType' | 'timeHorizon' | 'minFlowValue' | 'investorGroup' | 'productGroup'): string {
     // switch (tooltipType) {
     //   case 'aiConfidence':
     //     return 'AI Confidence indicates the reliability of the forecasted data. Higher values represent more confident predictions.';
@@ -1423,6 +1472,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         return 'Switch between observed market data and AI-driven forward-looking estimates.';
       case 'timeHorizon':
         return 'Adjust the time window to analyze short-term trends or long-term capital movements.';
+      case 'minFlowValue':
+        return 'Set the flow size band for charts. Drag the handles to raise the minimum, lower the maximum, or both.';
       case 'investorGroup':
         return 'Define the source of capital. Filter by region and investor type to understand allocator demand.';
       case 'productGroup':
