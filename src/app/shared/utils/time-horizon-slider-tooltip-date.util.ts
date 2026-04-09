@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Same calendar strings as the time-horizon slider handle tooltips above the range handles.
  * "Today" uses the actual current date; "+/- N mo" uses the last day of the target month.

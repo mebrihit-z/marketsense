@@ -107,10 +107,9 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (changes['isVisible']) {
       if (this.isVisible) {
         document.body.style.overflow = 'hidden';
-        // When the modal is (re)opened, always start fresh on the New Question tab
-        // and clear any previous local analysis so the user begins with a new question.
+        // Reopen on the New Question tab; keep the in-modal conversation across close/reopen
+        // (e.g. X or overlay) so the thread is not cleared until Clear Analysis or a new starter question.
         this.activeTab = 'new-question';
-        this._localAnalyses = [];
         this.followUpMessage = '';
         if (this.initialMessage?.trim()) {
           this.userMessage = this.initialMessage.trim();
