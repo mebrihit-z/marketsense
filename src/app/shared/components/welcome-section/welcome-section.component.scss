@@ -455,7 +455,7 @@
   word-break: break-word;
 }
 
-// Match chart tooltips (e.g. Sankey): light surface, subtle border + shadow
+// Saved-views tag tooltip: midnight surface, sky blue copy
 .option-tag-tooltip {
   position: absolute;
   left: 0;
@@ -464,15 +464,15 @@
   z-index: 998;
   box-sizing: border-box;
   padding: 10px 14px;
-  background: #ffffff;
-  border: 1px solid rgba(10, 10, 10, 0.12);
+  background: $primary-colors-midnight-blue;
+  border: 1px solid rgba(199, 234, 255, 0.35);
   box-shadow:
-    0 4px 16px rgba(15, 23, 42, 0.1),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
-  font-size: 14px;
+    0 4px 16px rgba(0, 17, 63, 0.35),
+    0 0 0 1px rgba(199, 234, 255, 0.12);
+  font-size: 12px;
   line-height: 1.45;
   font-weight: 400;
-  color: #0a0a0a;
+  color: $primary-colors-sky-blue;
   max-width: min(90vw, 520px);
   overflow-wrap: break-word;
   word-break: break-word;
@@ -500,18 +500,18 @@
 
 .option-tag-tooltip-field-label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.35;
-  color: #0a0a0a;
-  opacity: 0.9;
+  color: $primary-colors-sky-blue;
+  opacity: 0.95;
 }
 
 .option-tag-tooltip-field-value {
   font-weight: 400;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.45;
   margin-top: 4px;
-  color: #0a0a0a;
+  color: $primary-colors-sky-blue;
 }
 
 .option-tag:hover .option-tag-tooltip {

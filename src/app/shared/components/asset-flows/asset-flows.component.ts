@@ -717,6 +717,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
             title: 'Asset Flows — Sankey',
             timeLine: `Time horizon: ${this.getExportTimeLine()}`,
             filename: `${this.getExportBaseName()}-sankey.pdf`,
+            fitSinglePage: true,
           });
           return;
         }

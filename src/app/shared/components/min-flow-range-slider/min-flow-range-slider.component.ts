@@ -15,7 +15,11 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { displayMinFlowEndLabel, displayMinFlowStartLabel } from '../../utils/min-flow-value-options.util';
+import {
+  displayMinFlowEndLabel,
+  displayMinFlowStartLabel,
+  getMinFlowRailLabelStops,
+} from '../../utils/min-flow-value-options.util';
 
 export interface MinFlowRange {
   startIndex: number;
@@ -160,6 +164,10 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   get labelStops(): Array<{ index: number; label: string; leftPercent: number }> {
     const opts = this.options;
     if (!opts.length) return [];
+
+    if (!this.showFlowSummary) {
+      return getMinFlowRailLabelStops(opts, this.numSteps);
+    }
 
     const last = opts.length - 1;
     if (last <= 0) {

@@ -160,11 +160,13 @@
   white-space: normal;
   
   .tooltip-content {
-    background: $bg-gray-darker;
-    border: none;
+    background: $primary-colors-midnight-blue;
+    border: 1px solid rgba(199, 234, 255, 0.35);
     padding: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    color: $bg-white;
+    box-shadow:
+      0 4px 16px rgba(0, 17, 63, 0.35),
+      0 0 0 1px rgba(199, 234, 255, 0.12);
+    color: $primary-colors-sky-blue;
     font-size: 12px;
     line-height: 18px;
     font-weight: 400;
@@ -180,7 +182,7 @@
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-bottom: 6px solid $gray-darker;
+    border-bottom: 6px solid $primary-colors-midnight-blue;
   }
 }
 .select-all {

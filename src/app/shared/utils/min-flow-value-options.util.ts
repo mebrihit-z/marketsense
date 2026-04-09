@@ -55,6 +55,51 @@ export function displayMinFlowStartLabel(rawLabel: string): string {
 /**
  * Upper-handle summary: inclusive max in $M / $B, or "Max" when the end handle is at the last stop.
  */
+/**
+ * Milestone stops shown on the Value Range rail in the filters bar (compact slider).
+ * Labels match design: 0, 100M, 500M, 5B, 50B, Max — positioned at matching option indices.
+ */
+export function getMinFlowRailLabelStops(
+  options: readonly { value: number; label: string }[],
+  numSteps: number
+): Array<{ index: number; label: string; leftPercent: number }> {
+  const last = options.length - 1;
+  if (last < 0) return [];
+
+  const milestones: Array<{ value: number; label: string }> = [
+    { value: 0, label: '0' },
+    { value: 0.1, label: '100M' },
+    { value: 0.5, label: '500M' },
+    { value: 5, label: '5B' },
+    { value: 50, label: '50B' },
+  ];
+
+  const out: Array<{ index: number; label: string; leftPercent: number }> = [];
+  const seen = new Set<number>();
+
+  for (const m of milestones) {
+    const idx = options.findIndex((o) => o.value === m.value);
+    if (idx >= 0 && !seen.has(idx)) {
+      seen.add(idx);
+      out.push({
+        index: idx,
+        label: m.label,
+        leftPercent: numSteps > 0 ? (idx / numSteps) * 100 : 0,
+      });
+    }
+  }
+
+  if (!seen.has(last)) {
+    out.push({
+      index: last,
+      label: 'Max',
+      leftPercent: numSteps > 0 ? 100 : 0,
+    });
+  }
+
+  return out.sort((a, b) => a.index - b.index);
+}
+
 export function displayMinFlowEndLabel(
   options: readonly { value: number; label: string }[],
   endIndex: number

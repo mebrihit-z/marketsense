@@ -3,7 +3,8 @@
 /* Align with Time Horizon rail in filters-bar.component.scss */
 $min-flow-rail-inactive: #c7eaff;
 $min-flow-tick-in-active-range: #cbd5e1;
-$min-flow-label-muted: #88a7bd;
+/* Inactive rail labels — soft blue-gray (matches Value Range reference) */
+$min-flow-label-muted: #94b8d4;
 $min-flow-tooltip-spread: 36px;
 $min-flow-track-height: 6px;
 $min-flow-track-top: 0;
@@ -319,22 +320,30 @@ $min-flow-handle-cluster-top-mobile: $min-flow-rail-y-mobile + $min-flow-track-h
   }
 }
 
+:host.min-flow-range--filters-compact .min-flow-range-labels {
+  margin-top: 8px;
+}
+
 :host.min-flow-range--filters-compact .min-flow-range-label {
   max-width: none;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 400;
   letter-spacing: -0.01em;
 
   @media (max-width: 768px) {
-    font-size: 10px;
-    letter-spacing: -0.03em;
+    font-size: 11px;
+    letter-spacing: -0.02em;
+  }
+
+  &.min-flow-range-label--active {
+    font-weight: 700;
+    color: $primary-colors-midnight-blue;
   }
 }
 
 .min-flow-range-labels.min-flow-range-labels--compact .min-flow-range-label {
   top: 0;
-  font-size: 10px;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
+  line-height: 1.2;
   padding: 0;
   min-width: 0;
   text-align: center;
@@ -349,8 +358,7 @@ $min-flow-handle-cluster-top-mobile: $min-flow-rail-y-mobile + $min-flow-track-h
   }
 
   @media (max-width: 480px) {
-    font-size: 9px;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
   }
 }
 
