@@ -17,6 +17,7 @@ import {
   UNIFIED_TIME_HORIZONS,
   TIME_HORIZONS_SHORT_LABELS,
 } from '../../constants/time-horizons.constants';
+import { formatTimeHorizonSliderHandleDate } from '../../utils/time-horizon-slider-tooltip-date.util';
 
 export interface TimeHorizonRangeIndices {
   startIndex: number;
@@ -163,30 +164,7 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
   handleTooltipDate(type: 'start' | 'end'): string {
     const idx = type === 'start' ? this.range.startIndex : this.range.endIndex;
     const label = this.horizons[idx];
-    return label ? this.formatTooltipDate(label) : '';
-  }
-
-  private formatTooltipDate(horizon: string): string {
-    const today = new Date();
-    let d: Date;
-    if (horizon === 'Today') {
-      d = today;
-    } else {
-      const normalized = horizon.trim().toLowerCase();
-      const match = normalized.match(/^([+-]?)(\d+)\s*mo$/);
-      if (!match) return horizon;
-      const isNegative = match[1] === '-';
-      const months = parseInt(match[2], 10);
-      const base = new Date(today.getFullYear(), today.getMonth(), 1);
-      base.setMonth(base.getMonth() + (isNegative ? -months : months));
-      d = new Date(base.getFullYear(), base.getMonth() + 1, 0);
-    }
-    return this.formatEnglishShortDate(d);
-  }
-
-  private formatEnglishShortDate(d: Date): string {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    return label ? formatTimeHorizonSliderHandleDate(label) : '';
   }
 
   getHandlePosition(type: 'start' | 'end'): number {

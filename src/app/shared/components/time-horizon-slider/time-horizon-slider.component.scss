@@ -1,13 +1,25 @@
 @use '../../../../_variables' as *;
 
 // Axis inset — keep in sync with TimeHorizonSliderComponent.AXIS_INSET_*_PX
-$time-horizon-rail-inactive: #cbd5e1;
+$time-horizon-rail-inactive: #c7eaff;
 $time-horizon-tick-active-range: #cbd5e1;
 $time-horizon-label-muted: #88a7bd;
 $time-horizon-today-accent: $secondary-colors-gold-750;
 $time-horizon-axis-inset-desktop: 14px;
 $time-horizon-axis-inset-mobile: 8px;
 $time-horizon-tooltip-spread: 36px;
+$time-horizon-track-height: 6px;
+$time-horizon-track-top: 0;
+// Thumb center lines up with rail: railCenter = railY + trackHeight/2; cluster top = center − tooltip − gap − handle/2
+$time-horizon-rail-y-desktop: 40px;
+$time-horizon-rail-y-mobile: 44px;
+$time-horizon-tooltip-estimated-height: 27px;
+$time-horizon-handle-size: 15px;
+$time-horizon-handle-tooltip-gap: 8px;
+$time-horizon-handle-cluster-top-desktop: $time-horizon-rail-y-desktop + $time-horizon-track-height * 0.5 -
+  $time-horizon-handle-size * 0.5 - $time-horizon-handle-tooltip-gap - $time-horizon-tooltip-estimated-height;
+$time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-horizon-track-height * 0.5 -
+  $time-horizon-handle-size * 0.5 - $time-horizon-handle-tooltip-gap - $time-horizon-tooltip-estimated-height;
 
 :host {
   display: contents;
@@ -206,6 +218,7 @@ $time-horizon-tooltip-spread: 36px;
   top: 40px;
   width: calc(100% - #{$time-horizon-axis-inset-desktop * 2});
   max-width: 100%;
+  height: $time-horizon-track-height;
   box-sizing: border-box;
   pointer-events: none;
 
@@ -223,10 +236,10 @@ $time-horizon-tooltip-spread: 36px;
 .time-horizon-dots {
   position: absolute;
   left: 0;
-  top: -3px;
+  top: $time-horizon-track-top;
   width: 100%;
   max-width: 100%;
-  height: 11px;
+  height: $time-horizon-track-height;
   z-index: 2;
   pointer-events: none;
 }
@@ -234,7 +247,7 @@ $time-horizon-tooltip-spread: 36px;
 .time-horizon-dots .dot {
   position: absolute;
   width: 2px;
-  height: 11px;
+  height: $time-horizon-track-height;
   background: $primary-colors-midnight-blue;
   border-radius: 0;
   top: 0;
@@ -246,6 +259,7 @@ $time-horizon-tooltip-spread: 36px;
 
   &.dot--today {
     width: 3px;
+    height: $time-horizon-track-height;
     background: $time-horizon-today-accent;
   }
 }
@@ -255,8 +269,8 @@ $time-horizon-tooltip-spread: 36px;
   left: 0;
   width: 100%;
   max-width: 100%;
-  height: 3px;
-  top: 2px;
+  height: $time-horizon-track-height;
+  top: $time-horizon-track-top;
   background: $time-horizon-rail-inactive;
   border-radius: 0;
   pointer-events: none;
@@ -265,8 +279,8 @@ $time-horizon-tooltip-spread: 36px;
 
 .time-horizon-track-active {
   position: absolute;
-  top: 2px;
-  height: 3px;
+  top: $time-horizon-track-top;
+  height: $time-horizon-track-height;
   margin-top: 0;
   background: $primary-colors-midnight-blue;
   border-radius: 0;
@@ -395,10 +409,10 @@ $time-horizon-tooltip-spread: 36px;
 }
 
 .time-horizon-slider-container-full .time-horizon-handle-cluster {
-  top: 3px;
+  top: $time-horizon-handle-cluster-top-desktop;
 
   @media (max-width: 768px) {
-    top: 4px;
+    top: $time-horizon-handle-cluster-top-mobile;
   }
 }
 

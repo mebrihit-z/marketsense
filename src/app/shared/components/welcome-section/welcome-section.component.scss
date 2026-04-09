@@ -455,21 +455,25 @@
   word-break: break-word;
 }
 
+// Match chart tooltips (e.g. Sankey): light surface, subtle border + shadow
 .option-tag-tooltip {
   position: absolute;
   left: 0;
   right: 0;
   top: calc(100% + 4px);
-  z-index: 6;
+  z-index: 998;
   box-sizing: border-box;
-  padding: 10px 12px;
-  background: #2d2d2d;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-  font-size: 11px;
-  line-height: 1.4;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid rgba(10, 10, 10, 0.12);
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.1),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+  font-size: 14px;
+  line-height: 1.45;
   font-weight: 400;
-  color: #fff;
+  color: #0a0a0a;
+  max-width: min(90vw, 520px);
   overflow-wrap: break-word;
   word-break: break-word;
   pointer-events: none;
@@ -490,23 +494,24 @@
   display: block;
 
   &:not(:first-child) {
-    margin-top: 10px;
+    margin-top: 8px;
   }
 }
 
 .option-tag-tooltip-field-label {
   font-weight: 600;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.35;
-  color: #fff;
+  color: #0a0a0a;
+  opacity: 0.9;
 }
 
 .option-tag-tooltip-field-value {
   font-weight: 400;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.45;
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.92);
+  margin-top: 4px;
+  color: #0a0a0a;
 }
 
 .option-tag:hover .option-tag-tooltip {

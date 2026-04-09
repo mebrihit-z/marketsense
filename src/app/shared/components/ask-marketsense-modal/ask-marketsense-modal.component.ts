@@ -142,6 +142,26 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       }
       this.cdr.markForCheck();
     }
+
+    if (this.shouldAutoSubmitInitialFromChanges(changes)) {
+      setTimeout(() => {
+        if (!this.isVisible || !this.userMessage.trim() || this.isWaitingForResponse) return;
+        this.onSendMessage();
+      }, 0);
+    }
+  }
+
+  /**
+   * When the modal opens with {@link initialMessage} (e.g. Ask MarketSense section "Let's Go"),
+   * submit immediately so the user does not need to click "Ask Question".
+   */
+  private shouldAutoSubmitInitialFromChanges(changes: SimpleChanges): boolean {
+    if (!this.initialMessage?.trim() || !this.isVisible) return false;
+    const vis = changes['isVisible'];
+    const init = changes['initialMessage'];
+    if (vis?.currentValue === true && vis.previousValue !== true) return true;
+    if (init && !vis) return true;
+    return false;
   }
 
   onClose(): void {

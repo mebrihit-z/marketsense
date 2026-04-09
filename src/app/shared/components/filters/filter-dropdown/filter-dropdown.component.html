@@ -24,7 +24,11 @@
     <div class="panel" *ngIf="open" (click)="onPanelClick($event)">
       <div class="panel-header">
         <div class="panel-title">Select {{ title | lowercase }}</div>
-        <button class="select-all" (click)="toggleSelectAll($event)">
+        <button
+          type="button"
+          class="select-all"
+          [disabled]="headerSelectAllDisabled"
+          (click)="toggleSelectAll($event)">
           {{ allSelected() ? 'Deselect All' : 'Select All' }}
         </button>
       </div>

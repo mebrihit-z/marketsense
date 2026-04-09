@@ -13,6 +13,7 @@ import {
   formatFlowCurrencyFromBillions,
   formatFlowCurrencyFromBillionsFull,
 } from '../../../utils/flow-currency-format.util';
+import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -442,21 +443,16 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   /**
-   * Formats the time horizon range for display in tooltips
-   * @returns Formatted time horizon string (e.g., "+3 mo", "+3 mo to +9 mo", "Today")
+   * Same calendar dates as the time-horizon slider handles (and Sankey tooltips).
    */
   private getTimeHorizonDisplayString(): string {
-    // Prioritize range if both start and end are provided and not empty
-    if (this.timeHorizonStart && this.timeHorizonEnd && 
+    if (this.timeHorizonStart && this.timeHorizonEnd &&
         this.timeHorizonStart.trim() !== '' && this.timeHorizonEnd.trim() !== '') {
-      // If we have a range, display both start and end
-      const rangeDisplay = `${this.timeHorizonStart} to ${this.timeHorizonEnd}`;
-      return rangeDisplay;
-    } else {
-      // Otherwise, just display the single time horizon
-      const singleDisplay = this.timeHorizon || 'Today';
-      return singleDisplay;
+      const start = formatTimeHorizonSliderHandleDate(this.timeHorizonStart.trim());
+      const end = formatTimeHorizonSliderHandleDate(this.timeHorizonEnd.trim());
+      return `${start} to ${end}`;
     }
+    return formatTimeHorizonSliderHandleDate((this.timeHorizon || 'Today').trim());
   }
 
   private escapeHtml(text: string): string {
@@ -488,7 +484,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       <div style="display:flex; flex-direction:column; gap:4px;">
         <div style="word-break:break-word;">${headerInner}</div>
         <div>Value: ${value}</div>
-        <div>Time Horizon: ${timeHorizonDisplay}</div>
+        <div>Time: ${this.escapeHtml(timeHorizonDisplay)}</div>
       </div>
     `;
   }

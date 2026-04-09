@@ -19,6 +19,7 @@ import {
   formatFlowCurrencyFromBillionsFull,
   formatFlowCurrencyUsd,
 } from '../../../utils/flow-currency-format.util';
+import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 
 // ----------------------
 // TypeScript Models
@@ -395,16 +396,19 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       }
     }
 
-    // Helper function to format time information for tooltip
+    /** Same dates as the time-horizon slider handle tooltips. */
+    private formatHorizonTokenForTooltip(horizon: string): string {
+      return formatTimeHorizonSliderHandleDate(horizon.trim());
+    }
+
     private formatTimeInfo(): string {
       if (this.timeHorizonStart && this.timeHorizonEnd) {
-        return `${this.timeHorizonStart} to ${this.timeHorizonEnd}`;
-      } else if (this.timeHorizon) {
-        // If timeHorizon is "Today", show it as "Today to +3mo" by default
-        if (this.timeHorizon === 'Today') {
-          return 'Today to +3mo';
-        }
-        return this.timeHorizon;
+        const start = this.formatHorizonTokenForTooltip(this.timeHorizonStart);
+        const end = this.formatHorizonTokenForTooltip(this.timeHorizonEnd);
+        return `${start} to ${end}`;
+      }
+      if (this.timeHorizon) {
+        return this.formatHorizonTokenForTooltip(this.timeHorizon);
       }
       return '';
     }
@@ -470,7 +474,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('font-size', '14px')
       .style('line-height', '1.45')
       .style('pointer-events', 'none')
-      .style('z-index', '10000')
+      // Below dashboard sticky filters (.dashboard-filters-sticky z-index: 999)
+      .style('z-index', '998')
       .style(
         'box-shadow',
         '0 4px 16px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.04)'
@@ -796,7 +801,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         } else {
           const timeInfo = component.formatTimeInfo();
           if (timeInfo) {
-            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time Horizon: ${timeInfo}</div>`;
+            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
           }
         }
         
@@ -1037,7 +1042,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         `;
         
         if (timeInfo) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time Horizon: ${timeInfo}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
         }
         
         tooltipHtml += subassetHtml;

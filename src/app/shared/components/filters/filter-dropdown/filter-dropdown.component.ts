@@ -29,6 +29,8 @@ export default class FilterDropdownComponent {
   @Input() isOpen = false; // Controlled by parent
   @Input() infoTooltip?: string; // Optional tooltip text
   @Input() showInfoTooltip = true; // When false, hides the info icon
+  /** When true, the panel "Select All" / "Deselect All" button is visible but disabled (e.g. Investor Region). */
+  @Input() headerSelectAllDisabled = false;
   @Input() isTooltipOpenExternal = false; // Controlled by parent to close tooltip
   @Output() selectedChange = new EventEmitter<string[]>();
   @Output() openChange = new EventEmitter<boolean>(); // Emit when open state should change
@@ -228,6 +230,9 @@ export default class FilterDropdownComponent {
    */
   toggleSelectAll(ev: Event): void {
     ev.stopPropagation();
+    if (this.headerSelectAllDisabled) {
+      return;
+    }
     const set = !this.allSelected();
     const opts = this.flatOptions;
     opts.forEach(o => {
