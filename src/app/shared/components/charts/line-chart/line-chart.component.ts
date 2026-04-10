@@ -23,20 +23,81 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() yAxisMax?: number;
   @Input() yAxisLabel?: string; // Y-axis label text (e.g., "Billions (USD)")
   @Input() xAxisLabel?: string; // X-axis label text (e.g., "Billions (USD)")
+  /** When true, y-axis ticks use {@link formatFlowCurrencyFromBillions} (data values are in billions USD). */
+  @Input() yAxisValuesInBillions: boolean = false;
+  /**
+   * When set, visible dots / hover targets exist only at these data indices (line and x-axis stay unchanged).
+   */
+  @Input() dotIndices?: number[];
+  /** Optional tooltip subtitle per data index (e.g. semantic "+6mo" when the x tick reads "+5mo"). */
+  @Input() pointHoverLabels?: Record<number, string>;
 
   @ViewChild('chart', { static: false }) chartElement!: ElementRef<HTMLDivElement>;
 
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
-  private margin = { top: 50, right: 20, bottom: 50, left: 70 }; // Increased left margin to prevent y-axis label overlapping with tick values
+  private readonly baseMargin = { top: 50, right: 20, bottom: 50, left: 70 };
   private tooltip: any = null;
 
-  /** Effective margin: larger bottom on mobile so x-axis labels are not cut off */
-  private getEffectiveMargin(): { top: number; right: number; bottom: number; left: number } {
-    if (typeof window === 'undefined') return this.margin;
-    const w = window.innerWidth;
-    if (w <= 480) return { ...this.margin, bottom: 80 };
-    if (w <= 768) return { ...this.margin, bottom: 72 };
-    return this.margin;
+  /**
+   * Minimum left margin for currency y-ticks; actual margin also grows from measured tick label width.
+   */
+  private static readonly Y_AXIS_BILLIONS_LEFT_MARGIN_MIN = 88;
+
+  /** Margins with responsive bottom; `left` comes from measured y-tick + title width. */
+  private getEffectiveMargin(left: number): { top: number; right: number; bottom: number; left: number } {
+    let bottom = this.baseMargin.bottom;
+    if (typeof window !== 'undefined') {
+      const w = window.innerWidth;
+      if (w <= 480) bottom = 80;
+      else if (w <= 768) bottom = 72;
+    }
+    return { top: this.baseMargin.top, right: this.baseMargin.right, bottom, left };
+  }
+
+  /**
+   * Leftmost x of y-axis tick labels in axis group space (negative toward the margin strip).
+   * Uses the same scale/nice/ticks/format as the rendered axis.
+   */
+  private measureYAxisTickLabelLeftExtent(innerHeight: number, yMin: number, yMax: number): number {
+    const yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerHeight, 0]).nice(5);
+    const yAxis = d3.axisLeft(yScale)
+      .ticks(5)
+      .tickPadding(this.yAxisValuesInBillions ? 10 : 3)
+      .tickFormat(d => {
+        const value = Number(d);
+        if (this.yAxisValuesInBillions) {
+          return formatFlowCurrencyFromBillions(value);
+        }
+        return value.toFixed(0);
+      });
+
+    const host = this.chartElement?.nativeElement;
+    if (!host) return -56;
+
+    const svg = d3
+      .select(host)
+      .append('svg')
+      .attr('width', 560)
+      .attr('height', Math.max(innerHeight, 1))
+      .style('overflow', 'visible')
+      .style('visibility', 'hidden')
+      .style('position', 'absolute')
+      .style('left', '-10000px')
+      .style('top', '0')
+      .style('pointer-events', 'none');
+
+    const g = svg.append('g');
+    g.call(yAxis);
+
+    let minX = 0;
+    g.selectAll<SVGGElement, unknown>('.tick').each(function () {
+      const text = this.querySelector('text');
+      if (!text) return;
+      const bb = (text as SVGGraphicsElement).getBBox();
+      minX = Math.min(minX, bb.x);
+    });
+    svg.remove();
+    return minX;
   }
 
   ngAfterViewInit(): void {
@@ -46,7 +107,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (this.chartElement && (changes['data'] || changes['color'] || changes['width'] || changes['height'] || 
         changes['showGrid'] || changes['showArea'] || changes['xAxisLabels'] || changes['yAxisMin'] || 
-        changes['yAxisMax'] || changes['yAxisLabel'] || changes['xAxisLabel'])) {
+        changes['yAxisMax'] || changes['yAxisLabel'] || changes['xAxisLabel'] || changes['yAxisValuesInBillions'] ||
+        changes['dotIndices'] || changes['pointHoverLabels'])) {
       this.renderChart();
     }
   }
@@ -76,32 +138,14 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     d3.select(this.chartElement.nativeElement).select('svg').remove();
 
     const element = this.chartElement.nativeElement;
-    const margin = this.getEffectiveMargin();
-    // Use container width if available, otherwise use provided width, with a max fallback
     const containerWidth = element.clientWidth || element.parentElement?.clientWidth || 0;
-    // Ensure width fits within container to prevent horizontal scrolling
     const maxWidth = containerWidth > 0 ? containerWidth : (this.width || 400);
     const actualWidth = Math.min(this.width || maxWidth, maxWidth);
     const actualHeight = this.height || 320;
 
-    const innerWidth = actualWidth - margin.left - margin.right;
-    const innerHeight = actualHeight - margin.top - margin.bottom;
-
-    // Create SVG with overflow visible to prevent clipping
-    this.svg = d3.select(element)
-      .append('svg')
-      .attr('width', actualWidth)
-      .attr('height', actualHeight)
-      .style('overflow', 'visible');
-
-    const g = this.svg.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // Calculate domain for Y axis
+    // Y domain before margins so we can measure tick label width and size `margin.left` tightly.
     const actualDataMin = d3.min(this.data) ?? 0;
     const actualDataMax = d3.max(this.data) ?? 100;
-    
-    // Check if we have negative values in the actual data (not just the domain)
     const hasNegativeValues = actualDataMin < 0;
     const explicitDomain = this.yAxisMin !== undefined && this.yAxisMax !== undefined;
 
@@ -109,11 +153,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     let yMax: number;
 
     if (explicitDomain) {
-      // Parent provided min/max (e.g. data-driven from modal): use them so the axis fits the data
       yMin = Math.min(this.yAxisMin!, this.yAxisMax!);
       yMax = Math.max(this.yAxisMin!, this.yAxisMax!);
     } else {
-      // Compute domain from data
       let dataMin = this.yAxisMin !== undefined ? this.yAxisMin : actualDataMin;
       if (hasNegativeValues && dataMin > 0) {
         dataMin = Math.min(0, actualDataMin);
@@ -137,10 +179,45 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       }
     }
 
+    const preTopBottom = this.getEffectiveMargin(this.baseMargin.left);
+    const innerHeight = actualHeight - preTopBottom.top - preTopBottom.bottom;
+    const yTickLabelLeft = this.measureYAxisTickLabelLeftExtent(innerHeight, yMin, yMax);
+
+    const labelGap = 18;
+    const labelHalfThickness = 8;
+    const edgePad = 6;
+    let computedLeft = this.yAxisLabel
+      ? Math.ceil(-yTickLabelLeft + labelGap + labelHalfThickness + edgePad)
+      : Math.ceil(-yTickLabelLeft + edgePad);
+    computedLeft = Math.max(this.baseMargin.left, computedLeft);
+    if (this.yAxisValuesInBillions) {
+      computedLeft = Math.max(computedLeft, LineChartComponent.Y_AXIS_BILLIONS_LEFT_MARGIN_MIN);
+    }
+
+    const margin = this.getEffectiveMargin(computedLeft);
+    const innerWidth = actualWidth - margin.left - margin.right;
+
+    this.svg = d3.select(element)
+      .append('svg')
+      .attr('width', actualWidth)
+      .attr('height', actualHeight)
+      .style('overflow', 'visible');
+
+    const g = this.svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const n = this.data.length;
+    const dotIndexSet =
+      Array.isArray(this.dotIndices) &&
+      this.dotIndices.length > 0 &&
+      this.dotIndices.every(idx => Number.isFinite(idx) && idx >= 0 && idx < n)
+        ? new Set(this.dotIndices)
+        : null;
+
     // Create scales - first point aligns with y-axis, last point has minimal padding
     const rightPadding = 8; // Minimal padding on the right to prevent last point from being cut off
     const xScale = d3.scaleLinear()
-      .domain([0, this.data.length - 1])
+      .domain([0, n - 1])
       .range([0, innerWidth - rightPadding]);
 
     const yScale = d3.scaleLinear()
@@ -182,7 +259,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('stroke-width', d => (hasNegativeValues && Math.abs(d) < 0.01) ? 1.5 : 1);
 
       // Vertical grid lines - align with all data points (using the same scale with padding)
-      const xTicks = d3.range(0, this.data.length);
+      const xTicks = d3.range(0, n);
       g.selectAll('.grid-line-vertical')
         .data(xTicks)
         .enter()
@@ -230,15 +307,14 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .append('div')
       .attr('class', 'line-chart-tooltip')
       .style('position', 'fixed') // Use fixed instead of absolute for body positioning
-      .style('background-color', '#ffffff')
-      .style('color', '#030213')
+      .style('background-color', '#00113F')
+      .style('color', '#f8fafc')
       .style('padding', '10px 14px')
-      .style('border-radius', '8px')
       .style('font-size', '12px')
       .style('pointer-events', 'none')
       .style('z-index', '10000')
-      .style('box-shadow', '0 2px 8px rgba(0, 0, 0, 0.15)')
-      .style('border', '1px solid #e5e7eb')
+      .style('box-shadow', '0 10px 28px rgba(0, 17, 63, 0.35)')
+      .style('border', '1px solid rgba(255, 255, 255, 0.14)')
       .style('display', 'none')
       .style('visibility', 'hidden')
       .style('opacity', '0')
@@ -271,9 +347,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       currentTooltipIndex = index;
       const value = component.data[index];
-      const label = component.xAxisLabels && component.xAxisLabels.length > index 
-        ? component.xAxisLabels[index] 
-        : `Point ${index + 1}`;
+      const label =
+        component.pointHoverLabels?.[index] ??
+        (component.xAxisLabels && component.xAxisLabels.length > index
+          ? component.xAxisLabels[index]
+          : `Point ${index + 1}`);
 
       // Update tooltip line
       tooltipLine
@@ -288,8 +366,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       
       // Set tooltip content
       component.tooltip.html(
-        `<div style="font-size: 14px; font-weight: 600; color: #030213; margin-bottom: 4px; line-height: 1.2;">${formattedValue}</div>` +
-        `<div style="font-size: 12px; color: #717182; line-height: 1.2;">${label}</div>`
+        `<div class="line-chart-tooltip-row">` +
+        `<span class="line-chart-tooltip-value">${formattedValue}</span>` +
+        `<span class="line-chart-tooltip-label">${label}</span>` +
+        `</div>`
       );
       
       // Calculate position - use getBoundingClientRect for fixed positioning
@@ -375,14 +455,18 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .lower(); // Move to back so dots are on top
 
 
+    const dotData = this.data
+      .map((value, index) => ({ value, index }))
+      .filter(({ index }) => dotIndexSet === null || dotIndexSet.has(index));
+
     // Draw data points - larger, more visible circles with larger hit area
     const dots = g.selectAll('.dot')
-      .data(this.data)
+      .data(dotData)
       .enter()
       .append('circle')
       .attr('class', 'dot')
-      .attr('cx', (d, i) => xScale(i))
-      .attr('cy', d => yScale(d))
+      .attr('cx', ({ index }) => xScale(index))
+      .attr('cy', ({ value }) => yScale(value))
       .attr('r', 6) // Slightly larger for easier hovering
       .attr('fill', this.color)
       .attr('stroke', '#fff')
@@ -392,12 +476,12 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     
     // Add invisible larger circles for easier hover detection
     const hitAreas = g.selectAll('.dot-hit-area')
-      .data(this.data)
+      .data(dotData)
       .enter()
       .append('circle')
       .attr('class', 'dot-hit-area')
-      .attr('cx', (d, i) => xScale(i))
-      .attr('cy', d => yScale(d))
+      .attr('cx', ({ index }) => xScale(index))
+      .attr('cy', ({ value }) => yScale(value))
       .attr('r', 12) // Larger hit area
       .attr('fill', 'transparent')
       .style('pointer-events', 'all')
@@ -406,11 +490,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // Add hover handlers to both visible dots and hit areas
     // Store index as data attribute for easy access
-    dots.attr('data-index', (d, i) => i);
-    hitAreas.attr('data-index', (d, i) => i);
+    dots.attr('data-index', ({ index }) => index);
+    hitAreas.attr('data-index', ({ index }) => index);
     
     // Helper function to handle mouse enter (show tooltip)
-    const handleMouseEnter = function(event: MouseEvent, d: number) {
+    const handleMouseEnter = function (event: MouseEvent, _d: { value: number; index: number }) {
       const element = event.currentTarget as SVGCircleElement;
       if (!element) return;
       
@@ -435,7 +519,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     };
     
     // Helper function to handle mouse leave (hide tooltip)
-    const handleMouseLeave = function(event: MouseEvent, d: number) {
+    const handleMouseLeave = function (_event: MouseEvent, _d: { value: number; index: number }) {
       hideTooltip();
     };
     
@@ -449,7 +533,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     // When y values are negative, put x-axis on top; otherwise at bottom
     const useTopAxis = hasNegativeValues;
     const xAxisYPosition = useTopAxis ? 0 : innerHeight;
-    const xTickValues = d3.range(0, this.data.length);
+    const xTickValues = d3.range(0, n);
     const xAxis = (useTopAxis ? d3.axisTop(xScale) : d3.axisBottom(xScale))
       .tickValues(xTickValues)
       .tickFormat((d, i) => {
@@ -500,12 +584,15 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .text(this.xAxisLabel);
     }
 
-    // Y Axis - show more ticks (10) and format as plain numbers
+    // Y Axis — plain integers unless values are billions USD (market flow modal)
     const yAxis = d3.axisLeft(yScale)
       .ticks(5)
+      .tickPadding(this.yAxisValuesInBillions ? 10 : 3)
       .tickFormat(d => {
         const value = Number(d);
-        // Format as plain numbers (85, 90, etc.) not currency
+        if (this.yAxisValuesInBillions) {
+          return formatFlowCurrencyFromBillions(value);
+        }
         return value.toFixed(0);
       });
 
@@ -526,14 +613,13 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .attr('stroke', '#e5e7eb')
       .attr('stroke-width', 1);
 
-    // Add Y-axis label if provided - positioned to the left of y-axis tick values to avoid overlap
+    // Y-axis label: snug to the left of tick numerals (position from measured tick extent, not full margin).
     if (this.yAxisLabel) {
+      const labelX = yTickLabelLeft - labelGap;
       g.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', 0 - margin.left - 8) // Offset further left from tick values (e.g. -50, 0, 50)
-        .attr('x', 0 - (innerHeight / 2))
-        .attr('dy', '1em')
+        .attr('transform', `translate(${labelX},${innerHeight / 2}) rotate(-90)`)
         .style('text-anchor', 'middle')
+        .style('dominant-baseline', 'middle')
         .style('font-size', '12px')
         .style('fill', '#717182')
         .text(this.yAxisLabel);

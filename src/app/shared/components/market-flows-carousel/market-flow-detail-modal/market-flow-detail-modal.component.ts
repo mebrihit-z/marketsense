@@ -7,7 +7,11 @@ import ExportModalComponent from '../export-modal/export-modal.component';
 import TitleComponent from '../../title/title.component';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import * as detailModalUtil from './market-flow-detail-modal.util';
-import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
+import {
+  formatFlowCurrencyFromBillions,
+  formatFlowCurrencyFromBillionsFull,
+  parseFlowDisplayValueToBillions,
+} from '../../../utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-market-flow-detail-modal',
@@ -32,7 +36,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   @Output() openExport = new EventEmitter<void>();
 
   showExportModal: boolean = false;
-  yAxisLabelText: string = 'Billions (USD)';
+  /** Y-axis title; tick values use compact USD (see line chart yAxisValuesInBillions). */
+  yAxisLabelText: string = 'Cumulative net flow (USD)';
   xAxisLabelText: string = 'Time Horizon';
 
   /** Exposed for template (static methods). */
@@ -175,14 +180,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const endMonths = detailModalUtil.parseTimeHorizonToMonths(this.timeHorizonRange.end);
     if (startMonths === null || endMonths === null) return null;
 
-    const labels = this.generateTimeHorizonLabels(this.timeHorizonRange.start, this.timeHorizonRange.end);
-    const numPoints = labels.length;
+    const anchorMonths = this.getTimeHorizonAnchorMonthsList(this.timeHorizonRange.start, this.timeHorizonRange.end);
     const data: number[] = [];
     let cumulativeValue = 0;
-    for (let i = 0; i < numPoints; i += 1) {
-      const progress = i / (numPoints - 1);
-      const months = startMonths + (endMonths - startMonths) * progress;
-            const targetDate = detailModalUtil.getDateFromMonthsOffset(months);
+    for (let i = 0; i < anchorMonths.length; i += 1) {
+      const months = anchorMonths[i];
+      const targetDate = detailModalUtil.getDateFromMonthsOffset(months);
       let dateValue = 0;
       if (sortedDates.includes(targetDate)) {
         dateValue = dateMap.get(targetDate) || 0;
@@ -247,6 +250,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.card.value;
   }
 
+  /** Full USD string for tooltip on compact NET VALUE display. */
+  getProjectedValueHoverTitle(): string {
+    const dynamic = this.computeFilteredProjectedValue();
+    if (dynamic != null) {
+      return formatFlowCurrencyFromBillionsFull(dynamic);
+    }
+    if (!this.card) return formatFlowCurrencyFromBillionsFull(0);
+    const b = parseFlowDisplayValueToBillions(String(this.card.value).trim());
+    if (Number.isFinite(b)) {
+      return formatFlowCurrencyFromBillionsFull(b);
+    }
+    return this.card.value;
+  }
+
   /**
    * Computes EXPECTED CHANGE as the percentage change between the first and last
    * points of the line chart data: (last - first) / |first| * 100.
@@ -297,43 +314,48 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
+   * Month offsets for each x-axis point when a dashboard time range is set: range endpoints plus every
+   * multiple of 3 months between them (Today / ±3mo / ±6mo …), in chronological order.
+   */
+  private getTimeHorizonAnchorMonthsList(start: string, end: string): number[] {
+    if (!this.timeHorizonRange && !start && !end) return [];
+    const startMonths = detailModalUtil.parseTimeHorizonToMonths(start);
+    const endMonths = detailModalUtil.parseTimeHorizonToMonths(end);
+
+    if (startMonths === null || endMonths === null) {
+      return [0, 3, 6, 9, 12];
+    }
+
+    return MarketFlowDetailModalComponent.canonicalHorizonMonthsInRange(startMonths, endMonths);
+  }
+
+  /**
+   * Selected filter endpoints plus each month offset in the closed range that is a multiple of 3 from today.
+   */
+  private static canonicalHorizonMonthsInRange(startM: number, endM: number): number[] {
+    const lo = Math.min(startM, endM);
+    const hi = Math.max(startM, endM);
+    const set = new Set<number>();
+    set.add(startM);
+    set.add(endM);
+    for (let x = lo; x <= hi; x += 1) {
+      if (x % 3 === 0) set.add(x);
+    }
+    return [...set].sort((a, b) => a - b);
+  }
+
+  /**
    * Generates time horizon labels from start to end with distinct intermediate points (no duplicates).
    * @param {string} start - Start time horizon string
    * @param {string} end - End time horizon string
    * @returns {string[]} Array of label strings (e.g. "Today", "+3mo")
    */
   private generateTimeHorizonLabels(start: string, end: string): string[] {
-    if (!this.timeHorizonRange && !start && !end) return [];
-    const startMonths = detailModalUtil.parseTimeHorizonToMonths(start);
-    const endMonths = detailModalUtil.parseTimeHorizonToMonths(end);
-
-    if (startMonths === null || endMonths === null) {
-      return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
-    }
-
-    const maxPoints = 5;
-    const span = endMonths - startMonths;
-    // Use distinct integer month steps: at most maxPoints, and at most (span + 1) points
-    const numDistinctMonths = Math.min(maxPoints, Math.max(1, Math.abs(span) + 1));
-    const step = span === 0 ? 0 : span / (numDistinctMonths - 1);
-    const seenMonths = new Set<number>();
-    const labels: string[] = [];
-
-    for (let i = 0; i < numDistinctMonths; i += 1) {
-      const months = span === 0 ? startMonths : Math.round(startMonths + step * i);
-      if (!seenMonths.has(months)) {
-        seenMonths.add(months);
-        if (months === 0) {
-          labels.push('Today');
-        } else if (months > 0) {
-          labels.push(`+${months}mo`);
-        } else {
-          labels.push(`${months}mo`);
-        }
-      }
-    }
-
-    return labels.length > 0 ? labels : ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    return this.getTimeHorizonAnchorMonthsList(start, end).map(m => {
+      if (m === 0) return 'Today';
+      if (m > 0) return `+${m}mo`;
+      return `${m}mo`;
+    });
   }
 
   /**
@@ -344,10 +366,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (data.length === 0) return undefined;
     const min = Math.min(...data);
     const max = Math.max(...data);
-    // For all-negative data: axis bottom = most negative - padding; top = least negative + padding
-    if (max <= 0) return min * 1.1; // extend downward (e.g. -98 -> -107.8)
-    // For positive or mixed: allow negative, 10% padding below
-    return min * 0.9;
+    const span = max - min;
+    const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(min), Math.abs(max), 1) * 0.08;
+    return min - pad;
   }
 
   /**
@@ -358,10 +379,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (data.length === 0) return undefined;
     const min = Math.min(...data);
     const max = Math.max(...data);
-    // For all-negative data: axis top = least negative + padding (e.g. -98 -> -88.2)
-    if (min < 0 && max <= 0) return max * 0.9;
-    // For positive or mixed: 10% padding above
-    return max * 1.1;
+    const span = max - min;
+    const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(min), Math.abs(max), 1) * 0.08;
+    return max + pad;
   }
 
   /**

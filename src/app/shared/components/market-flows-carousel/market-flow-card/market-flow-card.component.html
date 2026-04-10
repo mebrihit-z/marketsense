@@ -40,7 +40,11 @@
 
   <!-- Value row: main value (left) | percentage pill + AUM (right), same row -->
   <div class="value-row">
-    <div class="large-value" [class.negative]="card.valueColor === 'red'" [class.positive]="card.valueColor === 'green'">
+    <div
+      class="large-value flow-value-hover"
+      [class.negative]="card.valueColor === 'red'"
+      [class.positive]="card.valueColor === 'green'"
+      [attr.data-flow-tooltip]="valueHoverFullLabel">
       {{ card.value }}
     </div>
     <div class="badge-container">

@@ -24,7 +24,7 @@
         <div class="key-metrics-section">
           <div class="metric-box forecasted-value">
             <div class="metric-label">NET VALUE</div>
-            <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
+            <div class="metric-value flow-value-hover" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'" [attr.data-flow-tooltip]="getProjectedValueHoverTitle()">{{ getProjectedValue() }}</div>
           </div>
           <div class="metric-box expected-change" [class.positive]="getExpectedChange() >= 0" [class.negative]="getExpectedChange() < 0">
             <div class="metric-label">EXPECTED CHANGE</div>
@@ -59,8 +59,9 @@
             [xAxisLabels]="getXAxisLabels()"
             [yAxisMin]="getYAxisMin()"
             [yAxisMax]="getYAxisMax()"
-            [yAxisLabel]="'Billions (USD)'"
-            [xAxisLabel]="'Time Horizon'">
+            [yAxisLabel]="yAxisLabelText"
+            [yAxisValuesInBillions]="true"
+            [xAxisLabel]="xAxisLabelText">
           </app-line-chart>
         </div>
       </div>
@@ -96,7 +97,7 @@
       <div class="key-metrics-section">
         <div class="metric-box forecasted-value">
           <div class="metric-label">NET VALUE</div>
-          <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
+          <div class="metric-value flow-value-hover" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'" [attr.data-flow-tooltip]="getProjectedValueHoverTitle()">{{ getProjectedValue() }}</div>
         </div>
         <div class="metric-box expected-change" [class.positive]="getExpectedChange() >= 0" [class.negative]="getExpectedChange() < 0">
           <div class="metric-label">EXPECTED CHANGE</div>
@@ -128,8 +129,9 @@
           [xAxisLabels]="getXAxisLabels()"
           [yAxisMin]="getYAxisMin()"
           [yAxisMax]="getYAxisMax()"
-          [yAxisLabel]="'Billions (USD)'"
-          [xAxisLabel]="'Time Horizon'">
+          [yAxisLabel]="yAxisLabelText"
+          [yAxisValuesInBillions]="true"
+          [xAxisLabel]="xAxisLabelText">
         </app-line-chart>
       </div>
     </div>

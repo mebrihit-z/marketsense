@@ -2,6 +2,10 @@
 import { Component, Input, Output, EventEmitter, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import TitleComponent from '../../title/title.component';
+import {
+  formatFlowCurrencyFromBillionsFull,
+  parseFlowDisplayValueToBillions,
+} from '../../../utils/flow-currency-format.util';
 
 export interface MarketFlowCard {
   id: string;
@@ -56,6 +60,16 @@ export class MarketFlowCardComponent {
   getConfidenceColor(confidence: 'high' | 'medium' | 'low'): string {
     // All scores are green for now
     return '#2A6907';
+  }
+
+  /** Full USD amount for native tooltip on compact {@link MarketFlowCard.value}. */
+  get valueHoverFullLabel(): string {
+    if (!this.card?.value) return '';
+    const b = parseFlowDisplayValueToBillions(String(this.card.value).trim());
+    if (Number.isFinite(b)) {
+      return formatFlowCurrencyFromBillionsFull(b);
+    }
+    return this.card.value;
   }
 
   onDownload(event?: Event): void {
