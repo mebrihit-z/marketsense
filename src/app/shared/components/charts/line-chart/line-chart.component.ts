@@ -530,8 +530,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             .on('mouseleave', handleMouseLeave);
 
     // X Axis - show exactly one tick per data point
-    // When y values are negative, put x-axis on top; otherwise at bottom
-    const useTopAxis = hasNegativeValues;
+    // Negative net flow (latest point below zero) → top; positive (above zero) → bottom.
+    const lastFlow = this.data[n - 1] ?? 0;
+    const useTopAxis = lastFlow < 0;
     const xAxisYPosition = useTopAxis ? 0 : innerHeight;
     const xTickValues = d3.range(0, n);
     const xAxis = (useTopAxis ? d3.axisTop(xScale) : d3.axisBottom(xScale))
