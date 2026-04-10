@@ -1,4 +1,5 @@
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
+import { parseFlowDisplayValueToBillions } from '../../../utils/flow-currency-format.util';
 
 /**
  * Converts time horizon string to target date in YYYY-MM format.
@@ -113,12 +114,13 @@ export function parseTimeHorizonToMonths(horizon: string): number | null {
 }
 
 /**
- * @param {string} valueStr - Value string (e.g. "$124.8B")
- * @returns {number} Parsed absolute numeric value, or 100 if invalid
+ * @param {string} valueStr - Value string (e.g. "$124.8B", "$1.2T")
+ * @returns {number} Parsed absolute value in billions, or 100 if invalid
  */
 export function parseValue(valueStr: string): number {
-  const num = parseFloat(valueStr.replace(/[$,B]/g, '').trim());
-  return Number.isNaN(num) ? 100 : Math.abs(num);
+  const b = parseFlowDisplayValueToBillions(valueStr);
+  if (!Number.isFinite(b)) return 100;
+  return Math.abs(b);
 }
 
 /**

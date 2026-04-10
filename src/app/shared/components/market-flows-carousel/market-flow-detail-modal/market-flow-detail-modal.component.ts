@@ -7,6 +7,7 @@ import ExportModalComponent from '../export-modal/export-modal.component';
 import TitleComponent from '../../title/title.component';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import * as detailModalUtil from './market-flow-detail-modal.util';
+import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-market-flow-detail-modal',
@@ -239,9 +240,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   getProjectedValue(): string {
     const dynamic = this.computeFilteredProjectedValue();
     if (dynamic != null) {
-      return this.formatBillions(dynamic);
+      return formatFlowCurrencyFromBillions(dynamic);
     }
-    if (!this.card) return '$0B';
+    if (!this.card) return formatFlowCurrencyFromBillions(0);
     // Fall back to the precomputed card value when we can't derive a filtered one
     return this.card.value;
   }

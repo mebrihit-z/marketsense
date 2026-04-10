@@ -1145,6 +1145,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('text-anchor', d => {
         if (d.name.includes('(Source)')) return 'start';
         if (d.name.includes('(Destination)')) return 'end';
+        // Label at x1 + 12: anchor start so "Realloc: …" sits to the right of the node, not centered on it
+        if (d.name.includes('Reallocation Pool')) return 'start';
         if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return 'start';
         // Positive/inflow side: anchor at end so text sits to the left of the node
         if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return 'end';
@@ -1176,15 +1178,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return label + ':';
       });
     
-    // Add value text as tspan – on next line for Realloc, Super Start, Super End to avoid overlap
-    const putValueOnNextLine = (d: SankeyNodeExtra) =>
-      d.name.includes('Reallocation Pool') ||
-      d.name.includes('Super Start') || d.name.includes('Super End');
+    // Add value text as tspan (inline after the name, same row for all nodes including Super Start / End)
     nodeLabels.append('tspan')
       .attr('class', 'sankey-node-label-value')
-      .attr('dx', d => putValueOnNextLine(d) ? null : '8px')
-      .attr('dy', d => putValueOnNextLine(d) ? '1.15em' : null)
-      .attr('x', d => putValueOnNextLine(d) ? getLabelX(d) : null)
+      .attr('dx', '8px')
       .text(d => {
         const value = nodeValues.get(d) || 0;
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);

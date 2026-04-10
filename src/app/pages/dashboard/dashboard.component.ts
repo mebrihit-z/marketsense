@@ -19,6 +19,7 @@ import {
   createDefaultMinFlowRange,
   type MinFlowRangeSelection,
 } from '../../shared/utils/min-flow-value-options.util';
+import { formatFlowCurrencyFromBillions, parseFlowDisplayValueToBillions } from '../../shared/utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -336,9 +337,8 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         // Generate unique ID
         const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
 
-        // Format value
-        const absValue = Math.abs(totalValue);
-        const formattedValue = this.formatValue(absValue);
+        // Format value (compact $T/$B/$M/$K via shared util, same as Sankey/Treemap)
+        const formattedCardValue = formatFlowCurrencyFromBillions(totalValue);
 
         // Format percentage
         const formattedPercentage = this.formatPercentage(Math.abs(percentageChange));
@@ -349,7 +349,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         return {
           id,
           title: subType,
-          value: isPositive ? `$${formattedValue}B` : `-$${formattedValue}B`,
+          value: formattedCardValue,
           valueColor,
           percentageChange: percentageChange >= 0 ? `+${formattedPercentage}%` : `-${formattedPercentage}%`,
           percentageColor,
@@ -519,20 +519,6 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Formats a numeric value in billions with thousand separators and appropriate decimal places
-   * @param value - The value in billions
-   * @returns Formatted string (e.g., "124.8" or "57,644.15")
-   */
-  private formatValue(value: number): string {
-    if (value === 0) return '0';
-    const decimals = value < 0.1 ? 2 : value < 1 ? 1 : 1;
-    return value.toLocaleString('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    });
-  }
-
-  /**
    * Converts time horizon string to target date in YYYY-MM format
    * Returns null if time horizon is invalid
    * Uses today's date as the base for calculations
@@ -604,14 +590,11 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Parses a value string to a number
-   * @param valueStr - String like "$124.8B" or "-$98.4B"
-   * @returns Numeric value
+   * Parses a card value string to billions (signed), including compact $T/$B/$M/$K.
    */
   private parseValue(valueStr: string): number {
-    const cleaned = valueStr.replace(/[$,B]/g, '').trim();
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? 0 : num;
+    const b = parseFlowDisplayValueToBillions(valueStr);
+    return Number.isFinite(b) ? b : 0;
   }
 
   /**

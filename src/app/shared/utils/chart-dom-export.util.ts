@@ -55,6 +55,59 @@ function readSvgLayoutSize(svg: SVGSVGElement): { w: number; h: number } {
   };
 }
 
+type SvgPresentationBackup = { el: SVGRectElement; attr: string; value: string | null };
+
+/**
+ * html-to-image often misses Angular / ::ng-deep SVG paint rules; rects then rasterize as black.
+ * Snapshot computed fill/stroke onto presentation attributes before capture, then restore.
+ */
+function inlineSankeyNodeRectColorsForExport(root: HTMLElement): () => void {
+  const backups: SvgPresentationBackup[] = [];
+  const attrNames = ['fill', 'stroke', 'stroke-width'] as const;
+
+  root.querySelectorAll<SVGSVGElement>('svg.sankey-svg').forEach((svg) => {
+    svg.querySelectorAll<SVGRectElement>('rect.sankey-node-rect').forEach((rect) => {
+      const cs = getComputedStyle(rect);
+      const fill = cs.fill;
+      if (!fill || fill === 'none' || fill === 'rgba(0, 0, 0, 0)') {
+        return;
+      }
+      for (const name of attrNames) {
+        backups.push({ el: rect, attr: name, value: rect.getAttribute(name) });
+      }
+      rect.setAttribute('fill', fill);
+      const stroke = cs.stroke;
+      if (stroke && stroke !== 'none') {
+        rect.setAttribute('stroke', stroke);
+      }
+      const sw = cs.strokeWidth;
+      if (sw && sw !== '0px') {
+        const n = parseFloat(sw);
+        rect.setAttribute('stroke-width', Number.isFinite(n) ? String(n) : sw);
+      }
+    });
+  });
+
+  return () => {
+    const byEl = new Map<SVGRectElement, Map<string, string | null>>();
+    for (const { el, attr, value } of backups) {
+      if (!byEl.has(el)) {
+        byEl.set(el, new Map());
+      }
+      byEl.get(el)!.set(attr, value);
+    }
+    byEl.forEach((attrs, el) => {
+      attrs.forEach((value, attr) => {
+        if (value == null) {
+          el.removeAttribute(attr);
+        } else {
+          el.setAttribute(attr, value);
+        }
+      });
+    });
+  };
+}
+
 function expandSankeyCaptureBranch(el: HTMLElement): void {
   el.style.overflow = 'visible';
   let w = Math.max(el.scrollWidth, el.offsetWidth, el.clientWidth || 0);
@@ -111,6 +164,7 @@ export async function captureChartAreaToPng(
   sankeySvgs.forEach((svg) => track(svg as unknown as HTMLElement));
 
   const rootBackup = backupBoxStyles(root);
+  let restoreSankeyRectColors: (() => void) | null = null;
 
   try {
     root.style.overflow = 'visible';
@@ -149,6 +203,9 @@ export async function captureChartAreaToPng(
 
     void root.offsetWidth;
 
+    restoreSankeyRectColors = inlineSankeyNodeRectColorsForExport(root);
+    void root.offsetWidth;
+
     const captureW = Math.ceil(
       Math.max(root.scrollWidth, root.offsetWidth, root.clientWidth || 0, 1)
     );
@@ -164,6 +221,9 @@ export async function captureChartAreaToPng(
       height: captureH,
     });
   } finally {
+    if (restoreSankeyRectColors) {
+      restoreSankeyRectColors();
+    }
     modified.reverse().forEach(({ el, backup }) => restoreBoxStyles(el, backup));
     restoreBoxStyles(root, rootBackup);
   }

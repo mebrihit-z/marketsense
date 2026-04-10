@@ -7,6 +7,7 @@ import ExportModalComponent from './export-modal/export-modal.component';
 import MarketFlowDetailModalComponent from './market-flow-detail-modal/market-flow-detail-modal.component';
 import TitleComponent from '../title/title.component';
 import { type AssetFlowRecord } from '../../utils/asset-flows-to-sankey.util';
+import { parseFlowDisplayValueToBillions } from '../../utils/flow-currency-format.util';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
@@ -196,11 +197,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   }
   
   parseValue(valueStr: string): number {
-    // Parse values like "$124.8B", "-$98.4B", "$90B"
-    // Remove $ and B, but keep the negative sign
-    const cleaned = valueStr.replace(/[$,B]/g, '').trim();
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? 0 : num;
+    const b = parseFlowDisplayValueToBillions(valueStr);
+    return Number.isFinite(b) ? b : 0;
   }
   
   parsePercentage(percentageStr: string): number {

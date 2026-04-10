@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
+import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-line-chart',
@@ -282,8 +283,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('y2', innerHeight)
         .style('opacity', 1);
 
-      // Format value as currency
-      const formattedValue = `$${Math.abs(value).toFixed(1)}B`;
+      // Format value as currency (billions; compact $T/$B/$M/$K)
+      const formattedValue = formatFlowCurrencyFromBillions(value);
       
       // Set tooltip content
       component.tooltip.html(
