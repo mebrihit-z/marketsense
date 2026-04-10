@@ -179,22 +179,23 @@ export function downloadDataUrlAsPng(dataUrl: string, filename: string): void {
 }
 
 /**
- * Builds a PDF with title lines and the chart image.
+ * Builds a PDF with optional title lines and the chart image.
  * By default, splits across pages when the image is taller than the first page.
  * Set `fitSinglePage` to scale the image down so the chart fits on one page (after the header).
+ * Omit `title` and `timeLine` (or pass empty strings) to export only the image.
  */
 export async function saveChartAsMultiPagePdf(params: {
   imageDataUrl: string;
-  title: string;
-  timeLine: string;
+  title?: string;
+  timeLine?: string;
   filename: string;
   orientation?: 'landscape' | 'portrait';
   fitSinglePage?: boolean;
 }): Promise<void> {
   const {
     imageDataUrl,
-    title,
-    timeLine,
+    title = '',
+    timeLine = '',
     filename,
     orientation = 'landscape',
     fitSinglePage = false,
@@ -213,12 +214,20 @@ export async function saveChartAsMultiPagePdf(params: {
   const contentW = pageW - 2 * margin;
 
   let y = margin;
-  pdf.setFontSize(14);
-  pdf.text(title, margin, y);
-  y += 18;
-  pdf.setFontSize(10);
-  pdf.text(timeLine, margin, y);
-  y += 22;
+  const t = title.trim();
+  const tl = timeLine.trim();
+  if (t) {
+    pdf.setFontSize(14);
+    pdf.text(t, margin, y);
+    y += 18;
+  }
+  if (tl) {
+    pdf.setFontSize(10);
+    pdf.text(tl, margin, y);
+    y += 22;
+  } else if (t) {
+    y += 22;
+  }
 
   const availH = pageH - y - margin;
 

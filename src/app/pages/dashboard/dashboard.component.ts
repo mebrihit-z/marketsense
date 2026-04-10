@@ -208,6 +208,22 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     this.cdr.detectChanges();
   }
 
+  /**
+   * Raw rows matching the filters bar (dimensions + current time window + min/max flow),
+   * for carousel detail charts. Aligns with {@link filteredMarketFlowCards} aggregation input.
+   */
+  get filterBarScopedAssetFlowsData(): AssetFlowRecord[] {
+    if (!this.selectedInvestorRegions?.length || !this.selectedProductSubTypes?.length) {
+      return [];
+    }
+    if (!this.rawAssetFlowsData?.length) {
+      return [];
+    }
+    let data = this.applyFilterBarDimensions(this.rawAssetFlowsData);
+    data = this.applyCurrentTimeWindowToRecords(data);
+    return this.filterRecordsByFlowMagnitude(data);
+  }
+
   get filteredMarketFlowCards(): MarketFlowCard[] {
     // If no investor regions selected, return empty array
     if (!this.selectedInvestorRegions || this.selectedInvestorRegions.length === 0) {
@@ -224,74 +240,19 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       return [];
     }
 
-    // Filter data by all selected filters: investor region, investor type, product region, product type
-    let filteredData = this.rawAssetFlowsData;
+    let filteredData = this.applyFilterBarDimensions(this.rawAssetFlowsData);
+    filteredData = this.applyCurrentTimeWindowToRecords(filteredData);
+    filteredData = this.filterRecordsByFlowMagnitude(filteredData);
 
-    // Filter by investor regions
-    filteredData = filteredData.filter(record =>
-      this.selectedInvestorRegions.includes(record.Investor_Region)
-    );
-
-    // Filter by investor type (Plan_Type or Investor_Types)
-    if (this.selectedInvestorTypes && this.selectedInvestorTypes.length > 0) {
-      filteredData = filteredData.filter(record => {
-        const investorType = record.Plan_Type ?? record.Investor_Types;
-        return investorType && this.selectedInvestorTypes.includes(investorType);
-      });
-    }
-
-    // Filter by product region
-    if (this.selectedProductRegions && this.selectedProductRegions.length > 0) {
-      filteredData = filteredData.filter(record =>
-        record.Product_Region != null && this.selectedProductRegions.includes(record.Product_Region)
-      );
-    }
-
-    // Filter by product type (apply whenever user has selected product types)
-    if (this.selectedProductTypes && this.selectedProductTypes.length > 0) {
-      filteredData = filteredData.filter(record =>
-        this.selectedProductTypes.includes(record.Product_Type)
-      );
-    }
-
-    // Filter by time horizon (date range) - use the same timeHorizonRange as sankey
-    // This ensures cards and sankey use the same date filtering
-    if (this.timeHorizonRange && this.timeHorizonRange.start && this.timeHorizonRange.end) {
-      const startDate = this.convertTimeHorizonToDate(this.timeHorizonRange.start);
-      const endDate = this.convertTimeHorizonToDate(this.timeHorizonRange.end);
-      
-      if (startDate && endDate) {
-        filteredData = filteredData.filter(record => {
-          if (!record.Asset_Flow_Date) return false;
-          const recordDate = record.Asset_Flow_Date;
-          return recordDate >= startDate && recordDate <= endDate;
-        });
-      }
-    } else {
-      // Fallback: use getDateRangeForTimeHorizon if timeHorizonRange is not available
-      const dateRange = this.getDateRangeForTimeHorizon(this.carouselTimeHorizon, this.carouselDataType);
-      if (dateRange && dateRange.start && dateRange.end && dateRange.start !== dateRange.end) {
-        filteredData = filteredData.filter(record => {
-          if (!record.Asset_Flow_Date) return false;
-          const recordDate = record.Asset_Flow_Date;
-          return recordDate >= dateRange.start && recordDate <= dateRange.end;
-        });
-      }
-    }
-
-    // Aggregate by product sub-type
+    // Aggregate by product sub-type (rows already match filters bar + time window + flow magnitude)
     // VALUE CALCULATION:
-    // 1. Filter records by: selected investor regions + selected product types + selected product sub-types + time horizon
+    // 1. Filter records by: dimensions, time horizon, min/max flow (see applyFilterBarDimensions / applyCurrentTimeWindowToRecords / filterRecordsByFlowMagnitude)
     // 2. For each Product_Sub_Type, sum all Asset_Flow_Value (which are in thousands)
     // 3. Convert to billions: divide by 1,000,000
     // 4. Result: Net flow = sum of all positive values - sum of all negative values (negative values are subtracted)
     const aggregatedData = new Map<string, { total: number; count: number; positiveSum: number; negativeSum: number }>();
-    
+
     filteredData.forEach(record => {
-      if (!this.selectedProductSubTypes.includes(record.Product_Sub_Type)) {
-        return; // Skip if not in selected product sub-types
-      }
-      
       const existing = aggregatedData.get(record.Product_Sub_Type) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
       // Asset_Flow_Value is in thousands, convert to billions
       // Example: 1200000 (thousands) = 1.2 billion
@@ -318,32 +279,10 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     const previousAggregatedData = new Map<string, number>();
     
     if (previousDateRange) {
-      let previousData = this.rawAssetFlowsData;
-      // Apply same filters as current period
-      previousData = previousData.filter(record =>
-        this.selectedInvestorRegions.includes(record.Investor_Region)
-      );
-      if (this.selectedInvestorTypes && this.selectedInvestorTypes.length > 0) {
-        previousData = previousData.filter(record => {
-          const investorType = record.Plan_Type ?? record.Investor_Types;
-          return investorType && this.selectedInvestorTypes.includes(investorType);
-        });
-      }
-      if (this.selectedProductRegions && this.selectedProductRegions.length > 0) {
-        previousData = previousData.filter(record =>
-          record.Product_Region != null && this.selectedProductRegions.includes(record.Product_Region)
-        );
-      }
-      if (this.selectedProductTypes && this.selectedProductTypes.length > 0) {
-        previousData = previousData.filter(record =>
-          this.selectedProductTypes.includes(record.Product_Type)
-        );
-      }
-      
-      // Use same date filtering logic as current period
+      let previousData = this.applyFilterBarDimensions(this.rawAssetFlowsData);
       const prevStartDate = this.convertTimeHorizonToDate(previousDateRange.start);
       const prevEndDate = this.convertTimeHorizonToDate(previousDateRange.end);
-      
+
       if (prevStartDate && prevEndDate) {
         previousData = previousData.filter(record => {
           if (!record.Asset_Flow_Date) return false;
@@ -352,10 +291,9 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         });
       }
 
+      previousData = this.filterRecordsByFlowMagnitude(previousData);
+
       previousData.forEach(record => {
-        if (!this.selectedProductSubTypes.includes(record.Product_Sub_Type)) {
-          return;
-        }
         const valueInBillions = record.Asset_Flow_Value / 1000000;
         const existing = previousAggregatedData.get(record.Product_Sub_Type) || 0;
         // Handle negative values: subtract them (minus them)
@@ -444,6 +382,71 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       const aValue = this.parseValue(a.value);
       const bValue = this.parseValue(b.value);
       return Math.abs(bValue) - Math.abs(aValue);
+    });
+  }
+
+  /** Same dimension rules as {@link AssetFlowsComponent.filterDataByFilterBar} plus selected product sub-types. */
+  private applyFilterBarDimensions(records: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!records?.length) return records;
+    let result = records;
+    result = result.filter(r => this.selectedInvestorRegions.includes(r.Investor_Region));
+    if (this.selectedInvestorTypes?.length) {
+      result = result.filter(r => {
+        const t = r.Plan_Type ?? r.Investor_Types;
+        return t != null && this.selectedInvestorTypes.includes(t);
+      });
+    }
+    if (this.selectedProductRegions?.length) {
+      result = result.filter(
+        r => r.Product_Region != null && this.selectedProductRegions.includes(r.Product_Region)
+      );
+    }
+    if (this.selectedProductTypes?.length) {
+      result = result.filter(r => this.selectedProductTypes.includes(r.Product_Type));
+    }
+    if (this.selectedProductSubTypes?.length) {
+      result = result.filter(r => this.selectedProductSubTypes.includes(r.Product_Sub_Type));
+    }
+    return result;
+  }
+
+  private applyCurrentTimeWindowToRecords(records: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!records?.length) return records;
+    if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
+      const startDate = this.convertTimeHorizonToDate(this.timeHorizonRange.start);
+      const endDate = this.convertTimeHorizonToDate(this.timeHorizonRange.end);
+      if (startDate && endDate) {
+        return records.filter(record => {
+          if (!record.Asset_Flow_Date) return false;
+          return record.Asset_Flow_Date >= startDate && record.Asset_Flow_Date <= endDate;
+        });
+      }
+      return records;
+    }
+    const dateRange = this.getDateRangeForTimeHorizon(this.carouselTimeHorizon, this.carouselDataType);
+    if (dateRange?.start && dateRange?.end && dateRange.start !== dateRange.end) {
+      return records.filter(record => {
+        if (!record.Asset_Flow_Date) return false;
+        return record.Asset_Flow_Date >= dateRange.start && record.Asset_Flow_Date <= dateRange.end;
+      });
+    }
+    return records;
+  }
+
+  /** Per-row |flow| in billions vs filters bar min/max (aligned with Sankey link value filter). */
+  private filterRecordsByFlowMagnitude(records: AssetFlowRecord[]): AssetFlowRecord[] {
+    if (!records?.length) return records;
+    const minVal = this.chartMinFlowLower ?? 0;
+    const maxVal = this.chartMaxFlowUpper;
+    const hasMin = minVal > 0;
+    const hasMax = maxVal != null && Number.isFinite(maxVal as number);
+    if (!hasMin && !hasMax) return records;
+    const max = hasMax ? (maxVal as number) : Infinity;
+    return records.filter(r => {
+      const absB = Math.abs(r.Asset_Flow_Value / 1000000);
+      if (hasMin && absB < minVal) return false;
+      if (hasMax && absB > max) return false;
+      return true;
     });
   }
 

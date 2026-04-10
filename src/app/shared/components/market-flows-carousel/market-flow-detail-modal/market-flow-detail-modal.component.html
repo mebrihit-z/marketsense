@@ -31,7 +31,7 @@
         <!-- Key Metrics Section -->
         <div class="key-metrics-section">
           <div class="metric-box forecasted-value">
-            <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
+            <div class="metric-label">NET VALUE</div>
             <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
           </div>
           <div class="metric-box expected-change" [class.positive]="getExpectedChange() >= 0" [class.negative]="getExpectedChange() < 0">
@@ -110,7 +110,7 @@
     <div class="content-container">
       <div class="key-metrics-section">
         <div class="metric-box forecasted-value">
-          <div class="metric-label">{{ card.dataType === 'historical' ? 'Historical value' : 'FORECASTED VALUE' }}</div>
+          <div class="metric-label">NET VALUE</div>
           <div class="metric-value" [class.positive]="card.chartColor === 'green'" [class.negative]="card.chartColor === 'red'">{{ getProjectedValue() }}</div>
         </div>
         <div class="metric-box expected-change" [class.positive]="getExpectedChange() >= 0" [class.negative]="getExpectedChange() < 0">

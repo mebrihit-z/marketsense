@@ -422,8 +422,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         if (dataUrl) {
           await saveChartAsMultiPagePdf({
             imageDataUrl: dataUrl,
-            title: 'Asset Allocation — Treemap',
-            timeLine: `Time horizon: ${this.getExportTimeLine()}`,
             filename: `${this.getExportBaseName()}-treemap.pdf`,
           });
           return;
@@ -438,13 +436,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 40;
     let y = margin;
-
-    pdf.setFontSize(16);
-    pdf.text('Asset Allocation - Treemap Export', margin, y);
-    y += 20;
-    pdf.setFontSize(10);
-    pdf.text(`Time Horizon: ${this.timeHorizonStart && this.timeHorizonEnd ? `${this.timeHorizonStart} to ${this.timeHorizonEnd}` : this.timeHorizon}`, margin, y);
-    y += 16;
 
     const maxRows = 35;
     const printableRows = rows.slice(0, maxRows);
