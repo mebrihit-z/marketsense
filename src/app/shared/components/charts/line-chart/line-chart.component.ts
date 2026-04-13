@@ -105,8 +105,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.chartElement && (changes['data'] || changes['color'] || changes['width'] || changes['height'] || 
-        changes['showGrid'] || changes['showArea'] || changes['xAxisLabels'] || changes['yAxisMin'] || 
+    if (this.chartElement && (changes['data'] || changes['color'] || changes['width'] || changes['height'] ||
+        changes['showGrid'] || changes['showArea'] || changes['xAxisLabels'] || changes['yAxisMin'] ||
         changes['yAxisMax'] || changes['yAxisLabel'] || changes['xAxisLabel'] || changes['yAxisValuesInBillions'] ||
         changes['dotIndices'] || changes['pointHoverLabels'])) {
       this.renderChart();
@@ -297,11 +297,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       console.error('Line chart: Container not found');
       return;
     }
-    
+
     // Remove existing tooltip if it exists (check both container and body)
     d3.select(container).select('.line-chart-tooltip').remove();
     d3.select('body').select('.line-chart-tooltip').remove();
-    
+
     // Append to body for better positioning and to avoid overflow clipping
     this.tooltip = d3.select('body')
       .append('div')
@@ -309,17 +309,17 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .style('position', 'fixed') // Use fixed instead of absolute for body positioning
       .style('background-color', '#00113F')
       .style('color', '#f8fafc')
-      .style('padding', '10px 14px')
-      .style('font-size', '12px')
+      .style('padding', '7px 10px')
+      .style('font-size', '11px')
       .style('pointer-events', 'none')
       .style('z-index', '10000')
-      .style('box-shadow', '0 10px 28px rgba(0, 17, 63, 0.35)')
+      .style('box-shadow', '0 6px 18px rgba(0, 17, 63, 0.32)')
       .style('border', '1px solid rgba(255, 255, 255, 0.14)')
       .style('display', 'none')
       .style('visibility', 'hidden')
       .style('opacity', '0')
       .style('white-space', 'nowrap');
-    
+
     // Verify tooltip was created
     if (!this.tooltip.node()) {
       console.error('Line chart: Failed to create tooltip element');
@@ -338,6 +338,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // Track current tooltip state
     let currentTooltipIndex: number | null = null;
+
+    /** Set after x-axis is rendered; bolds the tick for the hovered point index. */
+    let setXAxisTickHighlight: (activeIndex: number | null) => void = () => {};
 
     // Helper function to show tooltip for a specific index (only one at a time)
     const showTooltip = (index: number, xPos: number, yPos: number) => {
@@ -363,7 +366,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       // Format value as currency (billions; compact $T/$B/$M/$K)
       const formattedValue = formatFlowCurrencyFromBillions(value);
-      
+
       // Set tooltip content
       component.tooltip.html(
         `<div class="line-chart-tooltip-row">` +
@@ -371,21 +374,21 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         `<span class="line-chart-tooltip-label">${label}</span>` +
         `</div>`
       );
-      
+
       // Calculate position - use getBoundingClientRect for fixed positioning
       const svgElement = component.svg?.node() as SVGSVGElement;
       if (!svgElement) return;
-      
+
       const svgRect = svgElement.getBoundingClientRect();
       const pointX = svgRect.left + margin.left + xPos;
       const pointY = svgRect.top + margin.top + yPos;
-      
+
       // Get tooltip node first
       const tooltipNode = component.tooltip.node() as HTMLElement;
       if (!tooltipNode) {
         return;
       }
-      
+
       // Show tooltip temporarily off-screen to measure using direct DOM with !important
       tooltipNode.style.setProperty('display', 'block', 'important');
       tooltipNode.style.setProperty('visibility', 'visible', 'important');
@@ -393,25 +396,35 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       tooltipNode.style.setProperty('left', '-9999px', 'important');
       tooltipNode.style.setProperty('top', '0px', 'important');
       tooltipNode.style.setProperty('pointer-events', 'none', 'important');
-      
+
       // Force reflow to ensure dimensions are calculated
       void tooltipNode.offsetWidth;
-      
+
       // Get dimensions
       const tooltipWidth = tooltipNode.offsetWidth || 120;
       const tooltipHeight = tooltipNode.offsetHeight || 50;
-      
-      // Calculate final position
-      let tooltipX = pointX - (tooltipWidth / 2);
-      let tooltipY = pointY + 15;
 
-      // Boundary checks
-      if (tooltipX < 5) tooltipX = 5;
-      if (tooltipX + tooltipWidth > actualWidth - 5) {
-        tooltipX = actualWidth - tooltipWidth - 5;
+      const pad = 8;
+      const vw = typeof window !== 'undefined' ? window.innerWidth : actualWidth;
+      const vh = typeof window !== 'undefined' ? window.innerHeight : actualHeight;
+
+      // Center on the point horizontally; sit just above the dot (fixed = viewport coords)
+      let tooltipX = pointX - tooltipWidth / 2;
+      let tooltipY = pointY - tooltipHeight - pad;
+
+      if (tooltipY < pad) {
+        tooltipY = pointY + pad;
       }
-      if (tooltipY + tooltipHeight > actualHeight - 5) {
-        tooltipY = pointY - tooltipHeight - 10;
+
+      if (tooltipX < pad) tooltipX = pad;
+      if (tooltipX + tooltipWidth > vw - pad) {
+        tooltipX = vw - tooltipWidth - pad;
+      }
+      if (tooltipY + tooltipHeight > vh - pad) {
+        tooltipY = pointY - tooltipHeight - pad;
+      }
+      if (tooltipY < pad) {
+        tooltipY = Math.min(pointY + pad, vh - tooltipHeight - pad);
       }
 
       // Position and show using direct DOM manipulation with !important
@@ -423,11 +436,14 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       tooltipNode.style.setProperty('visibility', 'visible', 'important');
       tooltipNode.style.setProperty('display', 'block', 'important');
       tooltipNode.style.setProperty('z-index', '10000', 'important');
+
+      setXAxisTickHighlight(index);
     };
-    
+
     // Helper function to hide tooltip
     const hideTooltip = () => {
       currentTooltipIndex = null;
+      setXAxisTickHighlight(null);
       if (component.tooltip) {
         const tooltipNode = component.tooltip.node() as HTMLElement;
         if (tooltipNode) {
@@ -473,7 +489,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
       .style('pointer-events', 'all');
-    
+
     // Add invisible larger circles for easier hover detection
     const hitAreas = g.selectAll('.dot-hit-area')
       .data(dotData)
@@ -492,16 +508,16 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Store index as data attribute for easy access
     dots.attr('data-index', ({ index }) => index);
     hitAreas.attr('data-index', ({ index }) => index);
-    
+
     // Helper function to handle mouse enter (show tooltip)
     const handleMouseEnter = function (event: MouseEvent, _d: { value: number; index: number }) {
       const element = event.currentTarget as SVGCircleElement;
       if (!element) return;
-      
+
       // Get index from data attribute
       const indexAttr = element.getAttribute('data-index');
       let index = indexAttr !== null ? parseInt(indexAttr, 10) : -1;
-      
+
       // Fallback: find index from parent
       if (isNaN(index) || index < 0) {
         const parent = element.parentElement;
@@ -510,19 +526,19 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           index = allDots.indexOf(element);
         }
       }
-      
+
       if (index >= 0 && index < component.data.length) {
         const xPos = xScale(index);
         const yPos = yScale(component.data[index]);
         showTooltip(index, xPos, yPos);
       }
     };
-    
+
     // Helper function to handle mouse leave (hide tooltip)
     const handleMouseLeave = function (_event: MouseEvent, _d: { value: number; index: number }) {
       hideTooltip();
     };
-    
+
     // Attach hover handlers
     dots.on('mouseenter', handleMouseEnter)
         .on('mouseleave', handleMouseLeave);
@@ -548,22 +564,36 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     const xAxisGroup = g.append('g')
       .attr('transform', `translate(0,${xAxisYPosition})`)
       .call(xAxis);
-    
+
     const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const xAxisTickFillDefault = '#949294';
+    const xAxisTickFillActive = '#00113F'; // midnight blue (hover / tooltip only)
+
     xAxisGroup.selectAll('text')
       .style('font-size', isNarrow ? '10px' : '12px')
-      .style('fill', '#949294')
+      .style('fill', xAxisTickFillDefault)
       .style('font-weight', '400');
-    
+
     // Style x-axis line
     xAxisGroup.select('.domain')
       .attr('stroke', '#e5e7eb')
       .attr('stroke-width', 1);
-    
+
     // Remove tick marks (only show labels)
     xAxisGroup.selectAll('.tick line')
       .attr('stroke', 'none');
-    
+
+    setXAxisTickHighlight = (activeIndex: number | null) => {
+      xAxisGroup.selectAll<SVGGElement, number>('.tick').each(function (d) {
+        const tickIndex = Math.round(Number(d));
+        const active = activeIndex !== null && tickIndex === activeIndex;
+        d3.select(this)
+          .select('text')
+          .style('font-weight', active ? '600' : '400')
+          .style('fill', active ? xAxisTickFillActive : xAxisTickFillDefault);
+      });
+    };
+
     // Add X-axis label if provided - positioned relative to x-axis position
     if (this.xAxisLabel) {
       // If axis is at top, place label above it (but within visible area); otherwise below
@@ -599,16 +629,16 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     const yAxisGroup = g.append('g')
       .call(yAxis);
-    
+
     yAxisGroup.selectAll('text')
       .style('font-size', '12px')
       .style('fill', '#949294');
-    
+
     // Style y-axis line
     yAxisGroup.select('.domain')
       .attr('stroke', '#e5e7eb')
       .attr('stroke-width', 1);
-    
+
     // Style tick lines
     yAxisGroup.selectAll('.tick line')
       .attr('stroke', '#e5e7eb')
