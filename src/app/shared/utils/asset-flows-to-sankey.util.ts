@@ -6,6 +6,8 @@
 export interface AssetFlowRecord {
   Model_Run_Date?: string;
   Model_Version?: string;
+  Load_Date?: string;
+  Latest?: string;
   Investor_Region: string;
   /** @deprecated Use Plan_Type (from plan_type in JSON) */
   Investor_Types?: string;
@@ -44,6 +46,7 @@ export interface SankeyDimensionConfig {
 
 /** Raw record shape from asset-flows-data.json (snake_case, MongoDB-style $date/$numberLong) */
 interface RawAssetFlowRecord {
+  latest?: string;
   investor_region?: string;
   plan_type?: string;
   product_region?: string;
@@ -101,6 +104,10 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
   return {
     Model_Run_Date: (r['model_run_date'] ?? r['Model_Run_Date']) as string | undefined,
     Model_Version: (r['model_version'] ?? r['Model_Version']) as string | undefined,
+    Load_Date:
+      unwrapDate((r['load_date'] ?? r['Load_Date']) as string | { $date: string } | undefined) ??
+      (r['load_date'] ?? r['Load_Date']) as string | undefined,
+    Latest: getStrOpt(r, 'latest', 'Latest'),
     Investor_Region: getStr(r, 'investor_region', 'Investor_Region'),
     Plan_Type: getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types'),
     Investor_Types: getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types'),
@@ -118,7 +125,9 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
  */
 export function normalizeAssetFlowsData(raw: (RawAssetFlowRecord | AssetFlowRecord)[]): AssetFlowRecord[] {
   if (!raw || !Array.isArray(raw)) return [];
-  return raw.map(normalizeAssetFlowRecord);
+  return raw
+    .map(normalizeAssetFlowRecord)
+    .filter((row) => (row.Latest ?? '').trim().toUpperCase() === 'Y');
 }
 
 export interface SankeyNode {
