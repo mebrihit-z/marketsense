@@ -47,6 +47,8 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
 
   /** True while the filters strip is pinned (sticky) at the top of the viewport. */
   isFiltersStickyEngaged = false;
+  private stickyStartScrollY = 0;
+  private readonly stickyReleaseToTopPx = 6;
 
   carouselDataType: 'historical' | 'forecasted' = 'forecasted';
   carouselTimeHorizon: string = '+3 mo';
@@ -86,12 +88,20 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    queueMicrotask(() => this.updateFiltersStickyEngaged());
+    queueMicrotask(() => {
+      this.computeStickyStartScrollY();
+      this.updateFiltersStickyEngaged();
+    });
   }
 
   @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.updateFiltersStickyEngaged();
+  }
+
   @HostListener('window:resize')
-  onWindowScrollOrResize(): void {
+  onWindowResize(): void {
+    this.computeStickyStartScrollY();
     this.updateFiltersStickyEngaged();
   }
 
@@ -100,14 +110,25 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     if (!el || typeof window === 'undefined') {
       return;
     }
-    const r = el.getBoundingClientRect();
-    // Pinned to top: use height, not bottom>28px — collapsed strip is shorter and r.bottom can be < 28px
-    // while still valid, which falsely flipped sticky off and reset minimize (see filters-bar ngOnChanges).
-    const engaged = r.top <= 2 && r.height > 12;
+    const currentScrollY = window.scrollY || 0;
+    // Use a document-space threshold + hysteresis to avoid sticky flapping and scroll bounce.
+    const engageAt = this.stickyStartScrollY;
+    // Keep sticky mode latched while scrolling down the page; release only near top.
+    const engaged = this.isFiltersStickyEngaged
+      ? currentScrollY > this.stickyReleaseToTopPx
+      : currentScrollY >= engageAt;
     if (engaged !== this.isFiltersStickyEngaged) {
       this.isFiltersStickyEngaged = engaged;
       this.cdr.markForCheck();
     }
+  }
+
+  private computeStickyStartScrollY(): void {
+    const el = this.filtersStickyRef?.nativeElement;
+    if (!el || typeof window === 'undefined') return;
+    const rect = el.getBoundingClientRect();
+    const absoluteTop = rect.top + (window.scrollY || 0);
+    this.stickyStartScrollY = Math.max(0, Math.round(absoluteTop));
   }
 
   private loadAssetFlowsData(): void {

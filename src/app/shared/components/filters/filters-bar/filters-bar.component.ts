@@ -130,17 +130,15 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       this.openDropdown = null;
     }
     const se = changes['stickyEngaged'];
-    if (se && se.previousValue === true && se.currentValue === false) {
-      this.stickyBarCollapsed = false;
+    if (se && se.previousValue === false && se.currentValue === true) {
+      // On entering sticky mode, default to compact CTA.
+      this.collapseStickyBar();
     }
   }
 
   toggleStickyBarCollapse(): void {
     this.stickyBarCollapsed = !this.stickyBarCollapsed;
-    if (this.stickyBarCollapsed) {
-      this.openDropdown = null;
-      this.openTooltip = null;
-    }
+    if (this.stickyBarCollapsed) this.collapseStickyBar();
   }
   
   aiConfidenceRange = { min: 50, max: 100 };
@@ -1320,5 +1318,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   private getOptionLabel(options: FilterOption[], value: string): string {
     const match = options.find((option) => option.value === value);
     return match?.label ?? match?.value ?? value;
+  }
+
+  private collapseStickyBar(): void {
+    this.stickyBarCollapsed = true;
+    this.openDropdown = null;
+    this.openTooltip = null;
   }
 }
