@@ -75,6 +75,52 @@
     min-width: 0;
 }
 
+// Same footer row: center pins while action buttons stay right.
+.filters-bar-footer-actions {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+
+    .pinned-selected-filters {
+        justify-content: flex-start;
+    }
+
+    .action-buttons-container {
+        margin-left: 0;
+    }
+
+    &.with-minimize {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+
+        .pinned-selected-filters {
+            grid-column: 2;
+            justify-self: center;
+            justify-content: center;
+        }
+
+        .action-buttons-container {
+            grid-column: 3;
+            justify-self: end;
+        }
+    }
+
+    @media (max-width: 768px) {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+
+        .pinned-selected-filters,
+        .action-buttons-container {
+            grid-column: 1 !important;
+            justify-self: center;
+        }
+    }
+}
+
 .filters-sticky-minimize-btn {
     position: relative;
     z-index: 20;
@@ -350,6 +396,107 @@
             }
         }
     }
+}
+
+// Pinned selected filters chips.
+.pinned-selected-filters {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.pinned-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 0;
+    border: 1px solid rgba(0, 17, 63, 0.18);
+    background: rgba(0, 17, 63, 0.04);
+    color: $primary-colors-midnight-blue;
+    cursor: pointer;
+    max-width: min(280px, 100%);
+    min-width: 0;
+    position: relative;
+    overflow: visible;
+
+    &:hover {
+        background: rgba(0, 17, 63, 0.08);
+        border-color: rgba(0, 17, 63, 0.26);
+    }
+
+    &:focus {
+        outline: 2px solid $primary-colors-midnight-blue;
+        outline-offset: 2px;
+    }
+
+    &:hover .pinned-chip-tooltip,
+    &:focus-visible .pinned-chip-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.pinned-chip-title {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.pinned-chip-value {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 400;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.pinned-chip-tooltip {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%) translateY(-4px);
+    min-width: 220px;
+    max-width: 320px;
+    background: $primary-colors-midnight-blue;
+    color: $primary-colors-sky-blue;
+    border: 1px solid rgba(199, 234, 255, 0.35);
+    border-radius: 0;
+    box-shadow: 0 4px 16px rgba(0, 17, 63, 0.35);
+    padding: 10px 12px;
+    z-index: 1200;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+}
+
+.pinned-chip-tooltip-title {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.pinned-chip-tooltip-list {
+    margin: 0;
+    padding-left: 16px;
+    list-style: disc;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
 }
 
 .ai-confidence-container {

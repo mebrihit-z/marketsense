@@ -1224,4 +1224,101 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         return '';
     }
   }
+
+  /** Whether pinned selected-filter chips should be shown. */
+  hasPinnedSelectedFilters(): boolean {
+    return (
+      (this.state.investorRegion?.length ?? 0) > 0 ||
+      (this.state.investorType?.length ?? 0) > 0 ||
+      (this.state.productRegion?.length ?? 0) > 0 ||
+      (this.state.productType?.length ?? 0) > 0
+    );
+  }
+
+  /** Opens a filter dropdown from its pinned chip. */
+  openFromPinned(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): void {
+    this.openTooltip = null;
+    this.openFilterDropdownTooltip = null;
+    this.openDropdown = key;
+    this.filterDropdownOpened.emit();
+  }
+
+  /** Compact human-readable summary for a pinned chip. */
+  getPinnedSummary(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): string {
+    const selected = this.state[key] ?? [];
+    const options = this.getPinnedOptions(key);
+    const total = options.length;
+
+    if (selected.length === 0) return 'None';
+    if (total > 0 && selected.length >= total) return 'All';
+
+    const labels = selected
+      .map((value) => this.getOptionLabel(options, value))
+      .filter((label) => label.trim().length > 0);
+
+    if (labels.length === 0) return `${selected.length} selected`;
+
+    // Keep chip previews compact to avoid footer overflow into action buttons.
+    const maxShown = 1;
+    const shown = labels.slice(0, maxShown);
+    const remaining = labels.length - shown.length;
+    return remaining > 0 ? `${shown.join(', ')} +${remaining}` : shown.join(', ');
+  }
+
+  /** Full hover text for pinned chips (shows complete selected list). */
+  getPinnedHoverText(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): string {
+    const selected = this.state[key] ?? [];
+    const options = this.getPinnedOptions(key);
+    const total = options.length;
+
+    if (selected.length === 0) return 'None selected';
+    if (total > 0 && selected.length >= total) return 'All selected';
+
+    const labels = selected
+      .map((value) => this.getOptionLabel(options, value))
+      .filter((label) => label.trim().length > 0);
+
+    return labels.length > 0 ? labels.join(', ') : `${selected.length} selected`;
+  }
+
+  /** Full selected values for the custom hover list (column layout). */
+  getPinnedHoverValues(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): string[] {
+    const selected = this.state[key] ?? [];
+    const options = this.getPinnedOptions(key);
+    const total = options.length;
+
+    if (selected.length === 0) return ['None selected'];
+    if (total > 0 && selected.length >= total) {
+      const allLabels = options
+        .map((option) => this.getOptionLabel(options, option.value))
+        .filter((label) => label.trim().length > 0);
+      return allLabels.length > 0 ? allLabels : ['All selected'];
+    }
+
+    const labels = selected
+      .map((value) => this.getOptionLabel(options, value))
+      .filter((label) => label.trim().length > 0);
+
+    return labels.length > 0 ? labels : [`${selected.length} selected`];
+  }
+
+  private getPinnedOptions(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): FilterOption[] {
+    switch (key) {
+      case 'investorRegion':
+        return this.investorRegionOptions ?? [];
+      case 'investorType':
+        return this.investorTypeOptions ?? [];
+      case 'productRegion':
+        return this.productRegionOptions ?? [];
+      case 'productType':
+        return this.productTypeOptions ?? [];
+      default:
+        return [];
+    }
+  }
+
+  private getOptionLabel(options: FilterOption[], value: string): string {
+    const match = options.find((option) => option.value === value);
+    return match?.label ?? match?.value ?? value;
+  }
 }

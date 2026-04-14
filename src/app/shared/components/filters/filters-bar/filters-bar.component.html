@@ -228,9 +228,11 @@
       <!-- Footer: minimize (sticky) left, actions right -->
 
       <div class="filters-bar-footer">
-        <div class="filters-bar-footer-left">
+        
+
+      <div class="filters-bar-footer-actions" [class.with-minimize]="stickyEngaged">
+        <div class="filters-bar-footer-left" *ngIf="stickyEngaged">
           <button
-            *ngIf="stickyEngaged"
             class="action-btn"
             (click)="toggleStickyBarCollapse()"
             title="Hide filters bar"
@@ -242,33 +244,79 @@
             <span>Minimize Filters</span>
           </button>
         </div>
+        <div class="pinned-selected-filters" *ngIf="hasPinnedSelectedFilters()">
+          <button type="button" class="pinned-chip" (click)="openFromPinned('investorRegion')" aria-label="Open Investor Region filter">
+            <span class="pinned-chip-title">Investor Region</span>
+            <span class="pinned-chip-value">{{ getPinnedSummary('investorRegion') }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Investor Region</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedHoverValues('investorRegion')">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
 
-      <div class="action-buttons-container">
+          <button type="button" class="pinned-chip" (click)="openFromPinned('investorType')" aria-label="Open Investor Type filter">
+            <span class="pinned-chip-title">Investor Type</span>
+            <span class="pinned-chip-value">{{ getPinnedSummary('investorType') }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Investor Type</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedHoverValues('investorType')">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
 
-        <button class="action-btn clear-all-btn" *ngIf="!showSelectAll" (click)="clearAll()">
+          <button type="button" class="pinned-chip" (click)="openFromPinned('productRegion')" aria-label="Open Product Region filter">
+            <span class="pinned-chip-title">Product Region</span>
+            <span class="pinned-chip-value">{{ getPinnedSummary('productRegion') }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Product Region</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedHoverValues('productRegion')">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
 
-          <img src="assets/icons/refresh-icon.svg" alt="Refresh" class="action-icon">
+          <button type="button" class="pinned-chip" (click)="openFromPinned('productType')" aria-label="Open Product Type filter">
+            <span class="pinned-chip-title">Product Type</span>
+            <span class="pinned-chip-value">{{ getPinnedSummary('productType') }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Product Type</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedHoverValues('productType')">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
+        </div>
 
-          <span>Clear All Filters</span>
+        <div class="action-buttons-container">
 
-        </button>
+          <button class="action-btn clear-all-btn" *ngIf="!showSelectAll" (click)="clearAll()">
 
-        <button class="action-btn select-all-btn" *ngIf="showSelectAll" (click)="selectAll()">
+            <img src="assets/icons/refresh-icon.svg" alt="Refresh" class="action-icon">
 
-          <img src="assets/icons/select-all-icon.svg" alt="Refresh" class="action-icon">
+            <span>Clear All Filters</span>
 
-          <span>Select All Filters</span>
+          </button>
 
-        </button>
+          <button class="action-btn select-all-btn" *ngIf="showSelectAll" (click)="selectAll()">
 
-        <button class="action-btn save-filter-btn" (click)="saveFilterSet()">
+            <img src="assets/icons/select-all-icon.svg" alt="Refresh" class="action-icon">
 
-          <img src="assets/icons/bookmark-icon.svg" alt="Bookmark" class="action-icon">
+            <span>Select All Filters</span>
 
-          <span>Save View</span>
+          </button>
 
-        </button>
+          <button class="action-btn save-filter-btn" (click)="saveFilterSet()">
 
+            <img src="assets/icons/bookmark-icon.svg" alt="Bookmark" class="action-icon">
+
+            <span>Save View</span>
+
+          </button>
+
+        </div>
       </div>
 
       </div>
