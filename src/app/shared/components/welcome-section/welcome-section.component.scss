@@ -326,7 +326,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 24px;
   width: 100%;
 }
 
@@ -542,6 +542,35 @@
   }
 }
 
+.option-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.edit-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: transparent;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(14, 43, 115, 0.2);
+  }
+}
+
 .welcome-right {
   display: flex;
   flex-direction: column;
@@ -685,4 +714,85 @@
       box-shadow: 0 0 0 2px rgba(198, 40, 40, 0.35);
     }
   }
+
+  &--save {
+    background: $button-background-primary;
+    color: $button-color-primary;
+
+    &:hover {
+      opacity: 0.92;
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(14, 43, 115, 0.25);
+    }
+  }
+}
+
+.saved-view-edit-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid $border-gray-medium;
+  font-size: 14px;
+  line-height: 20px;
+  color: $text-midnight-blue;
+  margin: 0 0 8px;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-colors-midnight-blue;
+  }
+}
+
+.saved-view-edit-error {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #b42318;
+}
+
+.saved-view-edit-selections {
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid $border-gray-medium;
+  background: $bg-gray-lightest;
+}
+
+.saved-view-edit-selections-title {
+  margin: 0 0 8px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 18px;
+  color: $text-midnight-blue;
+}
+
+.saved-view-edit-selections-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 18px;
+  color: $text-midnight-blue;
+  user-select: none;
+
+  input[type='radio'] {
+    margin-top: 1px;
+    accent-color: $primary-colors-midnight-blue;
+    cursor: pointer;
+  }
+
+  span {
+    cursor: pointer;
+  }
+}
+
+.saved-view-edit-selections-help {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: $neutral-colors-neutral-1000;
 }

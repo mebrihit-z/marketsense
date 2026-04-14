@@ -398,7 +398,12 @@ export class SavedViewsService {
           v.isDefault = false;
         });
       }
-      userPref.savedViews.push(withMeta);
+      const idx = userPref.savedViews.findIndex((v) => this.sameSavedViewIdentity(v, withMeta));
+      if (idx >= 0) {
+        userPref.savedViews[idx] = { ...userPref.savedViews[idx], ...withMeta };
+      } else {
+        userPref.savedViews.push(withMeta);
+      }
       this.writePreferenceStoreToLocalStorage(store);
       return of(void 0);
     }

@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { Component, Input, HostListener, ElementRef, ViewChild, AfterViewInit, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged, filter, map, take } from 'rxjs/operators';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
@@ -40,7 +41,7 @@ export interface ViewingOption {
 @Component({
   selector: 'app-welcome-section',
   standalone: true,
-  imports: [CommonModule, AskMarketsenseModalComponent, TitleComponent],
+  imports: [CommonModule, FormsModule, AskMarketsenseModalComponent, TitleComponent],
   templateUrl: './welcome-section.component.html',
   styleUrls: ['./welcome-section.component.scss']
 })
@@ -85,6 +86,11 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
 
   /** Set when user clicks delete; confirmed in {@link confirmDeleteSavedView}. */
   pendingDeleteOption: ViewingOption | null = null;
+  /** Set when user clicks edit; confirmed in {@link confirmEditSavedView}. */
+  pendingEditOption: ViewingOption | null = null;
+  pendingEditName = '';
+  pendingEditError = '';
+  pendingEditSelections = false;
 
   constructor(
     private readonly userProfileService: UserProfileService,
@@ -838,6 +844,109 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     event.stopPropagation();
     const resolved = this.viewingOptions.find((o) => this.viewingOptionMatches(o, option)) ?? option;
     this.pendingDeleteOption = resolved;
+  }
+
+  /**
+   * @param {ViewingOption} option - Option to rename
+   * @param {Event} event - DOM event (used to stop propagation)
+   */
+  editOption(option: ViewingOption, event: Event): void {
+    event.stopPropagation();
+    const resolved = this.viewingOptions.find((o) => this.viewingOptionMatches(o, option)) ?? option;
+    this.pendingEditOption = resolved;
+    this.pendingEditName = resolved.name ?? '';
+    this.pendingEditError = '';
+    this.pendingEditSelections = false;
+  }
+
+  cancelEditSavedView(): void {
+    this.pendingEditOption = null;
+    this.pendingEditName = '';
+    this.pendingEditError = '';
+    this.pendingEditSelections = false;
+  }
+
+  confirmEditSavedView(): void {
+    const option = this.pendingEditOption;
+    if (!option) return;
+
+    const trimmed = this.pendingEditName.trim();
+    if (!trimmed) {
+      this.pendingEditError = 'Please enter a name.';
+      return;
+    }
+
+    const duplicateExists = this.viewingOptions.some((o) => {
+      if (this.viewingOptionMatches(o, option)) return false;
+      return (o.name ?? '').trim().toLowerCase() === trimmed.toLowerCase();
+    });
+    if (duplicateExists) {
+      this.pendingEditError = 'A saved view with this name already exists.';
+      return;
+    }
+
+    const raw = (option as any).raw as SavedView | undefined;
+    if (!raw) {
+      this.pendingEditError = 'Unable to edit this saved view.';
+      return;
+    }
+
+    const currentUserId = this.userProfileService.getUserId();
+    const role = this.userProfileService.getRoleName();
+    const updated: SavedView = {
+      ...raw,
+      name: trimmed,
+    };
+
+    if (this.pendingEditSelections) {
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('marketsenseEditSavedViewSelections', {
+              detail: { target: raw, name: trimmed },
+            })
+          );
+          this.cancelEditSavedView();
+          return;
+        } catch {
+          this.pendingEditError = 'Failed to update saved view selections.';
+          return;
+        }
+      }
+    }
+
+    this.savedViewsService
+      .saveView(updated, currentUserId, this.displayName, { role, lastLogin: this.rawLastLoginValue })
+      .subscribe({
+        next: () => {
+          const wasActive = !!option.isActive;
+          this.viewingOptions = this.orderViewingOptionsForDropdown(
+            this.viewingOptions.map((o) => {
+              if (!this.viewingOptionMatches(o, option)) return o;
+              return {
+                ...o,
+                name: trimmed,
+                raw: { ...(o.raw as SavedView), name: trimmed },
+              };
+            })
+          );
+          if (wasActive) {
+            this.viewingFilter = trimmed;
+          }
+          this.cancelEditSavedView();
+          if (typeof window !== 'undefined') {
+            try {
+              window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
+            } catch {
+              // Ignore if CustomEvent is not supported
+            }
+          }
+        },
+        error: (e) => {
+          this.pendingEditError = 'Failed to update saved view name.';
+          console.error('Failed to edit saved view', e);
+        },
+      });
   }
 
   cancelDeleteSavedView(): void {

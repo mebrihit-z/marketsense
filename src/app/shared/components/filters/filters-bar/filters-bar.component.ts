@@ -721,6 +721,80 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /**
+   * Overwrites an existing saved view using the current selections on the filters bar.
+   * Triggered from Welcome section edit modal.
+   */
+  @HostListener('window:marketsenseEditSavedViewSelections', ['$event'])
+  onEditSavedViewSelections(event: Event): void {
+    const customEvent = event as CustomEvent<{ target?: SavedView; name?: string }>;
+    const detail = customEvent?.detail;
+    const target = detail?.target;
+    if (!target) return;
+
+    const currentUser = this.userProfileService.getuser();
+    const userId = this.userProfileService.getUserId() ?? currentUser?.sub;
+    const userName =
+      this.userProfileService.getGivenName() ??
+      currentUser?.name ??
+      currentUser?.given_name;
+    const role = this.userProfileService.getRoleName();
+    const lastLogin = this.getCurrentLoginTimestamp();
+    const nextName =
+      detail?.name != null && String(detail.name).trim().length > 0
+        ? String(detail.name).trim()
+        : target.name;
+
+    const updated: SavedView = {
+      ...target,
+      name: nextName,
+      state: {
+        investorRegion: [...this.state.investorRegion],
+        investorType: [...this.state.investorType],
+        productRegion: [...this.state.productRegion],
+        productType: [...this.state.productType],
+        productSubType: [...this.state.productSubType],
+      },
+      dataType: this.dataType,
+      timeHorizonRange: { ...this.timeHorizonRange },
+      timeHorizonRangeLabels: {
+        start: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.startIndex],
+        end: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.endIndex],
+      },
+      selectedTimeHorizon: this.selectedTimeHorizon,
+      aiConfidenceRange: { ...this.aiConfidenceRange },
+      minFlowRange: { ...this.minFlowRange },
+    };
+
+    const chartDimensions: NonNullable<SavedView['chartDimensions']> = {};
+    if (this.assetFlowsChartDimensions) {
+      chartDimensions.assetFlows = { ...this.assetFlowsChartDimensions };
+    }
+    if (this.assetAllocationChartDimensions) {
+      chartDimensions.assetAllocation = { ...this.assetAllocationChartDimensions };
+    }
+    if (chartDimensions.assetFlows || chartDimensions.assetAllocation) {
+      updated.chartDimensions = chartDimensions;
+    } else if (target.chartDimensions) {
+      updated.chartDimensions = target.chartDimensions;
+    }
+
+    this.savedViewsService.saveView(updated, userId, userName, { role, lastLogin }).subscribe({
+      next: () => {
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(new CustomEvent('marketsenseSavedViewsUpdated'));
+          } catch {
+            // ignore
+          }
+        }
+      },
+      error: (e) => {
+        console.error('Failed to update saved view selections', e);
+      },
+    });
+  }
+
+  /**
    * Applies a saved view (triggered when user selects one of the "Saved Views").
    * Expects the payload structure created in onSaveFilterSet().
    */

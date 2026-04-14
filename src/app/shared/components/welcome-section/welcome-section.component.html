@@ -51,15 +51,27 @@
                         <span class="active-badge" *ngIf="option.isActive">Active</span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      class="delete-btn"
-                      (click)="deleteOption(option, $event)"
-                      aria-label="Delete preset">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M16.2222 5.2V16.4C16.2222 16.8243 16.0349 17.2313 15.7015 17.5314C15.3681 17.8314 14.9159 18 14.4444 18H5.55556C5.08406 18 4.63187 17.8314 4.29848 17.5314C3.96508 17.2313 3.77778 16.8243 3.77778 16.4V5.2M2 5.2H18M6.44444 5.2V3.6C6.44444 3.17565 6.63175 2.76869 6.96514 2.46863C7.29854 2.16857 7.75073 2 8.22222 2H11.7778C12.2493 2 12.7015 2.16857 13.0349 2.46863C13.3683 2.76869 13.5556 3.17565 13.5556 3.6V5.2" stroke="#BE2E2C" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </button>
+                    <div class="option-row-actions">
+                      <button
+                        type="button"
+                        class="edit-btn"
+                        (click)="editOption(option, $event)"
+                        aria-label="Edit preset">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <path d="M3.33325 14.1667V16.6667H5.83325L13.2083 9.29171L10.7083 6.79171L3.33325 14.1667Z" stroke="#0E2B73" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M11.9583 5.54171L13.2083 4.29171C13.5534 3.94664 14.1131 3.94664 14.4583 4.29171L15.7083 5.54171C16.0534 5.88679 16.0534 6.44649 15.7083 6.79171L14.4583 8.04171" stroke="#0E2B73" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="delete-btn"
+                        (click)="deleteOption(option, $event)"
+                        aria-label="Delete preset">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <path d="M16.2222 5.2V16.4C16.2222 16.8243 16.0349 17.2313 15.7015 17.5314C15.3681 17.8314 14.9159 18 14.4444 18H5.55556C5.08406 18 4.63187 17.8314 4.29848 17.5314C3.96508 17.2313 3.77778 16.8243 3.77778 16.4V5.2M2 5.2H18M6.44444 5.2V3.6C6.44444 3.17565 6.63175 2.76869 6.96514 2.46863C7.29854 2.16857 7.75073 2 8.22222 2H11.7778C12.2493 2 12.7015 2.16857 13.0349 2.46863C13.3683 2.76869 13.5556 3.17565 13.5556 3.6V5.2" stroke="#BE2E2C" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <p class="option-saved-date">Saved {{ option.savedDate }}</p>
                   <div class="option-tags">
@@ -120,6 +132,61 @@
         </button>
         <button type="button" class="saved-view-delete-btn saved-view-delete-btn--remove" (click)="confirmDeleteSavedView()">
           Remove
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit saved view name -->
+  <div
+    class="saved-view-delete-backdrop"
+    *ngIf="pendingEditOption"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="saved-view-edit-title"
+    aria-describedby="saved-view-edit-desc"
+    (click)="cancelEditSavedView()">
+    <div class="saved-view-delete-dialog" (click)="$event.stopPropagation()">
+      <h3 id="saved-view-edit-title" class="saved-view-delete-title">Edit saved view</h3>
+      <p id="saved-view-edit-desc" class="saved-view-delete-desc">
+        Update the name for <strong>{{ pendingEditOption.name }}</strong>.
+      </p>
+      <input
+        class="saved-view-edit-input"
+        type="text"
+        [(ngModel)]="pendingEditName"
+        (keydown.enter)="confirmEditSavedView()"
+        placeholder="Saved view name"
+        autofocus />
+      <div class="saved-view-edit-selections">
+        <div class="saved-view-edit-selections-title">Selections</div>
+        <label class="saved-view-edit-selections-option">
+          <input
+            type="radio"
+            name="saved-view-edit-selections-mode"
+            [checked]="!pendingEditSelections"
+            (change)="pendingEditSelections = false" />
+          <span>Keep the saved view's existing selections</span>
+        </label>
+        <label class="saved-view-edit-selections-option">
+          <input
+            type="radio"
+            name="saved-view-edit-selections-mode"
+            [checked]="pendingEditSelections"
+            (change)="pendingEditSelections = true" />
+          <span>Replace with current filters from the filter bar</span>
+        </label>
+        <p class="saved-view-edit-selections-help">
+          To change selections, update filters on the page, then choose replace.
+        </p>
+      </div>
+      <p class="saved-view-edit-error" *ngIf="pendingEditError">{{ pendingEditError }}</p>
+      <div class="saved-view-delete-actions">
+        <button type="button" class="saved-view-delete-btn saved-view-delete-btn--cancel" (click)="cancelEditSavedView()">
+          Cancel
+        </button>
+        <button type="button" class="saved-view-delete-btn saved-view-delete-btn--save" (click)="confirmEditSavedView()">
+          Save
         </button>
       </div>
     </div>
