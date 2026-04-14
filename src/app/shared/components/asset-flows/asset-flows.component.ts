@@ -10,6 +10,7 @@ import {
   filterSankeyData 
 } from '../../utils/sankey-data.utils';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
+import type { SavedChartHierarchyDimensions } from '../../../core/services/saved-views.service';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
 import { jsPDF } from 'jspdf';
@@ -77,6 +78,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   @Input() forceCloseDimensionDropdown = 0;
   @Output() pinToggle = new EventEmitter<void>();
   @Output() dimensionDropdownOpened = new EventEmitter<void>();
+  @Output() chartDimensionsSnapshot = new EventEmitter<SavedChartHierarchyDimensions>();
   @Output() filterOptionsChange = new EventEmitter<FilterOptions>();
   @Output() filterOptionTotalsChange = new EventEmitter<{
     productTypeTotal: number;
@@ -173,7 +175,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
     this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
     this.selectedDimension3 = { ...this.defaultDimension3None };
-    
+    queueMicrotask(() => this.emitChartDimensionsSnapshot());
+
     // Load and convert asset flows data
     this.loadAssetFlowsData();
   }
@@ -209,6 +212,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
           
           // Update dimensions with new totals
           this.updateDimensions();
+          this.emitChartDimensionsSnapshot();
         } catch (error) {
           console.error('Error converting asset flows to Sankey data:', error);
         }
@@ -495,10 +499,58 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
         changes['dataType'] || changes['selectedInvestorRegions'] ||
         changes['selectedProductTypes'] || changes['selectedInvestorTypes'] ||
         changes['selectedProductRegions'] || changes['selectedProductSubTypes']) {
-      if (this.rawAssetFlowsData) {
+        if (this.rawAssetFlowsData) {
         this.updateSankeyData();
       }
     }
+    this.emitChartDimensionsSnapshot();
+  }
+
+  /**
+   * Restores hierarchy from a saved view (ids must match {@link FlowDimension#id}, dimension3 may be `none`).
+   */
+  applySavedHierarchyDimensions(saved: SavedChartHierarchyDimensions | undefined): void {
+    if (!saved) return;
+    this.selectedDimension1 = this.resolveSavedDimension(saved.dimension1, 'dimension1');
+    this.selectedDimension2 = this.resolveSavedDimension(saved.dimension2, 'dimension2');
+    this.selectedDimension3 = this.resolveSavedDimension(saved.dimension3, 'dimension3');
+    if (this.rawAssetFlowsData) {
+      this.updateSankeyData();
+    }
+    this.emitChartDimensionsSnapshot();
+  }
+
+  private resolveSavedDimension(
+    id: string | undefined,
+    slot: 'dimension1' | 'dimension2' | 'dimension3'
+  ): FlowDimension | null {
+    const normalized = typeof id === 'string' && id.length > 0 ? id : '';
+    if (slot === 'dimension3' && normalized === 'none') {
+      return { ...this.defaultDimension3None };
+    }
+    const found = this.availableDimensions.find((d) => d.id === normalized);
+    if (found) {
+      return { ...found };
+    }
+    if (slot === 'dimension1') {
+      return this.availableDimensions.find((d) => d.id === 'investor-region') ?? null;
+    }
+    if (slot === 'dimension2') {
+      return this.availableDimensions.find((d) => d.id === 'product-type') ?? null;
+    }
+    return (
+      this.availableDimensions.find((d) => d.id === 'product-sub-types') ?? {
+        ...this.defaultDimension3None,
+      }
+    );
+  }
+
+  private emitChartDimensionsSnapshot(): void {
+    this.chartDimensionsSnapshot.emit({
+      dimension1: this.selectedDimension1?.id || 'investor-region',
+      dimension2: this.selectedDimension2?.id || 'product-type',
+      dimension3: this.selectedDimension3?.id || 'product-sub-types',
+    });
   }
 
   private updateDimensions(): void {
@@ -569,6 +621,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
         this.availableDimensions.splice(index, 1);
       }
     }
+    this.emitChartDimensionsSnapshot();
   }
 
   onStreamgraphClick(): void {
@@ -592,6 +645,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     if (this.rawAssetFlowsData) {
       this.updateSankeyData();
     }
+    this.emitChartDimensionsSnapshot();
   }
 
   /**

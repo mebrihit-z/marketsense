@@ -6,7 +6,12 @@ import { distinctUntilChanged, filter, map, take } from 'rxjs/operators';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../title/title.component';
 import UserProfileService from '../../services/user-profile.service';
-import { SavedViewsService, type SavedView, type SavedViewState } from '../../../core/services/saved-views.service';
+import {
+  SavedViewsService,
+  type SavedView,
+  type SavedViewState,
+  type SavedChartHierarchyDimensions,
+} from '../../../core/services/saved-views.service';
 import {
   MIN_FLOW_VALUE_OPTIONS,
   displayMinFlowEndLabel,
@@ -392,7 +397,55 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       tagTooltipFields.push(this.buildMinFlowTooltipFields(view));
     }
 
+    const chartDims = view?.chartDimensions;
+    if (chartDims && typeof chartDims === 'object') {
+      if (chartDims.assetFlows) {
+        tags.push(this.formatChartHierarchyChip('Asset Flows', chartDims.assetFlows));
+        tagTooltipFields.push(this.buildChartDimensionsTooltipFields(chartDims.assetFlows));
+      }
+      if (chartDims.assetAllocation) {
+        tags.push(this.formatChartHierarchyChip('Asset Allocation', chartDims.assetAllocation));
+        tagTooltipFields.push(this.buildChartDimensionsTooltipFields(chartDims.assetAllocation));
+      }
+    }
+
     return { tags, tagTooltipFields };
+  }
+
+  /** Display labels aligned with flow-dimension ids in Asset Flows / Asset Allocation. */
+  private readonly dimensionIdLabels: Record<string, string> = {
+    'investor-region': 'Investor Region',
+    'product-region': 'Product Region',
+    'investor-type': 'Investor Type',
+    'product-type': 'Product Type',
+    'product-sub-types': 'Product Sub-Types',
+    none: 'None',
+  };
+
+  private dimensionIdToLabel(id: string | undefined): string {
+    if (id == null || String(id).trim() === '') return '—';
+    const key = String(id).trim();
+    return this.dimensionIdLabels[key] ?? key;
+  }
+
+  private formatChartHierarchyChip(
+    prefix: string,
+    dims: SavedChartHierarchyDimensions
+  ): string {
+    const a = this.dimensionIdToLabel(dims.dimension1);
+    const b = this.dimensionIdToLabel(dims.dimension2);
+    const c = this.dimensionIdToLabel(dims.dimension3);
+    return `${prefix} - ${a} / ${b} / ${c}`;
+  }
+
+  private buildChartDimensionsTooltipFields(
+    dims: SavedChartHierarchyDimensions
+  ): SavedViewTagTooltipField[] {
+    return [
+      { label: 'Dimension 1:', value: this.dimensionIdToLabel(dims.dimension1) },
+      { label: 'Dimension 2:', value: this.dimensionIdToLabel(dims.dimension2) },
+      { label: 'Dimension 3:', value: this.dimensionIdToLabel(dims.dimension3) },
+    ];
   }
 
   /**

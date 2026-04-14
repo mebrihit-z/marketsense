@@ -16,6 +16,8 @@
       <app-filters-bar
         [forceCloseDropdown]="forceCloseFiltersDropdown"
         [stickyEngaged]="isFiltersStickyEngaged"
+        [assetFlowsChartDimensions]="assetFlowsChartDimensions"
+        [assetAllocationChartDimensions]="assetAllocationChartDimensions"
         (dataTypeChange)="onDataTypeChange($event)"
         (timeHorizonChange)="onTimeHorizonChange($event)"
         (timeHorizonRangeChange)="onTimeHorizonRangeChange($event)"
@@ -73,7 +75,8 @@
         [maxFlowValue]="chartMaxFlowUpper"
         [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
         (pinToggle)="onAssetFlowsPinToggle()"
-        (dimensionDropdownOpened)="onDimensionDropdownOpened()">
+        (dimensionDropdownOpened)="onDimensionDropdownOpened()"
+        (chartDimensionsSnapshot)="onAssetFlowsChartDimensionsSnapshot($event)">
       </app-asset-flows>
     </div>
     <!-- Asset Allocation Section -->
@@ -96,7 +99,8 @@
         [maxFlowValue]="chartMaxFlowUpper"
         [forceCloseDimensionDropdown]="forceCloseDimensionDropdown"
         (pinToggle)="onAssetAllocationPinToggle()"
-        (dimensionDropdownOpened)="onDimensionDropdownOpened()">
+        (dimensionDropdownOpened)="onDimensionDropdownOpened()"
+        (chartDimensionsSnapshot)="onAssetAllocationChartDimensionsSnapshot($event)">
       </app-asset-allocation>
     </div>
   </div>

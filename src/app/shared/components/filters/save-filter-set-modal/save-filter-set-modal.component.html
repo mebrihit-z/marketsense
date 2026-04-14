@@ -32,6 +32,14 @@
       <span class="default-option-label">Set as default</span>
     </label>
 
+    <label class="default-option default-option--wrap" (click)="$event.stopPropagation()">
+      <div class="checkbox-wrapper">
+        <input type="checkbox" [(ngModel)]="includeChartDimensions" />
+        <span class="checkmark"></span>
+      </div>
+      <span class="default-option-label">Include Asset Flows &amp; Asset Allocation hierarchy dimensions</span>
+    </label>
+
     <!-- Action Buttons -->
     <div class="action-buttons">
       <button class="btn-cancel" (click)="onCancel()">Cancel</button>

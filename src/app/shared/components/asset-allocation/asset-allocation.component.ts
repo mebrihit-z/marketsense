@@ -8,6 +8,7 @@ import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type AssetFlowDimensionField, type SankeyDimensionConfig } from '../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
+import type { SavedChartHierarchyDimensions } from '../../../core/services/saved-views.service';
 import { filterSankeyData } from '../../utils/sankey-data.utils';
 import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
 import { jsPDF } from 'jspdf';
@@ -73,6 +74,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   @Input() forceCloseDimensionDropdown = 0;
   @Output() pinToggle = new EventEmitter<void>();
   @Output() dimensionDropdownOpened = new EventEmitter<void>();
+  @Output() chartDimensionsSnapshot = new EventEmitter<SavedChartHierarchyDimensions>();
   
   // View state
   viewMode: 'treemap' | 'packing-circles' = 'treemap';
@@ -183,7 +185,8 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     this.selectedDimension1 = this.availableDimensions.find(d => d.id === 'investor-region') || null;
     this.selectedDimension2 = this.availableDimensions.find(d => d.id === 'product-type') || null;
     this.selectedDimension3 = { ...this.defaultDimension3None };
-    
+    queueMicrotask(() => this.emitChartDimensionsSnapshot());
+
     // Load data
     this.loadData();
   }
@@ -195,8 +198,9 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         changes['totalInvestorRegions'] || changes['totalInvestorTypes'] ||
         changes['totalProductRegions']) {
       this.updateDimensions();
+      this.emitChartDimensionsSnapshot();
     }
-    
+
     // Handle data updates when filters or time horizon change (match asset-flows / filter bar)
     const filterChanged = changes['selectedInvestorRegions'] ||
       changes['selectedInvestorTypes'] ||
@@ -211,10 +215,6 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       if (this.rawAssetFlowsData) {
         this.updateTreemapData();
       }
-    }
-    
-    // Log time horizon changes for debugging
-    if (timeHorizonChanged) {
     }
   }
 
@@ -287,6 +287,51 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     if (this.rawAssetFlowsData) {
       this.updateTreemapData();
     }
+    this.emitChartDimensionsSnapshot();
+  }
+
+  applySavedHierarchyDimensions(saved: SavedChartHierarchyDimensions | undefined): void {
+    if (!saved) return;
+    this.selectedDimension1 = this.resolveSavedDimension(saved.dimension1, 'dimension1');
+    this.selectedDimension2 = this.resolveSavedDimension(saved.dimension2, 'dimension2');
+    this.selectedDimension3 = this.resolveSavedDimension(saved.dimension3, 'dimension3');
+    if (this.rawAssetFlowsData) {
+      this.updateTreemapData();
+    }
+    this.emitChartDimensionsSnapshot();
+  }
+
+  private resolveSavedDimension(
+    id: string | undefined,
+    slot: 'dimension1' | 'dimension2' | 'dimension3'
+  ): FlowDimension | null {
+    const normalized = typeof id === 'string' && id.length > 0 ? id : '';
+    if (slot === 'dimension3' && normalized === 'none') {
+      return { ...this.defaultDimension3None };
+    }
+    const found = this.availableDimensions.find((d) => d.id === normalized);
+    if (found) {
+      return { ...found };
+    }
+    if (slot === 'dimension1') {
+      return this.availableDimensions.find((d) => d.id === 'investor-region') ?? null;
+    }
+    if (slot === 'dimension2') {
+      return this.availableDimensions.find((d) => d.id === 'product-type') ?? null;
+    }
+    return (
+      this.availableDimensions.find((d) => d.id === 'product-sub-types') ?? {
+        ...this.defaultDimension3None,
+      }
+    );
+  }
+
+  private emitChartDimensionsSnapshot(): void {
+    this.chartDimensionsSnapshot.emit({
+      dimension1: this.selectedDimension1?.id || 'investor-region',
+      dimension2: this.selectedDimension2?.id || 'product-type',
+      dimension3: this.selectedDimension3?.id || 'product-sub-types',
+    });
   }
 
   private mapDimensionIdToField(id: string): AssetFlowDimensionField {
@@ -593,6 +638,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         try {
           this.rawAssetFlowsData = assetFlows;
           this.updateTreemapData();
+          this.emitChartDimensionsSnapshot();
         } catch (error: unknown) {
           console.error('Error loading asset flows data:', error);
         }

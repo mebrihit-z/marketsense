@@ -1,5 +1,13 @@
 /* eslint-disable */
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ChangeDetectorRef,
+  ViewChild,
+  ElementRef,
+  HostListener,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import type { FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
@@ -20,6 +28,10 @@ import {
   type MinFlowRangeSelection,
 } from '../../shared/utils/min-flow-value-options.util';
 import { formatFlowCurrencyFromBillions, parseFlowDisplayValueToBillions } from '../../shared/utils/flow-currency-format.util';
+import type {
+  SavedChartHierarchyDimensions,
+  SavedViewChartDimensions,
+} from '../../core/services/saved-views.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -30,6 +42,8 @@ import { formatFlowCurrencyFromBillions, parseFlowDisplayValueToBillions } from 
 })
 export default class DashboardComponent implements OnInit, AfterViewInit {
   @ViewChild('filtersSticky', { read: ElementRef }) private filtersStickyRef?: ElementRef<HTMLElement>;
+  @ViewChild(AssetFlowsComponent) private assetFlowsComp?: AssetFlowsComponent;
+  @ViewChild(AssetAllocationComponent) private assetAllocComp?: AssetAllocationComponent;
 
   /** True while the filters strip is pinned (sticky) at the top of the viewport. */
   isFiltersStickyEngaged = false;
@@ -57,6 +71,10 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   isAssetFlowsPinned: boolean = false;
   forceCloseFiltersDropdown = 0;
   forceCloseDimensionDropdown = 0;
+
+  /** Passed to Save View when “include dimensions” is checked. */
+  assetFlowsChartDimensions: SavedChartHierarchyDimensions | null = null;
+  assetAllocationChartDimensions: SavedChartHierarchyDimensions | null = null;
 
   // Raw asset flows data
   rawAssetFlowsData: AssetFlowRecord[] = [];
@@ -193,6 +211,34 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
 
   onDimensionDropdownOpened(): void {
     this.forceCloseFiltersDropdown += 1;
+  }
+
+  onAssetFlowsChartDimensionsSnapshot(s: SavedChartHierarchyDimensions): void {
+    this.assetFlowsChartDimensions = { ...s };
+  }
+
+  onAssetAllocationChartDimensionsSnapshot(s: SavedChartHierarchyDimensions): void {
+    this.assetAllocationChartDimensions = { ...s };
+  }
+
+  /**
+   * Fired after the filters bar applies a saved view that includes
+   * {@link SavedView#chartDimensions}; defer so filter inputs have reached the chart components.
+   */
+  @HostListener('window:marketsenseApplyChartDimensions', ['$event'])
+  onApplyChartDimensions(ev: Event): void {
+    const custom = ev as CustomEvent<SavedViewChartDimensions>;
+    const detail = custom?.detail;
+    if (!detail || typeof detail !== 'object') return;
+    setTimeout(() => {
+      if (detail.assetFlows) {
+        this.assetFlowsComp?.applySavedHierarchyDimensions(detail.assetFlows);
+      }
+      if (detail.assetAllocation) {
+        this.assetAllocComp?.applySavedHierarchyDimensions(detail.assetAllocation);
+      }
+      this.cdr.markForCheck();
+    }, 0);
   }
 
   onPinCard(cardId: string): void {

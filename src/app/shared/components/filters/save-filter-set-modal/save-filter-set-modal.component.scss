@@ -155,6 +155,10 @@
   color: $text-midnight-blue;
 }
 
+.default-option--wrap .default-option-label {
+  line-height: 18px;
+}
+
 // Same checkbox styling as filter-dropdown `.checkbox-wrapper`
 .default-option .checkbox-wrapper {
   position: relative;

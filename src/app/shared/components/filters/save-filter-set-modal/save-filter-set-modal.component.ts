@@ -14,10 +14,15 @@ import TitleComponent from '../../title/title.component';
 export default class SaveFilterSetModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<{ name: string; isDefault: boolean }>();
+  @Output() save = new EventEmitter<{
+    name: string;
+    isDefault: boolean;
+    includeChartDimensions: boolean;
+  }>();
 
   filterSetName: string = '';
   isDefault: boolean = false;
+  includeChartDimensions = false;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible']) {
@@ -26,6 +31,7 @@ export default class SaveFilterSetModalComponent implements OnChanges {
         // Reset the input when modal opens
         this.filterSetName = '';
         this.isDefault = false;
+        this.includeChartDimensions = false;
       } else {
         document.body.style.overflow = '';
       }
@@ -36,14 +42,20 @@ export default class SaveFilterSetModalComponent implements OnChanges {
     document.body.style.overflow = '';
     this.filterSetName = '';
     this.isDefault = false;
+    this.includeChartDimensions = false;
     this.close.emit();
   }
 
   onSave(): void {
     if (this.filterSetName.trim()) {
-      this.save.emit({ name: this.filterSetName.trim(), isDefault: this.isDefault });
+      this.save.emit({
+        name: this.filterSetName.trim(),
+        isDefault: this.isDefault,
+        includeChartDimensions: this.includeChartDimensions,
+      });
       this.filterSetName = '';
       this.isDefault = false;
+      this.includeChartDimensions = false;
       this.onClose();
     }
   }

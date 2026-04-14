@@ -13,6 +13,18 @@ export interface SavedViewState {
   productSubType: string[];
 }
 
+/** Three-level hierarchy (Sankey / treemap), stored by dimension id (e.g. `none` for no third level). */
+export interface SavedChartHierarchyDimensions {
+  dimension1: string;
+  dimension2: string;
+  dimension3: string;
+}
+
+export interface SavedViewChartDimensions {
+  assetFlows?: SavedChartHierarchyDimensions;
+  assetAllocation?: SavedChartHierarchyDimensions;
+}
+
 export interface SavedView {
   id?: string;
   name: string;
@@ -26,6 +38,8 @@ export interface SavedView {
   aiConfidenceRange?: { min: number; max: number };
   /** Flow value band for Sankey/Treemap (indices into MIN_FLOW_VALUE_OPTIONS). */
   minFlowRange?: { startIndex: number; endIndex: number };
+  /** When present, restoring the view also applies these hierarchy selections. */
+  chartDimensions?: SavedViewChartDimensions;
 }
 
 export interface UserPreference {

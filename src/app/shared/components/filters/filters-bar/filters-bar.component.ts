@@ -9,7 +9,11 @@ import SaveFilterSetModalComponent from '../save-filter-set-modal/save-filter-se
 import { extractFilterOptionsFromAssetFlows } from '../../../utils/asset-flows-filter-options.util';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
-import { SavedViewsService, type SavedView } from '../../../../core/services/saved-views.service';
+import {
+  SavedViewsService,
+  type SavedView,
+  type SavedChartHierarchyDimensions,
+} from '../../../../core/services/saved-views.service';
 import UserProfileService from '../../../services/user-profile.service';
 import { MinFlowRangeSliderComponent } from '../../min-flow-range-slider/min-flow-range-slider.component';
 import {
@@ -44,11 +48,15 @@ export interface FilterOptionTotals {
   ],
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss',
-  /** Declared in metadata so parent templates always resolve `[stickyEngaged]` (strictTemplates + language service). */
-  inputs: ['stickyEngaged'],
+  /** Declared in metadata so parent templates always resolve bindings (strictTemplates + language service). */
+  inputs: ['stickyEngaged', 'assetFlowsChartDimensions', 'assetAllocationChartDimensions'],
 })
 export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @Input() forceCloseDropdown = 0;
+  /** Latest hierarchy ids from Asset Flows (dashboard); used when saving with "include dimensions". */
+  @Input() assetFlowsChartDimensions: SavedChartHierarchyDimensions | null = null;
+  /** Latest hierarchy ids from Asset Allocation (dashboard). */
+  @Input() assetAllocationChartDimensions: SavedChartHierarchyDimensions | null = null;
   /** When true (set by dashboard while the bar is position:sticky at the top), user can minimize the bar. */
   public stickyEngaged = false;
   /** While sticky: when true, only the compact "Show filters" strip is visible. */
@@ -639,7 +647,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    * @param {{ name: string; isDefault: boolean }} payload - Saved view payload
    * @returns {void} Saves the current filter set configuration with the given name.
    */
-  onSaveFilterSet(payload: { name: string; isDefault: boolean }): void {
+  onSaveFilterSet(payload: {
+    name: string;
+    isDefault: boolean;
+    includeChartDimensions: boolean;
+  }): void {
     const filterSetName = payload.name;
     const isDefault = payload.isDefault;
     const currentUser = this.userProfileService.getuser();
@@ -675,6 +687,19 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       aiConfidenceRange: { ...this.aiConfidenceRange },
       minFlowRange: { ...this.minFlowRange },
     };
+
+    if (payload.includeChartDimensions) {
+      const chartDimensions: NonNullable<SavedView['chartDimensions']> = {};
+      if (this.assetFlowsChartDimensions) {
+        chartDimensions.assetFlows = { ...this.assetFlowsChartDimensions };
+      }
+      if (this.assetAllocationChartDimensions) {
+        chartDimensions.assetAllocation = { ...this.assetAllocationChartDimensions };
+      }
+      if (chartDimensions.assetFlows || chartDimensions.assetAllocation) {
+        savedView.chartDimensions = chartDimensions;
+      }
+    }
 
     this.savedViewsService.saveView(savedView, userId, userName, { role, lastLogin }).subscribe({
       next: () => {
@@ -790,6 +815,23 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     ) {
       this.minFlowRange = { startIndex: mfr.startIndex, endIndex: mfr.endIndex };
       this.emitMinFlowValueRange();
+    }
+
+    const chartDims = detail.chartDimensions;
+    if (
+      chartDims &&
+      typeof chartDims === 'object' &&
+      (chartDims.assetFlows || chartDims.assetAllocation)
+    ) {
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('marketsenseApplyChartDimensions', { detail: chartDims })
+          );
+        } catch {
+          // ignore
+        }
+      }
     }
   }
 
