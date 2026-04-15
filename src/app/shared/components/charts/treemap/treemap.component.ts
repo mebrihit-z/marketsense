@@ -9,9 +9,7 @@ import {
 } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
-import {
-  formatFlowCurrencyFromBillions,
-} from '../../../utils/flow-currency-format.util';
+import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
 
@@ -415,15 +413,14 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   private formatValue(x: number): string {
     const v = +x || 0;
-    return formatFlowCurrencyFromBillions(v);
+    return formatFlowCurrencyUsd(v);
   }
 
   /** Full dollar amount for tooltips (no compact $B one-decimal rounding). */
   private formatValueForTooltip(x: number): string {
     const v = +x || 0;
-    const dollars = v * 1_000_000_000;
-    const sign = dollars < 0 ? '-' : '';
-    const abs = Math.abs(dollars);
+    const sign = v < 0 ? '-' : '';
+    const abs = Math.abs(v);
     return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   }
 

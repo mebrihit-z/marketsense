@@ -1,5 +1,31 @@
 /* eslint-disable */
 
+const COMPACT_SCALE_EPS = 1e-6;
+
+/**
+ * Scaled mantissa for SI-style compact currency (base 1000): up to 2 fraction digits,
+ * no thousands grouping, trailing ".0" / ".00" removed. If half-up rounding would
+ * imply more dollars than {@link absDollars}, uses floor at 2 decimals instead so
+ * values like 999,950 do not become $1,000K.
+ */
+function formatCompactUsdMantissa(absDollars: number, divisor: number, suffix: string): string {
+  const scaled = absDollars / divisor;
+  const quantum = 100;
+  let mantissa = Math.round(scaled * quantum) / quantum;
+  if (mantissa * divisor > absDollars + COMPACT_SCALE_EPS) {
+    mantissa = Math.floor(scaled * quantum + 1e-9) / quantum;
+  }
+  let num = mantissa.toLocaleString('en-US', {
+    useGrouping: false,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  if (num.includes('.')) {
+    num = num.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  }
+  return `$${num}${suffix}`;
+}
+
 /**
  * Formats a USD amount with $K / $M / $B / $T for large magnitudes; smaller amounts stay as plain dollars.
  * Negative values (e.g. outflows) render as -$XM.
@@ -8,18 +34,15 @@ export function formatFlowCurrencyUsd(valueDollars: number): string {
   if (valueDollars == null || !Number.isFinite(valueDollars)) return '$0';
   const sign = valueDollars < 0 ? '-' : '';
   const abs = Math.abs(valueDollars);
-  /** Compact suffix (T/B/M/K) with thousands separators when the scaled value is large enough. */
-  const fmtScaled = (scaled: number, suffix: string) =>
-    `$${scaled.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}${suffix}`;
   let core: string;
   if (abs >= 1_000_000_000_000) {
-    core = fmtScaled(abs / 1_000_000_000_000, 'T');
+    core = formatCompactUsdMantissa(abs, 1_000_000_000_000, 'T');
   } else if (abs >= 1_000_000_000) {
-    core = fmtScaled(abs / 1_000_000_000, 'B');
+    core = formatCompactUsdMantissa(abs, 1_000_000_000, 'B');
   } else if (abs >= 1_000_000) {
-    core = fmtScaled(abs / 1_000_000, 'M');
+    core = formatCompactUsdMantissa(abs, 1_000_000, 'M');
   } else if (abs >= 1_000) {
-    core = fmtScaled(abs / 1_000, 'K');
+    core = formatCompactUsdMantissa(abs, 1_000, 'K');
   } else {
     const formatted = Number.isInteger(abs)
       ? abs.toLocaleString('en-US', { maximumFractionDigits: 0 })
@@ -30,23 +53,12 @@ export function formatFlowCurrencyUsd(valueDollars: number): string {
 }
 
 /**
- * Asset flow / Sankey / Treemap pipeline stores flow magnitudes in billions (see {@link convertAssetFlowsToSankey}).
- * Converts to dollars then applies {@link formatFlowCurrencyUsd}.
+ * Full grouped USD string (tooltips). {@link valueDollars} is the raw amount in dollars — no scaling.
  */
-export function formatFlowCurrencyFromBillions(billions: number): string {
-  if (billions == null || !Number.isFinite(billions)) return '$0';
-  return formatFlowCurrencyUsd(billions * 1_000_000_000);
-}
-
-/**
- * Formats flow value in billions as full USD with grouping — no compact $T/$B/$M rounding.
- * Intended for tooltips where the exact amount should be visible.
- */
-export function formatFlowCurrencyFromBillionsFull(valueBillions: number): string {
-  if (valueBillions == null || !Number.isFinite(valueBillions)) return '$0';
-  const dollars = valueBillions * 1_000_000_000;
-  const sign = dollars < 0 ? '-' : '';
-  const abs = Math.abs(dollars);
+export function formatFlowCurrencyUsdFull(valueDollars: number): string {
+  if (valueDollars == null || !Number.isFinite(valueDollars)) return '$0';
+  const sign = valueDollars < 0 ? '-' : '';
+  const abs = Math.abs(valueDollars);
   const formatted = abs.toLocaleString('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 20,
@@ -55,10 +67,26 @@ export function formatFlowCurrencyFromBillionsFull(valueBillions: number): strin
 }
 
 /**
- * Parses strings from {@link formatFlowCurrencyFromBillions} / {@link formatFlowCurrencyUsd} back to billions (signed).
- * Suffixes: T (trillion USD), B (billion USD), M, K; no suffix treats the number as plain USD.
+ * @deprecated Prefer {@link formatFlowCurrencyUsd} with dollar amounts, or {@link formatFlowCurrencyUsdFull} for tooltips.
+ * Kept for callers that still hold values in billions USD.
  */
-export function parseFlowDisplayValueToBillions(valueStr: string): number {
+export function formatFlowCurrencyFromBillions(billions: number): string {
+  if (billions == null || !Number.isFinite(billions)) return '$0';
+  return formatFlowCurrencyUsd(billions * 1_000_000_000);
+}
+
+/**
+ * @deprecated Prefer {@link formatFlowCurrencyUsdFull} with dollar amounts.
+ */
+export function formatFlowCurrencyFromBillionsFull(valueBillions: number): string {
+  if (valueBillions == null || !Number.isFinite(valueBillions)) return '$0';
+  return formatFlowCurrencyUsdFull(valueBillions * 1_000_000_000);
+}
+
+/**
+ * Parses compact currency display strings to **dollars** (signed). Plain numbers (no K/M/B/T) are dollars.
+ */
+export function parseFlowDisplayValueToDollars(valueStr: string): number {
   if (valueStr == null || typeof valueStr !== 'string') return NaN;
   let s = valueStr.trim();
   let sign = 1;
@@ -73,23 +101,30 @@ export function parseFlowDisplayValueToBillions(valueStr: string): number {
   const numPart = suffixLetter ? upper.slice(0, -1).trim() : upper;
   const n = parseFloat(numPart);
   if (!Number.isFinite(n)) return NaN;
-  let billions: number;
+  let dollars: number;
   switch (suffixLetter) {
     case 'T':
-      billions = n * 1000;
+      dollars = n * 1_000_000_000_000;
       break;
     case 'B':
-      billions = n;
+      dollars = n * 1_000_000_000;
       break;
     case 'M':
-      billions = n / 1000;
+      dollars = n * 1_000_000;
       break;
     case 'K':
-      billions = n / 1_000_000;
+      dollars = n * 1_000;
       break;
     default:
-      billions = n / 1_000_000_000;
+      dollars = n;
       break;
   }
-  return sign * billions;
+  return sign * dollars;
+}
+
+/**
+ * Parses display strings to billions USD (signed). Same as {@link parseFlowDisplayValueToDollars} / 1e9.
+ */
+export function parseFlowDisplayValueToBillions(valueStr: string): number {
+  return parseFlowDisplayValueToDollars(valueStr) / 1_000_000_000;
 }

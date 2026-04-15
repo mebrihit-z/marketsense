@@ -39,14 +39,16 @@ export function getDateFromMonthsOffset(months: number): string {
 
 /**
  * @param {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord[]} records - Asset flow records to aggregate
- * @returns {{ dateMap: Map<string, number>; sortedDates: string[] }} Map of date to aggregated value (billions) and sorted date keys
+ * @returns {{ dateMap: Map<string, number>; sortedDates: string[] }} Map of date to aggregated value (USD) and sorted date keys
  */
 export function aggregateByDate(records: AssetFlowRecord[]): { dateMap: Map<string, number>; sortedDates: string[] } {
   const dateMap = new Map<string, number>();
   records.forEach(record => {
     if (!record.Asset_Flow_Date) return;
-    const valueInBillions = record.Asset_Flow_Value / 1000000;
-    dateMap.set(record.Asset_Flow_Date, (dateMap.get(record.Asset_Flow_Date) || 0) + valueInBillions);
+    dateMap.set(
+      record.Asset_Flow_Date,
+      (dateMap.get(record.Asset_Flow_Date) || 0) + record.Asset_Flow_Value
+    );
   });
   return { dateMap, sortedDates: Array.from(dateMap.keys()).sort() };
 }

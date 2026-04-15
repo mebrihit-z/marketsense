@@ -14,10 +14,7 @@ import {
   extractProductTypeFromNodeName,
   type SankeyData,
 } from '../../../utils/sankey-data.utils';
-import {
-  formatFlowCurrencyFromBillions,
-  formatFlowCurrencyUsd,
-} from '../../../utils/flow-currency-format.util';
+import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 
 // ----------------------
@@ -39,7 +36,7 @@ interface SankeyLinkExtra {
   source: number | SankeyNodeExtra;
   target: number | SankeyNodeExtra;
   value: number;
-  /** Original flow value ($B); tooltips and totals use this when set. */
+  /** Original flow value (USD); tooltips and totals use this when set. */
   rawValue?: number;
   color?: string;
   width?: number;
@@ -413,11 +410,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     /** Full USD format for tooltips with no decimal places. */
-    private formatTooltipCurrencyNoDecimals(valueBillions: number): string {
-      if (valueBillions == null || !Number.isFinite(valueBillions)) return '$0';
-      const dollars = valueBillions * 1_000_000_000;
-      const sign = dollars < 0 ? '-' : '';
-      const abs = Math.abs(dollars);
+    private formatTooltipCurrencyNoDecimals(valueDollars: number): string {
+      if (valueDollars == null || !Number.isFinite(valueDollars)) return '$0';
+      const sign = valueDollars < 0 ? '-' : '';
+      const abs = Math.abs(valueDollars);
       return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
     }
 
@@ -1209,11 +1205,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const value = nodeValues.get(d) || 0;
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
-        const dollars = value * 1_000_000_000;
         if (d.name.includes('Capital Out') || d.name.includes('Capital In')) {
-          return formatFlowCurrencyFromBillions(value);
+          return formatFlowCurrencyUsd(value);
         }
-        const signed = isLeftOfReallocation ? -dollars : dollars;
+        const signed = isLeftOfReallocation ? -value : value;
         return formatFlowCurrencyUsd(signed);
       });
 

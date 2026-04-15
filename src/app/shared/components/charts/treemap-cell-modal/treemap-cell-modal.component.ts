@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import AskMarketsenseModalComponent from '../../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../../title/title.component';
 import type { MarketFlowCard } from '../../market-flows-carousel/market-flow-card/market-flow-card.component';
-import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
+import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 
 export interface TreemapCellData {
   name: string;
@@ -98,7 +98,7 @@ export class TreemapCellModalComponent implements OnChanges {
 
   getFormattedValue(): string {
     if (!this.cellData) return '$0';
-    return formatFlowCurrencyFromBillions(this.cellData.value);
+    return formatFlowCurrencyUsd(this.cellData.value);
   }
 
   getFormattedPercentage(): string {

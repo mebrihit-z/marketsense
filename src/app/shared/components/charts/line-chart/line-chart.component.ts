@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
-import { formatFlowCurrencyFromBillions } from '../../../utils/flow-currency-format.util';
+import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-line-chart',
@@ -23,7 +23,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() yAxisMax?: number;
   @Input() yAxisLabel?: string; // Y-axis label text (e.g., "Billions (USD)")
   @Input() xAxisLabel?: string; // X-axis label text (e.g., "Billions (USD)")
-  /** When true, y-axis ticks use {@link formatFlowCurrencyFromBillions} (data values are in billions USD). */
+  /** When true, y-axis ticks use {@link formatFlowCurrencyUsd} (data values are USD). */
   @Input() yAxisValuesInBillions: boolean = false;
   /**
    * When set, visible dots / hover targets exist only at these data indices (line and x-axis stay unchanged).
@@ -66,7 +66,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .tickFormat(d => {
         const value = Number(d);
         if (this.yAxisValuesInBillions) {
-          return formatFlowCurrencyFromBillions(value);
+          return formatFlowCurrencyUsd(value);
         }
         return value.toFixed(0);
       });
@@ -365,7 +365,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .style('opacity', 1);
 
       // Format value as currency (billions; compact $T/$B/$M/$K)
-      const formattedValue = formatFlowCurrencyFromBillions(value);
+      const formattedValue = formatFlowCurrencyUsd(value);
 
       // Set tooltip content
       component.tooltip.html(
@@ -622,7 +622,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .tickFormat(d => {
         const value = Number(d);
         if (this.yAxisValuesInBillions) {
-          return formatFlowCurrencyFromBillions(value);
+          return formatFlowCurrencyUsd(value);
         }
         return value.toFixed(0);
       });

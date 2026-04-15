@@ -3,8 +3,8 @@ import { Component, Input, Output, EventEmitter, HostBinding } from '@angular/co
 import { CommonModule } from '@angular/common';
 import TitleComponent from '../../title/title.component';
 import {
-  formatFlowCurrencyFromBillionsFull,
-  parseFlowDisplayValueToBillions,
+  formatFlowCurrencyUsdFull,
+  parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 
 export interface MarketFlowCard {
@@ -65,9 +65,9 @@ export class MarketFlowCardComponent {
   /** Full USD amount for native tooltip on compact {@link MarketFlowCard.value}. */
   get valueHoverFullLabel(): string {
     if (!this.card?.value) return '';
-    const b = parseFlowDisplayValueToBillions(String(this.card.value).trim());
-    if (Number.isFinite(b)) {
-      return formatFlowCurrencyFromBillionsFull(b);
+    const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
+    if (Number.isFinite(d)) {
+      return formatFlowCurrencyUsdFull(d);
     }
     return this.card.value;
   }

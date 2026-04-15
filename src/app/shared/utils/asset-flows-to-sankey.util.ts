@@ -17,6 +17,7 @@ export interface AssetFlowRecord {
   Product_Type: string;
   Product_Sub_Type: string;
   Asset_Flow_Date?: string;
+  /** Flow magnitude in USD (same numeric unit end-to-end; compact K/M/B/T is display-only). */
   Asset_Flow_Value: number;
 }
 
@@ -183,7 +184,7 @@ export interface SankeyData {
  * - Investor_Region -> superparent
  * - Product_Type -> parent
  * - Product_Sub_Type -> subasset
- * - Asset_Flow_Value -> value (negative = outflow, positive = inflow)
+ * - Asset_Flow_Value -> link value in USD (negative = outflow, positive = inflow)
  */
 export function convertAssetFlowsToSankey(
   assetFlows: AssetFlowRecord[],
@@ -212,14 +213,10 @@ export function convertAssetFlowsToSankey(
     };
   }
 
-  // Convert values from thousands to billions (divide by 1,000,000)
-  const convertedFlows = assetFlows.map(r => ({
-    ...r,
-    Asset_Flow_Value: r.Asset_Flow_Value / 1000000
-  }));
-  
-  // Filter out exact zeros
-  const rowsNz = convertedFlows.filter(r => Math.abs(r.Asset_Flow_Value) > 1e-9);
+  // Shallow copy rows so extended-row mutation does not alter caller's objects
+  const rowsNz = assetFlows
+    .filter((r) => Math.abs(r.Asset_Flow_Value) > 1e-9)
+    .map((r) => ({ ...r }));
   
   // If no valid data after filtering, return empty structure
   if (rowsNz.length === 0) {

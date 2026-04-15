@@ -520,13 +520,9 @@ function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
 }
 
 /**
- * Filters Sankey links by optional lower and upper bounds (values in billions).
- * Removes links outside the range and any nodes that are no longer connected.
- *
- * @param minValue - Use 0 or less to apply no lower bound.
- * @param maxValue - Use null/undefined to apply no upper bound.
- * @param exemptNetNewAndWithdrawnFromFlowValueFilter - When true, links touching Capital In or
- *   Capital In nodes skip min/max checks (Sankey only; keeps structural flows visible).
+ * Filters Sankey links by optional lower and upper bounds.
+ * {@link minValue} / {@link maxValue} are expressed in **billions USD** (filter rail);
+ * {@link SankeyLink.value} is compared in **dollars** (raw flow amounts).
  */
 export function filterSankeyDataByFlowValueRange(
   data: SankeyData,
@@ -544,7 +540,9 @@ export function filterSankeyDataByFlowValueRange(
     return data;
   }
 
-  const max = hasMax ? (maxValue as number) : Infinity;
+  const BILLIONS_TO_DOLLARS = 1_000_000_000;
+  const minDollars = hasMin ? minValue * BILLIONS_TO_DOLLARS : 0;
+  const maxDollars = hasMax ? (maxValue as number) * BILLIONS_TO_DOLLARS : Infinity;
 
   const filteredLinks = data.links.filter((link) => {
     const source = typeof link.source === 'string' ? link.source : '';
@@ -556,8 +554,8 @@ export function filterSankeyDataByFlowValueRange(
       return true;
     }
     const v = link.value ?? 0;
-    if (hasMin && v < minValue) return false;
-    if (hasMax && v > max) return false;
+    if (hasMin && v < minDollars) return false;
+    if (hasMax && v > maxDollars) return false;
     return true;
   });
 
@@ -599,7 +597,7 @@ export function filterSankeyDataByFlowValueRange(
  * Removes links below the threshold and any nodes that are no longer connected.
  *
  * @param data - The Sankey data object to filter
- * @param minValue - Minimum link value in billions (e.g. 0.5 for $0.5B). Use 0 or undefined to skip filtering.
+ * @param minValue - Minimum link value in billions USD on the rail (e.g. 0.5 for $0.5B). Use 0 or undefined to skip filtering.
  * @returns Filtered Sankey data with only links >= minValue and their connected nodes
  */
 export function filterSankeyDataByMinValue(

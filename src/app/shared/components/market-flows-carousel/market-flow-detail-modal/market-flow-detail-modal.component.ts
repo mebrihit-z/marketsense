@@ -8,9 +8,9 @@ import TitleComponent from '../../title/title.component';
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import * as detailModalUtil from './market-flow-detail-modal.util';
 import {
-  formatFlowCurrencyFromBillions,
-  formatFlowCurrencyFromBillionsFull,
-  parseFlowDisplayValueToBillions,
+  formatFlowCurrencyUsd,
+  formatFlowCurrencyUsdFull,
+  parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
 
@@ -215,8 +215,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Computes the projected value from filtered raw data as the total net flow
-   * (in billions) for the selected product sub-type and filters.
+   * Computes the projected value from filtered raw data as the total net flow in USD
+   * for the selected product sub-type and filters.
    */
   private computeFilteredProjectedValue(): number | null {
     if (!this.card || !this.rawAssetFlowsData || this.rawAssetFlowsData.length === 0) {
@@ -228,13 +228,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const filteredData = this.applyChartDataFilters(productSubType);
     if (!filteredData.length) return null;
 
-    // Sum net flows over the filtered set and convert to billions
-    const totalBillions = filteredData.reduce((sum, r) => {
-      const v = Number(r.Asset_Flow_Value) || 0;
-      return sum + v / 1_000_000;
-    }, 0);
-
-    return totalBillions;
+    return filteredData.reduce((sum, r) => sum + r.Asset_Flow_Value, 0);
   }
 
   /**
@@ -244,9 +238,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   getProjectedValue(): string {
     const dynamic = this.computeFilteredProjectedValue();
     if (dynamic != null) {
-      return formatFlowCurrencyFromBillions(dynamic);
+      return formatFlowCurrencyUsd(dynamic);
     }
-    if (!this.card) return formatFlowCurrencyFromBillions(0);
+    if (!this.card) return formatFlowCurrencyUsd(0);
     // Fall back to the precomputed card value when we can't derive a filtered one
     return this.card.value;
   }
@@ -255,12 +249,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   getProjectedValueHoverTitle(): string {
     const dynamic = this.computeFilteredProjectedValue();
     if (dynamic != null) {
-      return formatFlowCurrencyFromBillionsFull(dynamic);
+      return formatFlowCurrencyUsdFull(dynamic);
     }
-    if (!this.card) return formatFlowCurrencyFromBillionsFull(0);
-    const b = parseFlowDisplayValueToBillions(String(this.card.value).trim());
-    if (Number.isFinite(b)) {
-      return formatFlowCurrencyFromBillionsFull(b);
+    if (!this.card) return formatFlowCurrencyUsdFull(0);
+    const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
+    if (Number.isFinite(d)) {
+      return formatFlowCurrencyUsdFull(d);
     }
     return this.card.value;
   }

@@ -28,7 +28,10 @@ import {
   createDefaultMinFlowRange,
   type MinFlowRangeSelection,
 } from '../../shared/utils/min-flow-value-options.util';
-import { formatFlowCurrencyFromBillions, parseFlowDisplayValueToBillions } from '../../shared/utils/flow-currency-format.util';
+import {
+  formatFlowCurrencyUsd,
+  parseFlowDisplayValueToDollars,
+} from '../../shared/utils/flow-currency-format.util';
 import type {
   SavedChartHierarchyDimensions,
   SavedViewChartDimensions,
@@ -316,28 +319,26 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     // Aggregate by product sub-type (rows already match filters bar + time window + flow magnitude)
     // VALUE CALCULATION:
     // 1. Filter records by: dimensions, time horizon, min/max flow (see applyFilterBarDimensions / applyCurrentTimeWindowToRecords / filterRecordsByFlowMagnitude)
-    // 2. For each Product_Sub_Type, sum all Asset_Flow_Value (which are in thousands)
-    // 3. Convert to billions: divide by 1,000,000
+    // 2. For each Product_Sub_Type, sum Asset_Flow_Value (USD, same unit as stored)
+    // 3. Totals stay in USD; compact K/M/B/T is formatting-only
     // 4. Result: Net flow = sum of all positive values - sum of all negative values (negative values are subtracted)
     const aggregatedData = new Map<string, { total: number; count: number; positiveSum: number; negativeSum: number }>();
 
     filteredData.forEach(record => {
       const existing = aggregatedData.get(record.Product_Sub_Type) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
-      // Asset_Flow_Value is in thousands, convert to billions
-      // Example: 1200000 (thousands) = 1.2 billion
-      const valueInBillions = record.Asset_Flow_Value / 1000000;
-      
+      const valueUsd = record.Asset_Flow_Value;
+
       // Handle positive and negative values explicitly
-      if (valueInBillions > 0) {
+      if (valueUsd > 0) {
         // Positive value: add to total
-        existing.total += valueInBillions;
-        existing.positiveSum += valueInBillions;
-      } else if (valueInBillions < 0) {
+        existing.total += valueUsd;
+        existing.positiveSum += valueUsd;
+      } else if (valueUsd < 0) {
         // Negative value: subtract from total (minus it)
-        existing.total += valueInBillions; // Adding negative = subtracting
-        existing.negativeSum += Math.abs(valueInBillions);
+        existing.total += valueUsd; // Adding negative = subtracting
+        existing.negativeSum += Math.abs(valueUsd);
       }
-      // If valueInBillions is 0, we don't need to do anything
+      // If valueUsd is 0, we don't need to do anything
       
       existing.count += 1;
       aggregatedData.set(record.Product_Sub_Type, existing);
@@ -363,10 +364,10 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       previousData = this.filterRecordsByFlowMagnitude(previousData);
 
       previousData.forEach(record => {
-        const valueInBillions = record.Asset_Flow_Value / 1000000;
+        const valueUsd = record.Asset_Flow_Value;
         const existing = previousAggregatedData.get(record.Product_Sub_Type) || 0;
         // Handle negative values: subtract them (minus them)
-        previousAggregatedData.set(record.Product_Sub_Type, existing + valueInBillions);
+        previousAggregatedData.set(record.Product_Sub_Type, existing + valueUsd);
       });
     }
 
@@ -406,7 +407,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
 
         // Format value (compact $T/$B/$M/$K via shared util, same as Sankey/Treemap)
-        const formattedCardValue = formatFlowCurrencyFromBillions(totalValue);
+        const formattedCardValue = formatFlowCurrencyUsd(totalValue);
 
         // Format percentage
         const formattedPercentage = this.formatPercentage(Math.abs(percentageChange));
@@ -499,7 +500,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     return records;
   }
 
-  /** Per-row |flow| in billions vs filters bar min/max (aligned with Sankey link value filter). */
+  /** Per-row |flow| in USD vs filters bar min/max (rail thresholds are in billions; see Sankey filter). */
   private filterRecordsByFlowMagnitude(records: AssetFlowRecord[]): AssetFlowRecord[] {
     if (!records?.length) return records;
     const minVal = this.chartMinFlowLower ?? 0;
@@ -507,11 +508,12 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     const hasMin = minVal > 0;
     const hasMax = maxVal != null && Number.isFinite(maxVal as number);
     if (!hasMin && !hasMax) return records;
-    const max = hasMax ? (maxVal as number) : Infinity;
     return records.filter(r => {
-      const absB = Math.abs(r.Asset_Flow_Value / 1000000);
-      if (hasMin && absB < minVal) return false;
-      if (hasMax && absB > max) return false;
+      const absDollars = Math.abs(r.Asset_Flow_Value);
+      const minDollars = hasMin ? minVal * 1_000_000_000 : 0;
+      const maxDollars = hasMax ? (maxVal as number) * 1_000_000_000 : Infinity;
+      if (hasMin && absDollars < minDollars) return false;
+      if (hasMax && absDollars > maxDollars) return false;
       return true;
     });
   }
@@ -656,11 +658,11 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Parses a card value string to billions (signed), including compact $T/$B/$M/$K.
+   * Parses a card value string to USD (signed), including compact $T/$B/$M/$K.
    */
   private parseValue(valueStr: string): number {
-    const b = parseFlowDisplayValueToBillions(valueStr);
-    return Number.isFinite(b) ? b : 0;
+    const d = parseFlowDisplayValueToDollars(valueStr);
+    return Number.isFinite(d) ? d : 0;
   }
 
   /**
