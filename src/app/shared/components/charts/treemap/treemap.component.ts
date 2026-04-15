@@ -11,7 +11,6 @@ import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 import {
   formatFlowCurrencyFromBillions,
-  formatFlowCurrencyFromBillionsFull,
 } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
@@ -372,11 +371,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private isNetNew(name: string): boolean {
-    return typeof name === 'string' && name.startsWith('Net New Capital');
+    return typeof name === 'string' && name.startsWith('Capital In');
   }
 
   private isWithdrawn(name: string): boolean {
-    return typeof name === 'string' && name.startsWith('Capital Withdrawn');
+    return typeof name === 'string' && name.startsWith('Capital Out');
   }
 
   private isSourceNodeName(name: string): boolean {
@@ -422,7 +421,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   /** Full dollar amount for tooltips (no compact $B one-decimal rounding). */
   private formatValueForTooltip(x: number): string {
     const v = +x || 0;
-    return formatFlowCurrencyFromBillionsFull(v);
+    const dollars = v * 1_000_000_000;
+    const sign = dollars < 0 ? '-' : '';
+    const abs = Math.abs(dollars);
+    return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   }
 
   /** Cells below this size cannot display readable text; hide labels and rely on tooltip */
@@ -625,7 +627,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       const t = l.target as string;
       const v = +l.value || 0;
 
-      // Net New Capital
+      // Capital Out
       if (this.isNetNew(s) && this.isPool(t)) {
         const sp = this.superparentFromPool(t) !== 'Unknown' 
           ? this.superparentFromPool(t) 
@@ -634,7 +636,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         continue;
       }
 
-      // Capital Withdrawn
+      // Capital In
       if (this.isPool(s) && this.isWithdrawn(t)) {
         const sp = this.superparentFromPool(s) !== 'Unknown'
           ? this.superparentFromPool(s)
@@ -729,10 +731,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         children: aggregateByParent(parts.outflows)
       });
 
-      // Net New Capital (middle)
+      // Capital Out (middle)
       if (parts.netNew !== 0) {
         spNode.children!.push({ 
-          name: 'Net New Capital', 
+          name: 'Capital In', 
           group: 'netnew', 
           value: parts.netNew 
         });
@@ -745,10 +747,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         children: aggregateByParent(parts.inflows)
       });
 
-      // Capital Withdrawn (far right)
+      // Capital In (far right)
       if (parts.withdrawn !== 0) {
         spNode.children!.push({ 
-          name: 'Capital Withdrawn', 
+          name: 'Capital Out', 
           group: 'withdrawn', 
           value: parts.withdrawn 
         });
@@ -820,8 +822,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Container nodes
     if (g === 'Inflows') return '#2A6907'; // $secondary-colors-green-1000
     if (g === 'Outflows') return '#d62728';
-    if (g === 'Net New Capital') return '#1f77b4';
-    if (g === 'Capital Withdrawn') return '#ff7f0e';
+    if (g === 'Capital In') return '#1f77b4';
+    if (g === 'Capital Out') return '#ff7f0e';
     return '#999999';
   }
 

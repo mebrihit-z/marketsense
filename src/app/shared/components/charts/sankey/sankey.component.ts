@@ -16,7 +16,6 @@ import {
 } from '../../../utils/sankey-data.utils';
 import {
   formatFlowCurrencyFromBillions,
-  formatFlowCurrencyFromBillionsFull,
   formatFlowCurrencyUsd,
 } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
@@ -87,7 +86,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   /** Maximum flow value in billions; links above this are hidden when set. Null = no upper cap. */
   @Input() maxFlowValue: number | null = null;
   /**
-   * For Net New / Capital Withdrawn links only: floor layout value to this fraction of the
+   * For Net New / Capital In links only: floor layout value to this fraction of the
    * largest link value so those nodes stay visible (matches treemap emphasis). Does not change raw $ in tooltips.
    */
   @Input() structuralFlowLayoutFloorFraction: number = 0.02;
@@ -120,7 +119,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   private isStructuralCapitalFlowName(name: string): boolean {
     return typeof name === 'string' &&
-      (name.includes('Net New Capital') || name.includes('Capital Withdrawn'));
+      (name.includes('Capital In') || name.includes('Capital Out'));
   }
 
   private layoutValueForLink(
@@ -373,7 +372,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       formatted = formatted.replace(/\s*\(Super Start\)\s*$/, '');
       formatted = formatted.replace(/\s*\(Super End\)\s*$/, '');
       // Scoped parent/sub/pool nodes: "Super: Product (…)" → show "Product" / "Reallocation Pool" only;
-      // Net New / Withdrawn stay "Net New Capital (…)".
+      // Capital Out / Capital In stay "Capital Out/In (…)".
       if (/^.+:\s*.+/.test(formatted) && !/\(Super\s+(Start|End)\)\s*$/.test(name.trim())) {
         formatted = formatted.replace(/^[^:]+:\s*/, '').trim();
       }
@@ -411,6 +410,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return this.formatHorizonTokenForTooltip(this.timeHorizon);
       }
       return '';
+    }
+
+    /** Full USD format for tooltips with no decimal places. */
+    private formatTooltipCurrencyNoDecimals(valueBillions: number): string {
+      if (valueBillions == null || !Number.isFinite(valueBillions)) return '$0';
+      const dollars = valueBillions * 1_000_000_000;
+      const sign = dollars < 0 ? '-' : '';
+      const abs = Math.abs(dollars);
+      return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
     }
 
   // -----------------------------------------
@@ -704,22 +712,22 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Assign link colors based on position relative to Reallocation Pool
     // Links to the right of Reallocation Pool are green, others are red
-    // Net New Capital links are always blue; Capital Withdrawn links are orange
+    // Capital In links are always blue; Capital Out links are orange
     graph.links.forEach(link => {
       const linkExtra = link as SankeyLinkExtra;
       const source = link.source as SankeyNodeExtra;
       const target = link.target as SankeyNodeExtra;
       
-      // Check if link is connected to Net New Capital - make it blue
-      if ((source.name && source.name.includes('Net New Capital')) || 
-          (target.name && target.name.includes('Net New Capital'))) {
+      // Check if link is connected to Capital In - make it blue
+      if ((source.name && source.name.includes('Capital In')) || 
+          (target.name && target.name.includes('Capital In'))) {
         linkExtra.color = this.getCssVariable('--blue-link') || 'rgba(0,100,200,0.7)';
         return;
       }
       
-      // Check if link is connected to Capital Withdrawn - use dedicated orange color
-      if ((source.name && source.name.includes('Capital Withdrawn')) || 
-          (target.name && target.name.includes('Capital Withdrawn'))) {
+      // Check if link is connected to Capital Out - use dedicated orange color
+      if ((source.name && source.name.includes('Capital Out')) || 
+          (target.name && target.name.includes('Capital Out'))) {
         linkExtra.color = this.getCssVariable('--capital-withdrawn-link') || '#ff7f0e';
         return;
       }
@@ -784,7 +792,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const source = link.source as SankeyNodeExtra;
         const target = link.target as SankeyNodeExtra;
         const value = component.linkFlowForTotals(link);
-        const formattedValue = formatFlowCurrencyFromBillionsFull(value);
+        const sourceX = source.x0 !== undefined ? source.x0 : (source.x1 || 0);
+        const targetX = target.x0 !== undefined ? target.x0 : (target.x1 || 0);
+        const isLeftOfReallocation =
+          reallocationPoolX !== null &&
+          sourceX < reallocationPoolX &&
+          targetX <= reallocationPoolX;
+        const signedValue = isLeftOfReallocation ? -Math.abs(value) : value;
+        const formattedValue = component.formatTooltipCurrencyNoDecimals(signedValue);
         
         // Check if this is a subasset link (connected to Source or Destination nodes)
         const isSubassetLink = (source.name && (source.name.includes('(Source)') || source.name.includes('(Destination)'))) ||
@@ -878,8 +893,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     const getNodeColorClass = (nodeName: string): string => {
       if (nodeName.includes('Reallocation Pool')) return 'reallocation-pool';
-      if (nodeName.includes('Net New Capital')) return 'net-new-capital';
-      if (nodeName.includes('Capital Withdrawn')) return 'capital-withdrawn';
+      if (nodeName.includes('Capital In')) return 'net-new-capital';
+      if (nodeName.includes('Capital Out')) return 'capital-withdrawn';
       if (nodeName.includes('Super Start') || nodeName.includes('Super End')) return 'regions';
       const parentType = nodeParentTypeMap.get(nodeName);
       if (parentType) {
@@ -945,9 +960,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
         const value = nodeValues.get(node) || 0;
-        const formattedValue = formatFlowCurrencyFromBillionsFull(value);
         const incoming = nodeIncoming.get(node) || 0;
         const outgoing = nodeOutgoing.get(node) || 0;
+        const nodeX = node.x0 !== undefined ? node.x0 : (node.x1 || 0);
+        const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
+        const isStructuralCapitalNode =
+          node.name.includes('Capital In') || node.name.includes('Capital Out');
+        const signMultiplier = isLeftOfReallocation && !isStructuralCapitalNode ? -1 : 1;
+        const formattedValue = component.formatTooltipCurrencyNoDecimals(signMultiplier * value);
+        const formattedIncoming = component.formatTooltipCurrencyNoDecimals(signMultiplier * incoming);
+        const formattedOutgoing = component.formatTooltipCurrencyNoDecimals(signMultiplier * outgoing);
         
          // Check if this is a parent node (Start/End) and collect subasset information
          let subassetHtml = '';
@@ -1022,7 +1044,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
-               const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${formatFlowCurrencyFromBillionsFull(subasset.value)}</strong>`;
+              const signedSubassetValue = signMultiplier * subasset.value;
+              const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${component.formatTooltipCurrencyNoDecimals(signedSubassetValue)}</strong>`;
                subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
              });
              if (remainingCount > 0) {
@@ -1037,8 +1060,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(node.name)}</strong></div>
           <div style="margin-top: 4px;">Total Value: ${formattedValue}</div>
-          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formatFlowCurrencyFromBillionsFull(incoming)}</div>
-          <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formatFlowCurrencyFromBillionsFull(outgoing)}</div>
+          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formattedIncoming}</div>
+          <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formattedOutgoing}</div>
         `;
         
         if (timeInfo) {
@@ -1069,7 +1092,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const nodeLinks = graph.links.filter(link => 
           (link.source as SankeyNodeExtra) === node || (link.target as SankeyNodeExtra) === node
         );
-        const isCapitalWithdrawnHovered = node.name.includes('Capital Withdrawn');
+        const isCapitalWithdrawnHovered = node.name.includes('Capital Out');
 
         chartGroup.selectAll('path')
           .filter(function(link: any) {
@@ -1127,8 +1150,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       if (d.name.includes('Reallocation Pool')) return d.x1! + 12;
       if (d.name.includes('(Source)')) return d.x1! + 12;
       if (d.name.includes('(Destination)')) return d.x0! - 12;
-      // Place New Capital and Capital Withdrawn labels to the right of the node
-      if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return d.x1! + 12;
+      // Place New Capital and Capital In labels to the right of the node
+      if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return d.x1! + 12;
       if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return d.x0! - 12;
       if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return d.x1! + 12;
       return (d.x0! + d.x1!) / 2;
@@ -1147,7 +1170,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (d.name.includes('(Destination)')) return 'end';
         // Label at x1 + 12: anchor start so "Realloc: …" sits to the right of the node, not centered on it
         if (d.name.includes('Reallocation Pool')) return 'start';
-        if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) return 'start';
+        if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return 'start';
         // Positive/inflow side: anchor at end so text sits to the left of the node
         if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return 'end';
         // Negative/outflow side: anchor at start so text sits to the right of the node
@@ -1160,11 +1183,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     nodeLabels.append('tspan')
       .attr('class', 'sankey-node-label-name')
       .text(d => {
-        if (d.name.includes('Net New Capital')) {
-          return 'New Capital:';
+        if (d.name.includes('Capital Out')) {
+          return 'Capital Out:';
         }
-        if (d.name.includes('Capital Withdrawn')) {
-          return 'Withdrawn:';
+        if (d.name.includes('Capital In')) {
+          return 'Capital In:';
         }
         // Use short label for Reallocation Pool to avoid overlap
         if (d.name.includes('Reallocation Pool')) {
@@ -1187,7 +1210,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
         const dollars = value * 1_000_000_000;
-        if (d.name.includes('Net New Capital') || d.name.includes('Capital Withdrawn')) {
+        if (d.name.includes('Capital Out') || d.name.includes('Capital In')) {
           return formatFlowCurrencyFromBillions(value);
         }
         const signed = isLeftOfReallocation ? -dollars : dollars;

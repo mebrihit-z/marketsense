@@ -219,20 +219,20 @@ export function extractInvestorRegions(data: SankeyData): string[] {
 
 /**
  * Extracts the investor region from a node name.
- * Node names have the format: "Region: ..." or "Net New Capital (Region)"
+ * Node names have the format: "Region: ..." or "Capital In (Region)"
  * 
  * @param nodeName - The node name to extract the region from
  * @returns The investor region name, or null if not found
  */
 export function extractRegionFromNodeName(nodeName: string): string | null {
-  // Check for "Net New Capital (Region)" format
-  const netNewCapitalMatch = nodeName.match(/Net New Capital \((.+?)\)/);
+  // Check for "Capital In (Region)" format
+  const netNewCapitalMatch = nodeName.match(/Capital In \((.+?)\)/);
   if (netNewCapitalMatch && netNewCapitalMatch[1]) {
     return netNewCapitalMatch[1].trim();
   }
 
-  // Check for "Capital Withdrawn (Region)" format
-  const capitalWithdrawnMatch = nodeName.match(/Capital Withdrawn \((.+?)\)/);
+  // Check for "Capital Out (Region)" format
+  const capitalWithdrawnMatch = nodeName.match(/Capital Out \((.+?)\)/);
   if (capitalWithdrawnMatch && capitalWithdrawnMatch[1]) {
     return capitalWithdrawnMatch[1].trim();
   }
@@ -361,12 +361,13 @@ export function filterSankeyData(
       const region = extractRegionFromNodeName(nodeName);
       
       if (region && regionsToFilter.includes(region)) {
-        // Always include Super Start, Super End, Reallocation Pool, and Net New Capital for selected regions
+        // Always include Super Start, Super End, Reallocation Pool, and Capital In/Out for selected regions
         // These are structural nodes that maintain the diagram's visual structure
         if (nodeName.includes('Super Start') || 
             nodeName.includes('Super End') || 
             nodeName.includes('Reallocation Pool') ||
-            nodeName.includes('Net New Capital')) {
+            nodeName.includes('Capital In') ||
+            nodeName.includes('Capital Out')) {
           directlyMatchingNodes.add(nodeName);
         }
         
@@ -437,7 +438,8 @@ export function filterSankeyData(
         
         // Structural nodes (don't have product types/sub-types, only check region filter)
         if (target.includes('Reallocation Pool') || 
-            target.includes('Net New Capital') || 
+            target.includes('Capital In') ||
+            target.includes('Capital Out') || 
             target.includes('Super Start') || 
             target.includes('Super End')) {
           shouldInclude = nodePassesFilters(target, false, false);
@@ -463,7 +465,8 @@ export function filterSankeyData(
         
         // Structural nodes (don't have product types/sub-types, only check region filter)
         if (source.includes('Reallocation Pool') || 
-            source.includes('Net New Capital') || 
+            source.includes('Capital In') ||
+            source.includes('Capital Out') || 
             source.includes('Super Start') || 
             source.includes('Super End')) {
           shouldInclude = nodePassesFilters(source, false, false);
@@ -509,10 +512,10 @@ export function filterSankeyData(
   };
 }
 
-/** True if either endpoint is a Net New Capital or Capital Withdrawn structural node. */
+/** True if either endpoint is a Capital In or Capital Out structural node. */
 function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
   const touches = (name: string) =>
-    name.includes('Net New Capital') || name.includes('Capital Withdrawn');
+    name.includes('Capital In') || name.includes('Capital Out');
   return touches(source) || touches(target);
 }
 
@@ -522,8 +525,8 @@ function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
  *
  * @param minValue - Use 0 or less to apply no lower bound.
  * @param maxValue - Use null/undefined to apply no upper bound.
- * @param exemptNetNewAndWithdrawnFromFlowValueFilter - When true, links touching Net New Capital or
- *   Capital Withdrawn nodes skip min/max checks (Sankey only; keeps structural flows visible).
+ * @param exemptNetNewAndWithdrawnFromFlowValueFilter - When true, links touching Capital In or
+ *   Capital In nodes skip min/max checks (Sankey only; keeps structural flows visible).
  */
 export function filterSankeyDataByFlowValueRange(
   data: SankeyData,

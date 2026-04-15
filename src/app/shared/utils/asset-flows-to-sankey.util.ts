@@ -267,7 +267,7 @@ export function convertAssetFlowsToSankey(
   const neg = extendedRows.filter(r => r.Asset_Flow_Value < 0); // selling (sources) - negative values
   const pos = extendedRows.filter(r => r.Asset_Flow_Value > 0); // buying (destinations) - positive values
 
-  // Net New Capital
+  // Capital Out
   const totalNegAbs = neg.reduce((sum, r) => sum + Math.abs(r.Asset_Flow_Value), 0);
   const totalPos = pos.reduce((sum, r) => sum + r.Asset_Flow_Value, 0);
   const netNew = totalPos - totalNegAbs;
@@ -419,7 +419,7 @@ export function convertAssetFlowsToSankey(
     }
   }
 
-  // 3) Net New Capital / Withdrawals (PER SUPERPARENT)
+  // 3) Capital Out / Capital In (PER SUPERPARENT)
   const netBySp: { [key: string]: number } = {};
 
   for (const r of pos) {
@@ -431,34 +431,34 @@ export function convertAssetFlowsToSankey(
 
   for (const [sp, net] of Object.entries(netBySp).sort()) {
     if (net > 1e-9) {
-      const nnName = `Net New Capital (${sp})`;
+      const nnName = `Capital In (${sp})`;
       add(nnName);
 
-      // SuperParent -> Net New Capital
+      // SuperParent -> Capital Out
       links.push({
         source: `${sp} (Super Start)`,
         target: nnName,
         value: net,
       });
 
-      // Net New Capital -> Pool
+      // Capital Out -> Pool
       links.push({
         source: nnName,
         target: poolName(sp),
         value: net,
       });
     } else if (net < -1e-9) {
-      const wdName = `Capital Withdrawn (${sp})`;
+      const wdName = `Capital Out (${sp})`;
       add(wdName);
 
-      // Pool -> Capital Withdrawn
+      // Pool -> Capital In
       links.push({
         source: poolName(sp),
         target: wdName,
         value: Math.abs(net),
       });
 
-      // Capital Withdrawn -> Super End (to complete the flow)
+      // Capital In -> Super End (to complete the flow)
       links.push({
         source: wdName,
         target: `${sp} (Super End)`,
