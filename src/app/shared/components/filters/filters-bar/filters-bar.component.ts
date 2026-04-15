@@ -20,7 +20,10 @@ import {
   TimeHorizonSliderComponent,
   type TimeHorizonRangeIndices,
 } from '../../time-horizon-slider/time-horizon-slider.component';
-import { UNIFIED_TIME_HORIZONS } from '../../../constants/time-horizons.constants';
+import {
+  LEGACY_UNIFIED_TIME_HORIZONS,
+  UNIFIED_TIME_HORIZONS,
+} from '../../../constants/time-horizons.constants';
 import {
   MIN_FLOW_VALUE_OPTIONS,
   createDefaultMinFlowRange,
@@ -148,7 +151,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   sliderTrackWidth = 142; // Width of the slider track in pixels (normal)
   
   /** Indices into {@link UNIFIED_TIME_HORIZONS} (default = Today → +3 mo). */
-  timeHorizonRange: TimeHorizonRangeIndices = { startIndex: 5, endIndex: 6 };
+  timeHorizonRange: TimeHorizonRangeIndices = { startIndex: 6, endIndex: 7 };
 
   /** VDI: sync user preference only after OAuth `sub` is available (avoids duplicate API users). */
   private userPreferenceSyncSub?: Subscription;
@@ -681,6 +684,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         start: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.startIndex],
         end: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.endIndex],
       },
+      timeHorizonAxisVersion: 2,
       selectedTimeHorizon: this.selectedTimeHorizon,
       aiConfidenceRange: { ...this.aiConfidenceRange },
       minFlowRange: { ...this.minFlowRange },
@@ -758,6 +762,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         start: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.startIndex],
         end: UNIFIED_TIME_HORIZONS[this.timeHorizonRange.endIndex],
       },
+      timeHorizonAxisVersion: 2,
       selectedTimeHorizon: this.selectedTimeHorizon,
       aiConfidenceRange: { ...this.aiConfidenceRange },
       minFlowRange: { ...this.minFlowRange },
@@ -848,12 +853,34 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       }
     } else if (detail.timeHorizonRange && typeof detail.timeHorizonRange === 'object') {
       // Fallback for older saved views that only have indices.
-      const { startIndex, endIndex } = detail.timeHorizonRange;
+      let { startIndex, endIndex } = detail.timeHorizonRange;
+      const horizons = UNIFIED_TIME_HORIZONS;
+      const axisVersion = (detail as { timeHorizonAxisVersion?: number }).timeHorizonAxisVersion;
+      if (axisVersion !== 2) {
+        const legacy = LEGACY_UNIFIED_TIME_HORIZONS;
+        if (
+          typeof startIndex === 'number' &&
+          typeof endIndex === 'number' &&
+          startIndex >= 0 &&
+          endIndex >= startIndex &&
+          endIndex < legacy.length
+        ) {
+          const startLabel = legacy[startIndex];
+          const endLabel = legacy[endIndex];
+          const ns = horizons.indexOf(startLabel);
+          const ne = horizons.indexOf(endLabel);
+          if (ns >= 0 && ne >= ns) {
+            startIndex = ns;
+            endIndex = ne;
+          }
+        }
+      }
       if (
         typeof startIndex === 'number' &&
         typeof endIndex === 'number' &&
         startIndex >= 0 &&
-        endIndex >= startIndex
+        endIndex >= startIndex &&
+        endIndex < horizons.length
       ) {
         this.timeHorizonRange = { startIndex, endIndex };
         this.updateSelectedTimeHorizon();

@@ -34,6 +34,8 @@ export interface SavedView {
   dataType?: 'historical' | 'forecasted';
   timeHorizonRange?: { startIndex: number; endIndex: number };
   timeHorizonRangeLabels?: { start: string; end: string };
+  /** `2` = indices are for the current extended axis (incl. ±15 mo). Omit/`1` = legacy 11-point axis. */
+  timeHorizonAxisVersion?: number;
   selectedTimeHorizon?: string;
   aiConfidenceRange?: { min: number; max: number };
   /** Flow value band for Sankey/Treemap (indices into MIN_FLOW_VALUE_OPTIONS). */

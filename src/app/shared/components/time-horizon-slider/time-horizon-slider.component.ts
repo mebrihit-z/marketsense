@@ -50,7 +50,7 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
   @ViewChild('timeHorizonSliderFull', { static: false }) sliderContainerRef!: ElementRef<HTMLElement>;
 
-  private range: TimeHorizonRangeIndices = { startIndex: 5, endIndex: 6 };
+  private range: TimeHorizonRangeIndices = { startIndex: 6, endIndex: 7 };
 
   compactAxis = typeof window !== 'undefined' && window.innerWidth <= 768;
   private sliderTrackWidthFallback = 560;
