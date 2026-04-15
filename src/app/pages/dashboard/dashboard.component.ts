@@ -20,6 +20,7 @@ import WelcomeSectionComponent from '../../shared/components/welcome-section/wel
 import AskMarketsenseSectionComponent from '../../shared/components/ask-marketsense-section/ask-marketsense-section.component';
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
 import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
+import { assetFlowQuarterInTimeWindow } from '../../shared/utils/asset-flow-time-window.util';
 import { AssetFlowsDataService } from '../../core/services/asset-flows-data.service';
 import {
   getMinFlowLowerBound,
@@ -483,19 +484,17 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       const startDate = this.convertTimeHorizonToDate(this.timeHorizonRange.start);
       const endDate = this.convertTimeHorizonToDate(this.timeHorizonRange.end);
       if (startDate && endDate) {
-        return records.filter(record => {
-          if (!record.Asset_Flow_Date) return false;
-          return record.Asset_Flow_Date >= startDate && record.Asset_Flow_Date <= endDate;
-        });
+        return records.filter(record =>
+          assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, startDate, endDate)
+        );
       }
       return records;
     }
     const dateRange = this.getDateRangeForTimeHorizon(this.carouselTimeHorizon, this.carouselDataType);
     if (dateRange?.start && dateRange?.end && dateRange.start !== dateRange.end) {
-      return records.filter(record => {
-        if (!record.Asset_Flow_Date) return false;
-        return record.Asset_Flow_Date >= dateRange.start && record.Asset_Flow_Date <= dateRange.end;
-      });
+      return records.filter(record =>
+        assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, dateRange.start, dateRange.end)
+      );
     }
     return records;
   }

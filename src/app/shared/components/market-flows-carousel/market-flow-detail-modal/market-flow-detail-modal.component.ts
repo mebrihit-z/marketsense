@@ -12,6 +12,7 @@ import {
   formatFlowCurrencyFromBillionsFull,
   parseFlowDisplayValueToBillions,
 } from '../../../utils/flow-currency-format.util';
+import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
 
 @Component({
   selector: 'app-market-flow-detail-modal',
@@ -157,7 +158,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       const start = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.start);
       const end = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.end);
       if (start && end) {
-        data = data.filter(r => r.Asset_Flow_Date && r.Asset_Flow_Date >= start && r.Asset_Flow_Date <= end);
+        data = data.filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, start, end));
       }
     }
     return data;

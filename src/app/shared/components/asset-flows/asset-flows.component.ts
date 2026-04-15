@@ -12,6 +12,7 @@ import {
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import type { SavedChartHierarchyDimensions } from '../../../core/services/saved-views.service';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
+import { assetFlowQuarterInTimeWindow } from '../../utils/asset-flow-time-window.util';
 import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
 import { jsPDF } from 'jspdf';
 import {
@@ -370,24 +371,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       return data;
     }
     
-    // Filter data based on date range
-    const filtered = data.filter(record => {
-      const flowDate = record.Asset_Flow_Date;
-      if (!flowDate) {
-        return false;
-      }
-      
-      // If we have a range, check if date is between start and end (inclusive)
-      if (startDate && endDate) {
-        return flowDate >= startDate && flowDate <= endDate;
-      }
-      // Otherwise, filter data where Asset_Flow_Date is <= endDate (cumulative)
-      return flowDate <= endDate;
-    });
-    
-    const rangeInfo = startDate && endDate 
-      ? `range: ${startDate} to ${endDate}`
-      : `target: ${endDate}`;
+    const filtered = data.filter(record =>
+      assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, startDate, endDate)
+    );
     return filtered;
   }
 
@@ -428,6 +414,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
    */
   private getTargetDateFromTimeHorizon(horizon?: string): string | null {
     const timeHorizonToUse = horizon || this.timeHorizon;
+    if (/^\d{4}-\d{2}$/.test(timeHorizonToUse.trim())) {
+      return timeHorizonToUse.trim();
+    }
     // Use today's date as the base
     const today = new Date();
     const baseYear = today.getFullYear();
