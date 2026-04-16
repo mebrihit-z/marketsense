@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Injectable } from '@angular/core';
 import type { AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
 import {

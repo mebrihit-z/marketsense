@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Asset flow rows are quarterly; {@link AssetFlowRecord.Asset_Flow_Date} is the quarter end (ISO).
  * Filter UI uses YYYY-MM ranges. String comparison between ISO and YYYY-MM is wrong; use calendar

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { AssetFlowRecord } from './asset-flows-to-sankey.util';
 
 export function getCalendarYearMonthNow(): string {

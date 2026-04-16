@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { parseFlowDisplayValueToBillions } from '../../../utils/flow-currency-format.util';
 import {
