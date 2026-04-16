@@ -6,6 +6,8 @@
 export interface AssetFlowRecord {
   Model_Run_Date?: string;
   Model_Version?: string;
+  /** From `model_type` in source JSON (e.g. Historic, Forecast). */
+  Model_Type?: string;
   Load_Date?: string;
   Latest?: string;
   Investor_Region: string;
@@ -105,6 +107,7 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
   return {
     Model_Run_Date: (r['model_run_date'] ?? r['Model_Run_Date']) as string | undefined,
     Model_Version: (r['model_version'] ?? r['Model_Version']) as string | undefined,
+    Model_Type: getStrOpt(r, 'model_type', 'Model_Type'),
     Load_Date:
       unwrapDate((r['load_date'] ?? r['Load_Date']) as string | { $date: string } | undefined) ??
       (r['load_date'] ?? r['Load_Date']) as string | undefined,
@@ -129,6 +132,25 @@ export function normalizeAssetFlowsData(raw: (RawAssetFlowRecord | AssetFlowReco
   return raw
     .map(normalizeAssetFlowRecord)
     .filter((row) => (row.Latest ?? '').trim().toUpperCase() === 'Y');
+}
+
+/** Matches filters bar "historical" / "forecasted" to `Model_Type` on each row (Historic vs Forecast). */
+export type AssetFlowDataTypeFilter = 'historical' | 'forecasted';
+
+/**
+ * Keeps rows for the active scenario. Latest Y data includes both Historic and Forecast for the same
+ * quarters; without this, time-window filtering aggregates both and the Sankey totals and layout are wrong.
+ */
+export function filterAssetFlowsByDataType(
+  data: AssetFlowRecord[],
+  dataType: AssetFlowDataTypeFilter
+): AssetFlowRecord[] {
+  if (!data?.length) return data;
+  return data.filter((record) => {
+    const mt = (record.Model_Type ?? '').trim().toLowerCase();
+    if (dataType === 'historical') return mt === 'historic';
+    return mt === 'forecast' || mt === 'forecasted';
+  });
 }
 
 export interface SankeyNode {

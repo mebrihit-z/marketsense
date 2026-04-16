@@ -56,7 +56,7 @@ function rangesOverlap(
 }
 
 /** UTC calendar month of `Asset_Flow_Date` (quarter-end rows → Mar/Jun/Sep/Dec). */
-function flowDateToYearMonthUtc(flowDateIso: string): string | null {
+export function assetFlowDateToYearMonthUtc(flowDateIso: string): string | null {
   const d = new Date(flowDateIso);
   if (Number.isNaN(d.getTime())) return null;
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
@@ -96,7 +96,7 @@ export function assetFlowQuarterInTimeWindow(
       // Multi-month YYYY-MM window: count each quarter at most once — include only if the
       // quarter-end month (YYYY-MM) falls in [lo, hi]. Pure overlap would double-count
       // quarters (e.g. Apr–Jul touching both Q2 end and Q3 start).
-      const qYm = flowDateToYearMonthUtc(flowDateIso);
+      const qYm = assetFlowDateToYearMonthUtc(flowDateIso);
       return qYm !== null && qYm >= lo && qYm <= hi;
     }
     const w = isoDateRangeInclusive(s, e);
@@ -104,7 +104,7 @@ export function assetFlowQuarterInTimeWindow(
   }
 
   if (eYm) {
-    const qYm = flowDateToYearMonthUtc(flowDateIso);
+    const qYm = assetFlowDateToYearMonthUtc(flowDateIso);
     return qYm !== null && qYm <= e.trim();
   }
   const endMs = inclusiveEndFromIso(e);

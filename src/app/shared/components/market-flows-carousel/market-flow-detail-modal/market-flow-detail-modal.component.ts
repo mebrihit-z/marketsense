@@ -5,7 +5,10 @@ import type { MarketFlowCard } from '../market-flow-card/market-flow-card.compon
 import { LineChartComponent } from '../../charts/line-chart/line-chart.component';
 import ExportModalComponent from '../export-modal/export-modal.component';
 import TitleComponent from '../../title/title.component';
-import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
+import {
+  type AssetFlowRecord,
+  filterAssetFlowsByDataType,
+} from '../../../utils/asset-flows-to-sankey.util';
 import * as detailModalUtil from './market-flow-detail-modal.util';
 import {
   formatFlowCurrencyUsd,
@@ -13,6 +16,7 @@ import {
   parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
+import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 
 @Component({
   selector: 'app-market-flow-detail-modal',
@@ -22,6 +26,8 @@ import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-win
   styleUrl: './market-flow-detail-modal.component.scss'
 })
 export default class MarketFlowDetailModalComponent implements OnChanges {
+  constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
+
   @Input() isVisible: boolean = false;
   /** When true, render only the content (no overlay) for inline use in carousel. */
   @Input() inline: boolean = false;
@@ -154,9 +160,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (this.selectedProductTypes?.length) {
       data = data.filter(r => this.selectedProductTypes!.includes(r.Product_Type));
     }
+    const dataType = this.card?.dataType ?? 'forecasted';
+    data = filterAssetFlowsByDataType(data, dataType);
     if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
-      const start = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.start);
-      const end = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.end);
+      const start = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
+      const end = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
       if (start && end) {
         data = data.filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, start, end));
       }
@@ -174,8 +182,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     sortedDates: string[]
   ): number[] | null {
     if (!this.timeHorizonRange?.start || !this.timeHorizonRange?.end) return null;
-    const startDate = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.start);
-    const endDate = detailModalUtil.convertTimeHorizonToDate(this.timeHorizonRange.end);
+    const startDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
+    const endDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
     if (!startDate || !endDate) return null;
     const startMonths = detailModalUtil.parseTimeHorizonToMonths(this.timeHorizonRange.start);
     const endMonths = detailModalUtil.parseTimeHorizonToMonths(this.timeHorizonRange.end);
@@ -186,7 +194,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     let cumulativeValue = 0;
     for (let i = 0; i < anchorMonths.length; i += 1) {
       const months = anchorMonths[i];
-      const targetDate = detailModalUtil.getDateFromMonthsOffset(months);
+      const targetDate = this.historicAnchor.monthsOffsetFromAnchor(months);
       let dateValue = 0;
       if (sortedDates.includes(targetDate)) {
         dateValue = dateMap.get(targetDate) || 0;
@@ -297,20 +305,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
     // Fallback to default labels
     if (!this.card) {
-      return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+      return ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
     }
 
     const isHistorical = this.card.dataType === 'historical';
     if (isHistorical) {
-      return ['-12mo', '-9mo', '-6mo', '-3mo', 'Today'];
+      return ['-12mo', '-9mo', '-6mo', '-3mo', '0'];
     } else {
-      return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+      return ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
     }
   }
 
   /**
    * Month offsets for each x-axis point when a dashboard time range is set: range endpoints plus every
-   * multiple of 3 months between them (Today / ±3mo / ±6mo …), in chronological order.
+   * multiple of 3 months between them (0 / ±3mo / ±6mo …), in chronological order.
    */
   private getTimeHorizonAnchorMonthsList(start: string, end: string): number[] {
     if (!this.timeHorizonRange && !start && !end) return [];
@@ -343,11 +351,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * Generates time horizon labels from start to end with distinct intermediate points (no duplicates).
    * @param {string} start - Start time horizon string
    * @param {string} end - End time horizon string
-   * @returns {string[]} Array of label strings (e.g. "Today", "+3mo")
+   * @returns {string[]} Array of label strings (e.g. "0", "+3mo")
    */
   private generateTimeHorizonLabels(start: string, end: string): string[] {
     return this.getTimeHorizonAnchorMonthsList(start, end).map(m => {
-      if (m === 0) return 'Today';
+      if (m === 0) return '0';
       if (m > 0) return `+${m}mo`;
       return `${m}mo`;
     });

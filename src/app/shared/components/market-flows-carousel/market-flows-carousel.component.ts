@@ -507,28 +507,30 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
       return this._generateTimeHorizonLabels(this.timeHorizonRange.start, this.timeHorizonRange.end);
     }
-    if (!this.card) return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    if (!this.card) return ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
     const isHistorical = this.card.dataType === 'historical';
-    return isHistorical ? ['-12mo', '-9mo', '-6mo', '-3mo', 'Today'] : ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    return isHistorical ? ['-12mo', '-9mo', '-6mo', '-3mo', '0'] : ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
   }
 
   private _generateTimeHorizonLabels(start: string, end: string): string[] {
     const parseMo = (s: string): number | null => {
-      const m = s.match(/([+-]?\d+)\s*mo/i);
+      const t = s.trim();
+      if (t === '0') return 0;
+      const m = t.match(/([+-]?\d+)\s*mo/i);
       return m ? parseInt(m[1], 10) : null;
     };
     const startMo = parseMo(start);
     const endMo = parseMo(end);
-    if (startMo === null || endMo === null) return ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    if (startMo === null || endMo === null) return ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
     const span = endMo - startMo;
     const n = Math.min(5, Math.max(1, Math.abs(span) + 1));
     const step = span === 0 ? 0 : span / (n - 1);
     const labels: string[] = [];
     for (let i = 0; i < n; i++) {
       const mo = span === 0 ? startMo : Math.round(startMo + step * i);
-      labels.push(mo === 0 ? 'Today' : mo > 0 ? `+${mo}mo` : `${mo}mo`);
+      labels.push(mo === 0 ? '0' : mo > 0 ? `+${mo}mo` : `${mo}mo`);
     }
-    return labels.length ? labels : ['Today', '+3mo', '+6mo', '+9mo', '+12mo'];
+    return labels.length ? labels : ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
   }
 
   /** For embedded modal markup (VDI): chart y-axis min. */

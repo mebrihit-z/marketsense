@@ -1,40 +1,26 @@
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { parseFlowDisplayValueToBillions } from '../../../utils/flow-currency-format.util';
+import {
+  addMonthsToYearMonthUtc,
+  getCalendarYearMonthNow,
+  horizonLabelToYearMonth,
+} from '../../../utils/historic-time-horizon-anchor.util';
 
 /**
  * Converts time horizon string to target date in YYYY-MM format.
- * @param {string} horizon - Time horizon string (e.g. "Today", "+3 mo", "-6")
- * @returns {string | null} Date in YYYY-MM format or null
+ * @param anchorYearMonth - Latest Historic quarter month (YYYY-MM); omit for calendar "now".
  */
-export function convertTimeHorizonToDate(horizon: string): string | null {
-  if (/^\d{4}-\d{2}$/.test(horizon.trim())) return horizon.trim();
-  const today = new Date();
-  const baseYear = today.getFullYear();
-  const baseMonth = today.getMonth() + 1;
-  if (horizon === 'Today') {
-    return `${baseYear}-${String(baseMonth).padStart(2, '0')}`;
-  }
-  const normalized = horizon.trim().toLowerCase();
-  let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
-  if (!match) match = normalized.match(/^([+-]?)(\d+)$/);
-  if (!match) return null;
-  const isNegative = match[1] === '-';
-  const months = parseInt(match[2], 10);
-  const targetDate = new Date(baseYear, baseMonth - 1, 1);
-  targetDate.setMonth(targetDate.getMonth() + (isNegative ? -months : months));
-  const y = targetDate.getFullYear();
-  const m = targetDate.getMonth() + 1;
-  return `${y}-${String(m).padStart(2, '0')}`;
+export function convertTimeHorizonToDate(horizon: string, anchorYearMonth?: string | null): string | null {
+  return horizonLabelToYearMonth(horizon, anchorYearMonth ?? null);
 }
 
 /**
- * @param {number} months - Months offset from current month
- * @returns {string} Date in YYYY-MM format
+ * @param months - Months offset from anchor month (or calendar now if anchor omitted)
+ * @param anchorYearMonth - Latest Historic quarter month (YYYY-MM)
  */
-export function getDateFromMonthsOffset(months: number): string {
-  const today = new Date();
-  const target = new Date(today.getFullYear(), today.getMonth() + months, 1);
-  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+export function getDateFromMonthsOffset(months: number, anchorYearMonth?: string | null): string {
+  const base = anchorYearMonth ?? getCalendarYearMonthNow();
+  return addMonthsToYearMonthUtc(base, months);
 }
 
 /**
@@ -105,7 +91,7 @@ export function findClosestDate(targetDate: string, sortedDates: string[]): stri
  * @returns {number | null} Months offset from today, or null
  */
 export function parseTimeHorizonToMonths(horizon: string): number | null {
-  if (horizon === 'Today') return 0;
+  if (horizon === 'Today' || horizon === '0') return 0;
   const normalized = horizon.trim().toLowerCase();
   let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
   if (!match) match = normalized.match(/^([+-]?)(\d+)$/);

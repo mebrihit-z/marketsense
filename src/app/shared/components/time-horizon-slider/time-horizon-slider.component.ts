@@ -18,6 +18,7 @@ import {
   TIME_HORIZONS_SHORT_LABELS,
 } from '../../constants/time-horizons.constants';
 import { formatTimeHorizonSliderHandleDate } from '../../utils/time-horizon-slider-tooltip-date.util';
+import { AssetFlowHistoricAnchorService } from '../../../core/services/asset-flow-historic-anchor.service';
 
 export interface TimeHorizonRangeIndices {
   startIndex: number;
@@ -32,6 +33,8 @@ export interface TimeHorizonRangeIndices {
   styleUrl: './time-horizon-slider.component.scss',
 })
 export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges {
+  constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
+
   private static readonly AXIS_INSET_DESKTOP_PX = 14;
   private static readonly AXIS_INSET_MOBILE_PX = 8;
 
@@ -62,7 +65,7 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
   private documentCaptureListener = (e: MouseEvent | TouchEvent) => this.onDocumentCapture(e);
 
   get todayIndex(): number {
-    return this.horizons.indexOf('Today');
+    return this.horizons.indexOf('0');
   }
 
   ngOnInit(): void {
@@ -164,7 +167,7 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
   handleTooltipDate(type: 'start' | 'end'): string {
     const idx = type === 'start' ? this.range.startIndex : this.range.endIndex;
     const label = this.horizons[idx];
-    return label ? formatTimeHorizonSliderHandleDate(label) : '';
+    return label ? formatTimeHorizonSliderHandleDate(label, this.historicAnchor.getAnchor()) : '';
   }
 
   getHandlePosition(type: 'start' | 'end'): number {
@@ -252,13 +255,13 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
     if (startDistance <= endDistance) {
       this.range = {
-        startIndex: Math.min(clickedIndex, this.range.endIndex - 1),
+        startIndex: Math.min(clickedIndex, this.range.endIndex),
         endIndex: this.range.endIndex,
       };
     } else {
       this.range = {
         startIndex: this.range.startIndex,
-        endIndex: Math.max(clickedIndex, this.range.startIndex + 1),
+        endIndex: Math.max(clickedIndex, this.range.startIndex),
       };
     }
     this.publishRange();
@@ -278,13 +281,13 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
     if (startDistance <= endDistance) {
       this.range = {
-        startIndex: Math.min(clickedIndex, this.range.endIndex - 1),
+        startIndex: Math.min(clickedIndex, this.range.endIndex),
         endIndex: this.range.endIndex,
       };
     } else {
       this.range = {
         startIndex: this.range.startIndex,
-        endIndex: Math.max(clickedIndex, this.range.startIndex + 1),
+        endIndex: Math.max(clickedIndex, this.range.startIndex),
       };
     }
     this.publishRange();
@@ -338,13 +341,13 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
     if (this.dragType === 'start') {
       this.range = {
-        startIndex: Math.min(clampedIndex, this.range.endIndex - 1),
+        startIndex: Math.min(clampedIndex, this.range.endIndex),
         endIndex: this.range.endIndex,
       };
     } else {
       this.range = {
         startIndex: this.range.startIndex,
-        endIndex: Math.max(clampedIndex, this.range.startIndex + 1),
+        endIndex: Math.max(clampedIndex, this.range.startIndex),
       };
     }
     this.hasDragged = true;
@@ -357,10 +360,10 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
     const h = this.horizons;
     const endHorizon = h[next.endIndex];
     const startHorizon = h[next.startIndex];
-    const todayIndex = h.indexOf('Today');
-    if (todayIndex >= 0) {
+    const anchorIndex = h.indexOf('0');
+    if (anchorIndex >= 0) {
       const inferred: 'historical' | 'forecasted' =
-        next.endIndex > todayIndex ? 'forecasted' : 'historical';
+        next.endIndex > anchorIndex ? 'forecasted' : 'historical';
       this.inferredDataTypeChange.emit(inferred);
     }
     this.timeHorizonChange.emit(endHorizon);

@@ -5,11 +5,19 @@ import { FormsModule } from '@angular/forms';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
 import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
-import { convertAssetFlowsToSankey, type AssetFlowRecord, type SankeyData, type AssetFlowDimensionField, type SankeyDimensionConfig } from '../../utils/asset-flows-to-sankey.util';
+import {
+  convertAssetFlowsToSankey,
+  filterAssetFlowsByDataType,
+  type AssetFlowRecord,
+  type SankeyData,
+  type AssetFlowDimensionField,
+  type SankeyDimensionConfig,
+} from '../../utils/asset-flows-to-sankey.util';
 import { 
   filterSankeyData 
 } from '../../utils/sankey-data.utils';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
+import { AssetFlowHistoricAnchorService } from '../../../core/services/asset-flow-historic-anchor.service';
 import type { SavedChartHierarchyDimensions } from '../../../core/services/saved-views.service';
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 import { assetFlowQuarterInTimeWindow } from '../../utils/asset-flow-time-window.util';
@@ -145,7 +153,10 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     active: true,
   };
 
-  constructor(private assetFlowsData: AssetFlowsDataService) {}
+  constructor(
+    private assetFlowsData: AssetFlowsDataService,
+    private historicAnchor: AssetFlowHistoricAnchorService
+  ) {}
   
   // Sample flow data
   flowData: AssetFlowData = {
@@ -187,7 +198,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
       next: (data) => {
         try {
           this.rawAssetFlowsData = data;
-          
+          this.historicAnchor.rebuild(data);
+
           this.updateSankeyData();
           
           this.filterOptions = extractFilterOptionsFromAssetFlows(data);
@@ -249,8 +261,9 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     const dim1Id = this.selectedDimension1?.id || 'investor-region';
     let individualValues = superValues;
 
-    // Filter data by time horizon, then by filter bar (investor region, type, product region/type/sub-type)
+    // Filter data by time horizon, Historic vs Forecast (aligns with filters bar), then filter bar selections.
     let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
+    filteredData = filterAssetFlowsByDataType(filteredData, this.dataType);
     filteredData = this.filterDataByFilterBar(filteredData);
 
     if (!filteredData || filteredData.length === 0) {
@@ -408,61 +421,14 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
   /**
    * Converts time horizon string to target date in YYYY-MM format
-   * Returns null if time horizon is invalid
-   * Uses today's date as the base for calculations
-   * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo"). If not provided, uses this.timeHorizon
+   * Uses latest Historic quarter in loaded data as the anchor for `0` / +/- mo.
    */
   private getTargetDateFromTimeHorizon(horizon?: string): string | null {
     const timeHorizonToUse = horizon || this.timeHorizon;
     if (/^\d{4}-\d{2}$/.test(timeHorizonToUse.trim())) {
       return timeHorizonToUse.trim();
     }
-    // Use today's date as the base
-    const today = new Date();
-    const baseYear = today.getFullYear();
-    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    
-    if (timeHorizonToUse === 'Today') {
-      // For "Today", return the current month
-      const monthStr = String(baseMonth).padStart(2, '0');
-      return `${baseYear}-${monthStr}`;
-    }
-    
-    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
-    // Support both formats: with/without space and with/without + prefix
-    const normalized = timeHorizonToUse.trim().toLowerCase();
-    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
-    
-    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
-    if (!match) {
-      match = normalized.match(/^([+-]?)(\d+)$/);
-    }
-    
-    if (!match) {
-      console.warn('Could not parse time horizon:', timeHorizonToUse);
-      return null;
-    }
-    
-    const isNegative = match[1] === '-';
-    const months = parseInt(match[2], 10);
-    
-    // Calculate target date by adding/subtracting months from today
-    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
-    
-    if (isNegative) {
-      // Historical: subtract months
-      targetDate.setMonth(targetDate.getMonth() - months);
-    } else {
-      // Forecasted: add months (default for positive or no sign)
-      targetDate.setMonth(targetDate.getMonth() + months);
-    }
-    
-    // Format as YYYY-MM
-    const targetYear = targetDate.getFullYear();
-    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    const monthStr = String(targetMonth).padStart(2, '0');
-    const result = `${targetYear}-${monthStr}`;
-    return result;
+    return this.historicAnchor.horizonToYearMonth(timeHorizonToUse.trim());
   }
 
   ngOnChanges(changes: SimpleChanges): void {

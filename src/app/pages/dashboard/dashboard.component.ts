@@ -19,9 +19,13 @@ import HeaderComponent from '../../shared/components/header/header.component';
 import WelcomeSectionComponent from '../../shared/components/welcome-section/welcome-section.component';
 import AskMarketsenseSectionComponent from '../../shared/components/ask-marketsense-section/ask-marketsense-section.component';
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
-import { type AssetFlowRecord } from '../../shared/utils/asset-flows-to-sankey.util';
+import {
+  type AssetFlowRecord,
+  filterAssetFlowsByDataType,
+} from '../../shared/utils/asset-flows-to-sankey.util';
 import { assetFlowQuarterInTimeWindow } from '../../shared/utils/asset-flow-time-window.util';
 import { AssetFlowsDataService } from '../../core/services/asset-flows-data.service';
+import { AssetFlowHistoricAnchorService } from '../../core/services/asset-flow-historic-anchor.service';
 import {
   getMinFlowLowerBound,
   getMaxFlowUpperBound,
@@ -85,7 +89,11 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   // Raw asset flows data
   rawAssetFlowsData: AssetFlowRecord[] = [];
 
-  constructor(private cdr: ChangeDetectorRef, private assetFlowsData: AssetFlowsDataService) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private assetFlowsData: AssetFlowsDataService,
+    private historicAnchor: AssetFlowHistoricAnchorService
+  ) {}
 
   ngOnInit(): void {
     this.loadAssetFlowsData();
@@ -139,6 +147,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     this.assetFlowsData.getAssetFlows().subscribe({
       next: (data) => {
         this.rawAssetFlowsData = data;
+        this.historicAnchor.rebuild(data);
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -292,6 +301,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       return [];
     }
     let data = this.applyFilterBarDimensions(this.rawAssetFlowsData);
+    data = filterAssetFlowsByDataType(data, this.carouselDataType);
     data = this.applyCurrentTimeWindowToRecords(data);
     return this.filterRecordsByFlowMagnitude(data);
   }
@@ -313,6 +323,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     }
 
     let filteredData = this.applyFilterBarDimensions(this.rawAssetFlowsData);
+    filteredData = filterAssetFlowsByDataType(filteredData, this.carouselDataType);
     filteredData = this.applyCurrentTimeWindowToRecords(filteredData);
     filteredData = this.filterRecordsByFlowMagnitude(filteredData);
 
@@ -350,15 +361,14 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     
     if (previousDateRange) {
       let previousData = this.applyFilterBarDimensions(this.rawAssetFlowsData);
+      previousData = filterAssetFlowsByDataType(previousData, this.carouselDataType);
       const prevStartDate = this.convertTimeHorizonToDate(previousDateRange.start);
       const prevEndDate = this.convertTimeHorizonToDate(previousDateRange.end);
 
       if (prevStartDate && prevEndDate) {
-        previousData = previousData.filter(record => {
-          if (!record.Asset_Flow_Date) return false;
-          const recordDate = record.Asset_Flow_Date;
-          return recordDate >= prevStartDate && recordDate <= prevEndDate;
-        });
+        previousData = previousData.filter(record =>
+          assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, prevStartDate, prevEndDate)
+        );
       }
 
       previousData = this.filterRecordsByFlowMagnitude(previousData);
@@ -540,7 +550,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     // For simplicity, if time horizon is "Today" or forecasted, use most recent dates
     // For historical, use earlier dates
     // Since we're aggregating, we'll include all dates that match the period
-    if (timeHorizon === 'Today' || (dataType === 'forecasted' && timeHorizon.startsWith('+'))) {
+    if (timeHorizon === '0' || timeHorizon === 'Today' || (dataType === 'forecasted' && timeHorizon.startsWith('+'))) {
       // Use the most recent date(s) - for now, use all available dates
       // In a real scenario, you'd filter to specific months
       const latestDate = sortedDates[sortedDates.length - 1];
@@ -593,54 +603,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
    * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo")
    */
   private convertTimeHorizonToDate(horizon: string): string | null {
-    // If it's already in YYYY-MM format, return it directly
-    if (/^\d{4}-\d{2}$/.test(horizon.trim())) {
-      return horizon.trim();
-    }
-    
-    // Use today's date as the base
-    const today = new Date();
-    const baseYear = today.getFullYear();
-    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    
-    if (horizon === 'Today') {
-      // For "Today", return the current month
-      const monthStr = String(baseMonth).padStart(2, '0');
-      return `${baseYear}-${monthStr}`;
-    }
-    
-    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
-    // Support both formats: with/without space and with/without + prefix
-    const normalized = horizon.trim().toLowerCase();
-    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
-    
-    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
-    if (!match) {
-      match = normalized.match(/^([+-]?)(\d+)$/);
-    }
-    
-    if (!match) {
-      console.warn('Could not parse time horizon:', horizon);
-      return null;
-    }
-    
-    const isNegative = match[1] === '-';
-    const months = parseInt(match[2], 10);
-    
-    // Calculate target date by adding/subtracting months from today
-    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
-    
-    if (isNegative) {
-      targetDate.setMonth(targetDate.getMonth() - months);
-    } else {
-      targetDate.setMonth(targetDate.getMonth() + months);
-    }
-    
-    const targetYear = targetDate.getFullYear();
-    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    const monthStr = String(targetMonth).padStart(2, '0');
-    
-    return `${targetYear}-${monthStr}`;
+    return this.historicAnchor.horizonToYearMonth(horizon);
   }
 
   /**

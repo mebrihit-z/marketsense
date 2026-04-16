@@ -9,6 +9,7 @@ import {
 } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
+import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
@@ -74,7 +75,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   constructor(
     private el: ElementRef,
     private http: HttpClient,
-    private assetFlowsData: AssetFlowsDataService
+    private assetFlowsData: AssetFlowsDataService,
+    private historicAnchor: AssetFlowHistoricAnchorService
   ) {}
 
   /** Read CSS variable from component host first, then :root (tooltip vars live on app-treemap). */
@@ -148,6 +150,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         next: (assetFlows) => {
           try {
             this.rawAssetFlowsData = assetFlows;
+            this.historicAnchor.rebuild(assetFlows);
             this.convertAssetFlowsWithTimeHorizonFilter();
           } catch (error) {
             console.error('Error converting asset flows to treemap data:', error);
@@ -231,62 +234,14 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   /**
-   * Converts time horizon string to target date in YYYY-MM format
-   * Returns null if time horizon is invalid
-   * Uses today's date as the base for calculations
-   * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo"). If not provided, uses this.timeHorizon
+   * Converts time horizon string to YYYY-MM using latest Historic quarter as anchor.
    */
   private getTargetDateFromTimeHorizon(horizon?: string): string | null {
     const timeHorizonToUse = horizon || this.timeHorizon;
     if (/^\d{4}-\d{2}$/.test(timeHorizonToUse.trim())) {
       return timeHorizonToUse.trim();
     }
-    // Use today's date as the base
-    const today = new Date();
-    const baseYear = today.getFullYear();
-    const baseMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    
-    if (timeHorizonToUse === 'Today') {
-      // For "Today", return the current month
-      const monthStr = String(baseMonth).padStart(2, '0');
-      return `${baseYear}-${monthStr}`;
-    }
-    
-    // Parse time horizon string (e.g., "+3 mo", "+6 mo", "-3 mo", "6mo", "9mo")
-    // Support both formats: with/without space and with/without + prefix
-    const normalized = timeHorizonToUse.trim().toLowerCase();
-    let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
-    
-    // If no match, try without "mo" suffix (e.g., "6mo", "9mo")
-    if (!match) {
-      match = normalized.match(/^([+-]?)(\d+)$/);
-    }
-    
-    if (!match) {
-      console.warn('ReallocationTreemap: Could not parse time horizon:', timeHorizonToUse);
-      return null;
-    }
-    
-    const isNegative = match[1] === '-';
-    const months = parseInt(match[2], 10);
-    
-    // Calculate target date by adding/subtracting months from today
-    const targetDate = new Date(baseYear, baseMonth - 1, 1); // Create date object (month is 0-indexed)
-    
-    if (isNegative) {
-      // Historical: subtract months
-      targetDate.setMonth(targetDate.getMonth() - months);
-    } else {
-      // Forecasted: add months (default for positive or no sign)
-      targetDate.setMonth(targetDate.getMonth() + months);
-    }
-    
-    // Format as YYYY-MM
-    const targetYear = targetDate.getFullYear();
-    const targetMonth = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    const monthStr = String(targetMonth).padStart(2, '0');
-    const result = `${targetYear}-${monthStr}`;
-    return result;
+    return this.historicAnchor.horizonToYearMonth(timeHorizonToUse.trim());
   }
 
   private applyFilters(): void {
@@ -435,11 +390,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   private getTimeHorizonDisplayString(): string {
     if (this.timeHorizonStart && this.timeHorizonEnd &&
         this.timeHorizonStart.trim() !== '' && this.timeHorizonEnd.trim() !== '') {
-      const start = formatTimeHorizonSliderHandleDate(this.timeHorizonStart.trim());
-      const end = formatTimeHorizonSliderHandleDate(this.timeHorizonEnd.trim());
+      const a = this.historicAnchor.getAnchor();
+      const start = formatTimeHorizonSliderHandleDate(this.timeHorizonStart.trim(), a);
+      const end = formatTimeHorizonSliderHandleDate(this.timeHorizonEnd.trim(), a);
       return `${start} to ${end}`;
     }
-    return formatTimeHorizonSliderHandleDate((this.timeHorizon || 'Today').trim());
+    return formatTimeHorizonSliderHandleDate((this.timeHorizon || '0').trim(), this.historicAnchor.getAnchor());
   }
 
   private escapeHtml(text: string): string {

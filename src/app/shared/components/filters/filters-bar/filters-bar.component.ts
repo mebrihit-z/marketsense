@@ -150,7 +150,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   hasDragged = false; // Track if user actually dragged vs just clicked
   sliderTrackWidth = 142; // Width of the slider track in pixels (normal)
   
-  /** Indices into {@link UNIFIED_TIME_HORIZONS} (default = Today → +3 mo). */
+  /** Indices into {@link UNIFIED_TIME_HORIZONS} (default = 0 → +3 mo). */
   timeHorizonRange: TimeHorizonRangeIndices = { startIndex: 6, endIndex: 7 };
 
   /** VDI: sync user preference only after OAuth `sub` is available (avoids duplicate API users). */
@@ -364,15 +364,15 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
    */
   private initializeTimeHorizonRange(): void {
     const horizons = UNIFIED_TIME_HORIZONS;
-    const todayIdx = horizons.indexOf('Today');
+    const anchorIdx = horizons.indexOf('0');
     const plus3Idx = horizons.indexOf('+3 mo');
     const minus3Idx = horizons.indexOf('-3 mo');
 
-    if (this.dataType === 'historical' && minus3Idx >= 0 && todayIdx >= 0) {
-      this.timeHorizonRange = { startIndex: minus3Idx, endIndex: todayIdx };
-    } else if (todayIdx >= 0 && plus3Idx >= 0) {
-      // Forecasted default: Today → +3 mo
-      this.timeHorizonRange = { startIndex: todayIdx, endIndex: plus3Idx };
+    if (this.dataType === 'historical' && minus3Idx >= 0 && anchorIdx >= 0) {
+      this.timeHorizonRange = { startIndex: minus3Idx, endIndex: anchorIdx };
+    } else if (anchorIdx >= 0 && plus3Idx >= 0) {
+      // Forecasted default: 0 → +3 mo
+      this.timeHorizonRange = { startIndex: anchorIdx, endIndex: plus3Idx };
     } else {
       const n = horizons.length - 1;
       this.timeHorizonRange = { startIndex: Math.max(0, n - 1), endIndex: n };
@@ -845,8 +845,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       const horizons = UNIFIED_TIME_HORIZONS;
       const startLabel = labels.start as string | undefined;
       const endLabel = labels.end as string | undefined;
-      const startIndex = startLabel != null ? horizons.indexOf(startLabel) : -1;
-      const endIndex = endLabel != null ? horizons.indexOf(endLabel) : -1;
+      const mapSaved = (l: string) => (l.trim() === 'Today' ? '0' : l.trim());
+      const startIndex = startLabel != null ? horizons.indexOf(mapSaved(startLabel)) : -1;
+      const endIndex = endLabel != null ? horizons.indexOf(mapSaved(endLabel)) : -1;
       if (startIndex >= 0 && endIndex >= startIndex) {
         this.timeHorizonRange = { startIndex, endIndex };
         this.updateSelectedTimeHorizon();
@@ -865,8 +866,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           endIndex >= startIndex &&
           endIndex < legacy.length
         ) {
-          const startLabel = legacy[startIndex];
-          const endLabel = legacy[endIndex];
+          const mapSaved = (l: string) => (l.trim() === 'Today' ? '0' : l.trim());
+          const startLabel = mapSaved(legacy[startIndex]);
+          const endLabel = mapSaved(legacy[endIndex]);
           const ns = horizons.indexOf(startLabel);
           const ne = horizons.indexOf(endLabel);
           if (ns >= 0 && ne >= ns) {
@@ -1124,13 +1126,13 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   setDataType(type: 'historical' | 'forecasted'): void {
     this.dataType = type;
     const horizons = UNIFIED_TIME_HORIZONS;
-    const todayIdx = horizons.indexOf('Today');
+    const anchorIdx = horizons.indexOf('0');
     const plus3Idx = horizons.indexOf('+3 mo');
     const minus3Idx = horizons.indexOf('-3 mo');
-    if (type === 'historical' && minus3Idx >= 0 && todayIdx >= 0) {
-      this.timeHorizonRange = { startIndex: minus3Idx, endIndex: todayIdx };
-    } else if (type === 'forecasted' && todayIdx >= 0 && plus3Idx >= 0) {
-      this.timeHorizonRange = { startIndex: todayIdx, endIndex: plus3Idx };
+    if (type === 'historical' && minus3Idx >= 0 && anchorIdx >= 0) {
+      this.timeHorizonRange = { startIndex: minus3Idx, endIndex: anchorIdx };
+    } else if (type === 'forecasted' && anchorIdx >= 0 && plus3Idx >= 0) {
+      this.timeHorizonRange = { startIndex: anchorIdx, endIndex: plus3Idx };
     }
     this.updateSelectedTimeHorizon();
     this.dataTypeChange.emit(type);
@@ -1144,12 +1146,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     const endHorizon = horizons[this.timeHorizonRange.endIndex];
     const startHorizon = horizons[this.timeHorizonRange.startIndex];
 
-    // Derive data type implicitly from the selected range relative to "Today"
-    const todayIndex = horizons.indexOf('Today');
-    if (todayIndex >= 0) {
-      // If the range extends into the future (beyond Today), treat as forecasted;
-      // otherwise treat as historical.
-      this.dataType = this.timeHorizonRange.endIndex > todayIndex ? 'forecasted' : 'historical';
+    // Derive data type implicitly from the selected range relative to anchor "0"
+    const anchorIndex = horizons.indexOf('0');
+    if (anchorIndex >= 0) {
+      // If the range extends beyond the anchor, treat as forecasted; otherwise historical.
+      this.dataType = this.timeHorizonRange.endIndex > anchorIndex ? 'forecasted' : 'historical';
       this.dataTypeChange.emit(this.dataType);
     }
 

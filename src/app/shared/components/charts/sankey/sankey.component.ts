@@ -16,6 +16,7 @@ import {
 } from '../../../utils/sankey-data.utils';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
+import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 
 // ----------------------
 // TypeScript Models
@@ -108,7 +109,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   constructor(
     private el: ElementRef,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private historicAnchor: AssetFlowHistoricAnchorService
   ) {
     // Generate unique tooltip ID for this instance
     this.tooltipId = `sankey-tooltip-${Math.random().toString(36).substr(2, 9)}`;
@@ -394,7 +396,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     /** Same dates as the time-horizon slider handle tooltips. */
     private formatHorizonTokenForTooltip(horizon: string): string {
-      return formatTimeHorizonSliderHandleDate(horizon.trim());
+      return formatTimeHorizonSliderHandleDate(horizon.trim(), this.historicAnchor.getAnchor());
     }
 
     private formatTimeInfo(): string {
