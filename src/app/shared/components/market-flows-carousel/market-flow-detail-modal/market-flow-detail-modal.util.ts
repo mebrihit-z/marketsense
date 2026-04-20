@@ -6,6 +6,10 @@ import {
   getCalendarYearMonthNow,
   horizonLabelToYearMonth,
 } from '../../../utils/historic-time-horizon-anchor.util';
+import {
+  assetFlowDateToYearMonthUtc,
+  parseTimeHorizonLabelToOffsetMonths,
+} from '../../../utils/asset-flow-time-window.util';
 
 /**
  * Converts time horizon string to target date in YYYY-MM format.
@@ -72,19 +76,83 @@ export function sampleOrPadToLength(rawData: number[], targetLength: number): nu
 }
 
 /**
- * @param {string} targetDate - Target date (YYYY-MM)
- * @param {string[]} sortedDates - Sorted date strings
- * @returns {string | null} Closest date or null
+ * Sums {@link dateMap} entries whose ISO quarter-end keys map to the same UTC YYYY-MM as {@link targetYm}.
+ * {@link sortedDates} must be the same keys as in the map (typically {@link Asset_Flow_Date} ISO strings).
+ */
+export function sumDateMapValuesForYearMonth(
+  targetYm: string,
+  sortedDates: string[],
+  dateMap: Map<string, number>
+): number {
+  let sum = 0;
+  for (const iso of sortedDates) {
+    const qYm = assetFlowDateToYearMonthUtc(iso);
+    if (qYm === targetYm) sum += dateMap.get(iso) || 0;
+  }
+  return sum;
+}
+
+/** Inclusive calendar distance in months from `aYm` to `bYm` (both `YYYY-MM`). */
+export function monthsBetweenYearMonths(aYm: string, bYm: string): number | null {
+  const ma = aYm.trim().match(/^(\d{4})-(\d{2})$/);
+  const mb = bYm.trim().match(/^(\d{4})-(\d{2})$/);
+  if (!ma || !mb) return null;
+  const ay = Number(ma[1]);
+  const am = Number(ma[2]);
+  const by = Number(mb[1]);
+  const bm = Number(mb[2]);
+  if (![ay, am, by, bm].every(Number.isFinite)) return null;
+  return (by - ay) * 12 + (bm - am);
+}
+
+/**
+ * Union of slider grid months and actual quarter-end months present in data, restricted to [loYm, hiYm], sorted.
+ */
+export function mergeYearMonthsInWindow(
+  gridYms: string[],
+  sortedIsoDates: string[],
+  windowLoYm: string,
+  windowHiYm: string
+): string[] {
+  const lo = windowLoYm <= windowHiYm ? windowLoYm : windowHiYm;
+  const hi = windowLoYm <= windowHiYm ? windowHiYm : windowLoYm;
+  const set = new Set<string>();
+  for (const ym of gridYms) {
+    if (ym >= lo && ym <= hi) set.add(ym);
+  }
+  for (const iso of sortedIsoDates) {
+    const qYm = assetFlowDateToYearMonthUtc(iso);
+    if (qYm && qYm >= lo && qYm <= hi) set.add(qYm);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * @param {string} targetDate - Target calendar month (YYYY-MM), same basis as {@link horizonLabelToYearMonth}
+ * @param {string[]} sortedDates - Sorted {@link Asset_Flow_Date} ISO strings
+ * @returns {string | null} Closest ISO key by quarter-end calendar time, or null
+ * @deprecated Prefer {@link sumDateMapValuesForYearMonth}; kept for any external callers expecting YYYY-MM targets.
  */
 export function findClosestDate(targetDate: string, sortedDates: string[]): string | null {
   if (sortedDates.length === 0) return null;
-  const target = new Date(targetDate + '-01');
-  const initial = { closest: sortedDates[0], minDiff: Math.abs(target.getTime() - new Date(sortedDates[0] + '-01').getTime()) };
-  const result = sortedDates.reduce((best, date) => {
-    const diff = Math.abs(target.getTime() - new Date(date + '-01').getTime());
-    return diff < best.minDiff ? { closest: date, minDiff: diff } : best;
-  }, initial);
-  return result.closest;
+  const ym = targetDate.trim().match(/^(\d{4})-(\d{2})$/);
+  if (!ym) return null;
+  const y = Number(ym[1]);
+  const mo = Number(ym[2]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo)) return null;
+  const targetMs = Date.UTC(y, mo - 1, 15);
+  let best: string | null = null;
+  let bestDiff = Infinity;
+  for (const iso of sortedDates) {
+    const t = new Date(iso).getTime();
+    if (Number.isNaN(t)) continue;
+    const diff = Math.abs(t - targetMs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = iso;
+    }
+  }
+  return best;
 }
 
 /**
@@ -92,14 +160,7 @@ export function findClosestDate(targetDate: string, sortedDates: string[]): stri
  * @returns {number | null} Months offset from today, or null
  */
 export function parseTimeHorizonToMonths(horizon: string): number | null {
-  if (horizon === 'Today' || horizon === '0') return 0;
-  const normalized = horizon.trim().toLowerCase();
-  let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
-  if (!match) match = normalized.match(/^([+-]?)(\d+)$/);
-  if (!match) return null;
-  const isNegative = match[1] === '-';
-  const months = parseInt(match[2], 10);
-  return isNegative ? -months : months;
+  return parseTimeHorizonLabelToOffsetMonths(horizon);
 }
 
 /**

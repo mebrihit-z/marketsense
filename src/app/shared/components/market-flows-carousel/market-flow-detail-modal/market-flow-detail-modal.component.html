@@ -11,20 +11,22 @@
       <!-- Forecast Trajectory Chart -->
       <div class="chart-section">
         <div class="chart-container">
-          <app-line-chart
-            [data]="getChartData()"
-            [color]="getChartColor()"
-            [width]="getChartWidth()"
-            [height]="320"
-            [showGrid]="true"
-            [showArea]="false"
-            [xAxisLabels]="getXAxisLabels()"
-            [yAxisMin]="getYAxisMin()"
-            [yAxisMax]="getYAxisMax()"
-            [yAxisLabel]="yAxisLabelText"
-            [yAxisValuesInBillions]="true"
-            [xAxisLabel]="xAxisLabelText">
-          </app-line-chart>
+          <ng-container *ngIf="getLineChartBundle() as lc">
+            <app-line-chart
+              [data]="lc.data"
+              [color]="getChartColor()"
+              [width]="getChartWidth()"
+              [height]="320"
+              [showGrid]="true"
+              [showArea]="false"
+              [xAxisLabels]="lc.labels"
+              [yAxisMin]="getYAxisMin()"
+              [yAxisMax]="getYAxisMax()"
+              [yAxisLabel]="yAxisLabelText"
+              [yAxisValuesInBillions]="true"
+              [xAxisLabel]="xAxisLabelText">
+            </app-line-chart>
+          </ng-container>
         </div>
       </div>
     </div>
@@ -50,20 +52,22 @@
     <div class="chart-section">
       
       <div class="chart-container">
-        <app-line-chart
-          [data]="getChartData()"
-          [color]="getChartColor()"
-          [width]="getChartWidth()"
-          [height]="320"
-          [showGrid]="true"
-          [showArea]="false"
-          [xAxisLabels]="getXAxisLabels()"
-          [yAxisMin]="getYAxisMin()"
-          [yAxisMax]="getYAxisMax()"
-          [yAxisLabel]="yAxisLabelText"
-          [yAxisValuesInBillions]="true"
-          [xAxisLabel]="xAxisLabelText">
-        </app-line-chart>
+        <ng-container *ngIf="getLineChartBundle() as lc">
+          <app-line-chart
+            [data]="lc.data"
+            [color]="getChartColor()"
+            [width]="getChartWidth()"
+            [height]="320"
+            [showGrid]="true"
+            [showArea]="false"
+            [xAxisLabels]="lc.labels"
+            [yAxisMin]="getYAxisMin()"
+            [yAxisMax]="getYAxisMax()"
+            [yAxisLabel]="yAxisLabelText"
+            [yAxisValuesInBillions]="true"
+            [xAxisLabel]="xAxisLabelText">
+          </app-line-chart>
+        </ng-container>
       </div>
     </div>
   </div>

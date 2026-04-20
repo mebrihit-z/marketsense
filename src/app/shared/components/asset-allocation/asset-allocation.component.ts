@@ -8,7 +8,7 @@ import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import {
   convertAssetFlowsToSankey,
-  filterAssetFlowsByDataType,
+  filterAssetFlowsByDataTypeResolvingSpan,
   type AssetFlowRecord,
   type SankeyData,
   type AssetFlowDimensionField,
@@ -711,7 +711,13 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     }
 
     let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
-    filteredData = filterAssetFlowsByDataType(filteredData, this.dataType);
+    filteredData = filterAssetFlowsByDataTypeResolvingSpan(
+      filteredData,
+      this.dataType,
+      this.timeHorizonStart,
+      this.timeHorizonEnd,
+      this.historicAnchor.getAnchorYearMonth()
+    );
     filteredData = this.filterDataByFilterBar(filteredData);
     if (!filteredData || filteredData.length === 0) {
       console.warn('AssetAllocation: No data after time horizon filter');

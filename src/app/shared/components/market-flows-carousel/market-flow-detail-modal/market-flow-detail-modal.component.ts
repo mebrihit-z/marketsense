@@ -6,7 +6,7 @@ import { LineChartComponent } from '../../charts/line-chart/line-chart.component
 import ExportModalComponent from '../export-modal/export-modal.component';
 import {
   type AssetFlowRecord,
-  filterAssetFlowsByDataType,
+  filterAssetFlowsByDataTypeResolvingSpan,
 } from '../../../utils/asset-flows-to-sankey.util';
 import * as detailModalUtil from './market-flow-detail-modal.util';
 import {
@@ -65,6 +65,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private cachedInvestorBreakdown: FlowBreakdownRow[] = [];
   private cachedProductBreakdown: FlowBreakdownRow[] = [];
 
+  private lineChartMemoFp = '';
+  private lineChartMemo: { data: number[]; labels: string[] } = { data: [], labels: [] };
+
   /** Exposed for template (static methods). */
   readonly getConfidenceColor = MarketFlowDetailModalComponent.getConfidenceColor;
   readonly getConfidenceLabel = MarketFlowDetailModalComponent.getConfidenceLabel;
@@ -90,6 +93,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       changes['selectedProductTypes']
     ) {
       this.breakdownFingerprint = '';
+      this.lineChartMemoFp = '';
     }
   }
 
@@ -138,18 +142,77 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private static readonly FALLBACK_CHART_DATA_TEMPLATE = [10, 12, 18, 25, 35];
 
   /**
-   * Returns fallback chart data with length equal to getXAxisLabels() so x-axis never shows raw indices (e.g. "4").
-   * @returns {number[]} Fallback chart values
+   * Returns fallback chart data with length equal to {@link labelCount} so x-axis never shows raw indices (e.g. "4").
    */
-  private getFallbackChartData(): number[] {
-    const labelCount = this.getXAxisLabels().length;
+  private getFallbackChartDataForLength(labelCount: number): number[] {
     const template = MarketFlowDetailModalComponent.FALLBACK_CHART_DATA_TEMPLATE;
     if (labelCount <= template.length) {
       return template.slice(0, labelCount);
     }
-    // Pad: repeat last value so every tick has a label
     const last = template[template.length - 1] ?? 35;
     return [...template, ...Array(labelCount - template.length).fill(last)];
+  }
+
+  private getLineChartFingerprint(): string {
+    return JSON.stringify({
+      id: this.card?.id,
+      productSubType: this.card?.productSubType,
+      dataType: this.card?.dataType,
+      timeHorizonRange: this.timeHorizonRange,
+      rawLen: this.rawAssetFlowsData?.length ?? 0,
+      selectedInvestorRegions: this.selectedInvestorRegions,
+      selectedInvestorTypes: this.selectedInvestorTypes,
+      selectedProductRegions: this.selectedProductRegions,
+      selectedProductTypes: this.selectedProductTypes,
+    });
+  }
+
+  /**
+   * Memoized chart series + x-axis labels so labels stay aligned with cumulative points (single CD pass).
+   */
+  getLineChartBundle(): { data: number[]; labels: string[] } {
+    const fp = this.getLineChartFingerprint();
+    if (fp !== this.lineChartMemoFp) {
+      this.lineChartMemoFp = fp;
+      this.lineChartMemo = this.computeLineChartBundle();
+    }
+    return this.lineChartMemo;
+  }
+
+  private computeLineChartBundle(): { data: number[]; labels: string[] } {
+    const defaultLabels = this.getDefaultXAxisLabelsNoRange();
+    if (!this.card || !this.rawAssetFlowsData?.length) {
+      return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
+    }
+    const productSubType = this.card.productSubType;
+    if (!productSubType) {
+      return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
+    }
+    const filteredData = this.applyChartDataFilters(productSubType);
+    const { dateMap, sortedDates } = detailModalUtil.aggregateByDate(filteredData);
+    if (sortedDates.length === 0) {
+      return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
+    }
+    const rangeCumulative = this.buildCumulativeDataForTimeHorizonLabels(dateMap, sortedDates);
+    if (rangeCumulative) {
+      return { data: rangeCumulative.series, labels: rangeCumulative.xAxisLabels };
+    }
+    const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
+    const targetLength = Math.max(1, defaultLabels.length);
+    return {
+      data: detailModalUtil.sampleOrPadToLength(rawData, targetLength),
+      labels: defaultLabels,
+    };
+  }
+
+  private getDefaultXAxisLabelsNoRange(): string[] {
+    if (!this.card) {
+      return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
+    }
+    if (this.card.dataType === 'historical') {
+      return ['-12', '-9', '-6', '-3', this.getZeroTimeHorizonDateLabel()];
+    }
+    return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
   }
 
   /**
@@ -161,10 +224,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (sortedDates.length === 0) return [];
 
     const labelAlignedData = this.buildCumulativeDataForTimeHorizonLabels(dateMap, sortedDates);
-    if (labelAlignedData) return labelAlignedData;
+    if (labelAlignedData) return labelAlignedData.series;
 
     const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
-    const targetLength = Math.max(1, this.getXAxisLabels().length);
+    const targetLength = Math.max(1, this.getDefaultXAxisLabelsNoRange().length);
     return detailModalUtil.sampleOrPadToLength(rawData, targetLength);
   }
 
@@ -172,16 +235,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {number[]} Chart data (filtered by card, regions, product types, time range) or fallback
    */
   getChartData(): number[] {
-    if (!this.card || !this.rawAssetFlowsData || this.rawAssetFlowsData.length === 0) {
-      return this.getFallbackChartData();
-    }
-    const productSubType = this.card.productSubType;
-    if (!productSubType) return this.getFallbackChartData();
-
-    const filteredData = this.applyChartDataFilters(productSubType);
-    const series = this.getCumulativeSeriesForFiltered(filteredData);
-    if (series.length === 0) return this.getFallbackChartData();
-    return series;
+    const { data } = this.getLineChartBundle();
+    return data;
   }
 
   /**
@@ -306,7 +361,13 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       data = data.filter(r => this.selectedProductTypes!.includes(r.Product_Type));
     }
     const dataType = this.card?.dataType ?? 'forecasted';
-    data = filterAssetFlowsByDataType(data, dataType);
+    data = filterAssetFlowsByDataTypeResolvingSpan(
+      data,
+      dataType,
+      this.timeHorizonRange?.start,
+      this.timeHorizonRange?.end,
+      this.historicAnchor.getAnchorYearMonth()
+    );
     if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
       const start = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
       const end = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
@@ -320,12 +381,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * @param {Map<string, number>} dateMap - Date to aggregated value (billions)
    * @param {string[]} sortedDates - Sorted date strings
-   * @returns {number[] | null} Cumulative data aligned to time horizon labels, or null
+   * @returns Cumulative series and x-axis labels when a dashboard time range is set, or null
    */
   private buildCumulativeDataForTimeHorizonLabels(
     dateMap: Map<string, number>,
     sortedDates: string[]
-  ): number[] | null {
+  ): { series: number[]; xAxisLabels: string[] } | null {
     if (!this.timeHorizonRange?.start || !this.timeHorizonRange?.end) return null;
     const startDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
     const endDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
@@ -334,23 +395,31 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const endMonths = detailModalUtil.parseTimeHorizonToMonths(this.timeHorizonRange.end);
     if (startMonths === null || endMonths === null) return null;
 
+    const lo = startDate <= endDate ? startDate : endDate;
+    const hi = startDate <= endDate ? endDate : startDate;
+
     const anchorMonths = this.getTimeHorizonAnchorMonthsList(this.timeHorizonRange.start, this.timeHorizonRange.end);
-    const data: number[] = [];
+    const gridYms = anchorMonths.map(m => this.historicAnchor.monthsOffsetFromAnchor(m));
+    const orderedYms = detailModalUtil.mergeYearMonthsInWindow(gridYms, sortedDates, lo, hi);
+
+    const series: number[] = [];
     let cumulativeValue = 0;
-    for (let i = 0; i < anchorMonths.length; i += 1) {
-      const months = anchorMonths[i];
-      const targetDate = this.historicAnchor.monthsOffsetFromAnchor(months);
-      let dateValue = 0;
-      if (sortedDates.includes(targetDate)) {
-        dateValue = dateMap.get(targetDate) || 0;
-      } else {
-        const closest = detailModalUtil.findClosestDate(targetDate, sortedDates);
-        if (closest) dateValue = dateMap.get(closest) || 0;
-      }
-      cumulativeValue += dateValue;
-      data.push(cumulativeValue);
+    for (const ym of orderedYms) {
+      cumulativeValue += detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, dateMap);
+      series.push(cumulativeValue);
     }
-    return data;
+    const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym));
+    return { series, xAxisLabels };
+  }
+
+  private formatYearMonthAsHorizonAxisTick(ym: string): string {
+    const anchorYm = this.historicAnchor.getAnchorYearMonth();
+    if (!anchorYm) return ym;
+    const delta = detailModalUtil.monthsBetweenYearMonths(anchorYm, ym);
+    if (delta === null) return ym;
+    if (delta === 0) return this.getZeroTimeHorizonDateLabel();
+    if (delta > 0) return `+${delta}`;
+    return `${delta}`;
   }
 
   /**
@@ -442,22 +511,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {string[]} X-axis label strings for the chart
    */
   getXAxisLabels(): string[] {
-    // Generate labels based on time horizon range
-    if (this.timeHorizonRange && this.timeHorizonRange.start && this.timeHorizonRange.end) {
-      return this.generateTimeHorizonLabels(this.timeHorizonRange.start, this.timeHorizonRange.end);
-    }
-
-    // Fallback to default labels
-    if (!this.card) {
-      return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
-    }
-
-    const isHistorical = this.card.dataType === 'historical';
-    if (isHistorical) {
-      return ['-12', '-9', '-6', '-3', this.getZeroTimeHorizonDateLabel()];
-    } else {
-      return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
-    }
+    return this.getLineChartBundle().labels;
   }
 
   /**
@@ -489,20 +543,6 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       if (x % 3 === 0) set.add(x);
     }
     return [...set].sort((a, b) => a - b);
-  }
-
-  /**
-   * Generates time horizon labels from start to end with distinct intermediate points (no duplicates).
-   * @param {string} start - Start time horizon string
-   * @param {string} end - End time horizon string
-   * @returns {string[]} Array of label strings (e.g. "0", "+3mo")
-   */
-  private generateTimeHorizonLabels(start: string, end: string): string[] {
-    return this.getTimeHorizonAnchorMonthsList(start, end).map(m => {
-      if (m === 0) return this.getZeroTimeHorizonDateLabel();
-      if (m > 0) return `+${m}`;
-      return `${m}`;
-    });
   }
 
   /** Date label for the "0" (today/anchor) point, aligned with Time Horizon date formatting. */

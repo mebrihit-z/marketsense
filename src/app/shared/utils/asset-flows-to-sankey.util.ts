@@ -3,6 +3,11 @@
  * Utility to convert asset-flows-data.json format to Sankey diagram data
  */
 
+import {
+  assetFlowDateToYearMonthUtc,
+  timeHorizonRangeSpansAnchorMonths,
+} from './asset-flow-time-window.util';
+
 export interface AssetFlowRecord {
   Model_Run_Date?: string;
   Model_Version?: string;
@@ -161,6 +166,35 @@ export function filterAssetFlowsByDataType(
   return data.filter((record) => {
     const mt = (record.Model_Type ?? '').trim().toLowerCase();
     if (dataType === 'historical') return mt === 'historic';
+    return mt === 'forecast' || mt === 'forecasted';
+  });
+}
+
+/**
+ * Applies Historic vs Forecast filtering; when the selected horizon range crosses anchor (`0`),
+ * keeps Historic rows for quarters through the anchor month and Forecast rows for later quarters.
+ */
+export function filterAssetFlowsByDataTypeResolvingSpan(
+  data: AssetFlowRecord[],
+  dataType: AssetFlowDataTypeFilter,
+  timeHorizonStart: string | null | undefined,
+  timeHorizonEnd: string | null | undefined,
+  anchorYearMonth: string | null | undefined
+): AssetFlowRecord[] {
+  if (!data?.length) return data;
+  const start = timeHorizonStart?.trim();
+  const end = timeHorizonEnd?.trim();
+  if (!start || !end || !anchorYearMonth || !timeHorizonRangeSpansAnchorMonths(start, end)) {
+    return filterAssetFlowsByDataType(data, dataType);
+  }
+  return data.filter((record) => {
+    const mt = (record.Model_Type ?? '').trim().toLowerCase();
+    const iso = record.Asset_Flow_Date;
+    if (!iso) return false;
+    const flowYm = assetFlowDateToYearMonthUtc(iso);
+    if (!flowYm) return false;
+    const historicSide = flowYm <= anchorYearMonth;
+    if (historicSide) return mt === 'historic';
     return mt === 'forecast' || mt === 'forecasted';
   });
 }

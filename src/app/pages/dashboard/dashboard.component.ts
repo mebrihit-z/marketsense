@@ -22,6 +22,7 @@ import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-mar
 import {
   type AssetFlowRecord,
   filterAssetFlowsByDataType,
+  filterAssetFlowsByDataTypeResolvingSpan,
 } from '../../shared/utils/asset-flows-to-sankey.util';
 import { assetFlowQuarterInTimeWindow } from '../../shared/utils/asset-flow-time-window.util';
 import { AssetFlowsDataService } from '../../core/services/asset-flows-data.service';
@@ -301,7 +302,13 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       return [];
     }
     let data = this.applyFilterBarDimensions(this.rawAssetFlowsData);
-    data = filterAssetFlowsByDataType(data, this.carouselDataType);
+    data = filterAssetFlowsByDataTypeResolvingSpan(
+      data,
+      this.carouselDataType,
+      this.timeHorizonRange?.start,
+      this.timeHorizonRange?.end,
+      this.historicAnchor.getAnchorYearMonth()
+    );
     data = this.applyCurrentTimeWindowToRecords(data);
     return this.filterRecordsByFlowMagnitude(data);
   }
@@ -323,7 +330,13 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     }
 
     let filteredData = this.applyFilterBarDimensions(this.rawAssetFlowsData);
-    filteredData = filterAssetFlowsByDataType(filteredData, this.carouselDataType);
+    filteredData = filterAssetFlowsByDataTypeResolvingSpan(
+      filteredData,
+      this.carouselDataType,
+      this.timeHorizonRange?.start,
+      this.timeHorizonRange?.end,
+      this.historicAnchor.getAnchorYearMonth()
+    );
     filteredData = this.applyCurrentTimeWindowToRecords(filteredData);
     filteredData = this.filterRecordsByFlowMagnitude(filteredData);
 

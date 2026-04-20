@@ -7,7 +7,7 @@ import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import {
   convertAssetFlowsToSankey,
-  filterAssetFlowsByDataType,
+  filterAssetFlowsByDataTypeResolvingSpan,
   type AssetFlowRecord,
   type SankeyData,
   type AssetFlowDimensionField,
@@ -263,7 +263,13 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
     // Filter data by time horizon, Historic vs Forecast (aligns with filters bar), then filter bar selections.
     let filteredData = this.filterDataByTimeHorizon(this.rawAssetFlowsData);
-    filteredData = filterAssetFlowsByDataType(filteredData, this.dataType);
+    filteredData = filterAssetFlowsByDataTypeResolvingSpan(
+      filteredData,
+      this.dataType,
+      this.timeHorizonStart,
+      this.timeHorizonEnd,
+      this.historicAnchor.getAnchorYearMonth()
+    );
     filteredData = this.filterDataByFilterBar(filteredData);
 
     if (!filteredData || filteredData.length === 0) {

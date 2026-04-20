@@ -112,3 +112,30 @@ export function assetFlowQuarterInTimeWindow(
   if (endMs === null) return false;
   return q.end <= endMs;
 }
+
+/**
+ * Signed month offset from the historic anchor for slider labels (`0` / `Today` = 0, `-3 mo` = -3, `+6 mo` = 6).
+ */
+export function parseTimeHorizonLabelToOffsetMonths(horizon: string): number | null {
+  const t = horizon.trim();
+  if (t === 'Today' || t === '0') return 0;
+  const normalized = t.toLowerCase();
+  let match = normalized.match(/^([+-]?)(\d+)\s*mo$/i);
+  if (!match) match = normalized.match(/^([+-]?)(\d+)$/);
+  if (!match) return null;
+  const isNegative = match[1] === '-';
+  const months = parseInt(match[2], 10);
+  return isNegative ? -months : months;
+}
+
+/**
+ * True when the inclusive range crosses anchor: both negative and positive offsets from `0`.
+ */
+export function timeHorizonRangeSpansAnchorMonths(startLabel: string, endLabel: string): boolean {
+  const sm = parseTimeHorizonLabelToOffsetMonths(startLabel);
+  const em = parseTimeHorizonLabelToOffsetMonths(endLabel);
+  if (sm === null || em === null) return false;
+  const lo = Math.min(sm, em);
+  const hi = Math.max(sm, em);
+  return lo < 0 && hi > 0;
+}
