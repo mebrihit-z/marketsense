@@ -213,6 +213,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.dotIndices.every(idx => Number.isFinite(idx) && idx >= 0 && idx < n)
         ? new Set(this.dotIndices)
         : null;
+    const dateTickPattern = /^[A-Za-z]{3}\s+\d{1,2},\s+\d{4}$/;
+    const isDateXAxisTick = (tickIndex: number): boolean => {
+      const label = this.xAxisLabels?.[tickIndex];
+      return typeof label === 'string' && dateTickPattern.test(label.trim());
+    };
 
     // Create scales - first point aligns with y-axis, last point has minimal padding
     const rightPadding = 8; // Minimal padding on the right to prevent last point from being cut off
@@ -269,7 +274,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('x2', d => xScale(d))
         .attr('y1', 0)
         .attr('y2', innerHeight)
-        .attr('stroke', '#e5e7eb')
+        .attr('stroke', d => isDateXAxisTick(d) ? '#FFB70E' : '#e5e7eb')
         .attr('stroke-width', 1);
     }
 
@@ -568,10 +573,19 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 768;
     const xAxisTickFillDefault = '#949294';
     const xAxisTickFillActive = '#00113F'; // midnight blue (hover / tooltip only)
+    const xAxisDateTickFill = '#FFB70E';
 
-    xAxisGroup.selectAll('text')
+    const getXAxisTickBaseFill = (tickIndex: number): string => {
+      if (isDateXAxisTick(tickIndex)) {
+        return xAxisDateTickFill;
+      }
+      return xAxisTickFillDefault;
+    };
+
+    xAxisGroup.selectAll<SVGGElement, number>('.tick')
+      .select('text')
       .style('font-size', isNarrow ? '10px' : '12px')
-      .style('fill', xAxisTickFillDefault)
+      .style('fill', d => getXAxisTickBaseFill(Math.round(Number(d))))
       .style('font-weight', '400');
 
     // Style x-axis line
@@ -587,14 +601,18 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       xAxisGroup.selectAll<SVGGElement, number>('.tick').each(function (d) {
         const tickIndex = Math.round(Number(d));
         const active = activeIndex !== null && tickIndex === activeIndex;
+        const baseFill = getXAxisTickBaseFill(tickIndex);
+        const isDateTick = baseFill === xAxisDateTickFill;
         d3.select(this)
           .select('text')
           .style('font-weight', active ? '600' : '400')
-          .style('fill', active ? xAxisTickFillActive : xAxisTickFillDefault);
+          .style('fill', active && !isDateTick ? xAxisTickFillActive : baseFill);
       });
     };
 
     // Add X-axis label if provided - positioned relative to x-axis position
+    const axisLabelFontSize = isNarrow ? '12px' : '12px';
+    const axisLabelColor = '#4B494E';
     if (this.xAxisLabel) {
       // If axis is at top, place label above it (but within visible area); otherwise below
       let labelY: number;
@@ -610,8 +628,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       g.append('text')
         .attr('transform', `translate(${innerWidth / 2}, ${labelY})`)
         .style('text-anchor', 'middle')
-        .style('font-size', '12px')
-        .style('fill', '#717182')
+        .style('font-size', axisLabelFontSize)
+        .style('font-weight', '400')
+        .style('fill', axisLabelColor)
         .text(this.xAxisLabel);
     }
 
@@ -651,8 +670,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('transform', `translate(${labelX},${innerHeight / 2}) rotate(-90)`)
         .style('text-anchor', 'middle')
         .style('dominant-baseline', 'middle')
-        .style('font-size', '12px')
-        .style('fill', '#717182')
+        .style('font-size', axisLabelFontSize)
+        .style('font-weight', '400')
+        .style('fill', axisLabelColor)
         .text(this.yAxisLabel);
     }
   }

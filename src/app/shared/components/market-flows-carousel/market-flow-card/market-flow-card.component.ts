@@ -11,6 +11,8 @@ export interface MarketFlowCard {
   id: string;
   title: string;
   value: string;
+  /** Exact net flow in USD used for {@link value} aggregation (tooltip; avoids parse/round-trip drift). */
+  netFlowUsd?: number;
   valueColor: 'red' | 'green';
   percentageChange: string;
   percentageColor: 'red' | 'green';
@@ -24,6 +26,8 @@ export interface MarketFlowCard {
   timeHorizon: string;
   dataType: 'historical' | 'forecasted';
   productSubType?: string;
+  /** Sum of `N_Clients` over all rows aggregated into this card (filters + time window). */
+  nClientsTotal?: number;
 }
 
 @Component({
@@ -65,6 +69,10 @@ export class MarketFlowCardComponent {
   /** Full USD amount for native tooltip on compact {@link MarketFlowCard.value}. */
   get valueHoverFullLabel(): string {
     if (!this.card?.value) return '';
+    const exact = this.card.netFlowUsd;
+    if (exact != null && Number.isFinite(exact)) {
+      return formatFlowCurrencyUsdFull(exact);
+    }
     const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
     if (Number.isFinite(d)) {
       return formatFlowCurrencyUsdFull(d);

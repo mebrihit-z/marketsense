@@ -13,6 +13,7 @@
   justify-content: center;
   align-items: center;
   padding: 16px;
+  overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -34,17 +35,24 @@
   overflow: hidden;
   padding: 24px 24px 40px 24px;
   gap: 20px;
+  min-width: 0;
 
   border: 1px solid $primary-colors-midnight-blue;
   box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+
+  &:not(.inline-panel) {
+    width: min(100%, calc(100vw - 32px));
+  }
+
   &.inline-panel {
     max-height: none;
+    width: 100%;
     border-radius: 0;
     background: transparent;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 16px 24px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
   @media (max-width: 768px) {
     padding: 0px;
@@ -57,9 +65,9 @@
   width: 50%;
 }
 
-// Inline: metrics + AI Summary on the left, chart on the same row (right) – chart gets more width
+// Inline: metrics + breakdown on the left, chart on the same row (right) – chart gets more width
 .inline-panel .content-container {
-  width: 38%;
+  width: 45%;
   min-width: 260px;
   @media (max-width: 1024px) and (min-width: 769px) {
     width: 100%;
@@ -68,23 +76,24 @@
 }
 
 .inline-panel .main-content {
-  grid-column: 1 / -1;
   flex-direction: row;
   align-items: flex-start;
   gap: 24px;
+  width: 100%;
+  min-width: 0;
   @media (max-width: 1024px) and (min-width: 769px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-    overflow-y: hidden;
+    overflow: hidden;
   }
 }
 
 .inline-panel .chart-section {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   @media (min-width: 1025px) {
-    padding-left: 42px; // Space for y-axis label "Billions (USD)" to prevent overlap with AI Summary
+    max-width: 55%;
   }
 }
 
@@ -103,17 +112,8 @@
   }
 }
 
-.inline-panel .window-controls {
-  position: static;
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.inline-panel .modal-header {
-  grid-column: 1;
-  grid-row: 1;
-  border-bottom: none;
-  padding-bottom: 0;
+.inline-panel .detail-modal-header {
+  border-bottom-color: rgba($neutral-colors-neutral-500, 0.45);
 }
 
 @media (max-width: 768px) {
@@ -141,49 +141,114 @@
   }
 }
 
-// Window Controls
-.window-controls {
-  position: absolute;
-  top: 20px;
-  right: 20px;
+// Detail modal header: title + sentiment + % (left), icon actions (right)
+.detail-modal-header {
   display: flex;
-  z-index: 10;
-}
-
-.window-btn {
-  width: 32px;
-  height: 32px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
- 
-  &:hover {
-    background-color: $window-btn-hover-background;
-  }
-}
-
-// Header
-.modal-header {
+  justify-content: space-between;
+  gap: 12px 20px;
   flex-shrink: 0;
-  text-align: left;
+  width: 100%;
+  min-width: 0;
+  padding-bottom: 4px;
   border-bottom: 1px solid $border-light;
 }
 
-.header-content {
+.detail-modal-header-left {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
 }
 
-.header-title {
-  font-weight: 400;
-  font-size: 18px;
-  line-height: 24px;
-  letter-spacing: -0.5px;
-  color: $text-midnight-blue;
+.detail-modal-title {
   margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: #0A0A0A;
+}
+
+.detail-modal-sentiment {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+
+  &.is-positive {
+    background-color: $secondary-colors-green-250;
+    color: $secondary-colors-green-1000;
+  }
+
+  &.is-negative {
+    background-color: #ffebee;
+    color: $red-negative;
+  }
+}
+
+.detail-modal-pct-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.3;
+  color: $white;
+  white-space: nowrap;
+
+  &.is-positive {
+    background-color: $secondary-colors-green-1000;
+  }
+
+  &.is-negative {
+    background-color: $red-badge;
+  }
+}
+
+.detail-modal-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.detail-modal-header-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary-colors-midnight-blue;
+
+  &:hover {
+    background-color: $window-btn-hover-background;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $secondary-colors-blue-500;
+    outline-offset: 2px;
+  }
+}
+
+.detail-modal-header-icon {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .confidence-indicator {
@@ -235,161 +300,254 @@
 // Main Content
 .main-content {
   display: flex;
-  overflow-y: auto;
+  overflow: hidden;
   gap: 20px;
   min-height: 0; // Allows flex child to shrink
+  min-width: 0;
 }
 
-// Key Metrics Section
-.key-metrics-section {
+// Net flow / inflow / outflow summary strip (replaces former NET VALUE + EXPECTED CHANGE cards)
+.flow-summary-strip {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  // Net flow uses remaining width; inflow/outflow stay compact and right-aligned for clearer separation.
+  grid-template-columns: 1fr auto auto;
+  gap: 16px 24px;
+  padding: 16px 18px;
+  border: 1px solid #e5e5e5;
+  border-radius: 2px;
+  background: $bg-gray-lightest;
+  width: 100%;
+  min-width: 0;
 }
 
-.metric-box {
-  padding: 16px;
+.flow-summary-cell {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border: none;
-  border-radius: 2px;
-  transition: all 0.2s ease;
-  
-  &.forecasted-value {
-    border: 1px solid #E5E5E5;
-    background: #F9F9F9;
+  min-width: 0;
 
-    .metric-value {
-      cursor: help;
-    }
+  &:nth-child(2),
+  &:nth-child(3) {
+    align-items: flex-end;
+    text-align: right;
   }
-
-  &.expected-change {
-    &.positive {
-      border: 1px solid #B3E5D0;
-      background: #E6F7F0;
-    }
-    
-    &.negative {
-      background: rgba(231, 0, 11, 0.08);
-      border: 1px solid rgba(231, 0, 11, 0.15);
-    }
-  }
-  
 }
 
-.metric-label {
+.flow-summary-label {
   font-weight: 500;
   font-size: 12px;
   line-height: 16px;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: $neutral-colors-neutral-750;
 }
 
-.metric-value {
+.flow-summary-value {
   font-size: 28px;
-  letter-spacing: -0.7px;
-  
-  &.positive {
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-summary-net {
+  &.net-positive {
     color: $secondary-colors-green-1000;
   }
-  
-  &.negative {
+
+  &.net-negative {
     color: $red-negative;
   }
 
-  &.flow-value-hover {
-    cursor: help;
-    position: relative;
-    z-index: 0;
-
-    &::after {
-      content: attr(data-flow-tooltip);
-      position: absolute;
-      left: 0;
-      top: calc(100%);
-      padding: 10px 14px;
-      background-color: $primary-colors-midnight-blue;
-      color: #f8fafc;
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.35;
-      letter-spacing: 0.01em;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 10px 28px rgba(0, 17, 63, 0.35);
-      white-space: normal;
-      max-width: min(360px, 85vw);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.16s ease, visibility 0.16s ease;
-      z-index: 50;
-    }
-
-    &:hover {
-      z-index: 25;
-
-      &::after {
-        opacity: 1;
-        visibility: visible;
-      }
-    }
+  &.net-neutral {
+    color: $neutral-colors-neutral-1000;
   }
 }
 
-// Expected change box value styling
-.expected-change {
-  .metric-value {
-    color: $secondary-colors-green-1000;
-  }
-  
-  &.negative .metric-value {
-    color: $red-negative;
-  }
+.flow-summary-io {
+  color: $neutral-colors-neutral-1000;
 }
-.sparkle-icon {
-  width: 16px;
-  height: 16px;
-}
-// Description Section
-.description-section {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  padding-top: 13px;
-  
+
+.flow-summary-value.flow-value-hover {
+  cursor: help;
+  position: relative;
+  z-index: 0;
+
+  &::after {
+    content: attr(data-flow-tooltip);
+    position: absolute;
+    left: 0;
+    top: calc(100% + 4px);
+    padding: 10px 14px;
+    background-color: $primary-colors-midnight-blue;
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 28px rgba(0, 17, 63, 0.35);
+    white-space: normal;
+    max-width: min(360px, 85vw);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+    z-index: 50;
+  }
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    z-index: 25;
+
+    &::after {
+      opacity: 1;
+      visibility: visible;
+    }
   }
 }
+// Investor types / product regions breakdown (replaces former AI summary block)
+.flow-breakdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 4px;
+  width: 100%;
+  min-width: 0;
+}
 
-.section-title {
-  color: $text-midnight-blue;
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 24px; /* 150% */
-  letter-spacing: -0.625px;
-  svg {
-    width: 18px;
-    height: 18px;
-    color: $secondary-colors-gold-1000;
+.flow-breakdown-tabs {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 0;
+  border: 1px solid $bg-gray-medium;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  overflow: hidden;
+}
+
+.flow-breakdown-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 10px;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $neutral-colors-neutral-750;
+  background: $bg-gray-lightest;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  .flow-breakdown-tab-icon {
+    display: flex;
     flex-shrink: 0;
+    color: $primary-colors-midnight-blue;
+
+    // Paths use hardcoded fills in the template; tie them to tab state so inactive tabs stay visible.
+    svg path {
+      fill: currentColor;
+    }
+  }
+
+  .flow-breakdown-tab-label {
+    text-align: center;
+    white-space: normal;
+  }
+
+  & + & {
+    border-left: 1px solid $bg-gray-medium;
+  }
+
+  &.active {
+    background: $primary-colors-midnight-blue;
+    color: $white;
+
+    .flow-breakdown-tab-icon {
+      color: $white;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $secondary-colors-blue-500;
+    outline-offset: 2px;
+    z-index: 1;
   }
 }
 
-.description-text {
-  color: $text-secondary;
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px; /* 142.857% */
-  letter-spacing: -0.15px;
+.flow-breakdown-panel {
+  border: 1px solid $bg-gray-medium;
+  border-radius: 0 0 2px 2px;
+  background: $bg-white;
 }
 
+.flow-breakdown-rows {
+  overflow: visible;
+  padding: 4px 0 8px;
+}
+
+.flow-breakdown-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: $neutral-colors-neutral-1000;
+
+  &:nth-child(even) {
+    background: rgba($bg-gray-lightest, 0.85);
+  }
+
+  .col-label {
+    min-width: 0;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .col-value {
+    font-weight: 500;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .col-pct {
+    min-width: 4.5rem;
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    &.pct-positive {
+      color: $traffic-colors-success-green;
+    }
+
+    &.pct-negative {
+      color: $traffic-colors-danger-crimson;
+    }
+
+    &.pct-neutral {
+      color: $neutral-colors-neutral-750;
+    }
+  }
+}
+
+.flow-breakdown-empty {
+  margin: 0;
+  padding: 16px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: $text-secondary;
+}
 
 // Chart Section
 .chart-section {
@@ -398,7 +556,7 @@
   gap: 8px;
 }
 
-// Prevent chart y-axis from overlapping left column (metrics + AI Summary)
+// Prevent chart y-axis from overlapping left column (summary + breakdown)
 .modal-container:not(.inline-panel) .chart-section {
   padding-left: 52px;
 }
@@ -493,17 +651,10 @@
     // min-width: 500px;
   }
 
-  .modal-header {
-
-  }
-
   .main-content {
   
   }
 
-  .key-metrics-section {
-   
-  }
 }
 
 @media (max-width: 768px) {
@@ -514,41 +665,40 @@
     border-radius: 0;
   }
 
-  .window-controls {
-    top: 16px;
-    right: 16px;
+  .detail-modal-header {
+    padding: 20px 16px 12px;
   }
 
-  .modal-header {
-    padding: 24px 24px 20px 24px;
-  }
-
-  .header-title {
-    font-size: 24px;
-    line-height: 32px;
+  .detail-modal-title {
+    font-size: 20px;
+    line-height: 1.3;
   }
 
   .main-content {
-    padding: 24px 16px 28px 16px;
+    padding: 0 16px 28px 16px;
     gap: 24px;
   }
 
-  .key-metrics-section {
+  .flow-summary-strip {
+    gap: 10px 12px;
+    padding: 14px 12px;
+  }
+
+  .flow-summary-value {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 420px) {
+  .flow-summary-strip {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
 
-  .metric-box {
-    padding: 18px;
-  }
-
-  .metric-value {
-    font-size: 28px;
-    line-height: 36px;
-  }
-
-  .description-section {
-    padding: 0px;
+  .flow-summary-cell:nth-child(2),
+  .flow-summary-cell:nth-child(3) {
+    align-items: flex-start;
+    text-align: left;
   }
 }
 

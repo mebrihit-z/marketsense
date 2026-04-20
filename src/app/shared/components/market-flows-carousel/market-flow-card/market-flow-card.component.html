@@ -57,6 +57,9 @@
 
   <!-- View More > (bottom right) -->
   <div class="view-more-row">
+    <div class="sample-size-container">
+      <span>Sample Size: {{ card.nClientsTotal != null && card.nClientsTotal > 0 ? card.nClientsTotal : '—' }}</span>
+    </div>
     <a
       href="#"
       class="view-more-link"

@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import type { MarketFlowCard } from '../market-flow-card/market-flow-card.component';
 import { LineChartComponent } from '../../charts/line-chart/line-chart.component';
 import ExportModalComponent from '../export-modal/export-modal.component';
-import TitleComponent from '../../title/title.component';
 import {
   type AssetFlowRecord,
   filterAssetFlowsByDataType,
@@ -17,11 +16,21 @@ import {
 } from '../../../utils/flow-currency-format.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
+import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
+
+/** One row in the investor-type / product-region breakdown table. */
+export interface FlowBreakdownRow {
+  label: string;
+  valueUsd: number;
+  pctChange: number;
+}
+
+export type FlowBreakdownTab = 'investor' | 'product';
 
 @Component({
   selector: 'app-market-flow-detail-modal',
   standalone: true,
-  imports: [CommonModule, LineChartComponent, ExportModalComponent, TitleComponent],
+  imports: [CommonModule, LineChartComponent, ExportModalComponent],
   templateUrl: './market-flow-detail-modal.component.html',
   styleUrl: './market-flow-detail-modal.component.scss'
 })
@@ -41,11 +50,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   @Output() close = new EventEmitter<void>();
   /** Inline layout: parent should open a root-level export dialog (correct z-index vs sticky filters). */
   @Output() openExport = new EventEmitter<void>();
+  /** Emits the current card id for Ask MarketSense (same contract as flow cards). */
+  @Output() askMarketSense = new EventEmitter<string>();
 
   showExportModal: boolean = false;
   /** Y-axis title; tick values use compact USD (see line chart yAxisValuesInBillions). */
-  yAxisLabelText: string = 'Cumulative net flow (USD)';
-  xAxisLabelText: string = 'Time Horizon';
+  yAxisLabelText: string = 'Cumulative Net Flow (USD)';
+  xAxisLabelText: string = 'Time Horizon (Month)';
+
+  /** Active tab for investor types vs product regions breakdown. */
+  detailBreakdownTab: FlowBreakdownTab = 'investor';
+
+  private breakdownFingerprint = '';
+  private cachedInvestorBreakdown: FlowBreakdownRow[] = [];
+  private cachedProductBreakdown: FlowBreakdownRow[] = [];
 
   /** Exposed for template (static methods). */
   readonly getConfidenceColor = MarketFlowDetailModalComponent.getConfidenceColor;
@@ -62,11 +80,28 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         document.body.style.overflow = '';
       }
     }
+    if (
+      changes['card'] ||
+      changes['rawAssetFlowsData'] ||
+      changes['timeHorizonRange'] ||
+      changes['selectedInvestorRegions'] ||
+      changes['selectedInvestorTypes'] ||
+      changes['selectedProductRegions'] ||
+      changes['selectedProductTypes']
+    ) {
+      this.breakdownFingerprint = '';
+    }
   }
 
   onClose(): void {
     document.body.style.overflow = '';
     this.close.emit();
+  }
+
+  /** Sentiment label for the header (matches flow card logic). */
+  getCardSentimentLabel(): string {
+    if (!this.card) return '';
+    return this.card.sentiment ?? (this.card.percentageColor === 'red' ? 'Bearish' : 'Bullish');
   }
 
   /**
@@ -118,6 +153,22 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
+   * Cumulative series (aligned to chart x-axis) for already-filtered asset flow rows.
+   * @returns {number[]} Series values, or empty array when there is no dated data
+   */
+  private getCumulativeSeriesForFiltered(filteredData: AssetFlowRecord[]): number[] {
+    const { dateMap, sortedDates } = detailModalUtil.aggregateByDate(filteredData);
+    if (sortedDates.length === 0) return [];
+
+    const labelAlignedData = this.buildCumulativeDataForTimeHorizonLabels(dateMap, sortedDates);
+    if (labelAlignedData) return labelAlignedData;
+
+    const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
+    const targetLength = Math.max(1, this.getXAxisLabels().length);
+    return detailModalUtil.sampleOrPadToLength(rawData, targetLength);
+  }
+
+  /**
    * @returns {number[]} Chart data (filtered by card, regions, product types, time range) or fallback
    */
   getChartData(): number[] {
@@ -128,15 +179,109 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (!productSubType) return this.getFallbackChartData();
 
     const filteredData = this.applyChartDataFilters(productSubType);
-    const { dateMap, sortedDates } = detailModalUtil.aggregateByDate(filteredData);
-    if (sortedDates.length === 0) return this.getFallbackChartData();
+    const series = this.getCumulativeSeriesForFiltered(filteredData);
+    if (series.length === 0) return this.getFallbackChartData();
+    return series;
+  }
 
-    const labelAlignedData = this.buildCumulativeDataForTimeHorizonLabels(dateMap, sortedDates);
-    if (labelAlignedData) return labelAlignedData;
+  /**
+   * Percent change from first to last point of a cumulative series (same basis as EXPECTED CHANGE).
+   */
+  private pctChangeFromSeries(data: number[]): number {
+    if (!data || data.length < 2) return 0;
+    const first = data[0];
+    const last = data[data.length - 1];
+    if (!Number.isFinite(first) || first === 0) return 0;
+    const pct = ((last - first) / Math.abs(first)) * 100;
+    return Number.isFinite(pct) ? pct : 0;
+  }
 
-    const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
-    const targetLength = Math.max(1, this.getXAxisLabels().length);
-    return detailModalUtil.sampleOrPadToLength(rawData, targetLength);
+  private getBreakdownFingerprint(): string {
+    return JSON.stringify({
+      id: this.card?.id,
+      dataType: this.card?.dataType,
+      productSubType: this.card?.productSubType,
+      timeHorizonRange: this.timeHorizonRange,
+      selectedInvestorRegions: this.selectedInvestorRegions,
+      selectedInvestorTypes: this.selectedInvestorTypes,
+      selectedProductRegions: this.selectedProductRegions,
+      selectedProductTypes: this.selectedProductTypes,
+    });
+  }
+
+  private ensureBreakdownCache(): void {
+    const fp = this.getBreakdownFingerprint();
+    if (this.breakdownFingerprint === fp) return;
+    this.breakdownFingerprint = fp;
+    this.cachedInvestorBreakdown = this.buildBreakdownRows('investor');
+    this.cachedProductBreakdown = this.buildBreakdownRows('product');
+  }
+
+  private buildBreakdownRows(kind: FlowBreakdownTab): FlowBreakdownRow[] {
+    if (!this.card?.productSubType) return [];
+    const filtered = this.applyChartDataFilters(this.card.productSubType);
+    const groups = new Map<string, AssetFlowRecord[]>();
+    for (const r of filtered) {
+      let key: string;
+      if (kind === 'investor') {
+        key = (r.Plan_Type || r.Investor_Types || '').trim() || 'Other';
+      } else {
+        key = (r.Product_Region || '').trim() || 'Other';
+      }
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    const rows: FlowBreakdownRow[] = [];
+    for (const [label, recs] of groups) {
+      const valueUsd = recs.reduce((sum, x) => sum + x.Asset_Flow_Value, 0);
+      const series = this.getCumulativeSeriesForFiltered(recs);
+      rows.push({
+        label,
+        valueUsd,
+        pctChange: this.pctChangeFromSeries(series),
+      });
+    }
+    rows.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+    return rows;
+  }
+
+  setBreakdownTab(tab: FlowBreakdownTab): void {
+    this.detailBreakdownTab = tab;
+  }
+
+  getInvestorBreakdown(): FlowBreakdownRow[] {
+    this.ensureBreakdownCache();
+    return this.cachedInvestorBreakdown;
+  }
+
+  getProductRegionBreakdown(): FlowBreakdownRow[] {
+    this.ensureBreakdownCache();
+    return this.cachedProductBreakdown;
+  }
+
+  getActiveBreakdownRows(): FlowBreakdownRow[] {
+    return this.detailBreakdownTab === 'investor'
+      ? this.getInvestorBreakdown()
+      : this.getProductRegionBreakdown();
+  }
+
+  formatBreakdownValueUsd(valueUsd: number): string {
+    return formatFlowCurrencyUsd(valueUsd);
+  }
+
+  /**
+   * Renders like "+12.5 %" / "-22.3 %" to match dashboard breakdown styling.
+   */
+  formatBreakdownPct(pct: number): string {
+    if (!Number.isFinite(pct)) return '0 %';
+    const rounded = Math.round(pct * 10) / 10;
+    const body = Math.abs(rounded).toLocaleString('en-US', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    if (rounded > 0) return `+${body} %`;
+    if (rounded < 0) return `-${body} %`;
+    return `${body} %`;
   }
 
   /**
@@ -209,55 +354,73 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Formats a numeric value in billions to a display string like "-$98.4B".
-   */
-  private formatBillions(value: number): string {
-    if (!Number.isFinite(value) || value === 0) return '$0B';
-    const isNegative = value < 0;
-    const absVal = Math.abs(value);
-    const formatted = absVal.toLocaleString('en-US', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    });
-    return `${isNegative ? '-' : ''}$${formatted}B`;
-  }
-
-  /**
    * Computes the projected value from filtered raw data as the total net flow in USD
    * for the selected product sub-type and filters.
    */
   private computeFilteredProjectedValue(): number | null {
-    if (!this.card || !this.rawAssetFlowsData || this.rawAssetFlowsData.length === 0) {
-      return null;
-    }
-    const productSubType = this.card.productSubType;
-    if (!productSubType) return null;
-
-    const filteredData = this.applyChartDataFilters(productSubType);
-    if (!filteredData.length) return null;
-
-    return filteredData.reduce((sum, r) => sum + r.Asset_Flow_Value, 0);
+    const totals = this.computeInflowOutflowNetFromRaw();
+    if (totals) return totals.netUsd;
+    return null;
   }
 
   /**
-   * @returns {string} Projected/forecast value based on current filters and time horizon,
-   *          falling back to the card's static value when raw data is unavailable.
+   * Splits filtered rows into gross inflow (sum of positive flows) and gross outflow (sum of negatives).
+   * @returns Totals in USD, or null when raw data cannot produce a breakdown for this card.
    */
-  getProjectedValue(): string {
-    const dynamic = this.computeFilteredProjectedValue();
-    if (dynamic != null) {
-      return formatFlowCurrencyUsd(dynamic);
+  private computeInflowOutflowNetFromRaw(): { netUsd: number; inflowUsd: number; outflowUsd: number } | null {
+    if (!this.card || !this.rawAssetFlowsData?.length || !this.card.productSubType) return null;
+    const filtered = this.applyChartDataFilters(this.card.productSubType);
+    if (!filtered.length) return null;
+    let inflowUsd = 0;
+    let outflowUsd = 0;
+    for (const r of filtered) {
+      const v = r.Asset_Flow_Value;
+      if (!Number.isFinite(v)) continue;
+      if (v > 0) inflowUsd += v;
+      else outflowUsd += v;
     }
-    if (!this.card) return formatFlowCurrencyUsd(0);
-    // Fall back to the precomputed card value when we can't derive a filtered one
-    return this.card.value;
+    return { netUsd: inflowUsd + outflowUsd, inflowUsd, outflowUsd };
   }
 
-  /** Full USD string for tooltip on compact NET VALUE display. */
+  /**
+   * Net / inflow / outflow in USD: from filtered raw rows when available, else derived from the card net only.
+   */
+  getFlowUsdTotals(): { netUsd: number; inflowUsd: number; outflowUsd: number } {
+    const fromRaw = this.computeInflowOutflowNetFromRaw();
+    if (fromRaw) return fromRaw;
+    if (!this.card) return { netUsd: 0, inflowUsd: 0, outflowUsd: 0 };
+    const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
+    const netUsd = Number.isFinite(d) ? d : 0;
+    return {
+      netUsd,
+      inflowUsd: Math.max(0, netUsd),
+      outflowUsd: Math.min(0, netUsd),
+    };
+  }
+
+  getNetFlowDisplay(): string {
+    return formatFlowCurrencyUsd(this.getFlowUsdTotals().netUsd);
+  }
+
+  /** Inflow with a leading "+" (e.g. "+$184.8B"). */
+  getInflowDisplay(): string {
+    const v = this.getFlowUsdTotals().inflowUsd;
+    return `+${formatFlowCurrencyUsd(v)}`;
+  }
+
+  getOutflowDisplay(): string {
+    return formatFlowCurrencyUsd(this.getFlowUsdTotals().outflowUsd);
+  }
+
+  /** Full USD string for tooltip on compact net flow display. */
   getProjectedValueHoverTitle(): string {
     const dynamic = this.computeFilteredProjectedValue();
     if (dynamic != null) {
       return formatFlowCurrencyUsdFull(dynamic);
+    }
+    const fromCard = this.card?.netFlowUsd;
+    if (fromCard != null && Number.isFinite(fromCard)) {
+      return formatFlowCurrencyUsdFull(fromCard);
     }
     if (!this.card) return formatFlowCurrencyUsdFull(0);
     const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
@@ -265,25 +428,6 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       return formatFlowCurrencyUsdFull(d);
     }
     return this.card.value;
-  }
-
-  /**
-   * Computes EXPECTED CHANGE as the percentage change between the first and last
-   * points of the line chart data: (last - first) / |first| * 100.
-   * Returns 0 when there is insufficient data.
-   */
-  getExpectedChange(): number {
-    const data = this.getChartData();
-    if (!data || data.length < 2) return 0;
-
-    const first = data[0];
-    const last = data[data.length - 1];
-    if (!Number.isFinite(first) || first === 0) return 0;
-
-    const change = last - first;
-    const pct = (change / Math.abs(first)) * 100;
-    if (!Number.isFinite(pct)) return 0;
-    return pct;
   }
 
   /**
@@ -305,14 +449,14 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
     // Fallback to default labels
     if (!this.card) {
-      return ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
+      return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
     }
 
     const isHistorical = this.card.dataType === 'historical';
     if (isHistorical) {
-      return ['-12mo', '-9mo', '-6mo', '-3mo', '0'];
+      return ['-12', '-9', '-6', '-3', this.getZeroTimeHorizonDateLabel()];
     } else {
-      return ['0', '+3mo', '+6mo', '+9mo', '+12mo'];
+      return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
     }
   }
 
@@ -355,10 +499,15 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   private generateTimeHorizonLabels(start: string, end: string): string[] {
     return this.getTimeHorizonAnchorMonthsList(start, end).map(m => {
-      if (m === 0) return '0';
-      if (m > 0) return `+${m}mo`;
-      return `${m}mo`;
+      if (m === 0) return this.getZeroTimeHorizonDateLabel();
+      if (m > 0) return `+${m}`;
+      return `${m}`;
     });
+  }
+
+  /** Date label for the "0" (today/anchor) point, aligned with Time Horizon date formatting. */
+  private getZeroTimeHorizonDateLabel(): string {
+    return formatTimeHorizonSliderHandleDate('0', this.historicAnchor.getAnchor());
   }
 
   /**
@@ -394,6 +543,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     // Return responsive width based on viewport - fit without horizontal scroll
     if (typeof window !== 'undefined' && this.card) {
       const width = window.innerWidth;
+      // Inline carousel: narrower chart so breakdown tabs / table have more horizontal room
+      if (this.inline) {
+        if (width <= 480) {
+          return Math.max(260, width - 40);
+        }
+        if (width <= 768) {
+          return Math.max(280, width - 56);
+        }
+        if (width <= 1024) {
+          return Math.max(440, Math.min(width - 120, 560));
+        }
+        return Math.min(width - 300, 640);
+      }
       if (width <= 480) {
         return Math.max(280, width - 32); // Small mobile: full width minus padding
       }
@@ -408,6 +570,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return 800;
   }
 
+
+  onAskMarketSenseClick(): void {
+    if (this.card?.id) {
+      this.askMarketSense.emit(this.card.id);
+    }
+  }
 
   onDownload(): void {
     if (this.inline) {

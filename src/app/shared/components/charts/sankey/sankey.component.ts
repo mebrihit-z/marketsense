@@ -44,13 +44,15 @@ interface SankeyLinkExtra {
   y0?: number;
   y1?: number;
   date?: string;
+  /** Sum of client counts for rows on this link (from {@link SankeyLink#nClientsTotal}). */
+  nClientsTotal?: number;
   /** Set before layout so we can scale the same logical link across iterations. */
   layoutIndex?: number;
 }
 
 interface RegionalSankeyData {
   nodes: Array<{ name: string }>;
-  links: Array<{ source: string; target: string; value: number; date?: string }>;
+  links: Array<{ source: string; target: string; value: number; date?: string; nClientsTotal?: number }>;
   summary?: any;
 }
 
@@ -237,15 +239,28 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   /**
-   * Generate a simple hash of data to detect actual changes
+   * Generate a simple hash of data to detect actual changes (structure and magnitudes).
+   * Topology alone is not enough: the same nodes/links with different values (e.g. time horizon)
+   * must still invalidate the chart.
    */
   private getDataHash(data: RegionalSankeyData | undefined): string {
     if (!data) return '';
-    const nodesCount = data.nodes?.length || 0;
-    const linksCount = data.links?.length || 0;
-    const firstNode = data.nodes?.[0]?.name || '';
-    const lastNode = data.nodes?.[nodesCount - 1]?.name || '';
-    return `${nodesCount}-${linksCount}-${firstNode}-${lastNode}`;
+    const nodes = data.nodes ?? [];
+    const links = data.links ?? [];
+    const nodesCount = nodes.length;
+    const linksCount = links.length;
+    const firstNode = nodes[0]?.name || '';
+    const lastNode = nodes[nodesCount - 1]?.name || '';
+    let valueSum = 0;
+    for (let i = 0; i < linksCount; i++) {
+      const v = links[i]?.value;
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        valueSum += v;
+      }
+    }
+    const firstLinkVal = linksCount > 0 ? links[0]?.value ?? 0 : 0;
+    const lastLinkVal = linksCount > 0 ? links[linksCount - 1]?.value ?? 0 : 0;
+    return `${nodesCount}-${linksCount}-${firstNode}-${lastNode}-${valueSum}-${firstLinkVal}-${lastLinkVal}`;
   }
   
   /**
@@ -273,15 +288,30 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     let shouldRecreate = false;
     
     // Check if data actually changed
-    if (changes['data'] && this.data) {
-      const newDataHash = this.getDataHash(this.data);
-      if (newDataHash !== this.lastDataHash) {
+    if (changes['data']) {
+      if (this.data) {
         this.loadedData = this.data;
-        this.lastDataHash = newDataHash;
-        shouldRecreate = true;
+        const newDataHash = this.getDataHash(this.data);
+        if (newDataHash !== this.lastDataHash) {
+          this.lastDataHash = newDataHash;
+          shouldRecreate = true;
+        }
+      } else {
+        this.loadedData = undefined;
+        if (this.lastDataHash !== '') {
+          this.lastDataHash = '';
+          shouldRecreate = true;
+        }
       }
     }
     
+    // Horizon labels affect tooltips; recreate so copy matches the slider.
+    if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd']) {
+      if (this.data || this.loadedData) {
+        shouldRecreate = true;
+      }
+    }
+
     // Check if filters actually changed
     if (changes['selectedInvestorRegions'] || 
         changes['selectedProductTypes'] || 
@@ -504,6 +534,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       baseLayoutValue: number;
       rawValue: number;
       date?: string;
+      nClientsTotal?: number;
       layoutIndex: number;
     }
 
@@ -529,6 +560,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         baseLayoutValue: layoutValue,
         rawValue: raw,
         date: link.date,
+        nClientsTotal: link.nClientsTotal,
         layoutIndex: defIndex++,
       });
     }
@@ -559,6 +591,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         value: def.baseLayoutValue * linkMultipliers[i],
         rawValue: def.rawValue,
         date: def.date,
+        nClientsTotal: def.nClientsTotal,
         layoutIndex: def.layoutIndex,
       }));
 
@@ -611,6 +644,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         value: l.value,
         rawValue: l.rawValue,
         date: l.date,
+        nClientsTotal: l.nClientsTotal,
         layoutIndex: l.layoutIndex,
       };
     });
@@ -807,7 +841,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
           <div style="margin-top: 4px;">Value: ${formattedValue}</div>
         `;
-        
         // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
         if (isSubassetLink && link.date) {
           tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Date: ${component.formatDateForTooltip(link.date)}</div>`;
@@ -816,6 +849,10 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           if (timeInfo) {
             tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
           }
+        }
+        const linkNc = link.nClientsTotal;
+        if (typeof linkNc === 'number' && linkNc > 0) {
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: ${linkNc.toLocaleString('en-US')}</div>`;
         }
         
         tooltip
@@ -1061,12 +1098,23 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formattedIncoming}</div>
           <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formattedOutgoing}</div>
         `;
+        let nClientsOutgoing = 0;
+        graph.links.forEach(lk => {
+          if ((lk.source as SankeyNodeExtra) === node) {
+            const nc = (lk as SankeyLinkExtra).nClientsTotal;
+            if (typeof nc === 'number' && nc > 0) nClientsOutgoing += nc;
+          }
+        });
         
         if (timeInfo) {
           tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
         }
         
         tooltipHtml += subassetHtml;
+
+        if (nClientsOutgoing > 0) {
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: ${nClientsOutgoing.toLocaleString('en-US')}</div>`;
+        }
         
         tooltip
           .style('left', (event.pageX + 10) + 'px')

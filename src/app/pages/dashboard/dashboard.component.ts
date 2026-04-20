@@ -333,11 +333,22 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     // 2. For each Product_Sub_Type, sum Asset_Flow_Value (USD, same unit as stored)
     // 3. Totals stay in USD; compact K/M/B/T is formatting-only
     // 4. Result: Net flow = sum of all positive values - sum of all negative values (negative values are subtracted)
-    const aggregatedData = new Map<string, { total: number; count: number; positiveSum: number; negativeSum: number }>();
+    const aggregatedData = new Map<
+      string,
+      { total: number; count: number; positiveSum: number; negativeSum: number; nClientsTotal: number }
+    >();
 
     filteredData.forEach(record => {
-      const existing = aggregatedData.get(record.Product_Sub_Type) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
+      const existing = aggregatedData.get(record.Product_Sub_Type) || {
+        total: 0,
+        count: 0,
+        positiveSum: 0,
+        negativeSum: 0,
+        nClientsTotal: 0,
+      };
       const valueUsd = record.Asset_Flow_Value;
+      const rowClients = record.N_Clients ?? 0;
+      existing.nClientsTotal += rowClients;
 
       // Handle positive and negative values explicitly
       if (valueUsd > 0) {
@@ -392,7 +403,13 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     }, 0);
 
     const cards = this.selectedProductSubTypes.map((subType) => {
-        const data = aggregatedData.get(subType) || { total: 0, count: 0, positiveSum: 0, negativeSum: 0 };
+        const data = aggregatedData.get(subType) || {
+          total: 0,
+          count: 0,
+          positiveSum: 0,
+          negativeSum: 0,
+          nClientsTotal: 0,
+        };
         const totalValue = data.total; // Net flow (sum of all positive and negative values)
         const previousValue = previousAggregatedData.get(subType) || 0;
         
@@ -429,6 +446,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
           id,
           title: subType,
           value: formattedCardValue,
+          netFlowUsd: totalValue,
           valueColor,
           percentageChange: percentageChange >= 0 ? `+${formattedPercentage}%` : `-${formattedPercentage}%`,
           percentageColor,
@@ -439,7 +457,8 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
           borderColor,
           timeHorizon: this.carouselTimeHorizon,
           dataType: this.carouselDataType,
-          productSubType: subType
+          productSubType: subType,
+          nClientsTotal: data.nClientsTotal,
         };
       });
 

@@ -222,11 +222,17 @@ $card-aum-gray: #94a3b8;
 // View More > – bottom right, dark blue, ">" as character
 .view-more-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: auto;
   padding-top: 8px;
 }
-
+.sample-size-container {
+  color: $neutral-colors-neutral-750;
+  font-family: "Noto Sans";
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 400;
+}
 .view-more-link {
   display: inline-flex;
   align-items: center;

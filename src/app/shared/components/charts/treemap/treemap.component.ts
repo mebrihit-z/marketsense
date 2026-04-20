@@ -6,6 +6,7 @@ import {
   filterSankeyData,
   filterSankeyDataByFlowValueRange,
   type SankeyData,
+  type SankeyLink,
 } from '../../../utils/sankey-data.utils';
 import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
@@ -16,7 +17,7 @@ import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-win
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
-  links: Array<{ source: string; target: string; value: number }>;
+  links: Array<{ source: string; target: string; value: number; date?: string; nClientsTotal?: number }>;
   summary?: any;
 }
 
@@ -26,6 +27,8 @@ interface TreemapNodeData {
   trueValue?: number;
   layoutValue?: number;
   group?: string;
+  /** Sum of client counts on underlying asset-flow rows represented in this cell (when known). */
+  nClientsTotal?: number;
   children?: TreemapNodeData[];
 }
 
@@ -407,7 +410,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   /** Breadcrumb path uses " › "; render each segment on its own line in the tooltip header. */
-  private buildTooltipHtml(path: string, value: string, timeHorizonDisplay: string): string {
+  private buildTooltipHtml(
+    path: string,
+    value: string,
+    timeHorizonDisplay: string,
+    sampleSize?: number
+  ): string {
     const segments = path.split(' › ').map(s => s.trim()).filter(s => s.length > 0);
     let headerInner: string;
     if (segments.length === 0) {
@@ -423,13 +431,24 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         .join('');
     }
 
+    const sampleLine =
+      sampleSize != null && sampleSize > 0
+        ? `<div>Sample Size: ${this.escapeHtml(sampleSize.toLocaleString('en-US'))}</div>`
+        : '';
+
     return `
       <div style="display:flex; flex-direction:column; gap:4px;">
         <div style="word-break:break-word;">${headerInner}</div>
         <div>Value: ${value}</div>
         <div>Time: ${this.escapeHtml(timeHorizonDisplay)}</div>
+        ${sampleLine}
       </div>
     `;
+  }
+
+  /** Sum of {@link TreemapNodeData#nClientsTotal} on leaf descendants (treemap leaves are flow slices). */
+  private sumNClientsInSubtree(node: TreemapHierarchyNode): number {
+    return node.leaves().reduce((sum, leaf) => sum + Math.max(0, leaf.data.nClientsTotal ?? 0), 0);
   }
 
   private sizeWeight(d: TreemapNodeData): number {
@@ -557,8 +576,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Collect leaves per SuperParent
     const bySP = new Map<string, {
-      outflows: Array<{ parent: string; name: string; value: number }>;
-      inflows: Array<{ parent: string; name: string; value: number }>;
+      outflows: Array<{ parent: string; name: string; value: number; nClientsTotal: number }>;
+      inflows: Array<{ parent: string; name: string; value: number; nClientsTotal: number }>;
       netNew: number;
       withdrawn: number;
     }>();
@@ -579,6 +598,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       const s = l.source as string;
       const t = l.target as string;
       const v = +l.value || 0;
+      const linkNc = Math.max(0, (l as SankeyLink).nClientsTotal ?? 0);
 
       // Capital Out
       if (this.isNetNew(s) && this.isPool(t)) {
@@ -603,7 +623,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const sp = this.superparentFromPool(t);
         const leafName = this.stripSuffix(this.stripSuperPrefix(s));
         const parent = outParentOf.get(`${sp}|${leafName}`) || '(Unknown Parent)';
-        ensureSP(sp).outflows.push({ parent, name: leafName, value: v });
+        ensureSP(sp).outflows.push({ parent, name: leafName, value: v, nClientsTotal: linkNc });
         continue;
       }
 
@@ -612,7 +632,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const sp = this.superparentFromPool(s);
         const leafName = this.stripSuffix(this.stripSuperPrefix(t));
         const parent = inParentOf.get(`${sp}|${leafName}`) || '(Unknown Parent)';
-        ensureSP(sp).inflows.push({ parent, name: leafName, value: v });
+        ensureSP(sp).inflows.push({ parent, name: leafName, value: v, nClientsTotal: linkNc });
         continue;
       }
     }
@@ -628,40 +648,53 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const s = l.source as string;
         const t = l.target as string;
         const v = +l.value || 0;
+        const linkNc = Math.max(0, (l as SankeyLink).nClientsTotal ?? 0);
         if (typeof s !== 'string' || typeof t !== 'string') continue;
         if (s.endsWith('(Start)') && this.isPool(t)) {
           const sp = this.superFromScoped(s);
           const parent = this.cleanParentName(s);
-          ensureSP(sp).outflows.push({ parent, name: parent, value: v });
+          ensureSP(sp).outflows.push({ parent, name: parent, value: v, nClientsTotal: linkNc });
         }
         if (this.isPool(s) && t.endsWith('(End)')) {
           const sp = this.superparentFromPool(s);
           const parent = this.cleanParentName(t);
-          ensureSP(sp).inflows.push({ parent, name: parent, value: v });
+          ensureSP(sp).inflows.push({ parent, name: parent, value: v, nClientsTotal: linkNc });
         }
       }
     }
 
     // Aggregate duplicates
-    const aggregateByParent = (leaves: Array<{ parent: string; name: string; value: number }>): TreemapNodeData[] => {
-      const parents = new Map<string, Map<string, number>>();
+    const aggregateByParent = (
+      leaves: Array<{ parent: string; name: string; value: number; nClientsTotal: number }>
+    ): TreemapNodeData[] => {
+      const parents = new Map<string, Map<string, { value: number; nClientsTotal: number }>>();
       const norm = (s: string) => (s || '').trim();
       for (const d of leaves) {
         const p = d.parent || '(Unknown Parent)';
         if (!parents.has(p)) parents.set(p, new Map());
         const m = parents.get(p)!;
-        m.set(d.name, (m.get(d.name) || 0) + d.value);
+        const prev = m.get(d.name);
+        const nextVal = (prev?.value ?? 0) + d.value;
+        const nextNc = (prev?.nClientsTotal ?? 0) + (d.nClientsTotal ?? 0);
+        m.set(d.name, { value: nextVal, nClientsTotal: nextNc });
       }
 
       return Array.from(parents, ([parent, nameValueMap]) => {
-        const childPairs = Array.from(nameValueMap, ([name, value]) => ({ name, value }));
+        const childPairs = Array.from(nameValueMap, ([name, o]) => {
+          const cell: TreemapNodeData = { name, value: o.value };
+          if (o.nClientsTotal > 0) cell.nClientsTotal = o.nClientsTotal;
+          return cell;
+        });
         // No third dimension (or sub label equals parent): skip a useless wrapper + inner cell with the same label.
         if (childPairs.length === 1 && norm(childPairs[0].name) === norm(parent)) {
-          return { name: parent, value: childPairs[0].value };
+          const only = childPairs[0];
+          const node: TreemapNodeData = { name: parent, value: only.value };
+          if (only.nClientsTotal != null && only.nClientsTotal > 0) node.nClientsTotal = only.nClientsTotal;
+          return node;
         }
         return {
           name: parent,
-          children: childPairs.map(({ name, value }) => ({ name, value })),
+          children: childPairs,
         };
       });
     };
@@ -1142,8 +1175,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
         const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
         const timeHorizonDisplay = component.getTimeHorizonDisplayString();
+        const sampleSize = component.sumNClientsInSubtree(d as TreemapHierarchyNode);
         tooltip.style('opacity', '1');
-        tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay));
+        tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay, sampleSize));
         tooltip.style('left', event.clientX + 'px');
         tooltip.style('top', event.clientY + 'px');
 
@@ -1213,8 +1247,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
       const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
       const timeHorizonDisplay = component.getTimeHorizonDisplayString();
+      const sampleSize = component.sumNClientsInSubtree(d as TreemapHierarchyNode);
       tooltip.style('opacity', '1');
-      tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay));
+      tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay, sampleSize));
       tooltip.style('left', event.clientX + 'px');
       tooltip.style('top', event.clientY + 'px');
       

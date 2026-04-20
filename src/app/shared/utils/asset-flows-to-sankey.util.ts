@@ -21,6 +21,8 @@ export interface AssetFlowRecord {
   Asset_Flow_Date?: string;
   /** Flow magnitude in USD (same numeric unit end-to-end; compact K/M/B/T is display-only). */
   Asset_Flow_Value: number;
+  /** Client count for this row (from `n_clients` in source JSON). */
+  N_Clients?: number;
 }
 
 // Supported fields that can be used as Sankey dimensions
@@ -104,6 +106,15 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
   const valueUnwrapped = unwrapValue(assetFlowValueRaw as number | { $numberLong: string } | undefined);
   const valueFinal = valueUnwrapped !== 0 ? valueUnwrapped : (typeof assetFlowValueRaw === 'number' ? assetFlowValueRaw : 0);
 
+  const nClientsRaw = r['n_clients'] ?? r['N_Clients'];
+  let nClients: number | undefined;
+  if (typeof nClientsRaw === 'number' && Number.isFinite(nClientsRaw)) {
+    nClients = Math.max(0, Math.round(nClientsRaw));
+  } else if (nClientsRaw !== undefined && nClientsRaw !== null) {
+    const u = unwrapValue(nClientsRaw as number | { $numberLong: string });
+    if (Number.isFinite(u) && u >= 0) nClients = Math.round(u);
+  }
+
   return {
     Model_Run_Date: (r['model_run_date'] ?? r['Model_Run_Date']) as string | undefined,
     Model_Version: (r['model_version'] ?? r['Model_Version']) as string | undefined,
@@ -121,6 +132,7 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
     Product_Sub_Type: getStr(r, 'product_sub_type', 'Product_Sub_Type'),
     Asset_Flow_Date: dateFinal,
     Asset_Flow_Value: valueFinal,
+    ...(nClients !== undefined ? { N_Clients: nClients } : {}),
   };
 }
 
@@ -162,6 +174,8 @@ export interface SankeyLink {
   target: string;
   value: number;
   date?: string;
+  /** Sum of {@link AssetFlowRecord.N_Clients} for rows represented by this link (when known). */
+  nClientsTotal?: number;
 }
 
 interface ParentSummary {
@@ -387,20 +401,25 @@ export function convertAssetFlowsToSankey(
 
   // Build links
   const links: SankeyLink[] = [];
+  const rowNc = (r: AssetFlowRecord): number => Math.max(0, r.N_Clients ?? 0);
 
   // 0) SuperParent(Start) -> Parent(Start)
   const superParentOut: { [key: string]: number } = {};
+  const superParentOutNc: { [key: string]: number } = {};
   for (const r of neg) {
     const key = `${r.__super}|${r.__parent}`;
     superParentOut[key] = (superParentOut[key] || 0) + Math.abs(r.Asset_Flow_Value);
+    superParentOutNc[key] = (superParentOutNc[key] || 0) + rowNc(r);
   }
   for (const [key, total] of Object.entries(superParentOut)) {
     if (total > 0) {
       const [sp, p] = key.split('|');
+      const nc = superParentOutNc[key] || 0;
       links.push({
         source: `${sp} (Super Start)`,
         target: parentStartName(sp, p),
         value: total,
+        ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
   }
@@ -410,30 +429,36 @@ export function convertAssetFlowsToSankey(
     for (const [key, total] of Object.entries(superParentOut)) {
       if (total > 0) {
         const [sp, p] = key.split('|');
+        const nc = superParentOutNc[key] || 0;
         links.push({
           source: parentStartName(sp, p),
           target: poolName(sp),
           value: total,
+          ...(nc > 0 ? { nClientsTotal: nc } : {}),
         });
       }
     }
   } else {
     // 1) Parent(Start) -> Sub(Source)
     for (const r of neg) {
+      const nc = rowNc(r);
       links.push({
         source: parentStartName(r.__super, r.__parent),
         target: subSourceName(r.__super, r.__sub),
         value: Math.abs(r.Asset_Flow_Value),
         date: r.Asset_Flow_Date,
+        ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
 
     // 2) Sub(Source) -> Pool (per SuperParent)
     for (const r of neg) {
+      const nc = rowNc(r);
       links.push({
         source: subSourceName(r.__super, r.__sub),
         target: poolName(r.__super),
         value: Math.abs(r.Asset_Flow_Value),
+        ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
   }
@@ -489,54 +514,66 @@ export function convertAssetFlowsToSankey(
   if (skipSubLevel) {
     // Pool -> Parent(End) (aggregated by sp, parent)
     const superParentInAgg: { [key: string]: number } = {};
+    const superParentInAggNc: { [key: string]: number } = {};
     for (const r of pos) {
       const key = `${r.__super}|${r.__parent}`;
       superParentInAgg[key] = (superParentInAgg[key] || 0) + r.Asset_Flow_Value;
+      superParentInAggNc[key] = (superParentInAggNc[key] || 0) + rowNc(r);
     }
     for (const [key, total] of Object.entries(superParentInAgg)) {
       if (total > 0) {
         const [sp, p] = key.split('|');
+        const nc = superParentInAggNc[key] || 0;
         links.push({
           source: poolName(sp),
           target: parentEndName(sp, p),
           value: total,
+          ...(nc > 0 ? { nClientsTotal: nc } : {}),
         });
       }
     }
   } else {
     // 4) Pool -> Sub(Destination) (per SuperParent)
     for (const r of pos) {
+      const nc = rowNc(r);
       links.push({
         source: poolName(r.__super),
         target: subDestName(r.__super, r.__sub),
         value: r.Asset_Flow_Value,
+        ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
 
     // 5) Sub(Destination) -> Parent(End)
     for (const r of pos) {
+      const nc = rowNc(r);
       links.push({
         source: subDestName(r.__super, r.__sub),
         target: parentEndName(r.__super, r.__parent),
         value: r.Asset_Flow_Value,
         date: r.Asset_Flow_Date,
+        ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
   }
 
   // 6) Parent(End) -> SuperParent(End)
   const superParentIn: { [key: string]: number } = {};
+  const superParentInNc: { [key: string]: number } = {};
   for (const r of pos) {
     const key = `${r.__super}|${r.__parent}`;
     superParentIn[key] = (superParentIn[key] || 0) + r.Asset_Flow_Value;
+    superParentInNc[key] = (superParentInNc[key] || 0) + rowNc(r);
   }
   for (const [key, total] of Object.entries(superParentIn)) {
     if (total > 0) {
       const [sp, p] = key.split('|');
+      const nc = superParentInNc[key] || 0;
       links.push({
         source: parentEndName(sp, p),
         target: `${sp} (Super End)`,
         value: total,
+        ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
   }
