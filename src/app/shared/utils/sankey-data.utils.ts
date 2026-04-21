@@ -519,10 +519,71 @@ function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
   return touches(source) || touches(target);
 }
 
+/** Key for parallel Sankey links that share the same source and target node names. */
+export function sankeyLinkPairKey(source: string, target: string): string {
+  return `${source}\0${target}`;
+}
+
+/**
+ * Sum of {@link SankeyLink.value} (USD) for each distinct (source, target) pair.
+ * Asset-flow data often emits multiple rows per edge; the value-range filter should use this total
+ * so a band like ≥ $10M keeps the edge when the combined flow qualifies, not only when each row does.
+ */
+export function buildSankeySourceTargetPairSumDollars(
+  links: readonly SankeyLink[] | undefined
+): Map<string, number> {
+  const m = new Map<string, number>();
+  if (!links?.length) return m;
+  for (const link of links) {
+    const source = typeof link.source === 'string' ? link.source : '';
+    const target = typeof link.target === 'string' ? link.target : '';
+    const k = sankeyLinkPairKey(source, target);
+    const v = link.value;
+    const add = v != null && Number.isFinite(v) ? v : 0;
+    m.set(k, (m.get(k) ?? 0) + add);
+  }
+  return m;
+}
+
+/**
+ * Whether a link's {@link valueDollars} lies within the value-range rail (bounds in **billions USD**).
+ * {@link valueDollars} should be the **total USD across all parallel links** with the same source/target
+ * (see {@link buildSankeySourceTargetPairSumDollars}), not a single row's value, when those parallels exist.
+ * Same rules as {@link filterSankeyDataByFlowValueRange}; use for Sankey visual/prune logic.
+ */
+export function linkPassesFlowValueRangeFilter(
+  source: string,
+  target: string,
+  valueDollars: number | undefined,
+  minValueBillions: number,
+  maxValueBillions: number | null | undefined,
+  exemptNetNewAndWithdrawnFromFlowValueFilter: boolean
+): boolean {
+  const hasMin = minValueBillions > 0;
+  const hasMax = maxValueBillions != null && Number.isFinite(maxValueBillions as number);
+  if (!hasMin && !hasMax) {
+    return true;
+  }
+  if (
+    exemptNetNewAndWithdrawnFromFlowValueFilter &&
+    linkTouchesNetNewOrWithdrawn(source, target)
+  ) {
+    return true;
+  }
+  const BILLIONS_TO_DOLLARS = 1_000_000_000;
+  const minDollars = hasMin ? minValueBillions * BILLIONS_TO_DOLLARS : 0;
+  const maxDollars = hasMax ? (maxValueBillions as number) * BILLIONS_TO_DOLLARS : Infinity;
+  const v = valueDollars ?? 0;
+  if (hasMin && v < minDollars) return false;
+  if (hasMax && v > maxDollars) return false;
+  return true;
+}
+
 /**
  * Filters Sankey links by optional lower and upper bounds.
  * {@link minValue} / {@link maxValue} are expressed in **billions USD** (filter rail);
- * {@link SankeyLink.value} is compared in **dollars** (raw flow amounts).
+ * each (source, target) pair is tested using the **sum** of {@link SankeyLink.value} in dollars
+ * across all parallel links (same as the Sankey chart prune step).
  */
 export function filterSankeyDataByFlowValueRange(
   data: SankeyData,
@@ -540,23 +601,20 @@ export function filterSankeyDataByFlowValueRange(
     return data;
   }
 
-  const BILLIONS_TO_DOLLARS = 1_000_000_000;
-  const minDollars = hasMin ? minValue * BILLIONS_TO_DOLLARS : 0;
-  const maxDollars = hasMax ? (maxValue as number) * BILLIONS_TO_DOLLARS : Infinity;
+  const pairTotals = buildSankeySourceTargetPairSumDollars(data.links);
 
   const filteredLinks = data.links.filter((link) => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
-    if (
-      exemptNetNewAndWithdrawnFromFlowValueFilter &&
-      linkTouchesNetNewOrWithdrawn(source, target)
-    ) {
-      return true;
-    }
-    const v = link.value ?? 0;
-    if (hasMin && v < minDollars) return false;
-    if (hasMax && v > maxDollars) return false;
-    return true;
+    const pairTotal = pairTotals.get(sankeyLinkPairKey(source, target)) ?? link.value ?? 0;
+    return linkPassesFlowValueRangeFilter(
+      source,
+      target,
+      pairTotal,
+      minValue,
+      maxValue,
+      exemptNetNewAndWithdrawnFromFlowValueFilter
+    );
   });
 
   if (filteredLinks.length === 0) {

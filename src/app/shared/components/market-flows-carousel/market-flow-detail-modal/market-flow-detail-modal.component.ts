@@ -361,20 +361,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Row labels: explicit filter selection when set; otherwise every distinct value in data for that
-   * dimension (same other filters, but this dimension's filter omitted so "all" lists completely).
+   * Row labels: distinct values for this product sub-type in the current chart slice (this dimension's
+   * dashboard filter bypassed so we see the full set for the sub-type). When the user has selected
+   * investor types or product regions, only labels that both appear in that set and in this sub-type's
+   * data are listed — never every global filter value that is irrelevant to this card.
    */
   private getOrderedBreakdownLabels(productSubType: string, kind: FlowBreakdownTab): string[] {
-    if (kind === 'investor' && this.selectedInvestorTypes?.length) {
-      return [...this.selectedInvestorTypes].sort((a, b) =>
-        a.localeCompare(b, undefined, { sensitivity: 'base' })
-      );
-    }
-    if (kind === 'product' && this.selectedProductRegions?.length) {
-      return [...this.selectedProductRegions].sort((a, b) =>
-        a.localeCompare(b, undefined, { sensitivity: 'base' })
-      );
-    }
     const base = this.applyChartDataFiltersWithBypasses(productSubType, {
       bypassInvestorTypes: kind === 'investor',
       bypassProductRegions: kind === 'product',
@@ -383,7 +375,16 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     for (const r of base) {
       set.add(this.dimensionKeyFromRow(r, kind));
     }
-    return [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const fromSubType = [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    if (kind === 'investor' && this.selectedInvestorTypes?.length) {
+      const selected = new Set(this.selectedInvestorTypes);
+      return fromSubType.filter(l => selected.has(l));
+    }
+    if (kind === 'product' && this.selectedProductRegions?.length) {
+      const selected = new Set(this.selectedProductRegions);
+      return fromSubType.filter(l => selected.has(l));
+    }
+    return fromSubType;
   }
 
   private buildBreakdownRows(kind: FlowBreakdownTab): FlowBreakdownRow[] {

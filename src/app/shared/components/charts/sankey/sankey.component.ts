@@ -10,7 +10,9 @@ import {
 } from 'd3-sankey';
 import {
   filterSankeyData,
-  filterSankeyDataByFlowValueRange,
+  buildSankeySourceTargetPairSumDollars,
+  linkPassesFlowValueRangeFilter,
+  sankeyLinkPairKey,
   extractProductTypeFromNodeName,
   type SankeyData,
 } from '../../../utils/sankey-data.utils';
@@ -81,6 +83,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() dimension2Label?: string;
   /** Selected flow dimension 1 label (passed from parent for context). */
   @Input() dimension1Label?: string;
+  /**
+   * True when Dimension 3 is not "None". Enables aggregate Super↔parent reconcile after value-range
+   * so trunk link thickness matches surviving leaf links; included in filter hash when it toggles.
+   */
+  @Input() sankeyHasLeafDimension = false;
   /** Minimum flow value in billions ($B); links below this are hidden when greater than 0. */
   @Input() minFlowValue: number = 0;
   /** Maximum flow value in billions; links above this are hidden when set. Null = no upper cap. */
@@ -151,6 +158,99 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     return link.rawValue != null ? link.rawValue : link.value;
   }
 
+  private isSankeyFlowPillarNode(name: string): boolean {
+    return (
+      name.includes('Reallocation Pool') ||
+      name.includes('(Super Start)') ||
+      name.includes('(Super End)') ||
+      name.includes('Capital In') ||
+      name.includes('Capital Out')
+    );
+  }
+
+  /** Realloc + super terminals only (not Capital In/Out): show full $ in labels/tooltips while value-range prunes elsewhere. */
+  private isReallocOrSuperTerminalHub(name: string): boolean {
+    return (
+      name.includes('Reallocation Pool') ||
+      name.includes('(Super Start)') ||
+      name.includes('(Super End)')
+    );
+  }
+
+  /**
+   * When Dimension 3 is on, shrink or mute Super→(Start) and (End)→Super End aggregates so they match
+   * only leaf links that pass the value-range filter (avoids a huge ribbon while sub-links are pruned).
+   * Super / Realloc **labels** and tooltips still use full totals from the pre-prune link sums in createSankey.
+   */
+  private reconcileDimension3AggregatesWithValueRange(
+    layoutLinkDefs: Array<{
+      source: number;
+      target: number;
+      baseLayoutValue: number;
+      rawValue: number;
+      mutedByValueRange?: boolean;
+    }>,
+    nodeList: Array<{ name: string }>,
+    maxRawAll: number
+  ): void {
+    const nm = (i: number) => nodeList[i]?.name ?? '';
+
+    const isParentProductStart = (n: string) =>
+      n.includes('(Start)') && !n.includes('(Super Start)');
+    const isParentProductEnd = (n: string) =>
+      n.includes('(End)') && !n.includes('(Super End)');
+
+    const parentStartVisible = new Map<string, number>();
+    for (const d of layoutLinkDefs) {
+      if (d.mutedByValueRange) continue;
+      const s = nm(d.source);
+      const t = nm(d.target);
+      if (isParentProductStart(s) && t.includes('(Source)')) {
+        parentStartVisible.set(s, (parentStartVisible.get(s) || 0) + d.rawValue);
+      }
+    }
+
+    for (const d of layoutLinkDefs) {
+      if (d.mutedByValueRange) continue;
+      const s = nm(d.source);
+      const t = nm(d.target);
+      if (s.includes('(Super Start)') && isParentProductStart(t)) {
+        const v = parentStartVisible.get(t) ?? 0;
+        if (v < 1e-9) {
+          d.mutedByValueRange = true;
+        } else {
+          d.rawValue = v;
+          d.baseLayoutValue = this.layoutValueForLink(v, maxRawAll, s, t);
+        }
+      }
+    }
+
+    const parentEndVisible = new Map<string, number>();
+    for (const d of layoutLinkDefs) {
+      if (d.mutedByValueRange) continue;
+      const s = nm(d.source);
+      const t = nm(d.target);
+      if (s.includes('(Destination)') && isParentProductEnd(t)) {
+        parentEndVisible.set(t, (parentEndVisible.get(t) || 0) + d.rawValue);
+      }
+    }
+
+    for (const d of layoutLinkDefs) {
+      if (d.mutedByValueRange) continue;
+      const s = nm(d.source);
+      const t = nm(d.target);
+      if (isParentProductEnd(s) && t.includes('(Super End)')) {
+        const v = parentEndVisible.get(s) ?? 0;
+        if (v < 1e-9) {
+          d.mutedByValueRange = true;
+        } else {
+          d.rawValue = v;
+          d.baseLayoutValue = this.layoutValueForLink(v, maxRawAll, s, t);
+        }
+      }
+    }
+  }
+
   /**
    * Per-link layout bump multipliers can make sum(incoming layout value) ≠ sum(outgoing) at a node.
    * d3-sankey then sizes the node from the larger sum; with a shared global ky the shorter stack
@@ -190,10 +290,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * height, d3-sankey stacks from the top and leaves empty space. Distribute slack as gaps between
    * ribbons so inflows (targetLinks → y1) and outflows (sourceLinks → y0) each span the full node
    * height — Realloc, regional parents, (Start)/(End), etc. Link thicknesses and tooltips unchanged.
+   *
+   * After value-range pruning, few ribbons can cover a small fraction of a tall hub; spreading
+   * then inserts huge gaps between ribbons. Only spread when ribbons already fill most of the bar.
    */
   private spreadHubLinkStacksToNodeHeight(
     graph: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>
   ): void {
+    /** Below this fill ratio, keep d3’s stack (one slack band) instead of gaps between ribbons. */
+    const minFillRatioToSpread = 0.82;
+
     const spreadSide = (
       yTop: number,
       nodeSpan: number,
@@ -204,6 +310,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const totalW = links.reduce((s, l) => s + (Number(l.width) || 0), 0);
       if (!(totalW > 1e-6)) return;
       if (totalW >= nodeSpan - 0.5) return;
+      if (totalW < nodeSpan * minFillRatioToSpread) return;
 
       const n = links.length;
       const slack = nodeSpan - totalW;
@@ -267,7 +374,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * Generate a hash of filter values to detect actual changes
    */
   private getFiltersHash(): string {
-    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}-${this.minNodeHeightPx}-${this.linkLayoutVisibilityFloorFraction}-${this.structuralFlowLayoutFloorFraction}-${this.minLinkStrokePx}`;
+    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}-${this.minNodeHeightPx}-${this.linkLayoutVisibilityFloorFraction}-${this.structuralFlowLayoutFloorFraction}-${this.minLinkStrokePx}-${this.sankeyHasLeafDimension ? 1 : 0}`;
   }
 
   ngAfterViewInit(): void {
@@ -321,7 +428,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         changes['structuralFlowLayoutFloorFraction'] ||
         changes['linkLayoutVisibilityFloorFraction'] ||
         changes['minNodeHeightPx'] ||
-        changes['minLinkStrokePx']) {
+        changes['minLinkStrokePx'] ||
+        changes['sankeyHasLeafDimension']) {
       const newFiltersHash = this.getFiltersHash();
       if (newFiltersHash !== this.lastFiltersHash) {
         this.lastFiltersHash = newFiltersHash;
@@ -342,7 +450,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
 
   /**
-   * Applies filters to the sankey data: category filters (regions, product types, sub-types) and minimum flow value.
+   * Category filters only. Value-range pruning runs in {@link createSankey}.
    */
   private getFilteredData(): RegionalSankeyData | undefined {
     const dataToUse = this.loadedData || this.data;
@@ -367,12 +475,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         this.selectedProductTypes,
         this.selectedProductSubTypes
       );
-    }
-
-    const minVal = this.minFlowValue ?? 0;
-    const maxVal = this.maxFlowValue;
-    if (minVal > 0 || (maxVal != null && Number.isFinite(maxVal))) {
-      result = filterSankeyDataByFlowValueRange(result, minVal, maxVal, true);
     }
 
     return result as RegionalSankeyData;
@@ -520,13 +622,32 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('opacity', '0')
       .style('display', 'none');
 
+    // Incoming/outgoing $ from full category-filtered links (before value-range prune) for Realloc + Super Start/End labels/tooltips.
+    const tripleHubTotalsFull = new Map<string, { incoming: number; outgoing: number }>();
+    for (const link of dataToUse.links || []) {
+      const s = typeof link.source === 'string' ? link.source : '';
+      const t = typeof link.target === 'string' ? link.target : '';
+      const v = link.value ?? 0;
+      if (this.isReallocOrSuperTerminalHub(s)) {
+        if (!tripleHubTotalsFull.has(s)) {
+          tripleHubTotalsFull.set(s, { incoming: 0, outgoing: 0 });
+        }
+        tripleHubTotalsFull.get(s)!.outgoing += v;
+      }
+      if (this.isReallocOrSuperTerminalHub(t)) {
+        if (!tripleHubTotalsFull.has(t)) {
+          tripleHubTotalsFull.set(t, { incoming: 0, outgoing: 0 });
+        }
+        tripleHubTotalsFull.get(t)!.incoming += v;
+      }
+    }
+
     // -----------------------------------------
     // 1. Prepare link layout definitions (indices + boosted base layout values)
+    // Value range: drop out-of-range links and orphan nodes. Pillar hubs stay when they have base data.
     // -----------------------------------------
     const nodeMap = new Map<string, number>();
     dataToUse.nodes.forEach((node, i) => nodeMap.set(node.name, i));
-
-    const maxRawLinkValue = d3.max(dataToUse.links, l => l.value) || 1;
 
     interface LayoutLinkDef {
       source: number;
@@ -536,7 +657,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       date?: string;
       nClientsTotal?: number;
       layoutIndex: number;
+      mutedByValueRange?: boolean;
     }
+
+    const maxRawAll = d3.max(dataToUse.links, l => l.value) || 1;
+    const pairSumDollars = buildSankeySourceTargetPairSumDollars(dataToUse.links);
 
     const layoutLinkDefs: LayoutLinkDef[] = [];
     let defIndex = 0;
@@ -552,7 +677,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const linkTgt = link.target;
       const sourceName = typeof linkSrc === 'string' ? linkSrc : '';
       const targetName = typeof linkTgt === 'string' ? linkTgt : '';
-      const layoutValue = this.layoutValueForLink(raw, maxRawLinkValue, sourceName, targetName);
+      const layoutValue = this.layoutValueForLink(raw, maxRawAll, sourceName, targetName);
+
+      const minVal = this.minFlowValue ?? 0;
+      const maxVal = this.maxFlowValue;
+      const valueForFlowRange =
+        pairSumDollars.get(sankeyLinkPairKey(sourceName, targetName)) ?? raw;
+      const passesValueRange = linkPassesFlowValueRangeFilter(
+        sourceName,
+        targetName,
+        valueForFlowRange,
+        minVal,
+        maxVal,
+        true
+      );
 
       layoutLinkDefs.push({
         source: sourceIndex,
@@ -562,7 +700,70 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         date: link.date,
         nClientsTotal: link.nClientsTotal,
         layoutIndex: defIndex++,
+        mutedByValueRange: !passesValueRange,
       });
+    }
+
+    if (this.sankeyHasLeafDimension) {
+      this.reconcileDimension3AggregatesWithValueRange(layoutLinkDefs, dataToUse.nodes, maxRawAll);
+    }
+
+    const nodeIncluded = new Set<string>();
+    for (const def of layoutLinkDefs) {
+      if (def.mutedByValueRange) continue;
+      nodeIncluded.add(dataToUse.nodes[def.source].name);
+      nodeIncluded.add(dataToUse.nodes[def.target].name);
+    }
+    for (const node of dataToUse.nodes) {
+      if (!this.isSankeyFlowPillarNode(node.name)) continue;
+      const touched = (dataToUse.links || []).some(
+        l => l.source === node.name || l.target === node.name
+      );
+      if (touched) {
+        nodeIncluded.add(node.name);
+      }
+    }
+    for (const node of dataToUse.nodes) {
+      if (node.name.includes('(Super Start)') || node.name.includes('(Super End)')) {
+        nodeIncluded.add(node.name);
+      }
+    }
+
+    const prunedNodes = dataToUse.nodes.filter(n => nodeIncluded.has(n.name));
+    const nameToPrunedIndex = new Map<string, number>();
+    prunedNodes.forEach((n, i) => nameToPrunedIndex.set(n.name, i));
+
+    const prunedLayoutLinkDefs: LayoutLinkDef[] = [];
+    let prunedIdx = 0;
+    for (const d of layoutLinkDefs) {
+      if (d.mutedByValueRange) continue;
+      const sName = dataToUse.nodes[d.source].name;
+      const tName = dataToUse.nodes[d.target].name;
+      const si = nameToPrunedIndex.get(sName);
+      const ti = nameToPrunedIndex.get(tName);
+      if (si === undefined || ti === undefined) continue;
+      prunedLayoutLinkDefs.push({
+        source: si,
+        target: ti,
+        baseLayoutValue: d.baseLayoutValue,
+        rawValue: d.rawValue,
+        date: d.date,
+        nClientsTotal: d.nClientsTotal,
+        layoutIndex: prunedIdx++,
+      });
+    }
+
+    if (prunedLayoutLinkDefs.length === 0) {
+      d3.select('body').select(`#${this.tooltipId}`).remove();
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const maxRawLinkValue = d3.max(prunedLayoutLinkDefs, l => l.rawValue) || 1;
+    for (const d of prunedLayoutLinkDefs) {
+      const sName = prunedNodes[d.source].name;
+      const tName = prunedNodes[d.target].name;
+      d.baseLayoutValue = this.layoutValueForLink(d.rawValue, maxRawLinkValue, sName, tName);
     }
 
     const leftMargin = 8;   // Minimal padding so edge labels aren’t clipped
@@ -576,7 +777,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
 
     const minNodePx = Math.max(0, this.minNodeHeightPx ?? 8);
-    let linkMultipliers = layoutLinkDefs.map(() => 1);
+    let linkMultipliers = prunedLayoutLinkDefs.map(() => 1);
     // Assigned on every iteration of the loop below (always runs ≥ once).
     let graph!: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>;
 
@@ -584,8 +785,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const LAYOUT_BUMP = 1.12;
 
     for (let attempt = 0; attempt < MAX_LAYOUT_ITERATIONS; attempt++) {
-      const sankeyNodes: SankeyNodeExtra[] = dataToUse.nodes.map(n => ({ name: n.name }));
-      const sankeyLinks: SankeyLinkExtra[] = layoutLinkDefs.map((def, i) => ({
+      const sankeyNodes: SankeyNodeExtra[] = prunedNodes.map(n => ({ name: n.name }));
+      const sankeyLinks: SankeyLinkExtra[] = prunedLayoutLinkDefs.map((def, i) => ({
         source: def.source,
         target: def.target,
         value: def.baseLayoutValue * linkMultipliers[i],
@@ -600,7 +801,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         links: sankeyLinks,
       });
 
-      if (minNodePx <= 0 || layoutLinkDefs.length === 0) {
+      if (minNodePx <= 0 || prunedLayoutLinkDefs.length === 0) {
         break;
       }
 
@@ -634,7 +835,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     this.harmonizeInternalNodeLayoutValues(graph);
-    const nodesBalanced: SankeyNodeExtra[] = dataToUse.nodes.map(n => ({ name: n.name }));
+    const nodesBalanced: SankeyNodeExtra[] = prunedNodes.map(n => ({ name: n.name }));
     const linksBalanced: SankeyLinkExtra[] = (graph.links as SankeyLinkExtra[]).map(l => {
       const s = l.source as SankeyNodeExtra;
       const t = l.target as SankeyNodeExtra;
@@ -994,9 +1195,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('stroke-width', d => (getNodeDisplayStyle(d.name).fill ? 1 : null))
       .on('mouseover', function(event, d) {
         const node = d as SankeyNodeExtra;
-        const value = nodeValues.get(node) || 0;
-        const incoming = nodeIncoming.get(node) || 0;
-        const outgoing = nodeOutgoing.get(node) || 0;
+        const hubFull = tripleHubTotalsFull.get(node.name);
+        const useHubFullTotals =
+          component.isReallocOrSuperTerminalHub(node.name) && hubFull != null;
+        const value = useHubFullTotals
+          ? Math.max(hubFull.incoming, hubFull.outgoing)
+          : nodeValues.get(node) || 0;
+        const incoming = useHubFullTotals ? hubFull.incoming : nodeIncoming.get(node) || 0;
+        const outgoing = useHubFullTotals ? hubFull.outgoing : nodeOutgoing.get(node) || 0;
         const nodeX = node.x0 !== undefined ? node.x0 : (node.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
         const isStructuralCapitalNode =
@@ -1252,7 +1458,12 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('class', 'sankey-node-label-value')
       .attr('dx', '8px')
       .text(d => {
-        const value = nodeValues.get(d) || 0;
+        const hubFull = tripleHubTotalsFull.get(d.name);
+        const useHubFullTotals =
+          this.isReallocOrSuperTerminalHub(d.name) && hubFull != null;
+        const value = useHubFullTotals
+          ? Math.max(hubFull.incoming, hubFull.outgoing)
+          : nodeValues.get(d) || 0;
         const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
         const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
         if (d.name.includes('Capital Out') || d.name.includes('Capital In')) {

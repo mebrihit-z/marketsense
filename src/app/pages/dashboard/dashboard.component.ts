@@ -233,6 +233,8 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   onMinFlowValueRangeChange(range: MinFlowRangeSelection): void {
     this.chartMinFlowLower = getMinFlowLowerBound(range);
     this.chartMaxFlowUpper = getMaxFlowUpperBound(range);
+    const visible = new Set(this.filteredMarketFlowCards.map(c => c.id));
+    this.pinnedCardIds = this.pinnedCardIds.filter(id => visible.has(id));
   }
 
   onAssetAllocationPinToggle(): void {
@@ -294,8 +296,8 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Raw rows matching the filters bar (dimensions + current time window + min/max flow),
-   * for carousel detail charts. Aligns with {@link filteredMarketFlowCards} aggregation input.
+   * Raw rows matching the filters bar (dimensions + current time window), for carousel detail charts.
+   * Value-range applies to aggregated card net, not per-row (see {@link filteredMarketFlowCards}).
    */
   get filterBarScopedAssetFlowsData(): AssetFlowRecord[] {
     if (!this.selectedInvestorRegions?.length || !this.selectedProductSubTypes?.length) {
@@ -313,7 +315,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       this.historicAnchor.getAnchorYearMonth()
     );
     data = this.applyCurrentTimeWindowToRecords(data);
-    return this.filterRecordsByFlowMagnitude(data);
+    return data;
   }
 
   get filteredMarketFlowCards(): MarketFlowCard[] {
@@ -341,11 +343,11 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       this.historicAnchor.getAnchorYearMonth()
     );
     filteredData = this.applyCurrentTimeWindowToRecords(filteredData);
-    filteredData = this.filterRecordsByFlowMagnitude(filteredData);
 
-    // Aggregate by product sub-type (rows already match filters bar + time window + flow magnitude)
+    // Aggregate by product sub-type (rows match filters bar + time window). Value-range filter applies
+    // to each card's aggregated net (|netFlowUsd|), not per raw row — matches Sankey edge totals.
     // VALUE CALCULATION:
-    // 1. Filter records by: dimensions, time horizon, min/max flow (see applyFilterBarDimensions / applyCurrentTimeWindowToRecords / filterRecordsByFlowMagnitude)
+    // 1. Filter records by: dimensions, time horizon (see applyFilterBarDimensions / applyCurrentTimeWindowToRecords)
     // 2. For each Product_Sub_Type, sum Asset_Flow_Value (USD, same unit as stored)
     // 3. Totals stay in USD; compact K/M/B/T is formatting-only
     // 4. Result: Net flow = sum of all positive values - sum of all negative values (negative values are subtracted)
@@ -395,7 +397,6 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         this.timeHorizonRange?.end,
         this.historicAnchor.getAnchorYearMonth()
       );
-      endpointBase = this.filterRecordsByFlowMagnitude(endpointBase);
       const { start: startYm, end: endYm } = horizonWin;
       const sumBySubType = (rows: AssetFlowRecord[], into: Map<string, number>): void => {
         for (const record of rows) {
@@ -483,8 +484,12 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         };
       });
 
+    const cardsInValueRange = cards.filter(c =>
+      this.absoluteUsdPassesChartValueRange(Math.abs(c.netFlowUsd ?? 0))
+    );
+
     // Sort cards: pinned cards first (in order of pinning), then others by absolute value
-    return cards.sort((a, b) => {
+    return cardsInValueRange.sort((a, b) => {
       const aPinIndex = this.pinnedCardIds.indexOf(a.id);
       const bPinIndex = this.pinnedCardIds.indexOf(b.id);
       
@@ -565,22 +570,21 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     return assetFlowDateToYearMonthUtc(t);
   }
 
-  /** Per-row |flow| in USD vs filters bar min/max (rail thresholds are in billions; see Sankey filter). */
-  private filterRecordsByFlowMagnitude(records: AssetFlowRecord[]): AssetFlowRecord[] {
-    if (!records?.length) return records;
+  /**
+   * Filters bar value range (min/max in **billions USD**) applied to an absolute USD amount.
+   * Used for market-flow cards by aggregated |net|; Sankey/Treemap use link-level filtering separately.
+   */
+  private absoluteUsdPassesChartValueRange(absDollars: number): boolean {
     const minVal = this.chartMinFlowLower ?? 0;
     const maxVal = this.chartMaxFlowUpper;
     const hasMin = minVal > 0;
     const hasMax = maxVal != null && Number.isFinite(maxVal as number);
-    if (!hasMin && !hasMax) return records;
-    return records.filter(r => {
-      const absDollars = Math.abs(r.Asset_Flow_Value);
-      const minDollars = hasMin ? minVal * 1_000_000_000 : 0;
-      const maxDollars = hasMax ? (maxVal as number) * 1_000_000_000 : Infinity;
-      if (hasMin && absDollars < minDollars) return false;
-      if (hasMax && absDollars > maxDollars) return false;
-      return true;
-    });
+    if (!hasMin && !hasMax) return true;
+    const minDollars = hasMin ? minVal * 1_000_000_000 : 0;
+    const maxDollars = hasMax ? (maxVal as number) * 1_000_000_000 : Infinity;
+    if (hasMin && absDollars < minDollars) return false;
+    if (hasMax && absDollars > maxDollars) return false;
+    return true;
   }
 
   /**
