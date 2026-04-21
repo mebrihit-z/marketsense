@@ -81,17 +81,17 @@
       <h2 class="detail-modal-title">{{ card.title }}</h2>
       <span
         class="detail-modal-sentiment"
-        [class.is-positive]="card.percentageColor === 'green'"
-        [class.is-negative]="card.percentageColor === 'red'"
-        [class.is-neutral]="card.percentageColor === 'neutral'">
+        [class.is-positive]="getHeadlinePercentageColor() === 'green'"
+        [class.is-negative]="getHeadlinePercentageColor() === 'red'"
+        [class.is-neutral]="getHeadlinePercentageColor() === 'neutral'">
         {{ getCardSentimentLabel() }}
       </span>
       <span
         class="detail-modal-pct-pill"
-        [class.is-positive]="card.percentageColor === 'green'"
-        [class.is-negative]="card.percentageColor === 'red'"
-        [class.is-neutral]="card.percentageColor === 'neutral'">
-        {{ card.percentageChange }}
+        [class.is-positive]="getHeadlinePercentageColor() === 'green'"
+        [class.is-negative]="getHeadlinePercentageColor() === 'red'"
+        [class.is-neutral]="getHeadlinePercentageColor() === 'neutral'">
+        {{ getHeadlinePercentageChange() }}
       </span>
     </div>
     <div class="detail-modal-header-actions">

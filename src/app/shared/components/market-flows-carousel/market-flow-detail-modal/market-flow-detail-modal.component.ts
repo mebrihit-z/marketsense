@@ -15,7 +15,10 @@ import {
   parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
-import { horizonSlicePercentOfTotalStart } from '../../../utils/horizon-endpoint-percent-change.util';
+import {
+  horizonEndpointPercentChangeUsd,
+  horizonSlicePercentOfTotalStart,
+} from '../../../utils/horizon-endpoint-percent-change.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 
@@ -79,6 +82,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: [],
   };
 
+  private headlineHorizonPctFp = '';
+  private headlineHorizonPctMemo: number | null = null;
+
   /** Exposed for template (static methods). */
   readonly getConfidenceColor = MarketFlowDetailModalComponent.getConfidenceColor;
   readonly getConfidenceLabel = MarketFlowDetailModalComponent.getConfidenceLabel;
@@ -105,6 +111,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     ) {
       this.breakdownFingerprint = '';
       this.lineChartMemoFp = '';
+      this.headlineHorizonPctFp = '';
     }
   }
 
@@ -116,10 +123,94 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /** Sentiment label for the header (matches flow card logic). */
   getCardSentimentLabel(): string {
     if (!this.card) return '';
-    if (this.card.sentiment) return this.card.sentiment;
-    if (this.card.percentageColor === 'red') return 'Bearish';
-    if (this.card.percentageColor === 'green') return 'Bullish';
+    if (this.card.sentiment && !this.headlineHorizonPctActive()) return this.card.sentiment;
+    const c = this.getHeadlinePercentageColor();
+    if (c === 'red') return 'Bearish';
+    if (c === 'green') return 'Bullish';
     return this.card.valueColor === 'red' ? 'Bearish' : 'Bullish';
+  }
+
+  /**
+   * When a slider window is set and raw rows exist, headline % follows the horizon (same formula as
+   * dashboard cards); otherwise the static {@link MarketFlowCard} fields.
+   */
+  getHeadlinePercentageChange(): string {
+    if (!this.card) return '';
+    if (this.headlineHorizonPctActive()) {
+      const pct = this.getHeadlineHorizonEndpointPct();
+      if (pct == null) return '—';
+      const formatted = MarketFlowDetailModalComponent.formatHeadlinePctAbs(Math.abs(pct));
+      return pct >= 0 ? `+${formatted}%` : `-${formatted}%`;
+    }
+    return this.card.percentageChange;
+  }
+
+  getHeadlinePercentageColor(): 'red' | 'green' | 'neutral' {
+    if (!this.card) return 'neutral';
+    if (this.headlineHorizonPctActive()) {
+      const pct = this.getHeadlineHorizonEndpointPct();
+      if (pct == null) return 'neutral';
+      return pct >= 0 ? 'green' : 'red';
+    }
+    return this.card.percentageColor;
+  }
+
+  private headlineHorizonPctActive(): boolean {
+    return (
+      this.getDetailHorizonYearMonthWindow() != null &&
+      !!this.card?.productSubType &&
+      (this.rawAssetFlowsData?.length ?? 0) > 0
+    );
+  }
+
+  private getHeadlineHorizonPctFingerprint(): string {
+    return JSON.stringify({
+      id: this.card?.id,
+      productSubType: this.card?.productSubType,
+      dataType: this.card?.dataType,
+      timeHorizonRange: this.timeHorizonRange,
+      rawLen: this.rawAssetFlowsData?.length ?? 0,
+      anchor: this.historicAnchor.getAnchorYearMonth(),
+      selectedInvestorRegions: this.selectedInvestorRegions,
+      selectedInvestorTypes: this.selectedInvestorTypes,
+      selectedProductRegions: this.selectedProductRegions,
+      selectedProductTypes: this.selectedProductTypes,
+    });
+  }
+
+  private getHeadlineHorizonEndpointPct(): number | null {
+    const fp = this.getHeadlineHorizonPctFingerprint();
+    if (fp !== this.headlineHorizonPctFp) {
+      this.headlineHorizonPctFp = fp;
+      this.headlineHorizonPctMemo = this.computeHeadlineHorizonEndpointPct();
+    }
+    return this.headlineHorizonPctMemo;
+  }
+
+  /**
+   * Per-sub-type net at horizon start vs end on {@link applyChartDataFilters} rows — aligns with
+   * {@link horizonEndpointPercentChangeUsd} on dashboard market-flow cards.
+   */
+  private computeHeadlineHorizonEndpointPct(): number | null {
+    const win = this.getDetailHorizonYearMonthWindow();
+    const sub = this.card?.productSubType;
+    if (!win || !sub) return null;
+    const filtered = this.applyChartDataFilters(sub);
+    if (!filtered.length) return null;
+    const oldUsd = filtered
+      .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, win.start, win.start))
+      .reduce((s, x) => s + x.Asset_Flow_Value, 0);
+    const newUsd = filtered
+      .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, win.end, win.end))
+      .reduce((s, x) => s + x.Asset_Flow_Value, 0);
+    return horizonEndpointPercentChangeUsd(oldUsd, newUsd);
+  }
+
+  /** Same rounding as dashboard `formatPercentage` for carousel pills. */
+  private static formatHeadlinePctAbs(value: number): string {
+    if (value === 0) return '0.0';
+    if (value < 0.1) return value.toFixed(2);
+    return value.toFixed(1);
   }
 
   /**
