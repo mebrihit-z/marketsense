@@ -56,9 +56,15 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   @Output() askMarketSense = new EventEmitter<string>();
 
   showExportModal: boolean = false;
-  /** Y-axis title; tick values use compact USD (see line chart yAxisValuesInBillions). */
-  yAxisLabelText: string = 'Cumulative Net Flow (USD)';
   xAxisLabelText: string = 'Time Horizon (Month)';
+
+  /** Y-axis title: quarterly net per point when a range is set, else running cumulative without a range. */
+  get chartYAxisLabel(): string {
+    if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
+      return 'Quarterly Net Flow (USD)';
+    }
+    return 'Cumulative Net Flow (USD)';
+  }
 
   /** Active tab for investor types vs product regions breakdown. */
   detailBreakdownTab: FlowBreakdownTab = 'investor';
@@ -173,7 +179,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Memoized chart series + x-axis labels so labels stay aligned with cumulative points (single CD pass).
+   * Memoized chart series + x-axis labels aligned with each chart point (single change-detection pass).
    */
   getLineChartBundle(): { data: number[]; labels: string[] } {
     const fp = this.getLineChartFingerprint();
@@ -198,9 +204,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (sortedDates.length === 0) {
       return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
     }
-    const rangeCumulative = this.buildCumulativeDataForTimeHorizonLabels(dateMap, sortedDates);
-    if (rangeCumulative) {
-      return { data: rangeCumulative.series, labels: rangeCumulative.xAxisLabels };
+    const rangeQuarterSeries = this.buildPerQuarterSeriesForTimeHorizonLabels(dateMap, sortedDates);
+    if (rangeQuarterSeries) {
+      return { data: rangeQuarterSeries.series, labels: rangeQuarterSeries.xAxisLabels };
     }
     const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
     const targetLength = Math.max(1, defaultLabels.length);
@@ -435,11 +441,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * @param {Map<string, number>} dateMap - Date to aggregated value (billions)
+   * @param {Map<string, number>} dateMap - Date to aggregated value (USD)
    * @param {string[]} sortedDates - Sorted date strings
-   * @returns Cumulative series and x-axis labels when a dashboard time range is set, or null
+   * @returns Per-quarter net flow (not running total) and x-axis labels when a dashboard time range is set, or null
    */
-  private buildCumulativeDataForTimeHorizonLabels(
+  private buildPerQuarterSeriesForTimeHorizonLabels(
     dateMap: Map<string, number>,
     sortedDates: string[]
   ): { series: number[]; xAxisLabels: string[] } | null {
@@ -454,16 +460,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const lo = startDate <= endDate ? startDate : endDate;
     const hi = startDate <= endDate ? endDate : startDate;
 
-    const anchorMonths = this.getTimeHorizonAnchorMonthsList(this.timeHorizonRange.start, this.timeHorizonRange.end);
-    const gridYms = anchorMonths.map(m => this.historicAnchor.monthsOffsetFromAnchor(m));
-    const orderedYms = detailModalUtil.mergeYearMonthsInWindow(gridYms, sortedDates, lo, hi);
+    const orderedYms = detailModalUtil.everyQuarterEndYearMonthBetweenInclusive(lo, hi);
+    if (orderedYms.length === 0) return null;
 
-    const series: number[] = [];
-    let cumulativeValue = 0;
-    for (const ym of orderedYms) {
-      cumulativeValue += detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, dateMap);
-      series.push(cumulativeValue);
-    }
+    const series = orderedYms.map(ym =>
+      detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, dateMap)
+    );
     const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym));
     return { series, xAxisLabels };
   }
@@ -568,37 +570,6 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   getXAxisLabels(): string[] {
     return this.getLineChartBundle().labels;
-  }
-
-  /**
-   * Month offsets for each x-axis point when a dashboard time range is set: range endpoints plus every
-   * multiple of 3 months between them (0 / ±3mo / ±6mo …), in chronological order.
-   */
-  private getTimeHorizonAnchorMonthsList(start: string, end: string): number[] {
-    if (!this.timeHorizonRange && !start && !end) return [];
-    const startMonths = detailModalUtil.parseTimeHorizonToMonths(start);
-    const endMonths = detailModalUtil.parseTimeHorizonToMonths(end);
-
-    if (startMonths === null || endMonths === null) {
-      return [0, 3, 6, 9, 12];
-    }
-
-    return MarketFlowDetailModalComponent.canonicalHorizonMonthsInRange(startMonths, endMonths);
-  }
-
-  /**
-   * Selected filter endpoints plus each month offset in the closed range that is a multiple of 3 from today.
-   */
-  private static canonicalHorizonMonthsInRange(startM: number, endM: number): number[] {
-    const lo = Math.min(startM, endM);
-    const hi = Math.max(startM, endM);
-    const set = new Set<number>();
-    set.add(startM);
-    set.add(endM);
-    for (let x = lo; x <= hi; x += 1) {
-      if (x % 3 === 0) set.add(x);
-    }
-    return [...set].sort((a, b) => a - b);
   }
 
   /** Date label for the "0" (today/anchor) point, aligned with Time Horizon date formatting. */

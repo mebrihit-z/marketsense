@@ -105,6 +105,72 @@ export function monthsBetweenYearMonths(aYm: string, bYm: string): number | null
   return (by - ay) * 12 + (bm - am);
 }
 
+const QUARTER_END_MONTH = new Set([3, 6, 9, 12]);
+
+function parseYearMonthParts(ym: string): { y: number; m: number } | null {
+  const t = ym.trim();
+  const ma = t.match(/^(\d{4})-(\d{2})$/);
+  if (!ma) return null;
+  const y = Number(ma[1]);
+  const mo = Number(ma[2]);
+  if (![y, mo].every(Number.isFinite) || mo < 1 || mo > 12) return null;
+  return { y, m: mo };
+}
+
+function formatYearMonthParts(y: number, m: number): string {
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+/** Smallest Mar/Jun/Sep/Dec YYYY-MM that is still ≥ `loYm` (padded lexicographic order). */
+function firstQuarterEndOnOrAfter(loYm: string): string | null {
+  const p = parseYearMonthParts(loYm);
+  if (!p) return null;
+  let { y, m } = p;
+  for (let i = 0; i < 24 && !QUARTER_END_MONTH.has(m); i += 1) {
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return QUARTER_END_MONTH.has(m) ? formatYearMonthParts(y, m) : null;
+}
+
+/** Largest Mar/Jun/Sep/Dec YYYY-MM that is still ≤ `hiYm`. */
+function lastQuarterEndOnOrBefore(hiYm: string): string | null {
+  const p = parseYearMonthParts(hiYm);
+  if (!p) return null;
+  let { y, m } = p;
+  for (let i = 0; i < 24 && !QUARTER_END_MONTH.has(m); i += 1) {
+    m -= 1;
+    if (m < 1) {
+      m = 12;
+      y -= 1;
+    }
+  }
+  return QUARTER_END_MONTH.has(m) ? formatYearMonthParts(y, m) : null;
+}
+
+/**
+ * Every flow quarter-end calendar month (Mar/Jun/Sep/Dec) whose YYYY-MM lies in the closed window
+ * {@code [loYm, hiYm]}, in chronological order. Quarters with no rows sum to 0 for that point.
+ * Aligns with {@link assetFlowQuarterInTimeWindow} for multi-month YYYY-MM ranges.
+ */
+export function everyQuarterEndYearMonthBetweenInclusive(loYm: string, hiYm: string): string[] {
+  const lo = loYm <= hiYm ? loYm.trim() : hiYm.trim();
+  const hi = loYm <= hiYm ? hiYm.trim() : loYm.trim();
+  const first = firstQuarterEndOnOrAfter(lo);
+  const last = lastQuarterEndOnOrBefore(hi);
+  if (!first || !last || first > last) return [];
+  const out: string[] = [];
+  let cur = first;
+  for (let guard = 0; guard < 500 && cur <= last; guard += 1) {
+    out.push(cur);
+    cur = addMonthsToYearMonthUtc(cur, 3);
+  }
+  return out;
+}
+
 /**
  * Union of slider grid months and actual quarter-end months present in data, restricted to [loYm, hiYm], sorted.
  */
