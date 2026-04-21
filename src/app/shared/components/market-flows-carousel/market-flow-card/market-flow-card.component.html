@@ -33,8 +33,21 @@
 
   <!-- Sentiment badge (Bullish/Bearish) – below title, slightly indented -->
   <div class="sentiment-row">
-    <span class="sentiment-pill" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
-      {{ card.sentiment ?? (card.percentageColor === 'red' ? 'Bearish' : 'Bullish') }}
+    <span
+      class="sentiment-pill"
+      [class.negative]="card.percentageColor === 'red'"
+      [class.positive]="card.percentageColor === 'green'"
+      [class.neutral-sentiment]="card.percentageColor === 'neutral'">
+      {{
+        card.sentiment ??
+          (card.percentageColor === 'red'
+            ? 'Bearish'
+            : card.percentageColor === 'green'
+              ? 'Bullish'
+              : card.valueColor === 'red'
+                ? 'Bearish'
+                : 'Bullish')
+      }}
     </span>
   </div>
 
@@ -48,7 +61,11 @@
       {{ card.value }}
     </div>
     <div class="badge-container">
-      <span class="percentage-pill" [class.negative]="card.percentageColor === 'red'" [class.positive]="card.percentageColor === 'green'">
+      <span
+        class="percentage-pill"
+        [class.negative]="card.percentageColor === 'red'"
+        [class.positive]="card.percentageColor === 'green'"
+        [class.neutral]="card.percentageColor === 'neutral'">
         {{ card.percentageChange }}
       </span>
       <span class="metric-label">{{ card.metricLabel }}</span>

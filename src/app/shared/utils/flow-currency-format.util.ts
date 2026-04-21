@@ -3,26 +3,22 @@
 const COMPACT_SCALE_EPS = 1e-6;
 
 /**
- * Scaled mantissa for SI-style compact currency (base 1000): up to 2 fraction digits,
- * no thousands grouping, trailing ".0" / ".00" removed. If half-up rounding would
- * imply more dollars than {@link absDollars}, uses floor at 2 decimals instead so
- * values like 999,950 do not become $1,000K.
+ * Scaled mantissa for SI-style compact currency (base 1000): exactly **one** fraction digit.
+ * If half-up rounding would imply more dollars than {@link absDollars}, uses floor at
+ * 1 decimal instead so values like 999,950 do not become $1,000K.
  */
 function formatCompactUsdMantissa(absDollars: number, divisor: number, suffix: string): string {
   const scaled = absDollars / divisor;
-  const quantum = 100;
+  const quantum = 10;
   let mantissa = Math.round(scaled * quantum) / quantum;
   if (mantissa * divisor > absDollars + COMPACT_SCALE_EPS) {
     mantissa = Math.floor(scaled * quantum + 1e-9) / quantum;
   }
-  let num = mantissa.toLocaleString('en-US', {
+  const num = mantissa.toLocaleString('en-US', {
     useGrouping: false,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
   });
-  if (num.includes('.')) {
-    num = num.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
-  }
   return `$${num}${suffix}`;
 }
 
@@ -32,6 +28,7 @@ function formatCompactUsdMantissa(absDollars: number, divisor: number, suffix: s
  */
 export function formatFlowCurrencyUsd(valueDollars: number): string {
   if (valueDollars == null || !Number.isFinite(valueDollars)) return '$0';
+  if (valueDollars === 0) return '$0';
   const sign = valueDollars < 0 ? '-' : '';
   const abs = Math.abs(valueDollars);
   let core: string;
@@ -44,9 +41,10 @@ export function formatFlowCurrencyUsd(valueDollars: number): string {
   } else if (abs >= 1_000) {
     core = formatCompactUsdMantissa(abs, 1_000, 'K');
   } else {
-    const formatted = Number.isInteger(abs)
-      ? abs.toLocaleString('en-US', { maximumFractionDigits: 0 })
-      : abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const formatted = abs.toLocaleString('en-US', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
     core = `$${formatted}`;
   }
   return sign + core;

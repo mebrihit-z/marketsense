@@ -80,13 +80,15 @@
       <span
         class="detail-modal-sentiment"
         [class.is-positive]="card.percentageColor === 'green'"
-        [class.is-negative]="card.percentageColor === 'red'">
+        [class.is-negative]="card.percentageColor === 'red'"
+        [class.is-neutral]="card.percentageColor === 'neutral'">
         {{ getCardSentimentLabel() }}
       </span>
       <span
         class="detail-modal-pct-pill"
         [class.is-positive]="card.percentageColor === 'green'"
-        [class.is-negative]="card.percentageColor === 'red'">
+        [class.is-negative]="card.percentageColor === 'red'"
+        [class.is-neutral]="card.percentageColor === 'neutral'">
         {{ card.percentageChange }}
       </span>
     </div>
@@ -177,8 +179,23 @@
         <div class="flow-breakdown-row" *ngFor="let row of getActiveBreakdownRows()">
           <span class="col-label">{{ row.label }}</span>
           <span class="col-value">{{ formatBreakdownValueUsd(row.valueUsd) }}</span>
-          <span class="col-pct" [class.pct-positive]="row.pctChange > 0" [class.pct-negative]="row.pctChange < 0" [class.pct-neutral]="row.pctChange === 0">
+          <span
+            class="col-pct"
+            [class.pct-positive]="row.pctChange != null && row.pctChange > 0"
+            [class.pct-negative]="row.pctChange != null && row.pctChange < 0"
+            [class.pct-neutral]="row.pctChange === null || row.pctChange === 0">
             {{ formatBreakdownPct(row.pctChange) }}
+          </span>
+        </div>
+        <div class="flow-breakdown-row flow-breakdown-row-total" *ngIf="getBreakdownTotalsRow() as total">
+          <span class="col-label">Total</span>
+          <span class="col-value">{{ formatBreakdownValueUsd(total.valueUsd) }}</span>
+          <span
+            class="col-pct"
+            [class.pct-positive]="total.pctChange != null && total.pctChange > 0"
+            [class.pct-negative]="total.pctChange != null && total.pctChange < 0"
+            [class.pct-neutral]="total.pctChange === null || total.pctChange === 0">
+            {{ formatBreakdownPct(total.pctChange) }}
           </span>
         </div>
         <p class="flow-breakdown-empty" *ngIf="getActiveBreakdownRows().length === 0">No breakdown data for the current filters.</p>

@@ -191,6 +191,11 @@
     background-color: #ffebee;
     color: $red-negative;
   }
+
+  &.is-neutral {
+    background-color: rgba($neutral-colors-neutral-750, 0.15);
+    color: $neutral-colors-neutral-1000;
+  }
 }
 
 .detail-modal-pct-pill {
@@ -210,6 +215,10 @@
 
   &.is-negative {
     background-color: $red-badge;
+  }
+
+  &.is-neutral {
+    background-color: $text-neutral-750;
   }
 }
 
@@ -536,6 +545,21 @@
     }
 
     &.pct-neutral {
+      color: $neutral-colors-neutral-750;
+    }
+  }
+
+  &.flow-breakdown-row-total {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid rgba($neutral-colors-neutral-750, 0.35);
+    font-weight: 600;
+    background: $bg-white;
+
+    .col-label {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 12px;
       color: $neutral-colors-neutral-750;
     }
   }

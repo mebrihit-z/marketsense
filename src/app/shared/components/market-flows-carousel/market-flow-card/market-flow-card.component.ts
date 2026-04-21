@@ -15,7 +15,8 @@ export interface MarketFlowCard {
   netFlowUsd?: number;
   valueColor: 'red' | 'green';
   percentageChange: string;
-  percentageColor: 'red' | 'green';
+  /** `neutral` when % change is not meaningful (e.g. horizon start net below noise floor). */
+  percentageColor: 'red' | 'green' | 'neutral';
   metricLabel: string;
   /** Optional sentiment label (e.g. "Bullish", "Bearish"). If omitted, derived from percentageColor. */
   sentiment?: string;

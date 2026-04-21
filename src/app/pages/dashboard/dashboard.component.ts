@@ -39,6 +39,7 @@ import {
   formatFlowCurrencyUsd,
   parseFlowDisplayValueToDollars,
 } from '../../shared/utils/flow-currency-format.util';
+import { horizonEndpointPercentChangeUsd } from '../../shared/utils/horizon-endpoint-percent-change.util';
 import type {
   SavedChartHierarchyDimensions,
   SavedViewChartDimensions,
@@ -434,14 +435,22 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         const oldValue = netFlowAtHorizonStart.get(subType) ?? 0;
         const newValue = netFlowAtHorizonEnd.get(subType) ?? 0;
 
-        let percentageChange = 0;
-        if (horizonWin != null && oldValue !== 0) {
-          percentageChange = ((newValue - oldValue) / oldValue) * 100;
+        const endpointPct =
+          horizonWin != null ? horizonEndpointPercentChangeUsd(oldValue, newValue) : null;
+        let percentageChangeStr: string;
+        let percentageColor: 'red' | 'green' | 'neutral';
+        if (endpointPct == null) {
+          percentageChangeStr = '—';
+          percentageColor = 'neutral';
+        } else {
+          const formattedPercentage = this.formatPercentage(Math.abs(endpointPct));
+          percentageChangeStr =
+            endpointPct >= 0 ? `+${formattedPercentage}%` : `-${formattedPercentage}%`;
+          percentageColor = endpointPct >= 0 ? 'green' : 'red';
         }
 
         const isPositive = totalValue >= 0;
         const valueColor: 'red' | 'green' = isPositive ? 'green' : 'red';
-        const percentageColor: 'red' | 'green' = percentageChange >= 0 ? 'green' : 'red';
         const chartColor: 'red' | 'green' = isPositive ? 'green' : 'red';
         const borderColor = isPositive ? '#00bc7d' : '#fb2c36';
 
@@ -450,9 +459,6 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
 
         // Format value (compact $T/$B/$M/$K via shared util, same as Sankey/Treemap)
         const formattedCardValue = formatFlowCurrencyUsd(totalValue);
-
-        // Format percentage
-        const formattedPercentage = this.formatPercentage(Math.abs(percentageChange));
 
         // Determine AI confidence based on data quality
         const aiConfidence: 'high' | 'medium' | 'low' = data.count > 10 ? 'high' : data.count > 5 ? 'medium' : 'low';
@@ -463,7 +469,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
           value: formattedCardValue,
           netFlowUsd: totalValue,
           valueColor,
-          percentageChange: percentageChange >= 0 ? `+${formattedPercentage}%` : `-${formattedPercentage}%`,
+          percentageChange: percentageChangeStr,
           percentageColor,
           metricLabel: 'Net Flow',
           aiConfidence,
