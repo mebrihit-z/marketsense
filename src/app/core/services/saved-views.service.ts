@@ -4,6 +4,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import {
+  MIN_FLOW_VALUE_OPTIONS_VERSION,
+  migrateMinFlowRangeIndicesV1ToV2,
+} from '../../shared/utils/min-flow-value-options.util';
 
 export interface SavedViewState {
   investorRegion: string[];
@@ -40,6 +44,8 @@ export interface SavedView {
   aiConfidenceRange?: { min: number; max: number };
   /** Flow value band for Sankey/Treemap (indices into MIN_FLOW_VALUE_OPTIONS). */
   minFlowRange?: { startIndex: number; endIndex: number };
+  /** `2` = indices include the ≥ $10M stop at index 1. Omit/`1` = migrate on load. */
+  minFlowValueOptionsVersion?: number;
   /** When present, restoring the view also applies these hierarchy selections. */
   chartDimensions?: SavedViewChartDimensions;
 }
@@ -94,12 +100,29 @@ export class SavedViewsService {
   private normalizeSavedView(view: SavedView): SavedView {
     const anyView = view as any;
     const backendId = anyView?._id ?? anyView?.id;
-    return {
+    let normalized: SavedView = {
       ...view,
       // Backend often returns Mongo-style `_id`; normalize to `id` so the app can
       // set defaults / delete consistently.
       id: (view as any)?.id ?? (backendId != null ? String(backendId) : undefined),
     };
+
+    const mfVer = normalized.minFlowValueOptionsVersion;
+    const mfr = normalized.minFlowRange;
+    if (
+      mfr &&
+      typeof mfr.startIndex === 'number' &&
+      typeof mfr.endIndex === 'number' &&
+      (mfVer == null || mfVer < MIN_FLOW_VALUE_OPTIONS_VERSION)
+    ) {
+      normalized = {
+        ...normalized,
+        minFlowRange: migrateMinFlowRangeIndicesV1ToV2(mfr),
+        minFlowValueOptionsVersion: MIN_FLOW_VALUE_OPTIONS_VERSION,
+      };
+    }
+
+    return normalized;
   }
 
   private normalizeText(value?: string): string | undefined {

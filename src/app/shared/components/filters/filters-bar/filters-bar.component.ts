@@ -26,6 +26,8 @@ import {
 } from '../../../constants/time-horizons.constants';
 import {
   MIN_FLOW_VALUE_OPTIONS,
+  MIN_FLOW_VALUE_OPTIONS_VERSION,
+  migrateMinFlowRangeIndicesV1ToV2,
   createDefaultMinFlowRange,
   type MinFlowRangeSelection,
 } from '../../../utils/min-flow-value-options.util';
@@ -688,6 +690,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       selectedTimeHorizon: this.selectedTimeHorizon,
       aiConfidenceRange: { ...this.aiConfidenceRange },
       minFlowRange: { ...this.minFlowRange },
+      minFlowValueOptionsVersion: MIN_FLOW_VALUE_OPTIONS_VERSION,
     };
 
     if (payload.includeChartDimensions) {
@@ -766,6 +769,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       selectedTimeHorizon: this.selectedTimeHorizon,
       aiConfidenceRange: { ...this.aiConfidenceRange },
       minFlowRange: { ...this.minFlowRange },
+      minFlowValueOptionsVersion: MIN_FLOW_VALUE_OPTIONS_VERSION,
     };
 
     const chartDimensions: NonNullable<SavedView['chartDimensions']> = {};
@@ -901,7 +905,17 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
 
-    const mfr = detail.minFlowRange;
+    let mfr = detail.minFlowRange as { startIndex: number; endIndex: number } | undefined;
+    const mfVer = (detail as { minFlowValueOptionsVersion?: number }).minFlowValueOptionsVersion;
+    if (
+      mfr &&
+      typeof mfr === 'object' &&
+      typeof mfr.startIndex === 'number' &&
+      typeof mfr.endIndex === 'number' &&
+      (mfVer == null || mfVer < MIN_FLOW_VALUE_OPTIONS_VERSION)
+    ) {
+      mfr = migrateMinFlowRangeIndicesV1ToV2(mfr);
+    }
     const n = this.minFlowValueOptions.length;
     const last = Math.max(0, n - 1);
     if (

@@ -2,6 +2,7 @@
 /** Preset stops for global min/max flow filter (values in billions). Shared by filters bar, Sankey, and Treemap. */
 export const MIN_FLOW_VALUE_OPTIONS: { value: number; label: string }[] = [
   { value: 0, label: 'All flows' },
+  { value: 0.01, label: '≥ $10M' },
   { value: 0.05, label: '≥ $50M' },
   { value: 0.1, label: '≥ $100M' },
   { value: 0.25, label: '≥ $250M' },
@@ -23,6 +24,21 @@ export interface MinFlowRangeSelection {
 export function createDefaultMinFlowRange(): MinFlowRangeSelection {
   const n = MIN_FLOW_VALUE_OPTIONS.length;
   return { startIndex: 0, endIndex: Math.max(0, n - 1) };
+}
+
+/** Bump when {@link MIN_FLOW_VALUE_OPTIONS} indices change for persisted {@link MinFlowRangeSelection}. */
+export const MIN_FLOW_VALUE_OPTIONS_VERSION = 2;
+
+/**
+ * Legacy saved views used indices into the list before the ≥ $10M stop was inserted at index 1.
+ * Indices ≥ 1 referred to dollar thresholds and must shift by +1.
+ */
+export function migrateMinFlowRangeIndicesV1ToV2(range: MinFlowRangeSelection): MinFlowRangeSelection {
+  const bump = (i: number) => (i >= 1 ? i + 1 : i);
+  return {
+    startIndex: bump(range.startIndex),
+    endIndex: bump(range.endIndex),
+  };
 }
 
 export function getMinFlowLowerBound(
@@ -57,7 +73,7 @@ export function displayMinFlowStartLabel(rawLabel: string): string {
  */
 /**
  * Milestone stops shown on the Value Range rail in the filters bar (compact slider).
- * Labels match design: 0, 100M, 500M, 5B, 50B, Max — positioned at matching option indices.
+ * Labels match design: 0, 10M, 100M, 500M, 5B, 50B, Max — positioned at matching option indices.
  */
 export function getMinFlowRailLabelStops(
   options: readonly { value: number; label: string }[],
@@ -68,6 +84,7 @@ export function getMinFlowRailLabelStops(
 
   const milestones: Array<{ value: number; label: string }> = [
     { value: 0, label: '0' },
+    { value: 0.01, label: '10M' },
     { value: 0.1, label: '100M' },
     { value: 0.5, label: '500M' },
     { value: 5, label: '5B' },

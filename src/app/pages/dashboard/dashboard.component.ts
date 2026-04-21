@@ -21,10 +21,12 @@ import AskMarketsenseSectionComponent from '../../shared/components/ask-marketse
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
 import {
   type AssetFlowRecord,
-  filterAssetFlowsByDataType,
   filterAssetFlowsByDataTypeResolvingSpan,
 } from '../../shared/utils/asset-flows-to-sankey.util';
-import { assetFlowQuarterInTimeWindow } from '../../shared/utils/asset-flow-time-window.util';
+import {
+  assetFlowDateToYearMonthUtc,
+  assetFlowQuarterInTimeWindow,
+} from '../../shared/utils/asset-flow-time-window.util';
 import { AssetFlowsDataService } from '../../core/services/asset-flows-data.service';
 import { AssetFlowHistoricAnchorService } from '../../core/services/asset-flow-historic-anchor.service';
 import {
@@ -379,30 +381,35 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       aggregatedData.set(record.Product_Sub_Type, existing);
     });
 
-    // Calculate previous period data for percentage change
-    const previousDateRange = this.getPreviousPeriodDateRange(this.carouselTimeHorizon, this.carouselDataType);
-    const previousAggregatedData = new Map<string, number>();
-    
-    if (previousDateRange) {
-      let previousData = this.applyFilterBarDimensions(this.rawAssetFlowsData);
-      previousData = filterAssetFlowsByDataType(previousData, this.carouselDataType);
-      const prevStartDate = this.convertTimeHorizonToDate(previousDateRange.start);
-      const prevEndDate = this.convertTimeHorizonToDate(previousDateRange.end);
-
-      if (prevStartDate && prevEndDate) {
-        previousData = previousData.filter(record =>
-          assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, prevStartDate, prevEndDate)
-        );
-      }
-
-      previousData = this.filterRecordsByFlowMagnitude(previousData);
-
-      previousData.forEach(record => {
-        const valueUsd = record.Asset_Flow_Value;
-        const existing = previousAggregatedData.get(record.Product_Sub_Type) || 0;
-        // Handle negative values: subtract them (minus them)
-        previousAggregatedData.set(record.Product_Sub_Type, existing + valueUsd);
-      });
+    // % change = ((New − Old) / Old) × 100 — Old = net flow at horizon start, New = net flow at horizon end
+    const horizonWin = this.getCurrentAggregationWindowYearMonths();
+    const netFlowAtHorizonStart = new Map<string, number>();
+    const netFlowAtHorizonEnd = new Map<string, number>();
+    if (horizonWin) {
+      let endpointBase = this.applyFilterBarDimensions(this.rawAssetFlowsData);
+      endpointBase = filterAssetFlowsByDataTypeResolvingSpan(
+        endpointBase,
+        this.carouselDataType,
+        this.timeHorizonRange?.start,
+        this.timeHorizonRange?.end,
+        this.historicAnchor.getAnchorYearMonth()
+      );
+      endpointBase = this.filterRecordsByFlowMagnitude(endpointBase);
+      const { start: startYm, end: endYm } = horizonWin;
+      const sumBySubType = (rows: AssetFlowRecord[], into: Map<string, number>): void => {
+        for (const record of rows) {
+          const v = record.Asset_Flow_Value;
+          into.set(record.Product_Sub_Type, (into.get(record.Product_Sub_Type) ?? 0) + v);
+        }
+      };
+      sumBySubType(
+        endpointBase.filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, startYm, startYm)),
+        netFlowAtHorizonStart
+      );
+      sumBySubType(
+        endpointBase.filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, endYm, endYm)),
+        netFlowAtHorizonEnd
+      );
     }
 
     // Generate cards from aggregated data
@@ -424,18 +431,13 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
           nClientsTotal: 0,
         };
         const totalValue = data.total; // Net flow (sum of all positive and negative values)
-        const previousValue = previousAggregatedData.get(subType) || 0;
-        
+        const oldValue = netFlowAtHorizonStart.get(subType) ?? 0;
+        const newValue = netFlowAtHorizonEnd.get(subType) ?? 0;
+
         let percentageChange = 0;
-        const hasPreviousData = previousDateRange !== null && previousDateRange !== undefined;
-        
-        if (hasPreviousData && previousValue !== 0) {
-          // Standard calculation: change relative to previous period
-          const change = totalValue - previousValue;
-          const denominator = Math.abs(previousValue);
-          percentageChange = (change / denominator) * 100;
+        if (horizonWin != null && oldValue !== 0) {
+          percentageChange = ((newValue - oldValue) / oldValue) * 100;
         }
-        // If there is no previous data or previous is 0, leave percentageChange at 0.
 
         const isPositive = totalValue >= 0;
         const valueColor: 'red' | 'green' = isPositive ? 'green' : 'red';
@@ -523,23 +525,38 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
 
   private applyCurrentTimeWindowToRecords(records: AssetFlowRecord[]): AssetFlowRecord[] {
     if (!records?.length) return records;
-    if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
-      const startDate = this.convertTimeHorizonToDate(this.timeHorizonRange.start);
-      const endDate = this.convertTimeHorizonToDate(this.timeHorizonRange.end);
-      if (startDate && endDate) {
-        return records.filter(record =>
-          assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, startDate, endDate)
-        );
-      }
-      return records;
-    }
-    const dateRange = this.getDateRangeForTimeHorizon(this.carouselTimeHorizon, this.carouselDataType);
-    if (dateRange?.start && dateRange?.end && dateRange.start !== dateRange.end) {
+    const win = this.getCurrentAggregationWindowYearMonths();
+    if (win) {
       return records.filter(record =>
-        assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, dateRange.start, dateRange.end)
+        assetFlowQuarterInTimeWindow(record.Asset_Flow_Date, win.start, win.end)
       );
     }
     return records;
+  }
+
+  /**
+   * YYYY-MM window for card totals and % change (slider when set; else min/max flow dates as YYYY-MM).
+   */
+  private getCurrentAggregationWindowYearMonths(): { start: string; end: string } | null {
+    if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
+      const s = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start.trim());
+      const e = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end.trim());
+      if (!s || !e) return null;
+      return s <= e ? { start: s, end: e } : { start: e, end: s };
+    }
+    const dateRange = this.getDateRangeForTimeHorizon(this.carouselTimeHorizon, this.carouselDataType);
+    if (!dateRange?.start || !dateRange?.end) return null;
+    const sYm = this.flowDateOrLabelToYearMonth(dateRange.start);
+    const eYm = this.flowDateOrLabelToYearMonth(dateRange.end);
+    if (!sYm || !eYm) return null;
+    if (sYm === eYm) return null;
+    return sYm <= eYm ? { start: sYm, end: eYm } : { start: eYm, end: sYm };
+  }
+
+  private flowDateOrLabelToYearMonth(value: string): string | null {
+    const t = value.trim();
+    if (/^\d{4}-\d{2}$/.test(t)) return t;
+    return assetFlowDateToYearMonthUtc(t);
   }
 
   /** Per-row |flow| in USD vs filters bar min/max (rail thresholds are in billions; see Sankey filter). */
@@ -599,43 +616,6 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
     const earliestDate = sortedDates[0];
     const latestDate = sortedDates[sortedDates.length - 1];
     return { start: earliestDate, end: latestDate };
-  }
-
-  /**
-   * Gets the previous period date range for comparison
-   * @param timeHorizon - The current time horizon
-   * @param dataType - 'historical' or 'forecasted'
-   * @returns Previous period date range or null
-   */
-  private getPreviousPeriodDateRange(timeHorizon: string, dataType: 'historical' | 'forecasted'): { start: string; end: string } | null {
-    const currentRange = this.getDateRangeForTimeHorizon(timeHorizon, dataType);
-    if (!currentRange) return null;
-    
-    // Parse dates
-    const [startYear, startMonth] = currentRange.start.split('-').map(Number);
-    const [endYear, endMonth] = currentRange.end.split('-').map(Number);
-    
-    // Calculate period length in months
-    const periodLength = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
-    
-    // Calculate previous period
-    const prevEndDate = new Date(startYear, startMonth - 1 - 1, 1); // One month before start
-    const prevStartDate = new Date(prevEndDate.getFullYear(), prevEndDate.getMonth() - periodLength + 1, 1);
-    
-    const prevStart = `${prevStartDate.getFullYear()}-${String(prevStartDate.getMonth() + 1).padStart(2, '0')}`;
-    const prevEnd = `${prevEndDate.getFullYear()}-${String(prevEndDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    return { start: prevStart, end: prevEnd };
-  }
-
-  /**
-   * Converts time horizon string to target date in YYYY-MM format
-   * Returns null if time horizon is invalid
-   * Uses today's date as the base for calculations
-   * @param horizon - The time horizon string (e.g., "Today", "+3 mo", "-6 mo")
-   */
-  private convertTimeHorizonToDate(horizon: string): string | null {
-    return this.historicAnchor.horizonToYearMonth(horizon);
   }
 
   /**
