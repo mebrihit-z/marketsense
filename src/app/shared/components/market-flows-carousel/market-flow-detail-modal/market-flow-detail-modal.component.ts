@@ -74,7 +74,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private cachedProductBreakdown: FlowBreakdownRow[] = [];
 
   private lineChartMemoFp = '';
-  private lineChartMemo: { data: number[]; labels: string[] } = { data: [], labels: [] };
+  private lineChartMemo: { data: number[]; labels: string[]; pointTooltipDateLabels?: string[] } = {
+    data: [],
+    labels: [],
+  };
 
   /** Exposed for template (static methods). */
   readonly getConfidenceColor = MarketFlowDetailModalComponent.getConfidenceColor;
@@ -181,7 +184,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * Memoized chart series + x-axis labels aligned with each chart point (single change-detection pass).
    */
-  getLineChartBundle(): { data: number[]; labels: string[] } {
+  getLineChartBundle(): { data: number[]; labels: string[]; pointTooltipDateLabels?: string[] } {
     const fp = this.getLineChartFingerprint();
     if (fp !== this.lineChartMemoFp) {
       this.lineChartMemoFp = fp;
@@ -190,7 +193,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.lineChartMemo;
   }
 
-  private computeLineChartBundle(): { data: number[]; labels: string[] } {
+  private computeLineChartBundle(): { data: number[]; labels: string[]; pointTooltipDateLabels?: string[] } {
     const defaultLabels = this.getDefaultXAxisLabelsNoRange();
     if (!this.card || !this.rawAssetFlowsData?.length) {
       return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
@@ -206,7 +209,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     }
     const rangeQuarterSeries = this.buildPerQuarterSeriesForTimeHorizonLabels(dateMap, sortedDates);
     if (rangeQuarterSeries) {
-      return { data: rangeQuarterSeries.series, labels: rangeQuarterSeries.xAxisLabels };
+      return {
+        data: rangeQuarterSeries.series,
+        labels: rangeQuarterSeries.xAxisLabels,
+        pointTooltipDateLabels: rangeQuarterSeries.tooltipDateLabels,
+      };
     }
     const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
     const targetLength = Math.max(1, defaultLabels.length);
@@ -443,12 +450,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * @param {Map<string, number>} dateMap - Date to aggregated value (USD)
    * @param {string[]} sortedDates - Sorted date strings
-   * @returns Per-quarter net flow (not running total) and x-axis labels when a dashboard time range is set, or null
+   * @returns Per-quarter net flow, x-axis labels, and quarter date strings for point tooltips, or null
    */
   private buildPerQuarterSeriesForTimeHorizonLabels(
     dateMap: Map<string, number>,
     sortedDates: string[]
-  ): { series: number[]; xAxisLabels: string[] } | null {
+  ): { series: number[]; xAxisLabels: string[]; tooltipDateLabels: string[] } | null {
     if (!this.timeHorizonRange?.start || !this.timeHorizonRange?.end) return null;
     const startDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
     const endDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
@@ -467,7 +474,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, dateMap)
     );
     const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym));
-    return { series, xAxisLabels };
+    const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterEndLongDate(ym));
+    return { series, xAxisLabels, tooltipDateLabels };
   }
 
   private formatYearMonthAsHorizonAxisTick(ym: string): string {

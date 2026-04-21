@@ -105,6 +105,25 @@ export function monthsBetweenYearMonths(aYm: string, bYm: string): number | null
   return (by - ay) * 12 + (bm - am);
 }
 
+/**
+ * Quarter-end calendar date for tooltips (e.g. {@code "2016-06"} → "June 30, 2016"), UTC.
+ */
+export function formatYearMonthAsQuarterEndLongDate(ym: string): string {
+  const m = ym.trim().match(/^(\d{4})-(\d{2})$/);
+  if (!m) return ym.trim();
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  if (![y, mo].every(Number.isFinite) || mo < 1 || mo > 12) return ym.trim();
+  const endUtc = new Date(Date.UTC(y, mo, 0));
+  if (Number.isNaN(endUtc.getTime())) return ym.trim();
+  return endUtc.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 const QUARTER_END_MONTH = new Set([3, 6, 9, 12]);
 
 function parseYearMonthParts(ym: string): { y: number; m: number } | null {

@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
-import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
+import { formatFlowCurrencyUsd, formatFlowCurrencyUsdFull } from '../../../utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-line-chart',
@@ -31,6 +31,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() dotIndices?: number[];
   /** Optional tooltip subtitle per data index (e.g. semantic "+6mo" when the x tick reads "+5mo"). */
   @Input() pointHoverLabels?: Record<number, string>;
+  /**
+   * When set for an index, tooltip shows that quarter date and the raw USD amount ({@link formatFlowCurrencyUsdFull}),
+   * not the compact axis format ({@link formatFlowCurrencyUsd}).
+   */
+  @Input() pointTooltipDateLabels?: string[];
 
   @ViewChild('chart', { static: false }) chartElement!: ElementRef<HTMLDivElement>;
 
@@ -42,6 +47,14 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
    * Minimum left margin for currency y-ticks; actual margin also grows from measured tick label width.
    */
   private static readonly Y_AXIS_BILLIONS_LEFT_MARGIN_MIN = 88;
+
+  private static escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
   /** Margins with responsive bottom; `left` comes from measured y-tick + title width. */
   private getEffectiveMargin(left: number): { top: number; right: number; bottom: number; left: number } {
@@ -108,7 +121,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.chartElement && (changes['data'] || changes['color'] || changes['width'] || changes['height'] ||
         changes['showGrid'] || changes['showArea'] || changes['xAxisLabels'] || changes['yAxisMin'] ||
         changes['yAxisMax'] || changes['yAxisLabel'] || changes['xAxisLabel'] || changes['yAxisValuesInBillions'] ||
-        changes['dotIndices'] || changes['pointHoverLabels'])) {
+        changes['dotIndices'] || changes['pointHoverLabels'] || changes['pointTooltipDateLabels'])) {
       this.renderChart();
     }
   }
@@ -355,11 +368,6 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       currentTooltipIndex = index;
       const value = component.data[index];
-      const label =
-        component.pointHoverLabels?.[index] ??
-        (component.xAxisLabels && component.xAxisLabels.length > index
-          ? component.xAxisLabels[index]
-          : `Point ${index + 1}`);
 
       // Update tooltip line
       tooltipLine
@@ -369,16 +377,37 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('y2', innerHeight)
         .style('opacity', 1);
 
-      // Format value as currency (billions; compact $T/$B/$M/$K)
-      const formattedValue = formatFlowCurrencyUsd(value);
+      const datePrefix =
+        component.pointTooltipDateLabels &&
+        index < component.pointTooltipDateLabels.length
+          ? component.pointTooltipDateLabels[index]?.trim()
+          : '';
 
-      // Set tooltip content
-      component.tooltip.html(
-        `<div class="line-chart-tooltip-row">` +
-        `<span class="line-chart-tooltip-value">${formattedValue}</span>` +
-        `<span class="line-chart-tooltip-label">${label}</span>` +
-        `</div>`
-      );
+      if (datePrefix) {
+        const fullUsd = formatFlowCurrencyUsdFull(value);
+        const safeDate = LineChartComponent.escapeHtml(datePrefix);
+        const safeUsd = LineChartComponent.escapeHtml(fullUsd);
+        component.tooltip.html(
+          `<div class="line-chart-tooltip-row line-chart-tooltip-row--dated">` +
+          `<div class="line-chart-tooltip-dated-date">${safeDate}</div>` +
+          `<div class="line-chart-tooltip-dated-value-row">Value: ` +
+          `<span class="line-chart-tooltip-value">${safeUsd}</span></div>` +
+          `</div>`
+        );
+      } else {
+        const label =
+          component.pointHoverLabels?.[index] ??
+          (component.xAxisLabels && component.xAxisLabels.length > index
+            ? component.xAxisLabels[index]
+            : `Point ${index + 1}`);
+        const formattedValue = formatFlowCurrencyUsd(value);
+        component.tooltip.html(
+          `<div class="line-chart-tooltip-row">` +
+          `<span class="line-chart-tooltip-value">${LineChartComponent.escapeHtml(formattedValue)}</span>` +
+          `<span class="line-chart-tooltip-label">${LineChartComponent.escapeHtml(String(label))}</span>` +
+          `</div>`
+        );
+      }
 
       // Calculate position - use getBoundingClientRect for fixed positioning
       const svgElement = component.svg?.node() as SVGSVGElement;
