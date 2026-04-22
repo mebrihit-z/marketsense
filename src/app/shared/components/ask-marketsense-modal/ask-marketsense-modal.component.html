@@ -158,12 +158,24 @@
                 <table class="query-results-table">
                   <thead>
                     <tr>
-                      <th *ngFor="let col of analysis.columns" class="query-results-th">{{ formatColumnLabel(col) }}</th>
+                      <th
+                        *ngFor="let col of analysis.columns"
+                        class="query-results-th"
+                        [class.query-results-th--num]="numericColumnKeysForAnalysis(analysis).has(col)"
+                      >
+                        {{ formatColumnLabel(col) }}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of analysis.rows" class="query-results-tr">
-                      <td *ngFor="let col of analysis.columns" class="query-results-td">{{ formatCellValue(col, row[col]) }}</td>
+                      <td
+                        *ngFor="let col of analysis.columns"
+                        class="query-results-td"
+                        [class.query-results-td--num]="numericColumnKeysForAnalysis(analysis).has(col)"
+                      >
+                        {{ formatCellValue(col, row[col]) }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -426,12 +438,24 @@
         <table class="query-results-table query-results-table-expanded">
           <thead>
             <tr>
-              <th *ngFor="let col of (expandedTableAnalysis?.columns ?? [])" class="query-results-th">{{ formatColumnLabel(col) }}</th>
+              <th
+                *ngFor="let col of (expandedTableAnalysis?.columns ?? [])"
+                class="query-results-th"
+                [class.query-results-th--num]="expandedTableAnalysis && numericColumnKeysForAnalysis(expandedTableAnalysis).has(col)"
+              >
+                {{ formatColumnLabel(col) }}
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let row of (expandedTableAnalysis?.rows ?? [])" class="query-results-tr">
-              <td *ngFor="let col of (expandedTableAnalysis?.columns ?? [])" class="query-results-td">{{ formatCellValue(col, row[col]) }}</td>
+              <td
+                *ngFor="let col of (expandedTableAnalysis?.columns ?? [])"
+                class="query-results-td"
+                [class.query-results-td--num]="numericColumnKeysForAnalysis(expandedTableAnalysis).has(col)"
+              >
+                {{ formatCellValue(col, row[col]) }}
+              </td>
             </tr>
           </tbody>
         </table>

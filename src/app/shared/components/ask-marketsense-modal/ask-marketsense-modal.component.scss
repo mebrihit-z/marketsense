@@ -340,6 +340,11 @@
     border-bottom: 1px solid #E5E7EB;
   }
 
+  .query-results-th--num,
+  .query-results-td--num {
+    text-align: right;
+  }
+
   .query-results-tr {
     border-bottom: 1px solid #E5E7EB;
 
@@ -919,6 +924,11 @@
     color: $text-midnight-blue;
     background-color: $neutral-colors-neutral-250;
     border-bottom: 1px solid #e5e7eb;
+  }
+
+  .query-results-th--num,
+  .query-results-td--num {
+    text-align: right;
   }
 
   .query-results-tr {

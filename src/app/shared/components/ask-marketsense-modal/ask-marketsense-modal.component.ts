@@ -75,6 +75,9 @@ export default class AskMarketsenseModalComponent implements OnChanges {
   /** Local conversation (all questions + answers) shown until backend-driven data is wired in. */
   private _localAnalyses: AnalysisResult[] = [];
 
+  /** Cache: which query-result column keys are numeric (right-aligned), per {@link AnalysisResult} instance. */
+  private readonly queryTableNumericColumnKeys = new WeakMap<AnalysisResult, Set<string>>();
+
   /** All analyses to display on the page. Local conversation takes precedence; parent can override with a single analysisResult later if needed. */
   get displayAnalyses(): AnalysisResult[] {
     if (this._localAnalyses.length) {
@@ -316,6 +319,68 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       rows: rows,
       ...(useFallbackLayout ? { isFallbackResponse: true } : {}),
     };
+  }
+
+  /**
+   * Set of column keys for which every non-empty cell is numeric; those columns are right-aligned in the table.
+   * Result is cached per `analysis` reference.
+   */
+  numericColumnKeysForAnalysis(analysis: AnalysisResult | null | undefined): Set<string> {
+    if (!analysis?.columns?.length) {
+      return new Set();
+    }
+    let set = this.queryTableNumericColumnKeys.get(analysis);
+    if (!set) {
+      set = this.buildNumericColumnKeySet(analysis.columns, analysis.rows ?? []);
+      this.queryTableNumericColumnKeys.set(analysis, set);
+    }
+    return set;
+  }
+
+  private buildNumericColumnKeySet(columns: string[], rows: Record<string, unknown>[]): Set<string> {
+    const out = new Set<string>();
+    for (const key of columns) {
+      let seen = 0;
+      let allNumeric = true;
+      for (const row of rows) {
+        const v = row[key];
+        if (v == null) continue;
+        if (typeof v === 'string' && v.trim() === '') continue;
+        seen++;
+        if (!this.isQueryTableNumericCellValue(v)) {
+          allNumeric = false;
+          break;
+        }
+      }
+      if (seen > 0 && allNumeric) {
+        out.add(key);
+      }
+    }
+    return out;
+  }
+
+  private isQueryTableNumericCellValue(value: unknown): boolean {
+    if (typeof value === 'number') {
+      return Number.isFinite(value);
+    }
+    if (typeof value === 'bigint') {
+      return true;
+    }
+    if (typeof value === 'string') {
+      if (this.toDate(value)) {
+        return false;
+      }
+      const t = value.trim();
+      if (t === '' || /^(n\/a|na|—|-)$/i.test(t)) {
+        return false;
+      }
+      const normalized = t.replace(/,/g, '');
+      if (!/^-?\d*(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(normalized)) {
+        return false;
+      }
+      return Number.isFinite(Number(normalized));
+    }
+    return false;
   }
 
   /** Display label for a column key (e.g. total_inflow -> Total Inflow) */
