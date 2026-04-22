@@ -536,11 +536,15 @@ export function cascadePruneSankeyLinkRows<T extends { source: string; target: s
   }
 
   const inDegree = new Map<string, number>();
+  const outDegree = new Map<string, number>();
   const allNames = new Set<string>();
   for (const l of fullTopologyLinks) {
     const s = typeof l.source === 'string' ? l.source : '';
     const t = typeof l.target === 'string' ? l.target : '';
-    if (s) allNames.add(s);
+    if (s) {
+      allNames.add(s);
+      outDegree.set(s, (outDegree.get(s) ?? 0) + 1);
+    }
     if (t) {
       allNames.add(t);
       inDegree.set(t, (inDegree.get(t) ?? 0) + 1);
@@ -552,7 +556,13 @@ export function cascadePruneSankeyLinkRows<T extends { source: string; target: s
       seeds.add(n);
     }
   }
-  if (seeds.size === 0) {
+  const sinks = new Set<string>();
+  for (const n of allNames) {
+    if ((outDegree.get(n) ?? 0) === 0) {
+      sinks.add(n);
+    }
+  }
+  if (seeds.size === 0 || sinks.size === 0) {
     return [...rows];
   }
 
@@ -574,10 +584,27 @@ export function cascadePruneSankeyLinkRows<T extends { source: string; target: s
         }
       }
     }
+
+    const canReachSink = new Set<string>(sinks);
+    let reverseGrowing = true;
+    while (reverseGrowing) {
+      reverseGrowing = false;
+      for (const r of current) {
+        const s = typeof r.source === 'string' ? r.source : '';
+        const t = typeof r.target === 'string' ? r.target : '';
+        if (!s || !t) continue;
+        if (canReachSink.has(t) && !canReachSink.has(s)) {
+          canReachSink.add(s);
+          reverseGrowing = true;
+        }
+      }
+    }
+
     const next: T[] = [];
     for (const r of current) {
       const s = typeof r.source === 'string' ? r.source : '';
-      if (!s || !reachable.has(s)) {
+      const t = typeof r.target === 'string' ? r.target : '';
+      if (!s || !t || !reachable.has(s) || !canReachSink.has(t)) {
         changed = true;
         continue;
       }
