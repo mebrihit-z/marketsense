@@ -72,7 +72,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Second line in the tooltip for forecast points with bounds; uses full grouped USD (not compact K/M/B).
+   * Tooltip block for forecast points with bounds: label line, then full grouped USD range (not compact K/M/B).
    */
   private static predictionRangeTooltipFragment(
     index: number,
@@ -87,8 +87,13 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (l == null || u == null || !Number.isFinite(l) || !Number.isFinite(u)) {
       return '';
     }
-    const text = `Prediction Range: ${formatFlowCurrencyUsdFull(l)} - ${formatFlowCurrencyUsdFull(u)}`;
-    return `<div class="line-chart-tooltip-prediction-range">${LineChartComponent.escapeHtml(text)}</div>`;
+    const rangeValues = `${formatFlowCurrencyUsdFull(l)} to ${formatFlowCurrencyUsdFull(u)}`;
+    return (
+      `<div class="line-chart-tooltip-prediction-range">` +
+      `<div class="line-chart-tooltip-prediction-range-label">${LineChartComponent.escapeHtml('Prediction Range:')}</div>` +
+      `<div class="line-chart-tooltip-prediction-range-values">${LineChartComponent.escapeHtml(rangeValues)}</div>` +
+      `</div>`
+    );
   }
 
   /** Margins with responsive bottom; `left` comes from measured y-tick + title width. */

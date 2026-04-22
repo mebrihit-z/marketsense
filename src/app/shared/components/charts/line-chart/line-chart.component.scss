@@ -111,9 +111,21 @@
   }
 
   .line-chart-tooltip-prediction-range {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     font-size: 16px;
     font-weight: 400;
     color: rgba(248, 250, 252, 0.9);
     line-height: 1.35;
+  }
+
+  .line-chart-tooltip-prediction-range-label {
+    color: rgba(248, 250, 252, 0.92);
+  }
+
+  .line-chart-tooltip-prediction-range-values {
+    color: rgba(248, 250, 252, 0.9);
   }
 }
