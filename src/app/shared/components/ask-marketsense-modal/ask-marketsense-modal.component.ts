@@ -331,11 +331,8 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (value == null) return '—';
     if (typeof value === 'number') {
       const keyLower = key.toLowerCase();
-      if (
-        keyLower.includes('inflow') ||
-        keyLower.includes('outflow') ||
-        keyLower.includes('total')
-      ) {
+      // Match flow amounts: inflow/outflow, net_flow, cash_flow, and totals (e.g. total_inflow) that include "flow"
+      if (keyLower.includes('flow') || keyLower.includes('total')) {
         return formatFlowCurrencyUsd(value);
       }
       if (Number.isInteger(value)) return String(value);
