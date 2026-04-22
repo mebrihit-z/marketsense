@@ -269,7 +269,6 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-  padding-top: 12px;
   position: relative;
   z-index: 1; /* Ensure detail panel paints visibly on VDI/remote */
   grid-column: 1;
@@ -286,9 +285,7 @@
   display: grid;
   grid-template-columns: 1fr; /* Laptop: 3 cards in one column on the right */
   gap: 16px;
- 
   overflow-y: auto;
-  padding: 12px 12px 12px 4px; // room for card box-shadows
   box-sizing: border-box;
   grid-column: 2;
   grid-row: 1 / -1;

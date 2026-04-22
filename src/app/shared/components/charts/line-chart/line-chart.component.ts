@@ -14,6 +14,10 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   // Input properties for chart configuration
   @Input() data: number[] = [];
   @Input() color: string = '#00113F'; // $primary-colors-midnight-blue
+  /** First series index in the strictly-after-anchor (forecast) segment; omit for a single-color line. */
+  @Input() forecastStartIndex: number | null = null;
+  /** Stroke for the forecast segment (and dots in that segment) when {@link forecastStartIndex} is set. */
+  @Input() forecastLineColor: string = '#0C42FE';
   @Input() width: number = 400;
   @Input() height: number = 320;
   @Input() showGrid: boolean = true;
@@ -47,6 +51,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
    * Minimum left margin for currency y-ticks; actual margin also grows from measured tick label width.
    */
   private static readonly Y_AXIS_BILLIONS_LEFT_MARGIN_MIN = 88;
+
+  /**
+   * Anchor date tick (e.g. "Mar 31, 2025") and its vertical grid — saturated orange-amber for contrast on white.
+   */
+  private static readonly X_AXIS_DATE_ACCENT = '#FF9100';
 
   private static escapeHtml(text: string): string {
     return text
@@ -118,7 +127,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.chartElement && (changes['data'] || changes['color'] || changes['width'] || changes['height'] ||
+    if (this.chartElement && (changes['data'] || changes['color'] || changes['forecastStartIndex'] ||
+        changes['forecastLineColor'] || changes['width'] || changes['height'] ||
         changes['showGrid'] || changes['showArea'] || changes['xAxisLabels'] || changes['yAxisMin'] ||
         changes['yAxisMax'] || changes['yAxisLabel'] || changes['xAxisLabel'] || changes['yAxisValuesInBillions'] ||
         changes['dotIndices'] || changes['pointHoverLabels'] || changes['pointTooltipDateLabels'])) {
@@ -273,7 +283,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('x2', innerWidth)
         .attr('y1', d => yScale(d))
         .attr('y2', d => yScale(d))
-        .attr('stroke', d => (hasNegativeValues && Math.abs(d) < 0.01) ? '#cbd5e1' : '#e5e7eb')
+        .attr('stroke', d => (hasNegativeValues && Math.abs(d) < 0.01) ? '#c5d0e0' : '#e1e8f2')
         .attr('stroke-width', d => (hasNegativeValues && Math.abs(d) < 0.01) ? 1.5 : 1);
 
       // Vertical grid lines - align with all data points (using the same scale with padding)
@@ -287,7 +297,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('x2', d => xScale(d))
         .attr('y1', 0)
         .attr('y2', innerHeight)
-        .attr('stroke', d => isDateXAxisTick(d) ? '#FFB70E' : '#e5e7eb')
+        .attr('stroke', d =>
+          isDateXAxisTick(d) ? LineChartComponent.X_AXIS_DATE_ACCENT : '#e8edf5')
         .attr('stroke-width', 1);
     }
 
@@ -300,14 +311,68 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('d', area);
     }
 
-    // Draw line
-    const linePath = g.append('path')
-      .datum(this.data)
-      .attr('fill', 'none')
-      .attr('stroke', this.color)
-      .attr('stroke-width', 2)
-      .attr('d', line)
-      .style('pointer-events', 'none'); // Line doesn't need pointer events, dots handle it
+    const linePathForRange = (fromIdx: number, toIdx: number): string => {
+      if (toIdx < fromIdx || fromIdx < 0 || toIdx >= n) return '';
+      const slice = this.data.slice(fromIdx, toIdx + 1);
+      return (
+        d3
+          .line<number>()
+          .x((_d, j) => xScale(fromIdx + j))
+          .y(d => yScale(d))
+          .curve(d3.curveLinear)(slice) ?? ''
+      );
+    };
+
+    const fRaw = this.forecastStartIndex;
+    const hasSplit =
+      fRaw !== null &&
+      fRaw !== undefined &&
+      Number.isFinite(fRaw) &&
+      n > 1;
+    const f = hasSplit ? Math.max(0, Math.min(n, Math.round(Number(fRaw)))) : null;
+
+    if (f === null) {
+      g.append('path')
+        .datum(this.data)
+        .attr('fill', 'none')
+        .attr('stroke', this.color)
+        .attr('stroke-width', 2)
+        .attr('d', line)
+        .style('pointer-events', 'none');
+    } else if (f <= 0) {
+      g.append('path')
+        .attr('fill', 'none')
+        .attr('stroke', this.forecastLineColor)
+        .attr('stroke-width', 2)
+        .attr('d', linePathForRange(0, n - 1))
+        .style('pointer-events', 'none');
+    } else if (f >= n) {
+      g.append('path')
+        .attr('fill', 'none')
+        .attr('stroke', this.color)
+        .attr('stroke-width', 2)
+        .attr('d', linePathForRange(0, n - 1))
+        .style('pointer-events', 'none');
+    } else {
+      const historicD = linePathForRange(0, f - 1);
+      if (historicD) {
+        g.append('path')
+          .attr('fill', 'none')
+          .attr('stroke', this.color)
+          .attr('stroke-width', 2)
+          .attr('d', historicD)
+          .style('pointer-events', 'none');
+      }
+      const forecastD = linePathForRange(f - 1, n - 1);
+      if (forecastD) {
+        g.append('path')
+          .attr('fill', 'none')
+          .attr('stroke', this.forecastLineColor)
+          .attr('stroke-width', 2)
+          .attr('d', forecastD)
+          .style('pointer-events', 'none');
+      }
+    }
 
     // Create tooltip - append to body to avoid overflow issues
     const container = element.parentElement;
@@ -509,6 +574,13 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .map((value, index) => ({ value, index }))
       .filter(({ index }) => dotIndexSet === null || dotIndexSet.has(index));
 
+    const dotFill = (index: number): string => {
+      if (f === null) return this.color;
+      if (f <= 0) return this.forecastLineColor;
+      if (f >= n) return this.color;
+      return index < f ? this.color : this.forecastLineColor;
+    };
+
     // Draw data points - larger, more visible circles with larger hit area
     const dots = g.selectAll('.dot')
       .data(dotData)
@@ -518,7 +590,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .attr('cx', ({ index }) => xScale(index))
       .attr('cy', ({ value }) => yScale(value))
       .attr('r', 6) // Slightly larger for easier hovering
-      .attr('fill', this.color)
+      .attr('fill', ({ index }) => dotFill(index))
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
@@ -600,9 +672,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .call(xAxis);
 
     const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 768;
-    const xAxisTickFillDefault = '#949294';
+    const xAxisTickFillDefault = '#9ca3af';
     const xAxisTickFillActive = '#00113F'; // midnight blue (hover / tooltip only)
-    const xAxisDateTickFill = '#FFB70E';
+    const xAxisDateTickFill = LineChartComponent.X_AXIS_DATE_ACCENT;
 
     const getXAxisTickBaseFill = (tickIndex: number): string => {
       if (isDateXAxisTick(tickIndex)) {
@@ -613,13 +685,19 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     xAxisGroup.selectAll<SVGGElement, number>('.tick')
       .select('text')
-      .style('font-size', isNarrow ? '10px' : '12px')
+      .style('font-size', d => {
+        const i = Math.round(Number(d));
+        if (isNarrow) return isDateXAxisTick(i) ? '12px' : '11px';
+        return isDateXAxisTick(i) ? '13px' : '12px';
+      })
       .style('fill', d => getXAxisTickBaseFill(Math.round(Number(d))))
-      .style('font-weight', '400');
+      .style('font-weight', d =>
+        isDateXAxisTick(Math.round(Number(d))) ? '700' : '400')
+      .style('font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
 
     // Style x-axis line
     xAxisGroup.select('.domain')
-      .attr('stroke', '#e5e7eb')
+      .attr('stroke', '#dde3ec')
       .attr('stroke-width', 1);
 
     // Remove tick marks (only show labels)
@@ -631,35 +709,42 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         const tickIndex = Math.round(Number(d));
         const active = activeIndex !== null && tickIndex === activeIndex;
         const baseFill = getXAxisTickBaseFill(tickIndex);
-        const isDateTick = baseFill === xAxisDateTickFill;
+        const isDateTick = isDateXAxisTick(tickIndex);
+        const weight = isDateTick
+          ? active
+            ? '800'
+            : '700'
+          : active
+            ? '600'
+            : '400';
         d3.select(this)
           .select('text')
-          .style('font-weight', active ? '600' : '400')
+          .style('font-weight', weight)
           .style('fill', active && !isDateTick ? xAxisTickFillActive : baseFill);
       });
     };
 
     // Add X-axis label if provided - positioned relative to x-axis position
-    const axisLabelFontSize = isNarrow ? '12px' : '12px';
-    const axisLabelColor = '#4B494E';
+    const axisTitleFontSize = '12px';
+    const axisTitleColor = '#4B494E';
     if (this.xAxisLabel) {
       // If axis is at top, place label above it (but within visible area); otherwise below
       let labelY: number;
       if (useTopAxis) {
-        // Position well above the axis and tick labels (tick labels are ~15px above axis line)
-        // Position the label about 35px above the axis line to avoid overlap
-        labelY = xAxisYPosition - 35;
-        // Ensure it's within the top margin area
-        labelY = Math.max(-margin.top + 5, labelY);
+        // Title sits above tick labels (axisTop draws ticks upward from y=0)
+        labelY = xAxisYPosition - 38;
+        labelY = Math.max(-margin.top + 8, labelY);
       } else {
         labelY = innerHeight + margin.bottom - 10;
       }
       g.append('text')
         .attr('transform', `translate(${innerWidth / 2}, ${labelY})`)
         .style('text-anchor', 'middle')
-        .style('font-size', axisLabelFontSize)
-        .style('font-weight', '400')
-        .style('fill', axisLabelColor)
+        .style('font-size', axisTitleFontSize)
+        .style('font-weight', '500')
+        .style('fill', axisTitleColor)
+        .style('font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif')
+        .style('letter-spacing', '-0.01em')
         .text(this.xAxisLabel);
     }
 
@@ -680,16 +765,18 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     yAxisGroup.selectAll('text')
       .style('font-size', '12px')
-      .style('fill', '#949294');
+      .style('fill', '#7a8799')
+      .style('font-weight', '400')
+      .style('font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
 
     // Style y-axis line
     yAxisGroup.select('.domain')
-      .attr('stroke', '#e5e7eb')
+      .attr('stroke', '#dde3ec')
       .attr('stroke-width', 1);
 
     // Style tick lines
     yAxisGroup.selectAll('.tick line')
-      .attr('stroke', '#e5e7eb')
+      .attr('stroke', '#e1e8f2')
       .attr('stroke-width', 1);
 
     // Y-axis label: snug to the left of tick numerals (position from measured tick extent, not full margin).
@@ -699,9 +786,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .attr('transform', `translate(${labelX},${innerHeight / 2}) rotate(-90)`)
         .style('text-anchor', 'middle')
         .style('dominant-baseline', 'middle')
-        .style('font-size', axisLabelFontSize)
-        .style('font-weight', '400')
-        .style('fill', axisLabelColor)
+        .style('font-size', axisTitleFontSize)
+        .style('font-weight', '500')
+        .style('fill', axisTitleColor)
+        .style('font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif')
+        .style('letter-spacing', '-0.01em')
         .text(this.yAxisLabel);
     }
   }

@@ -324,7 +324,7 @@
 }
 .filters-list { 
     display:flex;
-    gap:12px; 
+    gap:24px; 
     flex-wrap: nowrap;
     flex: 1;
     min-width: 0;
@@ -404,7 +404,7 @@
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 16px;
     min-width: 0;
 }
 
@@ -710,15 +710,15 @@
     width: auto;
     flex: 1 1 320px;
     min-width: 280px;
-    max-width: 720px;
+    max-width: 880px;
     /* Room for dual-handle value tooltips (match Time Horizon card vertical rhythm) */
     height: auto;
     min-height: $filters-height-desktop;
     padding-top: 12px;
     padding-bottom: 12px;
-    /* Extra horizontal inset so the range control doesn’t sit flush on the card edges */
-    padding-left: 20px;
-    padding-right: 20px;
+    /* Extra horizontal inset — align with Time Horizon filter card (24px desktop) */
+    padding-left: 16px;
+    padding-right: 36px;
 
     @media (max-width: 1024px) {
         width: 100%;
@@ -731,8 +731,8 @@
     }
 
     @media (max-width: 768px) {
-        padding-left: 18px;
-        padding-right: 18px;
+        padding-left: 20px;
+        padding-right: 20px;
     }
 
     @media (max-width: 480px) {
@@ -757,7 +757,7 @@
 // Toggles Section
 .toggles-container {
     display: flex;
-    gap: 12px;
+    gap: 24px;
     align-items: center;
     margin-top: 20px;
     width: 100%;
@@ -1061,7 +1061,7 @@
     gap: 24px;
     min-width: 0;
     max-width: 100%;
-    width: 720px;
+    width: 800px;
     background-color: $bg-white;
     position: relative;
     z-index: 0;

@@ -33,7 +33,7 @@
   flex-direction: column;
   animation: slideIn 0.3s ease-out;
   overflow: hidden;
-  padding: 24px 24px 40px 24px;
+  padding: 24px 24px 8px 24px;
   gap: 20px;
   min-width: 0;
 
@@ -244,20 +244,128 @@
   justify-content: center;
   color: $primary-colors-midnight-blue;
 
-  &:hover {
-    background-color: $window-btn-hover-background;
-  }
-
   &:focus-visible {
     outline: 2px solid $secondary-colors-blue-500;
     outline-offset: 2px;
   }
 }
 
+/** Icon-only by default; label reveals on hover / keyboard focus (matches Ask MarketSense AI control). */
+.detail-modal-header-btn--ask-ai {
+  width: auto;
+  min-width: 36px;
+  max-width: 36px;
+  padding: 0;
+  overflow: hidden;
+  justify-content: center;
+  box-sizing: border-box;
+  transition:
+    max-width 0.24s ease,
+    padding 0.24s ease;
+
+  &:hover,
+  &:focus-visible {
+    max-width: min(280px, 100vw);
+    padding: 0 10px 0 6px;
+    justify-content: flex-start;
+  }
+
+  .detail-modal-ask-ai-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-height: 24px;
+    transition: gap 0.22s ease;
+  }
+
+  &:hover .detail-modal-ask-ai-inner,
+  &:focus-visible .detail-modal-ask-ai-inner {
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .detail-modal-ask-ai-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /** Default: outline-only; yellow fill appears on hover / focus (with expanded label). */
+  .detail-modal-ask-ai-svg {
+    display: block;
+
+    .detail-modal-ask-ai-sparkle-main,
+    .detail-modal-ask-ai-sparkle-dot {
+      fill: none;
+      stroke: $primary-colors-midnight-blue;
+      transition: fill 0.18s ease;
+    }
+
+    .detail-modal-ask-ai-sparkle-plus {
+      fill: none;
+      stroke: $primary-colors-midnight-blue;
+    }
+  }
+
+  &:hover .detail-modal-ask-ai-svg,
+  &:focus-visible .detail-modal-ask-ai-svg {
+    .detail-modal-ask-ai-sparkle-main,
+    .detail-modal-ask-ai-sparkle-dot {
+      fill: #ffdd44;
+    }
+  }
+
+  .detail-modal-ask-ai-label {
+    flex-shrink: 0;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: $primary-colors-midnight-blue;
+    pointer-events: none;
+    transition:
+      max-width 0.24s ease,
+      opacity 0.18s ease 0.04s;
+  }
+
+  &:hover .detail-modal-ask-ai-label,
+  &:focus-visible .detail-modal-ask-ai-label {
+    max-width: 220px;
+    opacity: 1;
+  }
+}
 .detail-modal-header-icon {
   display: block;
   flex-shrink: 0;
   object-fit: contain;
+  width: 20px;
+  height: 20px;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+/** Close (X) is slightly larger than download; still uses header icon hover / faux-bold. */
+.detail-modal-close-icon {
+  width: 36px;
+  height: 36px;
+}
+
+/** Download + close (img icons): bolder silhouette on hover / focus — matches card pin treatment. */
+.detail-modal-header-btn:not(.detail-modal-header-btn--ask-ai):hover .detail-modal-header-icon,
+.detail-modal-header-btn:not(.detail-modal-header-btn--ask-ai):focus-visible .detail-modal-header-icon {
+  transform: scale(1.06);
+  filter:
+    drop-shadow(0.4px 0 0 $primary-colors-midnight-blue)
+    drop-shadow(-0.4px 0 0 $primary-colors-midnight-blue)
+    drop-shadow(0 0.4px 0 $primary-colors-midnight-blue)
+    drop-shadow(0 -0.4px 0 $primary-colors-midnight-blue);
 }
 
 .confidence-indicator {
@@ -548,21 +656,6 @@
       color: $neutral-colors-neutral-750;
     }
   }
-
-  &.flow-breakdown-row-total {
-    margin-top: 4px;
-    padding-top: 10px;
-    border-top: 1px solid rgba($neutral-colors-neutral-750, 0.35);
-    font-weight: 600;
-    background: $bg-white;
-
-    .col-label {
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-size: 12px;
-      color: $neutral-colors-neutral-750;
-    }
-  }
 }
 
 .flow-breakdown-empty {
@@ -628,13 +721,94 @@
   padding: 0;
   position: relative;
 
+  .chart-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 14px;
+  }
+
   app-line-chart {
     width: 100%;
     max-width: 100%;
-    height: 320px;
+    height: 430px;
     display: block;
     overflow: visible;
   }
+}
+
+// Matches trajectory chart: anchor grid accent, historic line, forecast line (#0C42FE).
+.trajectory-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 20px 28px;
+  width: 100%;
+  padding: 0 8px 4px;
+  box-sizing: border-box;
+}
+
+.trajectory-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trajectory-chart-legend-swatch {
+  display: block;
+  width: 22px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+
+  &--forecast-start {
+    background-color: #ff9100;
+  }
+
+  &--historical {
+    background-color: $primary-colors-midnight-blue;
+  }
+
+  &--forecast {
+    background-color: #0c42fe;
+  }
+
+  /* Shaded band: pale fill, vertical rails only (no top/bottom stroke). */
+  &--prediction-interval {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    box-sizing: border-box;
+    background-color: #e8f1ff;
+    border: none;
+    border-left: 2px solid #6b9bd9;
+    border-right: 2px solid #6b9bd9;
+  }
+}
+
+.trajectory-chart-legend-label {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #44474E;
+  white-space: nowrap;
+}
+
+.detail-modal-data-sample-size {
+  align-self: stretch;
+  width: 100%;
+  margin: 0;
+  padding: 2px 8px 0;
+  box-sizing: border-box;
+  text-align: right;
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.35;
+  color: $neutral-colors-neutral-750;
 }
 
 @media (max-width: 768px) {
@@ -647,12 +821,12 @@
     min-width: 0;
     overflow: visible;
     padding: 0 4px 24px;
-    min-height: 354px;
+    min-height: 480px;
 
     app-line-chart {
       width: 100% !important;
       max-width: 100% !important;
-      height: 320px;
+      height: 440px;
     }
   }
 }
@@ -660,10 +834,10 @@
 @media (max-width: 480px) {
   .chart-container {
     padding: 0 2px 20px;
-    min-height: 350px;
+    min-height: 480px;
 
     app-line-chart {
-      height: 300px;
+      height: 440px;
     }
   }
 }

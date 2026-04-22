@@ -45,7 +45,6 @@ export class MarketFlowCardComponent {
   @HostBinding('attr.data-card-id') get cardIdAttr(): string {
     return this.card?.id ?? '';
   }
-  @Output() download = new EventEmitter<string>();
   @Output() moreOptions = new EventEmitter<string>();
   @Output() askMarketSense = new EventEmitter<string>();
   @Output() pin = new EventEmitter<string>();
@@ -54,8 +53,6 @@ export class MarketFlowCardComponent {
 
   private askMarketSenseLastHandled = 0;
   private readonly ASK_MARKETSENSE_DEBOUNCE_MS = 300;
-  private downloadLastHandled = 0;
-  private readonly DOWNLOAD_DEBOUNCE_MS = 300;
   private pinLastHandled = 0;
   private readonly PIN_DEBOUNCE_MS = 300;
   /** Debounce card open so mousedown + click don't double-open (VDI may only send one). */
@@ -81,24 +78,6 @@ export class MarketFlowCardComponent {
     return this.card.value;
   }
 
-  onDownload(event?: Event): void {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-    }
-    
-    const now = Date.now();
-    
-    // Prevent double-firing from multiple event handlers (click + mousedown + touchstart)
-    if (now - this.downloadLastHandled < this.DOWNLOAD_DEBOUNCE_MS) {
-      return;
-    }
-    this.downloadLastHandled = now;
-    // Emit download event
-    this.download.emit(this.card.id);
-  }
-
   onMoreOptions(): void {
     this.moreOptions.emit(this.card.id);
   }
@@ -111,6 +90,7 @@ export class MarketFlowCardComponent {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
       }
       return;
     }
@@ -119,6 +99,7 @@ export class MarketFlowCardComponent {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
     }
     
     // Emit the event

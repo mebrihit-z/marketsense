@@ -12,7 +12,7 @@
     display:flex;
     align-items:center;
     gap: 15px;
-    padding: 8px 13px;
+    padding: 8px 16px;
     cursor: pointer;
     border: 1px solid $border-light;
     background: $bg-white;
@@ -49,6 +49,8 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
+    margin-left: 15.5px;
+    margin-right: -4px;
 }
 .caret-down-icon {
     @media (max-width: 1024px) and (min-width: 769px) {
@@ -117,7 +119,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-left: -12px;
+  margin-left: -8px;
 }
 .info-btn {
   background: none;

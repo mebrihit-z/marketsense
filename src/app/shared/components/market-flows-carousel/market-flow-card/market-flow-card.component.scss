@@ -34,7 +34,7 @@ $card-aum-gray: #94a3b8;
   }
 }
 
-// Card Header: Title (left) + Pin & Download (right), horizontally aligned
+// Card Header: Title (left) + actions (right), horizontally aligned
 .card-header {
   display: flex;
   align-items: center;
@@ -95,6 +95,56 @@ $card-aum-gray: #94a3b8;
       background-color: rgba($primary-colors-midnight-blue, 0.08);
     }
   }
+}
+
+/** Ask MarketSense: compact icon only; thicker strokes on hover / focus (no label expand on cards). */
+.icon-btn.icon-btn--ask-ai {
+  .card-ask-ai-svg {
+    display: block;
+    flex-shrink: 0;
+
+    path {
+      fill: none;
+      stroke: $primary-colors-midnight-blue;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke-width 0.15s ease;
+    }
+  }
+
+  &:hover .card-ask-ai-svg path,
+  &:focus-visible .card-ask-ai-svg path {
+    stroke-width: 2.75;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $secondary-colors-blue-500;
+    outline-offset: 2px;
+  }
+}
+
+/** Pin (raster img): faux-bold on hover / focus — slight scale + edge drop-shadows. */
+.icon-btn[data-market-flow-action='pin'] img {
+  display: block;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.icon-btn[data-market-flow-action='pin']:hover img,
+.icon-btn[data-market-flow-action='pin']:focus-visible img {
+  transform: scale(1.06);
+  filter:
+    drop-shadow(0.4px 0 0 $primary-colors-midnight-blue)
+    drop-shadow(-0.4px 0 0 $primary-colors-midnight-blue)
+    drop-shadow(0 0.4px 0 $primary-colors-midnight-blue)
+    drop-shadow(0 -0.4px 0 $primary-colors-midnight-blue);
+}
+
+.icon-btn[data-market-flow-action='pin']:focus-visible {
+  outline: 2px solid $secondary-colors-blue-500;
+  outline-offset: 2px;
 }
 
 // Sentiment badge: below title, slightly indented, oval pill, light green bg, dark green text

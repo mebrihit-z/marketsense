@@ -77,10 +77,18 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private cachedProductBreakdown: FlowBreakdownRow[] = [];
 
   private lineChartMemoFp = '';
-  private lineChartMemo: { data: number[]; labels: string[]; pointTooltipDateLabels?: string[] } = {
+  private lineChartMemo: {
+    data: number[];
+    labels: string[];
+    pointTooltipDateLabels?: string[];
+    forecastStartIndex?: number;
+  } = {
     data: [],
     labels: [],
   };
+
+  /** Forecast segment stroke in the trajectory chart (historic uses {@link getChartColor}). */
+  readonly forecastLineColor = '#0C42FE';
 
   private headlineHorizonPctFp = '';
   private headlineHorizonPctMemo: number | null = null;
@@ -269,13 +277,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       selectedInvestorTypes: this.selectedInvestorTypes,
       selectedProductRegions: this.selectedProductRegions,
       selectedProductTypes: this.selectedProductTypes,
+      anchorYm: this.historicAnchor.getAnchorYearMonth(),
     });
   }
 
   /**
    * Memoized chart series + x-axis labels aligned with each chart point (single change-detection pass).
    */
-  getLineChartBundle(): { data: number[]; labels: string[]; pointTooltipDateLabels?: string[] } {
+  getLineChartBundle(): {
+    data: number[];
+    labels: string[];
+    pointTooltipDateLabels?: string[];
+    forecastStartIndex?: number;
+  } {
     const fp = this.getLineChartFingerprint();
     if (fp !== this.lineChartMemoFp) {
       this.lineChartMemoFp = fp;
@@ -284,19 +298,41 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.lineChartMemo;
   }
 
-  private computeLineChartBundle(): { data: number[]; labels: string[]; pointTooltipDateLabels?: string[] } {
+  private inferForecastStartIndexFromLabels(labels: string[]): number | undefined {
+    const idx = labels.findIndex(l => /^\+\d/.test(String(l).trim()));
+    return idx >= 0 ? idx : undefined;
+  }
+
+  private computeLineChartBundle(): {
+    data: number[];
+    labels: string[];
+    pointTooltipDateLabels?: string[];
+    forecastStartIndex?: number;
+  } {
     const defaultLabels = this.getDefaultXAxisLabelsNoRange();
     if (!this.card || !this.rawAssetFlowsData?.length) {
-      return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
+      return {
+        data: this.getFallbackChartDataForLength(defaultLabels.length),
+        labels: defaultLabels,
+        forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
+      };
     }
     const productSubType = this.card.productSubType;
     if (!productSubType) {
-      return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
+      return {
+        data: this.getFallbackChartDataForLength(defaultLabels.length),
+        labels: defaultLabels,
+        forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
+      };
     }
     const filteredData = this.applyChartDataFilters(productSubType);
     const { dateMap, sortedDates } = detailModalUtil.aggregateByDate(filteredData);
     if (sortedDates.length === 0) {
-      return { data: this.getFallbackChartDataForLength(defaultLabels.length), labels: defaultLabels };
+      return {
+        data: this.getFallbackChartDataForLength(defaultLabels.length),
+        labels: defaultLabels,
+        forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
+      };
     }
     const rangeQuarterSeries = this.buildPerQuarterSeriesForTimeHorizonLabels(dateMap, sortedDates);
     if (rangeQuarterSeries) {
@@ -304,6 +340,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         data: rangeQuarterSeries.series,
         labels: rangeQuarterSeries.xAxisLabels,
         pointTooltipDateLabels: rangeQuarterSeries.tooltipDateLabels,
+        forecastStartIndex: rangeQuarterSeries.forecastStartIndex,
       };
     }
     const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
@@ -311,6 +348,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return {
       data: detailModalUtil.sampleOrPadToLength(rawData, targetLength),
       labels: defaultLabels,
+      forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
     };
   }
 
@@ -448,19 +486,6 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       : this.getProductRegionBreakdown();
   }
 
-  /** Sum of row values and row % (slice contributions share one denominator — sums to headline %). */
-  getBreakdownTotalsRow(): { valueUsd: number; pctChange: number | null } | null {
-    const rows = this.getActiveBreakdownRows();
-    if (!rows.length) return null;
-    const valueUsd = rows.reduce((s, r) => s + r.valueUsd, 0);
-    let pctSum = 0;
-    for (const r of rows) {
-      if (r.pctChange == null) return { valueUsd, pctChange: null };
-      pctSum += r.pctChange;
-    }
-    return { valueUsd, pctChange: pctSum };
-  }
-
   formatBreakdownValueUsd(valueUsd: number): string {
     return formatFlowCurrencyUsd(valueUsd);
   }
@@ -547,7 +572,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private buildPerQuarterSeriesForTimeHorizonLabels(
     dateMap: Map<string, number>,
     sortedDates: string[]
-  ): { series: number[]; xAxisLabels: string[]; tooltipDateLabels: string[] } | null {
+  ): { series: number[]; xAxisLabels: string[]; tooltipDateLabels: string[]; forecastStartIndex: number } | null {
     if (!this.timeHorizonRange?.start || !this.timeHorizonRange?.end) return null;
     const startDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
     const endDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
@@ -567,7 +592,18 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     );
     const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym));
     const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterEndLongDate(ym));
-    return { series, xAxisLabels, tooltipDateLabels };
+    const anchorYm = this.historicAnchor.getAnchorYearMonth();
+    let forecastStartIndex = orderedYms.length;
+    if (anchorYm) {
+      for (let i = 0; i < orderedYms.length; i++) {
+        const delta = detailModalUtil.monthsBetweenYearMonths(anchorYm, orderedYms[i]);
+        if (delta != null && delta > 0) {
+          forecastStartIndex = i;
+          break;
+        }
+      }
+    }
+    return { series, xAxisLabels, tooltipDateLabels, forecastStartIndex };
   }
 
   private formatYearMonthAsHorizonAxisTick(ym: string): string {
@@ -637,6 +673,15 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   getOutflowDisplay(): string {
     return formatFlowCurrencyUsd(this.getFlowUsdTotals().outflowUsd);
+  }
+
+  /** Sample size for footer (sum of N_Clients on the card; matches flow card). */
+  getDataSampleSizeDisplay(): string {
+    const n = this.card?.nClientsTotal;
+    if (n != null && n > 0 && Number.isFinite(n)) {
+      return n.toLocaleString('en-US');
+    }
+    return '—';
   }
 
   /** Full USD string for tooltip on compact net flow display. */

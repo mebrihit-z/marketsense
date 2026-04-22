@@ -56,7 +56,7 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
   private range: TimeHorizonRangeIndices = { startIndex: 6, endIndex: 7 };
 
   compactAxis = typeof window !== 'undefined' && window.innerWidth <= 768;
-  private sliderTrackWidthFallback = 560;
+  private sliderTrackWidthFallback = 620;
   private isDragging = false;
   private dragType: 'start' | 'end' | null = null;
   private hasDragged = false;
@@ -118,6 +118,25 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
     if (full == null) return '';
     if (!this.compactAxis) return full;
     return TIME_HORIZONS_SHORT_LABELS[index] ?? full;
+  }
+
+  /**
+   * CSS transform for axis tick labels. Last and second-to-last milestones are nudged right
+   * so labels sit slightly inside the card; compact mode uses a right-anchored transform for the last tick.
+   */
+  axisLabelTransform(index: number): string {
+    const last = this.horizons.length - 1;
+    const secondToLast = last - 1;
+    const nudgeSecondToLast = last >= 2 && index === secondToLast;
+    if (this.compactAxis) {
+      if (index === 0) return 'translateX(0)';
+      if (index === last) return 'translateX(calc(-100% + 8px))';
+      if (nudgeSecondToLast) return 'translateX(calc(-50% + 5px))';
+      return 'translateX(-50%)';
+    }
+    if (index === last) return 'translateX(calc(-50% + 8px))';
+    if (nudgeSecondToLast) return 'translateX(calc(-50% + 5px))';
+    return 'translateX(-50%)';
   }
 
   isLabelActive(index: number): boolean {

@@ -519,6 +519,75 @@ function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
   return touches(source) || touches(target);
 }
 
+/**
+ * Nodes with no incoming edges in the **full** Sankey topology are the only true flow sources
+ * (e.g. `… (Super Start)`). After per-link value-range filtering, interior nodes can incorrectly
+ * remain if they still have an unmuted **outgoing** link (e.g. sub-asset → pool) while every
+ * **incoming** link was pruned — which looks like flows from nowhere. This pass drops any kept
+ * link whose source is not reachable from those fixed sources along **kept** links, and repeats
+ * until stable, so downstream rows under a pruned parent chain are removed together.
+ */
+export function cascadePruneSankeyLinkRows<T extends { source: string; target: string }>(
+  fullTopologyLinks: readonly { source: string; target: string }[],
+  rows: readonly T[]
+): T[] {
+  if (!rows?.length || !fullTopologyLinks?.length) {
+    return rows?.length ? [...rows] : [];
+  }
+
+  const inDegree = new Map<string, number>();
+  const allNames = new Set<string>();
+  for (const l of fullTopologyLinks) {
+    const s = typeof l.source === 'string' ? l.source : '';
+    const t = typeof l.target === 'string' ? l.target : '';
+    if (s) allNames.add(s);
+    if (t) {
+      allNames.add(t);
+      inDegree.set(t, (inDegree.get(t) ?? 0) + 1);
+    }
+  }
+  const seeds = new Set<string>();
+  for (const n of allNames) {
+    if ((inDegree.get(n) ?? 0) === 0) {
+      seeds.add(n);
+    }
+  }
+  if (seeds.size === 0) {
+    return [...rows];
+  }
+
+  let current = [...rows];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const reachable = new Set<string>(seeds);
+    let growing = true;
+    while (growing) {
+      growing = false;
+      for (const r of current) {
+        const s = typeof r.source === 'string' ? r.source : '';
+        const t = typeof r.target === 'string' ? r.target : '';
+        if (!s || !t) continue;
+        if (reachable.has(s) && !reachable.has(t)) {
+          reachable.add(t);
+          growing = true;
+        }
+      }
+    }
+    const next: T[] = [];
+    for (const r of current) {
+      const s = typeof r.source === 'string' ? r.source : '';
+      if (!s || !reachable.has(s)) {
+        changed = true;
+        continue;
+      }
+      next.push(r);
+    }
+    current = next;
+  }
+  return current;
+}
+
 /** Key for parallel Sankey links that share the same source and target node names. */
 export function sankeyLinkPairKey(source: string, target: string): string {
   return `${source}\0${target}`;
@@ -603,7 +672,7 @@ export function filterSankeyDataByFlowValueRange(
 
   const pairTotals = buildSankeySourceTargetPairSumDollars(data.links);
 
-  const filteredLinks = data.links.filter((link) => {
+  const valueRangeLinks = data.links.filter((link) => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
     const pairTotal = pairTotals.get(sankeyLinkPairKey(source, target)) ?? link.value ?? 0;
@@ -616,6 +685,8 @@ export function filterSankeyDataByFlowValueRange(
       exemptNetNewAndWithdrawnFromFlowValueFilter
     );
   });
+
+  const filteredLinks = cascadePruneSankeyLinkRows(data.links, valueRangeLinks);
 
   if (filteredLinks.length === 0) {
     return {

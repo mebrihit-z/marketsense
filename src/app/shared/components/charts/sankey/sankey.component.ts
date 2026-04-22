@@ -11,6 +11,7 @@ import {
 import {
   filterSankeyData,
   buildSankeySourceTargetPairSumDollars,
+  cascadePruneSankeyLinkRows,
   linkPassesFlowValueRangeFilter,
   sankeyLinkPairKey,
   extractProductTypeFromNodeName,
@@ -247,6 +248,45 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           d.rawValue = v;
           d.baseLayoutValue = this.layoutValueForLink(v, maxRawAll, s, t);
         }
+      }
+    }
+  }
+
+  /**
+   * After per-link value-range mutes, drop links (and their downstream) whose sources are not
+   * reachable from true graph sources along **unmuted** links — e.g. sub-asset → pool cannot
+   * stay when all parent start → sub links were pruned.
+   */
+  private cascadeMuteValueRangeOrphans(
+    layoutLinkDefs: Array<{
+      source: number;
+      target: number;
+      baseLayoutValue: number;
+      rawValue: number;
+      layoutIndex: number;
+      date?: string;
+      nClientsTotal?: number;
+      mutedByValueRange?: boolean;
+    }>,
+    dataToUse: RegionalSankeyData
+  ): void {
+    const nodeList = dataToUse.nodes || [];
+    const nm = (i: number) => nodeList[i]?.name ?? '';
+    type Row = { def: (typeof layoutLinkDefs)[0]; source: string; target: string };
+    const activeRows: Row[] = layoutLinkDefs
+      .filter(d => !d.mutedByValueRange)
+      .map(d => ({ def: d, source: nm(d.source), target: nm(d.target) }));
+    if (activeRows.length === 0) {
+      return;
+    }
+    const pruned = cascadePruneSankeyLinkRows(dataToUse.links || [], activeRows);
+    const keep = new Set(pruned.map(r => r.def));
+    for (const d of layoutLinkDefs) {
+      if (d.mutedByValueRange) {
+        continue;
+      }
+      if (!keep.has(d)) {
+        d.mutedByValueRange = true;
       }
     }
   }
@@ -707,6 +747,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (this.sankeyHasLeafDimension) {
       this.reconcileDimension3AggregatesWithValueRange(layoutLinkDefs, dataToUse.nodes, maxRawAll);
     }
+
+    this.cascadeMuteValueRangeOrphans(layoutLinkDefs, dataToUse);
 
     const nodeIncluded = new Set<string>();
     for (const def of layoutLinkDefs) {

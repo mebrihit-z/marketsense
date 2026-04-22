@@ -82,7 +82,7 @@
         [class.time-horizon-label--active]="isLabelActive(i)"
         [class.time-horizon-label--today]="i === todayIndex"
         [style.left.px]="milestoneCenterPx(i)"
-        [style.transform]="'translateX(-50%)'"
+        [style.transform]="axisLabelTransform(i)"
         [attr.aria-label]="horizon"
         (click)="onLabelClick(i, $event)"
         (touchend)="onLabelClick(i, $event)">
