@@ -99,16 +99,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, background-color 0.2s;
+  color: $text-midnight-blue;
 
-  &:hover {
-    background-color: $window-btn-hover-background;
+  &:hover:not(.close-btn) {
+    
+  }
+
+  &.close-btn:hover {
+    background: transparent;
+    background-color: transparent;
   }
 
   svg {
     width: 12px;
     height: 12px;
   }
+}
+
+// Close (X) icon: stroke thickens on hover; no background (see .window-btn.close-btn)
+.close-x-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.close-x-icon__path {
+  transition: stroke-width 0.2s ease;
+}
+
+.window-btn.close-btn:hover .close-x-icon--window .close-x-icon__path {
+  stroke-width: 2.1;
 }
 
 // Header
@@ -838,6 +858,7 @@
   gap: 8px;
 }
 
+// Matches main modal `.expand-download-btn` (CSV / PNG / PDF in card headers)
 .download-btn {
   display: inline-flex;
   align-items: center;
@@ -850,10 +871,16 @@
   line-height: 18px;
   color: $text-midnight-blue;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.2s, border-color 0.2s;
 
-  &:hover {
-    background-color: $window-btn-hover-background;
+  &:hover:not(:disabled) {
+    background-color: rgba(0, 0, 0, 0.04);
+    border-color: $primary-colors-midnight-blue;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
@@ -864,6 +891,7 @@
   vertical-align: middle;
 }
 
+// Expanded modals: close with bolder stroke on hover, no background
 .visualization-close-btn {
   width: 32px;
   height: 32px;
@@ -873,11 +901,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  color: $text-midnight-blue;
+  transition: background-color 0.2s, opacity 0.2s;
 
   &:hover {
-    background-color: $window-btn-hover-background;
+    background: transparent;
+    background-color: transparent;
   }
+}
+
+.visualization-close-btn:hover .close-x-icon--expanded .close-x-icon__path {
+  stroke-width: 2.35;
 }
 
 .visualization-divider {
@@ -885,7 +919,6 @@
   background-color: $secondary-colors-gold-750;
   opacity: 0.8;
 }
-
 .visualization-modal-body {
   padding: 20px 24px 24px 24px;
   display: flex;

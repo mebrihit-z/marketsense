@@ -5,8 +5,9 @@
       <button class="window-btn maximize-btn" (click)="toggleCollapse()" [attr.aria-label]="isCollapsed ? 'Expand' : 'Collapse'">
         <img src="assets/icons/maximize-icon.svg" alt="Maximize" />
       </button>
-      <button class="window-btn close-btn" (click)="onClose()" aria-label="Close">
-        <img src="assets/icons/x-icon.svg" alt="Close" />
+      <button class="window-btn close-btn" (click)="onClose()" aria-label="Close" type="button">
+        <img src="assets/icons/x-icon.svg" alt="Close" class="expanded-close-icon"/>
+        
       </button>
     </div>
 
@@ -353,7 +354,33 @@
           (click)="closeVisualizationModal()"
           aria-label="Close expanded visualization"
         >
-          <img src="assets/icons/x-icon.svg" alt="Close" />
+          <svg
+            class="close-x-icon close-x-icon--expanded"
+            viewBox="0 0 28 28"
+            width="36"
+            height="36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              class="close-x-icon__path"
+              d="M18 10L10 18"
+              stroke="currentColor"
+              stroke-width="1.33"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              class="close-x-icon__path"
+              d="M10 10L18 18"
+              stroke="currentColor"
+              stroke-width="1.33"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -426,7 +453,33 @@
           (click)="closeQueryResultsModal()"
           aria-label="Close expanded query results"
         >
-          <img src="assets/icons/x-icon.svg" alt="Close" />
+          <svg
+            class="close-x-icon close-x-icon--expanded"
+            viewBox="0 0 28 28"
+            width="36"
+            height="36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              class="close-x-icon__path"
+              d="M18 10L10 18"
+              stroke="currentColor"
+              stroke-width="1.33"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              class="close-x-icon__path"
+              d="M10 10L18 18"
+              stroke="currentColor"
+              stroke-width="1.33"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
       </div>
     </div>
