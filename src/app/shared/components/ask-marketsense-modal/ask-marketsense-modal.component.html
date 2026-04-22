@@ -52,13 +52,6 @@
       </div>
     </div>
 
-    <!-- Session History Message -->
-    <div class="session-history-message" *ngIf="activeTab === 'new-question' && !hasDisplayAnalyses">
-      <p>Your session history will be available after your first question is answered.</p>
-    </div>
-    <div class="session-history-message" *ngIf="activeTab === 'history'">
-      <p>Continue or refine a previous analysis.</p>
-    </div>
     <div class="horizontal-divider"></div>
     <!-- Main Content - New Question -->
     <div class="main-content" *ngIf="activeTab === 'new-question'">

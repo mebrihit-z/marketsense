@@ -199,7 +199,6 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
     const question = this.userMessage.trim();
     this.sendMessage.emit(question);
-    this.userMessage = '';
     this.errorMessage = null;
     this.isWaitingForResponse = true;
     this.cdr.markForCheck();
