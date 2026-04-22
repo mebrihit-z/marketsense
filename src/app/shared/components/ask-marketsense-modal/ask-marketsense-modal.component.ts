@@ -405,18 +405,23 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     }
     const date = this.toDate(value);
     if (date) {
-      const keyLower = key.toLowerCase();
-      const isYearColumn = keyLower === 'year' || keyLower.includes('year');
-      if (isYearColumn) {
-        return String(date.getUTCFullYear());
-      }
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
+      return this.formatQueryTableDateString(key, date);
     }
     return String(value);
+  }
+
+  /** Same date presentation in the table and in CSV (year columns vs day/month/year). */
+  private formatQueryTableDateString(key: string, date: Date): string {
+    const keyLower = key.toLowerCase();
+    const isYearColumn = keyLower === 'year' || keyLower.includes('year');
+    if (isYearColumn) {
+      return String(date.getUTCFullYear());
+    }
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   }
 
   /** Coerce value to Date if it's an ISO string or Date instance; otherwise null */
@@ -604,6 +609,36 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.exportQueryResultsToCsv(this.expandedTableAnalysis);
   }
 
+  /**
+   * Value as written to CSV: raw data (unformatted) so Excel and similar tools can treat numeric columns as numbers.
+   * Differs from {@link formatCellValue}, which uses currency and human-readable dates for on-screen display.
+   */
+  /**
+   * CSV cell: raw numbers (Excel-friendly) and human-readable dates matching {@link formatCellValue} / the table.
+   */
+  private serializeQueryResultCsvValue(key: string, value: unknown): string {
+    if (value == null) {
+      return '';
+    }
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? String(value) : '';
+    }
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'TRUE' : 'FALSE';
+    }
+    const date = this.toDate(value);
+    if (date) {
+      return this.formatQueryTableDateString(key, date);
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return String(value);
+  }
+
   /** Export query results to CSV (inline table or expanded modal). */
   exportQueryResultsToCsv(analysis: AnalysisResult | null | undefined): void {
     const columns = analysis?.columns ?? [];
@@ -618,7 +653,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
     const headerRow = columns.map((col) => escape(this.formatColumnLabel(col))).join(',');
     const dataRows = rows.map((row) =>
-      columns.map((col) => escape(this.formatCellValue(col, row[col]))).join(',')
+      columns.map((col) => escape(this.serializeQueryResultCsvValue(col, row[col]))).join(',')
     );
     const csv = [headerRow, ...dataRows].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
