@@ -376,6 +376,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     const piU = this.predictionIntervalUpper;
     const piL = this.predictionIntervalLower;
+    /** Renders on top of bound lines and main line (same coordinates as the dashed interval paths). */
+    let piPointsForBoundDots: { i: number; upper: number; lower: number }[] | null = null;
     if (f !== null && f < n && piU && piL && piU.length === n && piL.length === n) {
       const piPoints: { i: number; upper: number; lower: number }[] = [];
       for (let i = f; i < n; i++) {
@@ -386,6 +388,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         }
       }
       if (piPoints.length > 0) {
+        piPointsForBoundDots = piPoints;
         const piArea = d3
           .area<{ i: number; upper: number; lower: number }>()
           .x(d => xScale(d.i))
@@ -474,6 +477,40 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           .attr('d', forecastD)
           .style('pointer-events', 'none');
       }
+    }
+
+    if (piPointsForBoundDots && piPointsForBoundDots.length > 0) {
+      const boundDotR = 6;
+      const boundDotStrokeW = 2;
+      const pts = piPointsForBoundDots;
+      g.append('g')
+        .attr('class', 'line-chart-prediction-interval-dots line-chart-prediction-interval-dots--upper')
+        .selectAll<SVGCircleElement, (typeof pts)[0]>('circle')
+        .data(pts)
+        .enter()
+        .append('circle')
+        .attr('class', 'line-chart-pi-bound-dot')
+        .attr('cx', d => xScale(d.i))
+        .attr('cy', d => yScale(d.upper))
+        .attr('r', boundDotR)
+        .attr('fill', this.forecastLineColor)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', boundDotStrokeW)
+        .style('pointer-events', 'none');
+      g.append('g')
+        .attr('class', 'line-chart-prediction-interval-dots line-chart-prediction-interval-dots--lower')
+        .selectAll<SVGCircleElement, (typeof pts)[0]>('circle')
+        .data(pts)
+        .enter()
+        .append('circle')
+        .attr('class', 'line-chart-pi-bound-dot')
+        .attr('cx', d => xScale(d.i))
+        .attr('cy', d => yScale(d.lower))
+        .attr('r', boundDotR)
+        .attr('fill', this.forecastLineColor)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', boundDotStrokeW)
+        .style('pointer-events', 'none');
     }
 
     // Create tooltip - append to body to avoid overflow issues
