@@ -45,6 +45,29 @@ export function aggregateByDate(records: AssetFlowRecord[]): { dateMap: Map<stri
 }
 
 /**
+ * Sums `Fcst_Flow_Upper` / `Fcst_Flow_Lower` per {@link Asset_Flow_Date} (same keys as value aggregation).
+ * Rows without both bounds are skipped.
+ */
+export function aggregateFcstBoundsByDate(records: AssetFlowRecord[]): {
+  upperMap: Map<string, number>;
+  lowerMap: Map<string, number>;
+} {
+  const upperMap = new Map<string, number>();
+  const lowerMap = new Map<string, number>();
+  for (const record of records) {
+    if (!record.Asset_Flow_Date) continue;
+    const u = record.Fcst_Flow_Upper;
+    const l = record.Fcst_Flow_Lower;
+    if (u === undefined || l === undefined) continue;
+    if (!Number.isFinite(u) || !Number.isFinite(l)) continue;
+    const d = record.Asset_Flow_Date;
+    upperMap.set(d, (upperMap.get(d) || 0) + u);
+    lowerMap.set(d, (lowerMap.get(d) || 0) + l);
+  }
+  return { upperMap, lowerMap };
+}
+
+/**
  * @param {string[]} sortedDates - Sorted date strings
  * @param {Map<string, number>} dateMap - Date to value map
  * @returns {number[]} Cumulative values in date order (running total per date)

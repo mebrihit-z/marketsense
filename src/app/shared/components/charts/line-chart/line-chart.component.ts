@@ -40,6 +40,12 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
    * not the compact axis format ({@link formatFlowCurrencyUsd}).
    */
   @Input() pointTooltipDateLabels?: string[];
+  /**
+   * Per-point upper forecast bound (USD), aligned with {@link data}. Use `null` where no band is shown.
+   * Shown from {@link forecastStartIndex} through the end when both arrays are set and match length.
+   */
+  @Input() predictionIntervalUpper: (number | null)[] | null = null;
+  @Input() predictionIntervalLower: (number | null)[] | null = null;
 
   @ViewChild('chart', { static: false }) chartElement!: ElementRef<HTMLDivElement>;
 
@@ -63,6 +69,26 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  /**
+   * Second line in the tooltip for forecast points with bounds; uses full grouped USD (not compact K/M/B).
+   */
+  private static predictionRangeTooltipFragment(
+    index: number,
+    upper: (number | null)[] | null,
+    lower: (number | null)[] | null
+  ): string {
+    if (!upper || !lower || index < 0 || index >= upper.length || index >= lower.length) {
+      return '';
+    }
+    const u = upper[index];
+    const l = lower[index];
+    if (l == null || u == null || !Number.isFinite(l) || !Number.isFinite(u)) {
+      return '';
+    }
+    const text = `Prediction Range: ${formatFlowCurrencyUsdFull(l)} - ${formatFlowCurrencyUsdFull(u)}`;
+    return `<div class="line-chart-tooltip-prediction-range">${LineChartComponent.escapeHtml(text)}</div>`;
   }
 
   /** Margins with responsive bottom; `left` comes from measured y-tick + title width. */
@@ -131,7 +157,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         changes['forecastLineColor'] || changes['width'] || changes['height'] ||
         changes['showGrid'] || changes['showArea'] || changes['xAxisLabels'] || changes['yAxisMin'] ||
         changes['yAxisMax'] || changes['yAxisLabel'] || changes['xAxisLabel'] || changes['yAxisValuesInBillions'] ||
-        changes['dotIndices'] || changes['pointHoverLabels'] || changes['pointTooltipDateLabels'])) {
+        changes['dotIndices'] || changes['pointHoverLabels'] || changes['pointTooltipDateLabels'] ||
+        changes['predictionIntervalUpper'] || changes['predictionIntervalLower'])) {
       this.renderChart();
     }
   }
@@ -167,8 +194,24 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     const actualHeight = this.height || 320;
 
     // Y domain before margins so we can measure tick label width and size `margin.left` tightly.
-    const actualDataMin = d3.min(this.data) ?? 0;
-    const actualDataMax = d3.max(this.data) ?? 100;
+    let actualDataMin = d3.min(this.data) ?? 0;
+    let actualDataMax = d3.max(this.data) ?? 100;
+    const nData = this.data.length;
+    if (
+      this.predictionIntervalUpper &&
+      this.predictionIntervalLower &&
+      this.predictionIntervalUpper.length === nData &&
+      this.predictionIntervalLower.length === nData
+    ) {
+      for (let i = 0; i < nData; i++) {
+        const u = this.predictionIntervalUpper[i];
+        const l = this.predictionIntervalLower[i];
+        if (u != null && l != null && Number.isFinite(u) && Number.isFinite(l)) {
+          actualDataMin = Math.min(actualDataMin, u, l);
+          actualDataMax = Math.max(actualDataMax, u, l);
+        }
+      }
+    }
     const hasNegativeValues = actualDataMin < 0;
     const explicitDomain = this.yAxisMin !== undefined && this.yAxisMax !== undefined;
 
@@ -331,6 +374,65 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       n > 1;
     const f = hasSplit ? Math.max(0, Math.min(n, Math.round(Number(fRaw)))) : null;
 
+    const piU = this.predictionIntervalUpper;
+    const piL = this.predictionIntervalLower;
+    if (f !== null && f < n && piU && piL && piU.length === n && piL.length === n) {
+      const piPoints: { i: number; upper: number; lower: number }[] = [];
+      for (let i = f; i < n; i++) {
+        const u = piU[i];
+        const lo = piL[i];
+        if (u != null && lo != null && Number.isFinite(u) && Number.isFinite(lo)) {
+          piPoints.push({ i, upper: u, lower: lo });
+        }
+      }
+      if (piPoints.length > 0) {
+        const piArea = d3
+          .area<{ i: number; upper: number; lower: number }>()
+          .x(d => xScale(d.i))
+          .y0(d => yScale(d.lower))
+          .y1(d => yScale(d.upper))
+          .curve(d3.curveLinear);
+        g.append('path')
+          .datum(piPoints)
+          .attr('class', 'line-chart-prediction-interval')
+          .attr('fill', this.forecastLineColor)
+          .attr('fill-opacity', 0.2)
+          .attr('d', piArea)
+          .style('pointer-events', 'none');
+
+        const lineUpper = d3
+          .line<{ i: number; upper: number; lower: number }>()
+          .x(d => xScale(d.i))
+          .y(d => yScale(d.upper))
+          .curve(d3.curveLinear);
+        const lineLower = d3
+          .line<{ i: number; upper: number; lower: number }>()
+          .x(d => xScale(d.i))
+          .y(d => yScale(d.lower))
+          .curve(d3.curveLinear);
+        g.append('path')
+          .datum(piPoints)
+          .attr('class', 'line-chart-prediction-interval-bound')
+          .attr('fill', 'none')
+          .attr('stroke', this.forecastLineColor)
+          .attr('stroke-opacity', 0.88)
+          .attr('stroke-width', 1.25)
+          .attr('stroke-dasharray', '4,3')
+          .attr('d', lineUpper)
+          .style('pointer-events', 'none');
+        g.append('path')
+          .datum(piPoints)
+          .attr('class', 'line-chart-prediction-interval-bound')
+          .attr('fill', 'none')
+          .attr('stroke', this.forecastLineColor)
+          .attr('stroke-opacity', 0.88)
+          .attr('stroke-width', 1.25)
+          .attr('stroke-dasharray', '4,3')
+          .attr('d', lineLower)
+          .style('pointer-events', 'none');
+      }
+    }
+
     if (f === null) {
       g.append('path')
         .datum(this.data)
@@ -448,6 +550,12 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           ? component.pointTooltipDateLabels[index]?.trim()
           : '';
 
+      const rangeFrag = LineChartComponent.predictionRangeTooltipFragment(
+        index,
+        component.predictionIntervalUpper,
+        component.predictionIntervalLower
+      );
+
       if (datePrefix) {
         const fullUsd = formatFlowCurrencyUsdFull(value);
         const safeDate = LineChartComponent.escapeHtml(datePrefix);
@@ -457,6 +565,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           `<div class="line-chart-tooltip-dated-date">${safeDate}</div>` +
           `<div class="line-chart-tooltip-dated-value-row">Value: ` +
           `<span class="line-chart-tooltip-value">${safeUsd}</span></div>` +
+          rangeFrag +
           `</div>`
         );
       } else {
@@ -467,12 +576,17 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             : `Point ${index + 1}`);
         const formattedValue = formatFlowCurrencyUsd(value);
         component.tooltip.html(
+          `<div class="line-chart-tooltip-stack">` +
           `<div class="line-chart-tooltip-row">` +
           `<span class="line-chart-tooltip-value">${LineChartComponent.escapeHtml(formattedValue)}</span>` +
           `<span class="line-chart-tooltip-label">${LineChartComponent.escapeHtml(String(label))}</span>` +
+          `</div>` +
+          rangeFrag +
           `</div>`
         );
       }
+
+      component.tooltip.style('white-space', rangeFrag || datePrefix ? 'normal' : 'nowrap');
 
       // Calculate position - use getBoundingClientRect for fixed positioning
       const svgElement = component.svg?.node() as SVGSVGElement;

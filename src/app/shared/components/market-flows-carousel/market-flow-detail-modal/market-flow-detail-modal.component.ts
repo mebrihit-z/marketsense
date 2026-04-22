@@ -82,6 +82,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: string[];
     pointTooltipDateLabels?: string[];
     forecastStartIndex?: number;
+    predictionIntervalUpper?: (number | null)[];
+    predictionIntervalLower?: (number | null)[];
   } = {
     data: [],
     labels: [],
@@ -289,6 +291,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: string[];
     pointTooltipDateLabels?: string[];
     forecastStartIndex?: number;
+    predictionIntervalUpper?: (number | null)[];
+    predictionIntervalLower?: (number | null)[];
   } {
     const fp = this.getLineChartFingerprint();
     if (fp !== this.lineChartMemoFp) {
@@ -308,6 +312,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: string[];
     pointTooltipDateLabels?: string[];
     forecastStartIndex?: number;
+    predictionIntervalUpper?: (number | null)[];
+    predictionIntervalLower?: (number | null)[];
   } {
     const defaultLabels = this.getDefaultXAxisLabelsNoRange();
     if (!this.card || !this.rawAssetFlowsData?.length) {
@@ -327,6 +333,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     }
     const filteredData = this.applyChartDataFilters(productSubType);
     const { dateMap, sortedDates } = detailModalUtil.aggregateByDate(filteredData);
+    const { upperMap, lowerMap } = detailModalUtil.aggregateFcstBoundsByDate(filteredData);
     if (sortedDates.length === 0) {
       return {
         data: this.getFallbackChartDataForLength(defaultLabels.length),
@@ -334,13 +341,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
       };
     }
-    const rangeQuarterSeries = this.buildPerQuarterSeriesForTimeHorizonLabels(dateMap, sortedDates);
+    const rangeQuarterSeries = this.buildPerQuarterSeriesForTimeHorizonLabels(
+      dateMap,
+      sortedDates,
+      upperMap,
+      lowerMap
+    );
     if (rangeQuarterSeries) {
       return {
         data: rangeQuarterSeries.series,
         labels: rangeQuarterSeries.xAxisLabels,
         pointTooltipDateLabels: rangeQuarterSeries.tooltipDateLabels,
         forecastStartIndex: rangeQuarterSeries.forecastStartIndex,
+        predictionIntervalUpper: rangeQuarterSeries.predictionIntervalUpper,
+        predictionIntervalLower: rangeQuarterSeries.predictionIntervalLower,
       };
     }
     const rawData = detailModalUtil.buildCumulativeRawData(sortedDates, dateMap);
@@ -571,8 +585,17 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   private buildPerQuarterSeriesForTimeHorizonLabels(
     dateMap: Map<string, number>,
-    sortedDates: string[]
-  ): { series: number[]; xAxisLabels: string[]; tooltipDateLabels: string[]; forecastStartIndex: number } | null {
+    sortedDates: string[],
+    upperMap: Map<string, number>,
+    lowerMap: Map<string, number>
+  ): {
+    series: number[];
+    xAxisLabels: string[];
+    tooltipDateLabels: string[];
+    forecastStartIndex: number;
+    predictionIntervalUpper: (number | null)[];
+    predictionIntervalLower: (number | null)[];
+  } | null {
     if (!this.timeHorizonRange?.start || !this.timeHorizonRange?.end) return null;
     const startDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start);
     const endDate = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.end);
@@ -590,6 +613,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const series = orderedYms.map(ym =>
       detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, dateMap)
     );
+    const upperSeries = orderedYms.map(ym =>
+      detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, upperMap)
+    );
+    const lowerSeries = orderedYms.map(ym =>
+      detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, lowerMap)
+    );
     const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym));
     const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterEndLongDate(ym));
     const anchorYm = this.historicAnchor.getAnchorYearMonth();
@@ -603,7 +632,14 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         }
       }
     }
-    return { series, xAxisLabels, tooltipDateLabels, forecastStartIndex };
+    const hasFcstBounds = upperMap.size > 0;
+    const predictionIntervalUpper: (number | null)[] = upperSeries.map((u, i) =>
+      i < forecastStartIndex || !hasFcstBounds ? null : u
+    );
+    const predictionIntervalLower: (number | null)[] = lowerSeries.map((l, i) =>
+      i < forecastStartIndex || !hasFcstBounds ? null : l
+    );
+    return { series, xAxisLabels, tooltipDateLabels, forecastStartIndex, predictionIntervalUpper, predictionIntervalLower };
   }
 
   private formatYearMonthAsHorizonAxisTick(ym: string): string {
@@ -726,10 +762,23 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {number | undefined} Minimum value for chart y-axis, or undefined if no data
    */
   getYAxisMin(): number | undefined {
-    const data = this.getChartData();
+    const bundle = this.getLineChartBundle();
+    const data = bundle.data;
     if (data.length === 0) return undefined;
-    const min = Math.min(...data);
-    const max = Math.max(...data);
+    let min = Math.min(...data);
+    let max = Math.max(...data);
+    const up = bundle.predictionIntervalUpper;
+    const lo = bundle.predictionIntervalLower;
+    if (up?.length && lo?.length) {
+      for (let i = 0; i < up.length; i++) {
+        const u = up[i];
+        const l = lo[i];
+        if (u != null && l != null) {
+          min = Math.min(min, u, l);
+          max = Math.max(max, u, l);
+        }
+      }
+    }
     const span = max - min;
     const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(min), Math.abs(max), 1) * 0.08;
     return min - pad;
@@ -739,10 +788,23 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {number | undefined} Maximum value for chart y-axis, or undefined if no data
    */
   getYAxisMax(): number | undefined {
-    const data = this.getChartData();
+    const bundle = this.getLineChartBundle();
+    const data = bundle.data;
     if (data.length === 0) return undefined;
-    const min = Math.min(...data);
-    const max = Math.max(...data);
+    let min = Math.min(...data);
+    let max = Math.max(...data);
+    const up = bundle.predictionIntervalUpper;
+    const lo = bundle.predictionIntervalLower;
+    if (up?.length && lo?.length) {
+      for (let i = 0; i < up.length; i++) {
+        const u = up[i];
+        const l = lo[i];
+        if (u != null && l != null) {
+          min = Math.min(min, u, l);
+          max = Math.max(max, u, l);
+        }
+      }
+    }
     const span = max - min;
     const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(min), Math.abs(max), 1) * 0.08;
     return max + pad;

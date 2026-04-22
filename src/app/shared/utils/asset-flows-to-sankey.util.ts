@@ -23,6 +23,9 @@ export interface AssetFlowRecord {
   Asset_Flow_Value: number;
   /** Client count for this row (from `n_clients` in source JSON). */
   N_Clients?: number;
+  /** Forecast prediction interval (USD), when present in source data. */
+  Fcst_Flow_Upper?: number;
+  Fcst_Flow_Lower?: number;
 }
 
 // Supported fields that can be used as Sankey dimensions
@@ -115,6 +118,15 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
     if (Number.isFinite(u) && u >= 0) nClients = Math.round(u);
   }
 
+  const uFcst = r['fcst_flow_upper'] ?? r['Fcst_Flow_Upper'];
+  const lFcst = r['fcst_flow_lower'] ?? r['Fcst_Flow_Lower'];
+  let fcstUpper: number | undefined;
+  let fcstLower: number | undefined;
+  if (uFcst !== undefined && uFcst !== null && lFcst !== undefined && lFcst !== null) {
+    fcstUpper = unwrapValue(uFcst as number | { $numberLong: string });
+    fcstLower = unwrapValue(lFcst as number | { $numberLong: string });
+  }
+
   return {
     Model_Run_Date: (r['model_run_date'] ?? r['Model_Run_Date']) as string | undefined,
     Model_Version: (r['model_version'] ?? r['Model_Version']) as string | undefined,
@@ -133,6 +145,9 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
     Asset_Flow_Date: dateFinal,
     Asset_Flow_Value: valueFinal,
     ...(nClients !== undefined ? { N_Clients: nClients } : {}),
+    ...(fcstUpper !== undefined && fcstLower !== undefined
+      ? { Fcst_Flow_Upper: fcstUpper, Fcst_Flow_Lower: fcstLower }
+      : {}),
   };
 }
 
