@@ -531,8 +531,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .style('position', 'fixed') // Use fixed instead of absolute for body positioning
       .style('background-color', '#00113F')
       .style('color', '#f8fafc')
-      .style('padding', '7px 10px')
-      .style('font-size', '11px')
+      .style('padding', '11px 14px')
+      .style('font-size', '15px')
       .style('pointer-events', 'none')
       .style('z-index', '10000')
       .style('box-shadow', '0 6px 18px rgba(0, 17, 63, 0.32)')

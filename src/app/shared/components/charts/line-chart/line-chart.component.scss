@@ -54,8 +54,8 @@
   position: absolute;
   background-color: $primary-colors-midnight-blue;
   color: #f8fafc;
-  padding: 7px 10px;
-  font-size: 11px;
+  padding: 11px 14px;
+  font-size: 15px;
   pointer-events: none;
   z-index: 1000;
   box-shadow: 0 6px 18px rgba(0, 17, 63, 0.32);
@@ -79,13 +79,13 @@
   }
 
   .line-chart-tooltip-value {
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 600;
     color: #f8fafc;
   }
 
   .line-chart-tooltip-label {
-    font-size: 11px;
+    font-size: 15px;
     color: rgba(248, 250, 252, 0.72);
   }
 
@@ -95,23 +95,23 @@
     align-items: flex-start;
     gap: 4px;
     white-space: normal;
-    max-width: min(90vw, 360px);
+    max-width: min(90vw, 420px);
   }
 
   .line-chart-tooltip-row--dated .line-chart-tooltip-dated-date {
-    font-size: 12px;
+    font-size: 16px;
     color: #f8fafc;
     line-height: 1.35;
   }
 
   .line-chart-tooltip-row--dated .line-chart-tooltip-dated-value-row {
-    font-size: 12px;
+    font-size: 16px;
     color: rgba(248, 250, 252, 0.9);
     line-height: 1.35;
   }
 
   .line-chart-tooltip-prediction-range {
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 400;
     color: rgba(248, 250, 252, 0.9);
     line-height: 1.35;
