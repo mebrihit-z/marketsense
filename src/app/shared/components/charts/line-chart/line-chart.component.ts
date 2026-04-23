@@ -808,9 +808,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             .on('mouseleave', handleMouseLeave);
 
     // X Axis - show exactly one tick per data point
-    // Negative net flow (latest point below zero) → top; positive (above zero) → bottom.
+    // When the series spans both positive and negative Y, keep the axis at the bottom (same as an all-positive chart).
+    // Otherwise, negative net flow at the latest point → top; positive → bottom (avoids crowding when values stay negative).
     const lastFlow = this.data[n - 1] ?? 0;
-    const useTopAxis = lastFlow < 0;
+    const ySpansPositiveAndNegative = actualDataMin < 0 && actualDataMax > 0;
+    const useTopAxis = !ySpansPositiveAndNegative && lastFlow < 0;
     const xAxisYPosition = useTopAxis ? 0 : innerHeight;
     const xTickValues = d3.range(0, n);
     const xAxis = (useTopAxis ? d3.axisTop(xScale) : d3.axisBottom(xScale))
