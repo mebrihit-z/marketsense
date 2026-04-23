@@ -324,7 +324,7 @@
 }
 .filters-list { 
     display:flex;
-    gap:24px; 
+    gap:12px; 
     flex-wrap: nowrap;
     flex: 1;
     min-width: 0;
@@ -757,7 +757,7 @@
 // Toggles Section
 .toggles-container {
     display: flex;
-    gap: 24px;
+    gap: 12px;
     align-items: center;
     margin-top: 20px;
     width: 100%;

@@ -21,6 +21,10 @@ $time-horizon-handle-cluster-top-desktop: $time-horizon-rail-y-desktop + $time-h
 $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-horizon-track-height * 0.5 -
   $time-horizon-handle-size * 0.5 - $time-horizon-handle-tooltip-gap - $time-horizon-tooltip-estimated-height;
 
+// Filters bar: share row with Value Range; keep rail/labels in proportion to the previous 800 / 640 layout
+$time-horizon-card-flex-basis: 680px;
+$time-horizon-track-max-width: 544px; // 640 * (680 / 800)
+
 :host {
   display: contents;
 }
@@ -28,10 +32,11 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
 .time-horizon-container.time-horizon-filter-card {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 8px;
+  flex: 0 1 $time-horizon-card-flex-basis;
   min-width: 0;
   max-width: 100%;
-  width: 800px;
+  /* Width comes from flex basis (row with Value Range); still full width when stacked in breakpoints below */
   background-color: $bg-white;
   position: relative;
   z-index: 0;
@@ -54,7 +59,7 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
   @media (max-width: 1024px) and (min-width: 769px) {
     flex-direction: column;
     align-items: stretch;
-    gap: 0;
+    gap: 6px;
     width: 100%;
     min-width: 0;
     margin-left: 0;
@@ -65,7 +70,7 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 6px;
     width: 100%;
     min-width: 0;
     padding: 10px 20px;
@@ -75,7 +80,7 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
   @media (max-width: 480px) {
     padding: 10px 16px;
     margin-bottom: 12px;
-    gap: 10px;
+    gap: 6px;
   }
 }
 
@@ -168,7 +173,7 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 640px;
+  max-width: $time-horizon-track-max-width;
   flex: 1;
   min-width: 0;
   overflow: visible;
@@ -193,7 +198,7 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
 .time-horizon-slider-container {
   position: relative;
   width: 100%;
-  max-width: 640px;
+  max-width: $time-horizon-track-max-width;
   min-height: 52px;
   height: auto;
   min-width: 0;
@@ -421,7 +426,7 @@ $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-hor
 .time-horizon-labels {
   position: relative;
   width: 100%;
-  max-width: 640px;
+  max-width: $time-horizon-track-max-width;
   height: 22px;
   min-width: 0;
   margin-top: 10px;
