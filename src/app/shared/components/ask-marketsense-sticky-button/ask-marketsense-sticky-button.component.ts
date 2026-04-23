@@ -1,6 +1,7 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
+import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 
 const SCROLL_THRESHOLD_PX = 150;
 
@@ -16,6 +17,8 @@ export default class AskMarketsenseStickyButtonComponent implements OnInit {
   initialMessage = '';
   showButton = false;
 
+  constructor(private askMarketsenseCardContext: AskMarketsenseCardContextService) {}
+
   /** Reserved for future AI service integration. */
   private pendingSendMessage: string | null = null;
 
@@ -30,6 +33,7 @@ export default class AskMarketsenseStickyButtonComponent implements OnInit {
   }
 
   onOpenModal(): void {
+    this.askMarketsenseCardContext.clear();
     this.initialMessage = '';
     this.showModal = true;
   }

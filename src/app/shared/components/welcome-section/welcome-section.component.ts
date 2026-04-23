@@ -18,6 +18,7 @@ import {
   displayMinFlowEndLabel,
   displayMinFlowStartLabel,
 } from '../../utils/min-flow-value-options.util';
+import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 
 /** One block in the saved-view hover tooltip: bold label line, value line below. */
 export interface SavedViewTagTooltipField {
@@ -94,7 +95,8 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
 
   constructor(
     private readonly userProfileService: UserProfileService,
-    private readonly savedViewsService: SavedViewsService
+    private readonly savedViewsService: SavedViewsService,
+    private readonly askMarketsenseCardContext: AskMarketsenseCardContextService
   ) {}
 
   viewingOptions: ViewingOption[] = [];
@@ -1006,6 +1008,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   onAskMarketSense(): void {
+    this.askMarketsenseCardContext.clear();
     this.showAskMarketSenseModal = true;
   }
 

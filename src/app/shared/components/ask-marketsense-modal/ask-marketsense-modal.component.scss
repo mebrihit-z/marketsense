@@ -131,11 +131,50 @@
   stroke-width: 2.1;
 }
 
+// When modal opened from a market flow card (title under heading row, with room for window buttons)
+.card-context-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 10px 0;
+  padding: 10px 12px 10px 12px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  background-color: $neutral-colors-neutral-250;
+  border-left: 3px solid $secondary-colors-gold-750;
+  border-radius: 2px;
+}
+
+.card-context-eyebrow {
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $text-neutral-750;
+}
+
+.card-context-name {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 22px;
+  color: $text-midnight-blue;
+  word-wrap: break-word;
+}
+
 // Header
 .modal-header {
   padding: 16px 24px;
   flex-shrink: 0;
   text-align: left;
+  /* Leave space for .window-controls (top-right) so the card strip is not hidden */
+  &--with-card {
+    padding-top: 12px;
+    padding-right: 100px;
+  }
 }
 
 // Tabs row (tabs + Clear Analysis link)
@@ -749,6 +788,10 @@
 
   .modal-header {
     padding: 20px 24px 16px 24px;
+
+    &--with-card {
+      padding-right: 88px;
+    }
   }
 
   .header-title {

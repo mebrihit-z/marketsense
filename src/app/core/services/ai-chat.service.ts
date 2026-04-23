@@ -54,6 +54,11 @@ interface AiChatFailureEnvelope {
   message?: string;
 }
 
+/** Optional UI/flow context (e.g. which market flow card the user asked from). */
+export interface AiChatCardContext {
+  title: string;
+}
+
 /** Request payload for AI chat (backend API shape) */
 export interface AiChatRequest {
   question: string;
@@ -63,6 +68,11 @@ export interface AiChatRequest {
   graph_type: string;
   /** Set on follow-up turns to continue the same server-side conversation. */
   conversation_id?: string;
+  /**
+   * When the user opens Ask MarketSense from a card, the client sends this so the model
+   * can ground answers (e.g. `{ "card_context": { "title": "Emerging Markets Equity" } }`).
+   */
+  card_context?: AiChatCardContext;
 }
 
 /**
@@ -96,6 +106,7 @@ export class AiChatService {
       include_visualization?: boolean;
       graph_type?: string;
       conversation_id?: string;
+      card_context?: AiChatCardContext;
     }
   ): Observable<AiChatResponse> {
     if (this.useMock) {
@@ -108,6 +119,7 @@ export class AiChatService {
       include_visualization: options?.include_visualization ?? true,
       graph_type: options?.graph_type ?? 'bar',
       conversation_id: options?.conversation_id,
+      ...(options?.card_context ? { card_context: options.card_context } : {}),
     });
   }
 

@@ -1,10 +1,11 @@
 /* eslint-disable */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/market-flow-card.component';
 import TitleComponent from '../title/title.component';
-import { AiChatService, type AiChatResponse } from '../../../core/services/ai-chat.service';
+import { AiChatService, type AiChatResponse, type AiChatCardContext } from '../../../core/services/ai-chat.service';
+import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 import { loadImageFromDataUrl } from '../../utils/chart-dom-export.util';
 import {
   coerceVisualizationImageBase64Payload,
@@ -43,6 +44,8 @@ const PDF_TEXT_MIDNIGHT_RGB: [number, number, number] = [0, 17, 63];
   styleUrl: './ask-marketsense-modal.component.scss'
 })
 export default class AskMarketsenseModalComponent implements OnChanges {
+  private readonly askCardContext = inject(AskMarketsenseCardContextService);
+
   constructor(
     private cdr: ChangeDetectorRef,
     private aiChatService: AiChatService
@@ -85,6 +88,15 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   /** Cache: which query-result column keys are numeric (right-aligned), per {@link AnalysisResult} instance. */
   private readonly queryTableNumericColumnKeys = new WeakMap<AnalysisResult, Set<string>>();
+
+  /** Banner + API: parent `[card]` or root {@link AskMarketsenseCardContextService} (set before open from carousel / treemap). */
+  get bannerCardTitle(): string | null {
+    const fromInput = this.card?.title;
+    if (typeof fromInput === 'string' && fromInput.trim()) {
+      return fromInput.trim();
+    }
+    return this.askCardContext.getActiveTitleForBanner();
+  }
 
   /** All analyses to display on the page. Local conversation takes precedence; parent can override with a single analysisResult later if needed. */
   get displayAnalyses(): AnalysisResult[] {
@@ -192,6 +204,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.expandedAnalysis = null;
     this.isQueryResultsModalOpen = false;
     this.expandedTableAnalysis = null;
+    this.askCardContext.clear();
     this.close.emit();
   }
 
@@ -227,7 +240,13 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.isWaitingForResponse = true;
     this.cdr.markForCheck();
 
-    this.aiChatService.sendQuestion(question, { isFollowUp: false }).subscribe({
+    const cardContext = this.cardContextForApi();
+    this.aiChatService
+      .sendQuestion(question, {
+        isFollowUp: false,
+        ...(cardContext ? { card_context: cardContext } : {}),
+      })
+      .subscribe({
       next: (result: AiChatResponse) => {
         console.log('==== AskMarketsenseModal initial AiChatResponse ====:', result);
         console.log('[AskMarketsenseModal] conversation_id (first turn response):', result.conversation_id);
@@ -241,6 +260,22 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /**
+   * When the modal was opened from a market flow card, send `card_context` with the
+   * question so the API can attribute the request (same shape for first question and follow-ups).
+   */
+  private cardContextForApi(): AiChatCardContext | undefined {
+    const t = this.card?.title;
+    if (typeof t === 'string' && t.trim()) {
+      return { title: t.trim() };
+    }
+    const fromService = this.askCardContext.getActiveTitleForBanner();
+    if (fromService) {
+      return { title: fromService };
+    }
+    return undefined;
   }
 
   /** HTTP errors and service-thrown failures: nested `error.message` (API envelope) or flat message. */
@@ -473,11 +508,13 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.cdr.markForCheck();
 
     const firstTurnConversationId = this.followUpConversationIdFromFirstTurn;
+    const cardContext = this.cardContextForApi();
     console.log('[AskMarketsenseModal] follow-up: sending with conversation_id (from first turn):', firstTurnConversationId);
     this.aiChatService
       .sendQuestion(followUpQuestion, {
         isFollowUp: true,
         ...(firstTurnConversationId ? { conversation_id: firstTurnConversationId } : {}),
+        ...(cardContext ? { card_context: cardContext } : {}),
       })
       .subscribe({
       next: (result: AiChatResponse) => {

@@ -14,8 +14,16 @@
     <!-- Content - Hidden when collapsed -->
     <div class="modal-content-wrapper" *ngIf="!isCollapsed">
 
-    <!-- Header -->
-    <div class="modal-header">
+    <!-- Header: card context sits here (with padding-right for window controls) so it is not missed -->
+    <div class="modal-header" [class.modal-header--with-card]="bannerCardTitle">
+      <div
+        *ngIf="bannerCardTitle"
+        class="card-context-banner"
+        role="status"
+        [attr.aria-label]="'Asking in context of market flow: ' + bannerCardTitle">
+        <span class="card-context-eyebrow">From this card</span>
+        <span class="card-context-name">{{ bannerCardTitle }}</span>
+      </div>
       <app-title title="MarketSense AI" subtitle="Ask questions about flows, trends, and signals" level="h3"></app-title>
     </div>
 

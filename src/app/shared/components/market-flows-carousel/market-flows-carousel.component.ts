@@ -8,6 +8,7 @@ import MarketFlowDetailModalComponent from './market-flow-detail-modal/market-fl
 import TitleComponent from '../title/title.component';
 import { type AssetFlowRecord } from '../../utils/asset-flows-to-sankey.util';
 import { parseFlowDisplayValueToBillions } from '../../utils/flow-currency-format.util';
+import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 
 // Re-export for convenience
 export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
@@ -44,7 +45,8 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
 
   constructor(
     private carouselHost: ElementRef<HTMLElement>,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private askMarketsenseCardContext: AskMarketsenseCardContextService
   ) {}
 
   ngOnInit(): void {
@@ -376,6 +378,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     // Find the card by ID
     const card = this.cards.find(c => c.id === cardId);
     if (card) {
+      this.askMarketsenseCardContext.setActiveFromMarketFlowCard(card);
       this.selectedCard = card;
       this.showModal = true;
     }
@@ -384,6 +387,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   onCloseModal(): void {
     this.showModal = false;
     this.selectedCard = null;
+    this.askMarketsenseCardContext.clear();
   }
   
   onSendMessage(message: string): void {

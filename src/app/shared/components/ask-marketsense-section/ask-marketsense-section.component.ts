@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import TitleComponent from '../title/title.component';
+import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 
 @Component({
   selector: 'app-ask-marketsense-section',
@@ -16,6 +17,8 @@ export default class AskMarketsenseSectionComponent {
   showModal = false;
   initialMessage = '';
 
+  constructor(private askMarketsenseCardContext: AskMarketsenseCardContextService) {}
+
   tryAskingSuggestions = [
     'What are the top performing asset classes this quarter?',
     'Show me client flow trends in Fixed Income',
@@ -23,6 +26,7 @@ export default class AskMarketsenseSectionComponent {
   ];
 
   onSubmit(): void {
+    this.askMarketsenseCardContext.clear();
     this.initialMessage = this.query.trim();
     this.showModal = true;
     this.query = '';
@@ -33,6 +37,7 @@ export default class AskMarketsenseSectionComponent {
    * @param {string} suggestion - The suggestion text to use as the initial message
    */
   onSuggestionClick(suggestion: string): void {
+    this.askMarketsenseCardContext.clear();
     this.initialMessage = suggestion;
     this.showModal = true;
   }

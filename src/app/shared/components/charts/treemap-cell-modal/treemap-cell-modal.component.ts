@@ -5,6 +5,7 @@ import AskMarketsenseModalComponent from '../../ask-marketsense-modal/ask-market
 import TitleComponent from '../../title/title.component';
 import type { MarketFlowCard } from '../../market-flows-carousel/market-flow-card/market-flow-card.component';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
+import { AskMarketsenseCardContextService } from '../../../../core/services/ask-marketsense-card-context.service';
 
 export interface TreemapCellData {
   name: string;
@@ -23,6 +24,8 @@ export interface TreemapCellData {
   styleUrl: './treemap-cell-modal.component.scss'
 })
 export class TreemapCellModalComponent implements OnChanges {
+  constructor(private readonly askMarketsenseCardContext: AskMarketsenseCardContextService) {}
+
   @Input() isVisible: boolean = false;
   @Input() cellData: TreemapCellData | null = null;
   @Output() close = new EventEmitter<void>();
@@ -51,10 +54,10 @@ export class TreemapCellModalComponent implements OnChanges {
       event.preventDefault();
       event.stopPropagation();
     }
+    // Set before onClose: parent may clear cell data and break getMarketFlowCard() for the AI modal
+    this.askMarketsenseCardContext.setActiveFromMarketFlowCard(this.getMarketFlowCard());
     this.askAI.emit();
-    // Close the treemap modal
     this.onClose();
-    // Open the Ask MarketSense modal
     this.showAskMarketSenseModal = true;
   }
 
