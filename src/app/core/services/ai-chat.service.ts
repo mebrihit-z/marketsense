@@ -61,6 +61,8 @@ export interface AiChatRequest {
   use_cache: boolean;
   include_visualization: boolean;
   graph_type: string;
+  /** Set on follow-up turns to continue the same server-side conversation. */
+  conversation_id?: string;
 }
 
 /**
@@ -82,7 +84,7 @@ export class AiChatService {
   /**
    * Send a question to the AI chat.
    * @param question User's question text
-   * @param options space_id, use_cache, include_visualization, graph_type; isFollowUp only used for mock
+   * @param options space_id, use_cache, include_visualization, graph_type, conversation_id; isFollowUp only used for mock
    * @returns Observable of the AI response
    */
   sendQuestion(
@@ -93,6 +95,7 @@ export class AiChatService {
       use_cache?: boolean;
       include_visualization?: boolean;
       graph_type?: string;
+      conversation_id?: string;
     }
   ): Observable<AiChatResponse> {
     if (this.useMock) {
@@ -104,6 +107,7 @@ export class AiChatService {
       use_cache: options?.use_cache ?? true,
       include_visualization: options?.include_visualization ?? true,
       graph_type: options?.graph_type ?? 'bar',
+      conversation_id: options?.conversation_id,
     });
   }
 

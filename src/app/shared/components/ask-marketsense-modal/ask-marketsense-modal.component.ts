@@ -28,6 +28,8 @@ export interface AnalysisResult {
   rows?: Record<string, unknown>[];
   /** Backend `route === "fallback"`: only {@link summary} (from `message`) is shown; no chart/table/insights. */
   isFallbackResponse?: boolean;
+  /** From first (or any) turn’s API response; follow-ups use the first turn’s id. */
+  conversation_id?: string;
 }
 
 /** jsPDF body text — matches `$text-midnight-blue` / `#00113F` */
@@ -74,6 +76,12 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   /** Local conversation (all questions + answers) shown until backend-driven data is wired in. */
   private _localAnalyses: AnalysisResult[] = [];
+  /**
+   * After "New Question" or "Clear Analysis" we still show {@link analysisResult} from the parent, but
+   * its `conversation_id` must not be used for the next in-modal follow-up; only fresh `_localAnalyses[0]`
+   * (or a non-cleared parent) provides the id.
+   */
+  private conversationThreadCleared: boolean = false;
 
   /** Cache: which query-result column keys are numeric (right-aligned), per {@link AnalysisResult} instance. */
   private readonly queryTableNumericColumnKeys = new WeakMap<AnalysisResult, Set<string>>();
@@ -88,6 +96,17 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   get hasDisplayAnalyses(): boolean {
     return this.displayAnalyses.length > 0;
+  }
+
+  /** `conversation_id` to send with a follow-up: first in-modal turn, else parent if current thread is not reset. */
+  private get followUpConversationIdFromFirstTurn(): string | undefined {
+    if (this._localAnalyses.length > 0) {
+      return this._localAnalyses[0].conversation_id;
+    }
+    if (this.conversationThreadCleared) {
+      return undefined;
+    }
+    return this.analysisResult?.conversation_id;
   }
   
   // Sample session history data
@@ -136,6 +155,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       // Coming from dashboard or another entry point with a new starter question:
       // reset local analysis and start from that new question text.
       this._localAnalyses = [];
+      this.conversationThreadCleared = true;
       this.followUpMessage = '';
       if (this.initialMessage?.trim()) {
         this.userMessage = this.initialMessage.trim();
@@ -181,6 +201,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       return;
     }
     this._localAnalyses = [];
+    this.conversationThreadCleared = true;
     this.userMessage = '';
     this.followUpMessage = '';
     this.errorMessage = null;
@@ -209,6 +230,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.aiChatService.sendQuestion(question, { isFollowUp: false }).subscribe({
       next: (result: AiChatResponse) => {
         console.log('==== AskMarketsenseModal initial AiChatResponse ====:', result);
+        console.log('[AskMarketsenseModal] conversation_id (first turn response):', result.conversation_id);
         this._localAnalyses = [...this._localAnalyses, this.toAnalysisResult(result)];
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
@@ -290,6 +312,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         columns: [],
         rows: [],
         isFallbackResponse: true,
+        conversation_id: res.conversation_id,
       };
     }
 
@@ -317,6 +340,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       row_count: res.row_count,
       columns: cols,
       rows: rows,
+      conversation_id: res.conversation_id,
       ...(useFallbackLayout ? { isFallbackResponse: true } : {}),
     };
   }
@@ -448,9 +472,17 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     this.isWaitingForResponse = true;
     this.cdr.markForCheck();
 
-    this.aiChatService.sendQuestion(followUpQuestion, { isFollowUp: true }).subscribe({
+    const firstTurnConversationId = this.followUpConversationIdFromFirstTurn;
+    console.log('[AskMarketsenseModal] follow-up: sending with conversation_id (from first turn):', firstTurnConversationId);
+    this.aiChatService
+      .sendQuestion(followUpQuestion, {
+        isFollowUp: true,
+        ...(firstTurnConversationId ? { conversation_id: firstTurnConversationId } : {}),
+      })
+      .subscribe({
       next: (result: AiChatResponse) => {
         console.log('==== AskMarketsenseModal follow-up AiChatResponse ====:', result);
+        console.log('[AskMarketsenseModal] conversation_id (follow-up response):', result.conversation_id);
         this._localAnalyses = [...this._localAnalyses, this.toAnalysisResult(result)];
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
@@ -473,6 +505,7 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   onClearAnalysis(): void {
     this._localAnalyses = [];
+    this.conversationThreadCleared = true;
     this.cdr.markForCheck();
     this.clearAnalysis.emit();
   }
