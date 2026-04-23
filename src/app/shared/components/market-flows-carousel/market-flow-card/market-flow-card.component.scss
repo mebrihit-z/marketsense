@@ -1,5 +1,64 @@
 @use '../../../../../_variables' as *;
 
+:host {
+  display: block;
+  overflow: visible;
+  min-width: 0;
+}
+
+/** Shared styled tooltip; `$align: right` for pills on the card’s right edge. */
+@mixin flow-styled-hover-tooltip($align: left) {
+  cursor: help;
+  position: relative;
+  z-index: 0;
+  overflow: visible;
+
+  &::after {
+    content: attr(data-flow-tooltip);
+    display: block;
+    box-sizing: border-box;
+    position: absolute;
+    @if $align == right {
+      left: auto;
+      right: 0;
+    } @else {
+      left: 0;
+    }
+    top: calc(100% + 8px);
+    padding: 10px 14px 14px;
+    background-color: $primary-colors-midnight-blue;
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 28px rgba(0, 17, 63, 0.35);
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    /* Explicit width: trigger (pill) is narrow; without this the tooltip columns into one long strip. */
+    width: min(210px, 45vw);
+    min-height: min-content;
+    text-align: left;
+    overflow: visible;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+    z-index: 100;
+  }
+
+  &:hover {
+    z-index: 20;
+
+    &::after {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
 // Image reference: light green Bullish #E6F7D4-ish, dark green value/badge #388E3C-ish, AUM grey #A0AEC0
 $card-bullish-bg: #e8f5e9;
 $card-dark-green: #2e7d32;
@@ -13,6 +72,7 @@ $card-aum-gray: #94a3b8;
   gap: 7px;
   height: 100%;
   position: relative;
+  overflow: visible;
   cursor: pointer;
   border: 1px solid $neutral-colors-neutral-500;
   box-shadow: 0 2px 2px 0 $overlay-shadow-light;
@@ -198,41 +258,7 @@ $card-aum-gray: #94a3b8;
 
   /** Themed hover tooltip (native `title` cannot be styled). */
   &.flow-value-hover {
-    cursor: help;
-    position: relative;
-    z-index: 0;
-
-    &::after {
-      content: attr(data-flow-tooltip);
-      position: absolute;
-      left: 0;
-      top: calc(100%);
-      padding: 10px 14px;
-      background-color: $primary-colors-midnight-blue;
-      color: #f8fafc;
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.35;
-      letter-spacing: 0.01em;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 10px 28px rgba(0, 17, 63, 0.35);
-      white-space: normal;
-      max-width: min(360px, 85vw);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.16s ease, visibility 0.16s ease;
-      z-index: 100;
-    }
-
-    &:hover {
-      z-index: 20;
-
-      &::after {
-        opacity: 1;
-        visibility: visible;
-      }
-    }
+    @include flow-styled-hover-tooltip;
   }
 }
 
@@ -263,6 +289,11 @@ $card-aum-gray: #94a3b8;
 
   &.neutral {
     background-color: $text-neutral-750;
+  }
+
+  /** Same styled tooltip as the main flow value, aligned to the right. */
+  &.flow-value-hover {
+    @include flow-styled-hover-tooltip(right);
   }
 }
 

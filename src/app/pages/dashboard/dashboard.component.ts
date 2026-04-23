@@ -478,6 +478,8 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
           chartColor,
           borderColor,
           timeHorizon: this.carouselTimeHorizon,
+          timeHorizonStart: this.timeHorizonRange?.start,
+          timeHorizonEnd: this.timeHorizonRange?.end,
           dataType: this.carouselDataType,
           productSubType: subType,
           nClientsTotal: data.nClientsTotal,

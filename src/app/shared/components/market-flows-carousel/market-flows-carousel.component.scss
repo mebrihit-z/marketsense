@@ -229,7 +229,8 @@
 // Carousel Section
 .carousel-container {
   width: 100%;
-  overflow: hidden;
+  /* visible so market-flow card tooltips (::after) are not clipped at the bottom */
+  overflow: visible;
   padding: 12px;
   box-sizing: border-box;
   @media (max-width: 1024px) and (min-width: 769px) {
@@ -344,7 +345,7 @@
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    overflow: hidden;
+    overflow: visible;
   }
 }
 

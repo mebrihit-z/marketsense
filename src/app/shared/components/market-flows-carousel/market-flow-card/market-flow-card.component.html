@@ -77,10 +77,11 @@
     </div>
     <div class="badge-container">
       <span
-        class="percentage-pill"
+        class="percentage-pill flow-value-hover"
         [class.negative]="card.percentageColor === 'red'"
         [class.positive]="card.percentageColor === 'green'"
-        [class.neutral]="card.percentageColor === 'neutral'">
+        [class.neutral]="card.percentageColor === 'neutral'"
+        [attr.data-flow-tooltip]="percentageHoverLabel">
         {{ card.percentageChange }}
       </span>
     </div>

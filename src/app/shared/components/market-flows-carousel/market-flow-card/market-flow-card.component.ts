@@ -2,6 +2,8 @@
 import { Component, Input, Output, EventEmitter, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import TitleComponent from '../../title/title.component';
+import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
+import { buildMarketFlowPercentageHoverLabel } from '../../../utils/market-flow-percentage-hover-label.util';
 import {
   formatFlowCurrencyUsdFull,
   parseFlowDisplayValueToDollars,
@@ -25,6 +27,10 @@ export interface MarketFlowCard {
   chartColor: 'red' | 'green';
   borderColor: string;
   timeHorizon: string;
+  /** Slider range start; % uses net flow at this point as the baseline. */
+  timeHorizonStart?: string;
+  /** Slider range end; % uses net flow at this point vs. start. */
+  timeHorizonEnd?: string;
   dataType: 'historical' | 'forecasted';
   productSubType?: string;
   /** Sum of `N_Clients` over all rows aggregated into this card (filters + time window). */
@@ -39,6 +45,8 @@ export interface MarketFlowCard {
   styleUrl: './market-flow-card.component.scss'
 })
 export class MarketFlowCardComponent {
+  constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
+
   @Input() card!: MarketFlowCard;
   @Input() isPinned: boolean = false;
   /** Expose card id on host for VDI: carousel can open detail from document capture listener. */
@@ -64,18 +72,25 @@ export class MarketFlowCardComponent {
     return '#2A6907';
   }
 
+  /** Short hint for the % pill: “between” dates, same month-end style as time-horizon handle tooltips. */
+  get percentageHoverLabel(): string {
+    if (!this.card) return '';
+    return buildMarketFlowPercentageHoverLabel(this.card, null, this.historicAnchor.getAnchor());
+  }
+
   /** Full USD amount for native tooltip on compact {@link MarketFlowCard.value}. */
   get valueHoverFullLabel(): string {
     if (!this.card?.value) return '';
+    const prefix = 'Net flow: ';
     const exact = this.card.netFlowUsd;
     if (exact != null && Number.isFinite(exact)) {
-      return formatFlowCurrencyUsdFull(exact);
+      return prefix + formatFlowCurrencyUsdFull(exact);
     }
     const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
     if (Number.isFinite(d)) {
-      return formatFlowCurrencyUsdFull(d);
+      return prefix + formatFlowCurrencyUsdFull(d);
     }
-    return this.card.value;
+    return prefix + this.card.value;
   }
 
   onMoreOptions(): void {

@@ -21,6 +21,7 @@ import {
 } from '../../../utils/horizon-endpoint-percent-change.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
+import { buildMarketFlowPercentageHoverLabel } from '../../../utils/market-flow-percentage-hover-label.util';
 
 /** One row in the investor-type / product-region breakdown table. */
 export interface FlowBreakdownRow {
@@ -163,6 +164,16 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       return pct >= 0 ? 'green' : 'red';
     }
     return this.card.percentageColor;
+  }
+
+  /** Same % tooltip as market-flow cards (uses card + timeHorizonRange for dates). */
+  getHeadlinePercentageHoverLabel(): string {
+    if (!this.card) return '';
+    return buildMarketFlowPercentageHoverLabel(
+      this.card,
+      this.timeHorizonRange,
+      this.historicAnchor.getAnchor()
+    );
   }
 
   private headlineHorizonPctActive(): boolean {
