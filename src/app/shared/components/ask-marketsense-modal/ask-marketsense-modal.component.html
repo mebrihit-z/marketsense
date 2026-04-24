@@ -14,16 +14,7 @@
     <!-- Content - Hidden when collapsed -->
     <div class="modal-content-wrapper" *ngIf="!isCollapsed">
 
-    <!-- Header: card context sits here (with padding-right for window controls) so it is not missed -->
-    <div class="modal-header" [class.modal-header--with-card]="bannerCardTitle">
-      <div
-        *ngIf="bannerCardTitle"
-        class="card-context-banner"
-        role="status"
-        [attr.aria-label]="'Asking in context of market flow: ' + bannerCardTitle">
-        <span class="card-context-eyebrow">From this card</span>
-        <span class="card-context-name">{{ bannerCardTitle }}</span>
-      </div>
+    <div class="modal-header">
       <app-title title="MarketSense AI" subtitle="Ask questions about flows, trends, and signals" level="h3"></app-title>
     </div>
 
@@ -62,8 +53,18 @@
     </div>
 
     <div class="horizontal-divider"></div>
-    <!-- Main Content - New Question -->
+    <!-- Main Content - New Question (context strip sits just below the gold line, above inputs — see mock) -->
     <div class="main-content" *ngIf="activeTab === 'new-question'">
+      <div
+        *ngIf="bannerCardTitle"
+        class="card-context-banner"
+        role="status"
+        [attr.aria-label]="'Asking in context: ' + bannerCardTitle">
+        <span class="card-context-eyebrow">Context</span>
+        <p class="card-context-body">
+          You're asking about {{ bannerCardTitle }}. What would you like to know about this product sub-type?
+        </p>
+      </div>
       <!-- STATE 1: Before first question - input at the top -->
       <ng-container *ngIf="!hasDisplayAnalyses; else withAnalyses">
         <div class="input-section">
@@ -73,7 +74,7 @@
               [(ngModel)]="userMessage"
               (keydown.enter)="onSendMessage($event)"
               rows="3"
-              placeholder="Ask a question about flows, trends, or signals...">
+              [attr.placeholder]="askInputPlaceholder">
             </textarea>
             <button 
               class="ask-btn" 
@@ -248,7 +249,7 @@
               [(ngModel)]="followUpMessage"
               (keydown.enter)="onSendFollowUp($event)"
               rows="3"
-              placeholder="Ask a follow-up question based on the results above...">
+              [attr.placeholder]="followUpInputPlaceholder">
             </textarea>
             <button 
               class="ask-btn follow-up-btn" 
@@ -301,7 +302,9 @@
             [(ngModel)]="followUpMessage"
             (keydown.enter)="onSendFollowUp($event)"
             rows="3"
-            placeholder="Refine, compare, or drill deeper into this analysis...">
+            [attr.placeholder]="bannerCardTitle
+              ? ('Refine, compare, or drill deeper about ' + bannerCardTitle + '...')
+              : 'Refine, compare, or drill deeper into this analysis...'">
           </textarea>
           <button 
             class="ask-btn follow-up-btn" 

@@ -20,9 +20,9 @@ export default class AskMarketsenseSectionComponent {
   constructor(private askMarketsenseCardContext: AskMarketsenseCardContextService) {}
 
   tryAskingSuggestions = [
-    'What are the top performing asset classes this quarter?',
-    'Show me client flow trends in Fixed Income',
-    'Which regions have the highest growth?'
+    'What are the top net asset flows by asset class this quarter?',
+    'Show me client flow trends in fixed income over last 12 months.',
+    'What product regions have the highest forecasted growth over the next 12 months?'
   ];
 
   onSubmit(): void {

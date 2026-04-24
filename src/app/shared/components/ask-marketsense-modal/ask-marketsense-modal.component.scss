@@ -131,36 +131,37 @@
   stroke-width: 2.1;
 }
 
-// When modal opened from a market flow card (title under heading row, with room for window buttons)
+// Below gold horizontal line, above the ask input (when opened from a flow card)
 .card-context-banner {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 6px;
   width: 100%;
   max-width: 100%;
-  margin: 0 0 10px 0;
-  padding: 10px 12px 10px 12px;
+  margin: 0 0 12px 0;
+  padding: 12px 14px;
   box-sizing: border-box;
   flex-shrink: 0;
   background-color: $neutral-colors-neutral-250;
-  border-left: 3px solid $secondary-colors-gold-750;
-  border-radius: 2px;
+  border-radius: 4px;
+  border: 1px solid $secondary-colors-gold-250;
 }
 
 .card-context-eyebrow {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 11px;
   line-height: 16px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: $text-neutral-750;
 }
 
-.card-context-name {
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 22px;
+.card-context-body {
+  margin: 0;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
   color: $text-midnight-blue;
   word-wrap: break-word;
 }
@@ -170,11 +171,6 @@
   padding: 16px 24px;
   flex-shrink: 0;
   text-align: left;
-  /* Leave space for .window-controls (top-right) so the card strip is not hidden */
-  &--with-card {
-    padding-top: 12px;
-    padding-right: 100px;
-  }
 }
 
 // Tabs row (tabs + Clear Analysis link)
@@ -788,10 +784,6 @@
 
   .modal-header {
     padding: 20px 24px 16px 24px;
-
-    &--with-card {
-      padding-right: 88px;
-    }
   }
 
   .header-title {

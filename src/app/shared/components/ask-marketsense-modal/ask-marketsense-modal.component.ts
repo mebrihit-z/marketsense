@@ -104,6 +104,22 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     return this.askCardContext.getActiveTitleForBanner();
   }
 
+  get askInputPlaceholder(): string {
+    const t = this.bannerCardTitle;
+    if (t) {
+      return `Ask anything about ${t}...`;
+    }
+    return 'Ask a question about flows, trends, or signals...';
+  }
+
+  get followUpInputPlaceholder(): string {
+    const t = this.bannerCardTitle;
+    if (t) {
+      return `Ask a follow-up about ${t} or the results above...`;
+    }
+    return 'Ask a follow-up question based on the results above...';
+  }
+
   /** All analyses to display on the page. Local conversation takes precedence; parent can override with a single analysisResult later if needed. */
   get displayAnalyses(): AnalysisResult[] {
     if (this._localAnalyses.length) {
