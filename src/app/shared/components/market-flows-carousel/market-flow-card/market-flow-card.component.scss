@@ -218,6 +218,8 @@ $card-aum-gray: #94a3b8;
 
 // Sentiment badge: below title, slightly indented, oval pill, light green bg, dark green text
 .sentiment-row {
+  margin-top: 4px;
+  padding-left: 2px;
 }
 
 .sentiment-pill {
