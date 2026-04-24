@@ -37,6 +37,8 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
   private static readonly AXIS_INSET_DESKTOP_PX = 14;
   private static readonly AXIS_INSET_MOBILE_PX = 8;
+  /** Viewports at or below this width use short tick labels and compact axis math (e.g. iPad portrait, tablets). */
+  private static readonly COMPACT_AXIS_MAX_INNER_WIDTH_PX = 1024;
 
   readonly horizons = [...UNIFIED_TIME_HORIZONS];
 
@@ -55,7 +57,9 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
   private range: TimeHorizonRangeIndices = { startIndex: 6, endIndex: 7 };
 
-  compactAxis = typeof window !== 'undefined' && window.innerWidth <= 768;
+  compactAxis =
+    typeof window !== 'undefined' &&
+    window.innerWidth <= TimeHorizonSliderComponent.COMPACT_AXIS_MAX_INNER_WIDTH_PX;
   private sliderTrackWidthFallback = 620;
   private isDragging = false;
   private dragType: 'start' | 'end' | null = null;
@@ -109,7 +113,7 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
 
   private refreshCompactAxis(): void {
     if (typeof window === 'undefined') return;
-    const next = window.innerWidth <= 768;
+    const next = window.innerWidth <= TimeHorizonSliderComponent.COMPACT_AXIS_MAX_INNER_WIDTH_PX;
     if (next !== this.compactAxis) this.compactAxis = next;
   }
 
@@ -171,7 +175,9 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   private getAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    const isMobile =
+      typeof window !== 'undefined' &&
+      window.innerWidth <= TimeHorizonSliderComponent.COMPACT_AXIS_MAX_INNER_WIDTH_PX;
     const inset = isMobile
       ? TimeHorizonSliderComponent.AXIS_INSET_MOBILE_PX
       : TimeHorizonSliderComponent.AXIS_INSET_DESKTOP_PX;

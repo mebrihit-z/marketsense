@@ -46,6 +46,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
    */
   @Input() predictionIntervalUpper: (number | null)[] | null = null;
   @Input() predictionIntervalLower: (number | null)[] | null = null;
+  /**
+   * Optional x-index for the time-horizon anchor tick (e.g. latest historic quarter). When the label is
+   * shortened to "0" instead of a date, this preserves orange accent styling and grid.
+   */
+  @Input() accentXAxisTickIndex: number | null = null;
 
   @ViewChild('chart', { static: false }) chartElement!: ElementRef<HTMLDivElement>;
 
@@ -57,6 +62,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
    * Minimum left margin for currency y-ticks; actual margin also grows from measured tick label width.
    */
   private static readonly Y_AXIS_BILLIONS_LEFT_MARGIN_MIN = 88;
+
+  /** Y-axis tick numerals (and measurement probe for left margin). */
+  private static readonly Y_AXIS_TICK_VALUE_FONT_SIZE = '14px';
 
   /**
    * Anchor date tick (e.g. "Mar 31, 2025") and its vertical grid — saturated orange-amber for contrast on white.
@@ -141,6 +149,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     const g = svg.append('g');
     g.call(yAxis);
+    g.selectAll('text').style('font-size', LineChartComponent.Y_AXIS_TICK_VALUE_FONT_SIZE);
 
     let minX = 0;
     g.selectAll<SVGGElement, unknown>('.tick').each(function () {
@@ -285,7 +294,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         ? new Set(this.dotIndices)
         : null;
     const dateTickPattern = /^[A-Za-z]{3}\s+\d{1,2},\s+\d{4}$/;
+    const accentIdx = this.accentXAxisTickIndex;
     const isDateXAxisTick = (tickIndex: number): boolean => {
+      if (accentIdx != null && tickIndex === accentIdx) {
+        return true;
+      }
       const label = this.xAxisLabels?.[tickIndex];
       return typeof label === 'string' && dateTickPattern.test(label.trim());
     };
@@ -385,7 +398,15 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     let piPointsForBoundDots: { i: number; upper: number; lower: number }[] | null = null;
     if (f !== null && f < n && piU && piL && piU.length === n && piL.length === n) {
       const piPoints: { i: number; upper: number; lower: number }[] = [];
-      for (let i = f; i < n; i++) {
+      let piStart = f;
+      if (f > 0) {
+        const u0 = piU[f - 1];
+        const l0 = piL[f - 1];
+        if (u0 != null && l0 != null && Number.isFinite(u0) && Number.isFinite(l0)) {
+          piStart = f - 1;
+        }
+      }
+      for (let i = piStart; i < n; i++) {
         const u = piU[i];
         const lo = piL[i];
         if (u != null && lo != null && Number.isFinite(u) && Number.isFinite(lo)) {
@@ -845,8 +866,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .select('text')
       .style('font-size', d => {
         const i = Math.round(Number(d));
-        if (isNarrow) return isDateXAxisTick(i) ? '12px' : '11px';
-        return isDateXAxisTick(i) ? '13px' : '12px';
+        if (isNarrow) return isDateXAxisTick(i) ? '15px' : '14px';
+        return isDateXAxisTick(i) ? '16px' : '15px';
       })
       .style('fill', d => getXAxisTickBaseFill(Math.round(Number(d))))
       .style('font-weight', d =>
@@ -883,7 +904,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     };
 
     // Add X-axis label if provided - positioned relative to x-axis position
-    const axisTitleFontSize = '12px';
+    const axisTitleFontSize = '15px';
     const axisTitleColor = '#4B494E';
     if (this.xAxisLabel) {
       // If axis is at top, place label above it (but within visible area); otherwise below
@@ -893,7 +914,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         labelY = xAxisYPosition - 38;
         labelY = Math.max(-margin.top + 8, labelY);
       } else {
-        labelY = innerHeight + margin.bottom - 10;
+        // Slightly below previous position so the title sits a bit lower under the tick numerals
+        labelY = innerHeight + margin.bottom - 4;
       }
       g.append('text')
         .attr('transform', `translate(${innerWidth / 2}, ${labelY})`)
@@ -922,7 +944,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .call(yAxis);
 
     yAxisGroup.selectAll('text')
-      .style('font-size', '12px')
+      .style('font-size', LineChartComponent.Y_AXIS_TICK_VALUE_FONT_SIZE)
       .style('fill', '#7a8799')
       .style('font-weight', '400')
       .style('font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');

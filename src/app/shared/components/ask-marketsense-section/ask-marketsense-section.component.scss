@@ -78,7 +78,7 @@
 
 .header ::ng-deep app-title .title {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 24px;
   line-height: 24px;
   color: $white;
 
@@ -95,18 +95,18 @@
 
 .header ::ng-deep app-title .subtitle {
   color: $primary-colors-sky-blue;
-  font-size: 13px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 400;
   line-height: 18px;
 
   @media (max-width: 768px) {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 17px;
   }
 
   @media (max-width: 480px) {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 16px;
   }
 }
@@ -130,7 +130,7 @@
   display: flex;
   align-items: center;
   flex: 1;
-  padding:8px 16px;
+  padding:20px 16px;
   gap: 10px;
   @media (max-width: 1024px) and (min-width: 769px) {
     padding:8px 12px;
@@ -289,13 +289,13 @@
 
   @media (max-width: 768px) {
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 16px;
   }
 
   @media (max-width: 480px) {
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 15px;
   }
 }

@@ -17,6 +17,7 @@
                 [data]="lc.data"
                 [color]="getChartColor()"
                 [forecastStartIndex]="lc.forecastStartIndex ?? null"
+                [accentXAxisTickIndex]="lc.anchorXAxisTickIndex ?? null"
                 [forecastLineColor]="forecastLineColor"
                 [predictionIntervalUpper]="lc.predictionIntervalUpper ?? null"
                 [predictionIntervalLower]="lc.predictionIntervalLower ?? null"
@@ -51,7 +52,13 @@
                 </div>
               </div>
               <p class="detail-modal-data-sample-size" *ngIf="card">
-                Data Sample Size: {{ getDataSampleSizeDisplay() }}
+                <span
+                  class="detail-modal-data-sample-hint flow-value-hover"
+                  [attr.data-flow-tooltip]="getSampleSizeHoverLabel()">
+                  <span class="detail-modal-data-sample-label">
+                    Sample Size: {{ getDataSampleSizeDisplay() }}
+                  </span>
+                </span>
               </p>
             </div>
           </ng-container>
@@ -86,6 +93,7 @@
               [data]="lc.data"
               [color]="getChartColor()"
               [forecastStartIndex]="lc.forecastStartIndex ?? null"
+              [accentXAxisTickIndex]="lc.anchorXAxisTickIndex ?? null"
               [forecastLineColor]="forecastLineColor"
               [predictionIntervalUpper]="lc.predictionIntervalUpper ?? null"
               [predictionIntervalLower]="lc.predictionIntervalLower ?? null"
@@ -120,7 +128,13 @@
               </div>
             </div>
             <p class="detail-modal-data-sample-size" *ngIf="card">
-              Data Sample Size: {{ getDataSampleSizeDisplay() }}
+              <span
+                class="detail-modal-data-sample-hint flow-value-hover"
+                [attr.data-flow-tooltip]="getSampleSizeHoverLabel()">
+                <span class="detail-modal-data-sample-label">
+                  Sample Size: {{ getDataSampleSizeDisplay() }}
+                </span>
+              </span>
             </p>
           </div>
         </ng-container>

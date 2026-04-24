@@ -78,6 +78,16 @@ export class MarketFlowCardComponent {
     return buildMarketFlowPercentageHoverLabel(this.card, null, this.historicAnchor.getAnchor());
   }
 
+  /** Hover only (no “Sample size” prefix—the line already shows the label and count). */
+  get sampleSizeHoverLabel(): string {
+    if (!this.card) return '';
+    const n = this.card.nClientsTotal;
+    if (n != null && n > 0 && Number.isFinite(n)) {
+      return 'Sum of client counts (N) from the asset-flow rows that roll up into this product sub-type, with your current filters and time horizon.';
+    }
+    return 'Not in the data for this product in the current view, or no rows match your filters.';
+  }
+
   /** Full USD amount for native tooltip on compact {@link MarketFlowCard.value}. */
   get valueHoverFullLabel(): string {
     if (!this.card?.value) return '';

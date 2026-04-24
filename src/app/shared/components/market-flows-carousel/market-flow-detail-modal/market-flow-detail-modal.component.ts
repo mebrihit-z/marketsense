@@ -83,6 +83,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: string[];
     pointTooltipDateLabels?: string[];
     forecastStartIndex?: number;
+    anchorXAxisTickIndex?: number | null;
     predictionIntervalUpper?: (number | null)[];
     predictionIntervalLower?: (number | null)[];
   } = {
@@ -302,6 +303,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: string[];
     pointTooltipDateLabels?: string[];
     forecastStartIndex?: number;
+    anchorXAxisTickIndex?: number | null;
     predictionIntervalUpper?: (number | null)[];
     predictionIntervalLower?: (number | null)[];
   } {
@@ -323,6 +325,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: string[];
     pointTooltipDateLabels?: string[];
     forecastStartIndex?: number;
+    anchorXAxisTickIndex?: number | null;
     predictionIntervalUpper?: (number | null)[];
     predictionIntervalLower?: (number | null)[];
   } {
@@ -364,6 +367,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         labels: rangeQuarterSeries.xAxisLabels,
         pointTooltipDateLabels: rangeQuarterSeries.tooltipDateLabels,
         forecastStartIndex: rangeQuarterSeries.forecastStartIndex,
+        anchorXAxisTickIndex: rangeQuarterSeries.anchorXAxisTickIndex,
         predictionIntervalUpper: rangeQuarterSeries.predictionIntervalUpper,
         predictionIntervalLower: rangeQuarterSeries.predictionIntervalLower,
       };
@@ -604,6 +608,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     xAxisLabels: string[];
     tooltipDateLabels: string[];
     forecastStartIndex: number;
+    anchorXAxisTickIndex: number | null;
     predictionIntervalUpper: (number | null)[];
     predictionIntervalLower: (number | null)[];
   } | null {
@@ -630,9 +635,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const lowerSeries = orderedYms.map(ym =>
       detailModalUtil.sumDateMapValuesForYearMonth(ym, sortedDates, lowerMap)
     );
-    const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym));
-    const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterEndLongDate(ym));
+    const nPoints = orderedYms.length;
     const anchorYm = this.historicAnchor.getAnchorYearMonth();
+    let anchorXAxisTickIndex: number | null = null;
+    if (anchorYm) {
+      for (let i = 0; i < orderedYms.length; i++) {
+        if (detailModalUtil.monthsBetweenYearMonths(anchorYm, orderedYms[i]) === 0) {
+          anchorXAxisTickIndex = i;
+          break;
+        }
+      }
+    }
+    const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym, nPoints));
+    const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterEndLongDate(ym));
     let forecastStartIndex = orderedYms.length;
     if (anchorYm) {
       for (let i = 0; i < orderedYms.length; i++) {
@@ -650,15 +665,40 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const predictionIntervalLower: (number | null)[] = lowerSeries.map((l, i) =>
       i < forecastStartIndex || !hasFcstBounds ? null : l
     );
-    return { series, xAxisLabels, tooltipDateLabels, forecastStartIndex, predictionIntervalUpper, predictionIntervalLower };
+    // Pinch the band at the latest historic quarter so upper/lower meet the net flow (same y as the line).
+    if (hasFcstBounds && forecastStartIndex > 0 && forecastStartIndex < orderedYms.length) {
+      const h = forecastStartIndex - 1;
+      const v = series[h];
+      if (Number.isFinite(v)) {
+        predictionIntervalUpper[h] = v;
+        predictionIntervalLower[h] = v;
+      }
+    }
+    return {
+      series,
+      xAxisLabels,
+      tooltipDateLabels,
+      forecastStartIndex,
+      anchorXAxisTickIndex,
+      predictionIntervalUpper,
+      predictionIntervalLower,
+    };
   }
 
-  private formatYearMonthAsHorizonAxisTick(ym: string): string {
+  /**
+   * @param pointCount - When there are more than 8 points, the anchor (delta 0) uses "0" instead of a long date to avoid x-axis crowding.
+   */
+  private formatYearMonthAsHorizonAxisTick(ym: string, pointCount?: number): string {
     const anchorYm = this.historicAnchor.getAnchorYearMonth();
     if (!anchorYm) return ym;
     const delta = detailModalUtil.monthsBetweenYearMonths(anchorYm, ym);
     if (delta === null) return ym;
-    if (delta === 0) return this.getZeroTimeHorizonDateLabel();
+    if (delta === 0) {
+      if (pointCount != null && pointCount > 8) {
+        return '0';
+      }
+      return this.getZeroTimeHorizonDateLabel();
+    }
     if (delta > 0) return `+${delta}`;
     return `${delta}`;
   }
@@ -722,13 +762,38 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return formatFlowCurrencyUsd(this.getFlowUsdTotals().outflowUsd);
   }
 
-  /** Sample size for footer (sum of N_Clients on the card; matches flow card). */
+  /** Sum of client counts on rows that match the current detail filters/time window. */
+  private computeFilteredSampleSize(): number | null {
+    if (!this.card?.productSubType || !this.rawAssetFlowsData?.length) return null;
+    const filtered = this.applyChartDataFilters(this.card.productSubType);
+    if (!filtered.length) return null;
+    let total = 0;
+    for (const row of filtered) {
+      const n = row.N_Clients ?? 0;
+      if (Number.isFinite(n) && n > 0) total += n;
+    }
+    return total > 0 ? total : null;
+  }
+
+  /** Sample size for footer (dynamic with current filters/time range). */
   getDataSampleSizeDisplay(): string {
-    const n = this.card?.nClientsTotal;
-    if (n != null && n > 0 && Number.isFinite(n)) {
-      return n.toLocaleString('en-US');
+    const filtered = this.computeFilteredSampleSize();
+    if (filtered != null) return filtered.toLocaleString('en-US');
+    const fallback = this.card?.nClientsTotal;
+    if (fallback != null && fallback > 0 && Number.isFinite(fallback)) {
+      return fallback.toLocaleString('en-US');
     }
     return '—';
+  }
+
+  /** Same meaning as the market flow card’s sample-size hover. */
+  getSampleSizeHoverLabel(): string {
+    if (!this.card) return '';
+    const n = this.computeFilteredSampleSize() ?? this.card.nClientsTotal;
+    if (n != null && n > 0 && Number.isFinite(n)) {
+      return 'Sum of client counts (N) from the asset-flow rows that roll up into this product sub-type, with your current filters and time horizon.';
+    }
+    return 'Not in the data for this product in the current view, or no rows match your filters.';
   }
 
   /** Full USD string for tooltip on compact net flow display. */
@@ -825,10 +890,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {number} Chart width in pixels (responsive to viewport)
    */
   getChartWidth(): number {
-    // Return responsive width based on viewport - fit without horizontal scroll
+    // Return responsive width based on viewport - fit without horizontal scroll.
+    // The line chart uses min(inputWidth, host.clientWidth); use a generous value so the SVG fills the column.
     if (typeof window !== 'undefined' && this.card) {
       const width = window.innerWidth;
-      // Inline carousel: narrower chart so breakdown tabs / table have more horizontal room
       if (this.inline) {
         if (width <= 480) {
           return Math.max(260, width - 40);
@@ -837,9 +902,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
           return Math.max(280, width - 56);
         }
         if (width <= 1024) {
-          return Math.max(440, Math.min(width - 120, 560));
+          // iPad/tablet inline panel: do not cap at 560px; let chart fill the full chart column.
+          return Math.max(600, width - 64);
         }
-        return Math.min(width - 300, 640);
+        // Large screens: no fixed max — chart grows with its container (avoids right-side empty band)
+        return Math.max(520, width - 160);
       }
       if (width <= 480) {
         return Math.max(280, width - 32); // Small mobile: full width minus padding

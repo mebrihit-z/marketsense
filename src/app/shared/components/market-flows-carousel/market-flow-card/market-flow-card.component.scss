@@ -6,6 +6,25 @@
   min-width: 0;
 }
 
+/** Right rail next to the open detail: share height with the modal row and grow equally (desktop only). */
+@media (min-width: 1025px) {
+  :host.stacked-rail {
+    min-height: 0;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+
+    .card {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+
+    .view-more-row {
+      margin-top: auto;
+    }
+  }
+}
+
 /** Shared styled tooltip; `$align: right` for pills on the card’s right edge. */
 @mixin flow-styled-hover-tooltip($align: left) {
   cursor: help;
@@ -28,7 +47,10 @@
     padding: 10px 14px 14px;
     background-color: $primary-colors-midnight-blue;
     color: #f8fafc;
+    /* Match app body + detail modal tooltips; do not inherit from trigger (e.g. italic / Noto on sample line). */
+    font-family: 'Noto Sans', sans-serif;
     font-size: 13px;
+    font-style: normal;
     font-weight: 500;
     line-height: 1.45;
     letter-spacing: 0.01em;
@@ -209,7 +231,6 @@ $card-aum-gray: #94a3b8;
 
 // Sentiment badge: below title, slightly indented, oval pill, light green bg, dark green text
 .sentiment-row {
-  margin-top: -10px;
 }
 
 .sentiment-pill {
@@ -319,9 +340,26 @@ $card-aum-gray: #94a3b8;
 .sample-size-container {
   color: $neutral-colors-neutral-750;
   font-family: "Noto Sans";
-  font-size: 12px;
-  font-style: italic;
+  font-size: 14px;
   font-weight: 400;
+  position: relative;
+  overflow: visible;
+}
+
+/** Italic on the label only. */
+.sample-size-label {
+  font-style: italic;
+}
+
+/** Inline-block for a stable anchor; tooltip left-aligned under the line (same as net flow), not % (right). */
+.sample-size-hint {
+  display: inline-block;
+  max-width: 100%;
+}
+
+/** Same as net flow: default mixin = left-anchored, below the line. */
+.sample-size-hint.flow-value-hover {
+  @include flow-styled-hover-tooltip;
 }
 .view-more-link {
   display: inline-flex;

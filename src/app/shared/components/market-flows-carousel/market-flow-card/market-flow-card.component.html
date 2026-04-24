@@ -90,7 +90,13 @@
   <!-- View More > (bottom right) -->
   <div class="view-more-row">
     <div class="sample-size-container">
-      <span>Sample Size: {{ card.nClientsTotal != null && card.nClientsTotal > 0 ? card.nClientsTotal : '—' }}</span>
+      <span
+        class="sample-size-hint flow-value-hover"
+        [attr.data-flow-tooltip]="sampleSizeHoverLabel">
+        <span class="sample-size-label">
+          Sample Size: {{ card.nClientsTotal != null && card.nClientsTotal > 0 ? card.nClientsTotal : '—' }}
+        </span>
+      </span>
     </div>
     <a
       href="#"

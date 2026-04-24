@@ -60,11 +60,89 @@
     font-style: normal;
     font-weight: 400;
     line-height: 20px; /* 142.857% */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 
     @media (max-width: 768px) {
         font-size: 12px;
         line-height: 18px;
         width: 50%;
+        min-width: 0;
+    }
+}
+
+// Last-updated: flex row + same smoothing as the bar (avoids subpixel “halos” on light-on-dark)
+.last-updated {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+    text-align: right;
+    color: $white;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+
+    @media (max-width: 768px) {
+        align-items: flex-start;
+    }
+}
+
+.last-updated__icon {
+    display: block;
+    flex-shrink: 0;
+    color: $white;
+    shape-rendering: geometricPrecision;
+
+    @media (max-width: 768px) {
+        margin-top: 2px;
+    }
+}
+
+.last-updated__content {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 0;
+    min-width: 0;
+    text-align: right;
+}
+
+.last-updated__label {
+    &::after {
+        content: ': ';
+        white-space: pre;
+    }
+}
+
+.last-updated__date {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+    .last-updated__content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+        text-align: right;
+    }
+
+    .last-updated__label::after {
+        content: none;
+    }
+
+    .last-updated__date {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
     }
 }
 

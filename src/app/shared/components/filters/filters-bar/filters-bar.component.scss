@@ -60,6 +60,11 @@
     padding-top: 12px;
     min-width: 0;
 
+    @media (max-width: 1024px) {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
     @media (max-width: 768px) {
         gap: 8px;
     }
@@ -96,6 +101,10 @@
         display: grid;
         grid-template-columns: 1fr auto 1fr;
 
+        .filters-bar-footer-left {
+            min-width: 0;
+        }
+
         .pinned-selected-filters {
             grid-column: 2;
             justify-self: center;
@@ -106,16 +115,70 @@
             grid-column: 3;
             justify-self: end;
         }
+
+        /* iPad/phone: pinned tags on top, then one row — Minimize | Clear / Save. */
+        @media (max-width: 1024px) {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            row-gap: 10px;
+            column-gap: 8px;
+            min-width: 0;
+
+            .pinned-selected-filters {
+                order: 1;
+                flex: 1 0 100%;
+                min-width: 0;
+                justify-content: center;
+            }
+
+            .filters-bar-footer-left,
+            .action-buttons-container {
+                order: 2;
+            }
+
+            .filters-bar-footer-left {
+                flex: 0 1 auto;
+                min-width: 0;
+            }
+
+            .action-buttons-container {
+                margin-left: auto;
+                width: auto;
+                max-width: 100%;
+                flex: 0 1 auto;
+                justify-content: flex-end;
+                align-self: center;
+            }
+        }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 8px;
+        gap: 10px 8px;
 
         .pinned-selected-filters,
         .action-buttons-container {
             grid-column: 1 !important;
+        }
+
+        .pinned-selected-filters {
+            justify-self: center;
+        }
+
+        /* Center clear/save when not using the 3-column sticky layout; .with-minimize uses nested 1024 rules. */
+        &:not(.with-minimize) .action-buttons-container {
+            justify-self: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        gap: 8px;
+
+        &:not(.with-minimize) .action-buttons-container {
             justify-self: center;
         }
     }
@@ -333,6 +396,9 @@
     
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-wrap: wrap;
+        justify-content: flex-start;
+        align-content: flex-start;
+        align-items: stretch;
         gap: 10px;
         margin-bottom: 8px;
         overflow: visible;
@@ -356,11 +422,11 @@
         min-width: fit-content;
         
         @media (max-width: 1024px) and (min-width: 769px) {
-            /* Same width for all dropdowns: 3 per row with 10px gap (2 gaps = 20px) */
-            width: calc((100% - 20px) / 3);
+            /* 2 per row: fewer orphan chips on a third row, cleaner than 3+2 on iPad */
+            width: calc((100% - 10px) / 2);
             min-width: 0;
-            max-width: calc((100% - 20px) / 3);
-            flex: 0 0 calc((100% - 20px) / 3);
+            max-width: calc((100% - 10px) / 2);
+            flex: 0 0 calc((100% - 10px) / 2);
 
             .btn {
                 width: 100%;
@@ -772,7 +838,7 @@
     @media (max-width: 1024px) and (min-width: 769px) {
         flex-direction: column;
         align-items: flex-start;
-        gap: 4px;
+        gap: 10px;
         margin-top: 4px;
     }
     

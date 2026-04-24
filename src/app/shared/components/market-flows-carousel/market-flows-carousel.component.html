@@ -69,6 +69,7 @@
     <div class="stacked-cards-column">
       <app-market-flow-card
         *ngFor="let card of stackedCards | slice:0:stackedCardsCount"
+        class="stacked-rail"
         [card]="card"
         [isPinned]="isCardPinned(card.id)"
         (moreOptions)="onMoreOptions($event)"

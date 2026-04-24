@@ -251,6 +251,11 @@
   align-items: start;
   min-height: 400px;
 
+  @media (min-width: 1025px) {
+    /* Stacked column matches detail row height; cards fill that rail equally */
+    align-items: stretch;
+  }
+
   @media (max-width: 1024px) and (min-width: 769px) {
     /* iPad: single column, detail on top, two cards, then pagination */
     grid-template-columns: 1fr;
@@ -283,18 +288,25 @@
 }
 
 .stacked-cards-column {
-  display: grid;
-  grid-template-columns: 1fr; /* Laptop: 3 cards in one column on the right */
-  gap: 16px;
-  overflow-y: auto;
   box-sizing: border-box;
   grid-column: 2;
-  grid-row: 1 / -1;
+  /* Same row as detail so rail height matches the modal + chart, not the pagination band */
+  grid-row: 1;
+  gap: 16px;
+  overflow: visible;
+
+  @media (min-width: 1025px) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    align-self: stretch;
+  }
 
   @media (max-width: 1024px) and (min-width: 769px) {
     order: 2; /* iPad: two cards below the detail */
     grid-column: auto;
     grid-row: auto;
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
     max-height: none;
     padding: 12px 0px 12px 0px;
@@ -371,7 +383,7 @@
 
 .page-info-text {
   font-weight: 400;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 20px;
   letter-spacing: -0.15px;
   color: $text-midnight-blue;
@@ -407,7 +419,7 @@
   border: none;
   cursor: pointer;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 20px;
   letter-spacing: -0.15px;
   color: $text-midnight-blue;
