@@ -488,7 +488,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       }
       rows.push({ label, valueUsd, pctChange });
     }
-    return rows;
+    return rows.filter(r => r.valueUsd !== 0);
   }
 
   setBreakdownTab(tab: FlowBreakdownTab): void {
