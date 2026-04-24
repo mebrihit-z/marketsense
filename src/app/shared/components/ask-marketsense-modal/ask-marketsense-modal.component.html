@@ -96,7 +96,7 @@
 
       <!-- STATE 2: After first question - analysis scrolls; follow-up at bottom of column -->
       <ng-template #withAnalyses>
-        <div class="scrollable-content">
+        <div class="scrollable-content" #conversationScrollContainer>
           <ng-container *ngTemplateOutlet="cardContextBanner" />
           <ng-container *ngFor="let analysis of displayAnalyses; let i = index">
             <!-- Question Section -->

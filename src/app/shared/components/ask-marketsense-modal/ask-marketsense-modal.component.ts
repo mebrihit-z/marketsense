@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectorRef, inject, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/market-flow-card.component';
@@ -45,6 +45,8 @@ const PDF_TEXT_MIDNIGHT_RGB: [number, number, number] = [0, 17, 63];
 })
 export default class AskMarketsenseModalComponent implements OnChanges {
   private readonly askCardContext = inject(AskMarketsenseCardContextService);
+  @ViewChild('conversationScrollContainer')
+  private conversationScrollContainer?: ElementRef<HTMLDivElement>;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -293,8 +295,10 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         console.log('==== AskMarketsenseModal initial AiChatResponse ====:', result);
         console.log('[AskMarketsenseModal] conversation_id (first turn response):', result.conversation_id);
         this._localAnalyses = [...this._localAnalyses, this.toAnalysisResult(result)];
+        this.userMessage = '';
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
+        this.scrollConversationToLatestResponse();
       },
       error: (err) => {
         this.errorMessage = this.resolveAiChatErrorMessage(err);
@@ -591,8 +595,10 @@ export default class AskMarketsenseModalComponent implements OnChanges {
         console.log('==== AskMarketsenseModal follow-up AiChatResponse ====:', result);
         console.log('[AskMarketsenseModal] conversation_id (follow-up response):', result.conversation_id);
         this._localAnalyses = [...this._localAnalyses, this.toAnalysisResult(result)];
+        this.followUpMessage = '';
         this.isWaitingForResponse = false;
         this.cdr.markForCheck();
+        this.scrollConversationToLatestResponse();
       },
       error: (err) => {
         this.errorMessage = this.resolveAiChatErrorMessage(err);
@@ -1407,6 +1413,20 @@ export default class AskMarketsenseModalComponent implements OnChanges {
 
   toggleCollapse(): void {
     this.isCollapsed = !this.isCollapsed;
+  }
+
+  /**
+   * Keeps the newest answer visible after it is rendered in the scrollable thread.
+   */
+  private scrollConversationToLatestResponse(): void {
+    requestAnimationFrame(() => {
+      const container = this.conversationScrollContainer?.nativeElement;
+      if (!container) return;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
   }
 }
 
