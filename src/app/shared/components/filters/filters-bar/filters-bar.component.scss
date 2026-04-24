@@ -99,21 +99,25 @@
 
     &.with-minimize {
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        column-gap: 16px;
+        align-items: center;
 
         .filters-bar-footer-left {
+            grid-column: 1;
             min-width: 0;
         }
 
         .pinned-selected-filters {
             grid-column: 2;
-            justify-self: center;
-            justify-content: center;
+            justify-self: stretch;
+            justify-content: flex-start;
         }
 
         .action-buttons-container {
             grid-column: 3;
             justify-self: end;
+            width: auto;
         }
 
         /* iPad/phone: pinned tags on top, then one row — Minimize | Clear / Save. */
@@ -246,18 +250,23 @@
 }
 
 .filters-bar-container {
+    --filters-gutter-x: 48px;
     padding: 24px 48px;
     display: flex;
     flex-direction: column;
     position: relative;
     border-bottom: 1px solid $secondary-colors-gold-750;
+    box-sizing: border-box;
     @media (max-width: 1024px) {
+        --filters-gutter-x: 32px;
         padding: 16px 32px 24px 32px;
     }
     @media (max-width: 768px) {
+        --filters-gutter-x: 24px;
         padding: 16px 24px;
     }
     @media (max-width: 480px) {
+        --filters-gutter-x: 16px;
         padding: 12px 16px 16px 16px;
     }
 }
@@ -303,6 +312,11 @@
         gap: 4px;
         padding-bottom: 10px;
     }
+}
+
+.filters-and-toggles-content-inner {
+    width: 100%;
+    min-width: 0;
 }
 .filters-container { 
     display:flex; 
@@ -386,79 +400,56 @@
     }
 }
 .filters-list { 
-    display:flex;
-    gap:12px; 
-    flex-wrap: nowrap;
-    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    column-gap: 12px;
+    row-gap: 10px;
+    width: 100%;
+    flex: 1 1 auto;
     min-width: 0;
-    align-items: center;
+    align-items: stretch;
     flex-shrink: 1;
     
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     @media (max-width: 1024px) and (min-width: 769px) {
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        align-content: flex-start;
-        align-items: stretch;
-        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 10px;
+        row-gap: 10px;
         margin-bottom: 8px;
         overflow: visible;
     }
     
     @media (max-width: 768px) {
-        flex-direction: column;
-        flex-wrap: nowrap;
-        gap: 10px;
-        width: 100%;
-        min-width: 0;
-        align-items: stretch;
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 10px;
     }
     @media (max-width: 480px) {
-        flex-direction: column;
-        gap: 8px;
+        row-gap: 8px;
     }
     
     ::ng-deep app-filter-dropdown {
-        flex-shrink: 0;
-        min-width: fit-content;
+        min-width: 0;
+        width: 100%;
         
-        @media (max-width: 1024px) and (min-width: 769px) {
-            /* 2 per row: fewer orphan chips on a third row, cleaner than 3+2 on iPad */
-            width: calc((100% - 10px) / 2);
+        .btn {
+            width: 100%;
             min-width: 0;
-            max-width: calc((100% - 10px) / 2);
-            flex: 0 0 calc((100% - 10px) / 2);
-
-            .btn {
-                width: 100%;
-                min-width: 0;
-                box-sizing: border-box;
-            }
+            box-sizing: border-box;
         }
-        
+
         @media (max-width: 768px) {
             display: block;
-            width: 100% !important;
-            min-width: 0;
-            flex: 0 0 100% !important;
             max-width: 100%;
-
-            .btn {
-                width: 100% !important;
-                max-width: 100%;
-                box-sizing: border-box;
-            }
 
             .panel {
                 left: 50%;
                 transform: translateX(-50%);
-                width: calc(100vw - 48px) !important;
+                width: calc(100vw - (var(--filters-gutter-x) * 2)) !important;
                 max-width: none;
                 box-sizing: border-box;
-            }
-        }
-        @media (max-width: 480px) {
-            .panel {
-                width: calc(100vw - 32px) !important;
             }
         }
     }
@@ -472,6 +463,16 @@
     flex-wrap: wrap;
     gap: 16px;
     min-width: 0;
+
+    @media (max-width: 1440px) {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        gap: 8px;
+    }
 }
 
 .pinned-chip {
@@ -829,7 +830,27 @@
     width: 100%;
     min-width: 0;
     overflow: visible;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+
+    // Keep Time Horizon and Value Range cards identical in width on large screens.
+    > app-time-horizon-slider,
+    > .time-horizon-container.min-flow-value-in-bar {
+        min-width: 0;
+    }
+
+    > app-time-horizon-slider {
+        flex: 0 1 calc((100% - 12px) * 0.6);
+        width: calc((100% - 12px) * 0.6);
+        max-width: none;
+        min-width: 0;
+    }
+
+    > .time-horizon-container.min-flow-value-in-bar {
+        flex: 0 1 calc((100% - 12px) * 0.4);
+        width: calc((100% - 12px) * 0.4);
+        max-width: none;
+        min-width: 0;
+    }
     
     @media (max-width: 1200px) {
         gap: 24px;
@@ -840,6 +861,13 @@
         align-items: flex-start;
         gap: 10px;
         margin-top: 4px;
+        flex-wrap: wrap;
+
+        > app-time-horizon-slider,
+        > .time-horizon-container.min-flow-value-in-bar {
+            flex: none;
+            width: 100%;
+        }
     }
     
     @media (max-width: 768px) {
@@ -848,6 +876,13 @@
         align-items: flex-start;
         gap: 8px;
         margin-top: 8px;
+        flex-wrap: wrap;
+
+        > app-time-horizon-slider,
+        > .time-horizon-container.min-flow-value-in-bar {
+            flex: none;
+            width: 100%;
+        }
     }
 }
 
@@ -867,6 +902,14 @@
     
     @media (max-width: 1200px) {
         gap: 12px;
+    }
+
+    @media (max-width: 1440px) {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        row-gap: 8px;
     }
     
     @media (max-width: 1024px) and (min-width: 769px) {
@@ -916,6 +959,10 @@
         flex: 0 1 auto;
         min-width: 0;
     }
+
+    @media (max-width: 1440px) {
+        min-height: 36px;
+    }
     @media (max-width: 480px) {
         font-size: 12px;
         line-height: 16px;
@@ -930,6 +977,30 @@
             text-overflow: ellipsis;
             min-width: 0;
         }
+    }
+}
+
+@media (max-width: 1440px) {
+    .filters-bar-footer-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: start;
+        row-gap: 10px;
+    }
+
+    .filters-bar-footer-actions .filters-bar-footer-left {
+        order: 1;
+        justify-self: start;
+    }
+
+    .filters-bar-footer-actions .pinned-selected-filters {
+        order: 2;
+        justify-self: stretch;
+    }
+
+    .filters-bar-footer-actions .action-buttons-container {
+        order: 3;
+        justify-self: end;
     }
 }
 

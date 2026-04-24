@@ -21,22 +21,24 @@ $time-horizon-handle-cluster-top-desktop: $time-horizon-rail-y-desktop + $time-h
 $time-horizon-handle-cluster-top-mobile: $time-horizon-rail-y-mobile + $time-horizon-track-height * 0.5 -
   $time-horizon-handle-size * 0.5 - $time-horizon-handle-tooltip-gap - $time-horizon-tooltip-estimated-height;
 
-// Filters bar: share row with Value Range; keep rail/labels in proportion to the previous 800 / 640 layout
+// Filters bar: share row with Value Range and let slider use full card width.
 $time-horizon-card-flex-basis: 680px;
-$time-horizon-track-max-width: 544px; // 640 * (680 / 800)
 
 :host {
-  display: contents;
+  display: block;
+  width: 100%;
+  min-width: 0;
 }
 
 .time-horizon-container.time-horizon-filter-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 0 1 $time-horizon-card-flex-basis;
+  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
-  /* Width comes from flex basis (row with Value Range); still full width when stacked in breakpoints below */
+  /* Width comes from parent gutters; keep this card full-width inside its host. */
   background-color: $bg-white;
   position: relative;
   z-index: 0;
@@ -177,7 +179,7 @@ $time-horizon-track-max-width: 544px; // 640 * (680 / 800)
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: $time-horizon-track-max-width;
+  max-width: 100%;
   /* Row (wide): grow horizontally. Column (≤1024px): do not grow vertically (avoids a tall white band in the card). */
   flex: 1;
   min-width: 0;
@@ -208,7 +210,7 @@ $time-horizon-track-max-width: 544px; // 640 * (680 / 800)
 .time-horizon-slider-container {
   position: relative;
   width: 100%;
-  max-width: $time-horizon-track-max-width;
+  max-width: 100%;
   min-height: 52px;
   height: auto;
   min-width: 0;
@@ -436,7 +438,7 @@ $time-horizon-track-max-width: 544px; // 640 * (680 / 800)
 .time-horizon-labels {
   position: relative;
   width: 100%;
-  max-width: $time-horizon-track-max-width;
+  max-width: 100%;
   height: 22px;
   min-width: 0;
   margin-top: 10px;

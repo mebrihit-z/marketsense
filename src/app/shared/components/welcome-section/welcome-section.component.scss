@@ -320,6 +320,7 @@
   cursor: pointer;
   min-width: 0;
   width: 100%;
+  position: relative;
 }
 
 .option-top-row {
@@ -418,44 +419,7 @@
   height: 16px;
 }
 
-.option-tags {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  align-self: stretch;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
-  min-height: 20px;
-  margin-top: 2px;
-}
-
-.option-tag {
-  position: relative;
-  display: inline-block;
-  width: auto;
-  max-width: 100%;
-  box-sizing: border-box;
-  vertical-align: top;
-  min-height: 20px;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: $text-midnight-blue;
-
-  &:has(.option-tag-tooltip) {
-    cursor: help;
-  }
-}
-
-.option-tag-text {
-  display: block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-// Saved-views tag tooltip: midnight surface, sky blue copy
-.option-tag-tooltip {
+.option-hover-tooltip {
   position: absolute;
   left: 0;
   right: 0;
@@ -472,16 +436,18 @@
   line-height: 1.45;
   font-weight: 400;
   color: $primary-colors-sky-blue;
-  max-width: min(90vw, 520px);
+  width: 100%;
+  max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
+  white-space: normal;
   pointer-events: none;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.12s ease, visibility 0.12s ease;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.12s ease;
 }
 
-.option-tag-tooltip-stack {
+.option-hover-tooltip-stack {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -489,7 +455,7 @@
   width: 100%;
 }
 
-.option-tag-tooltip-field {
+.option-hover-tooltip-field {
   display: block;
 
   &:not(:first-child) {
@@ -497,7 +463,7 @@
   }
 }
 
-.option-tag-tooltip-field-label {
+.option-hover-tooltip-field-label {
   font-weight: 600;
   font-size: 12px;
   line-height: 1.35;
@@ -505,17 +471,12 @@
   opacity: 0.95;
 }
 
-.option-tag-tooltip-field-value {
+.option-hover-tooltip-field-value {
   font-weight: 400;
   font-size: 12px;
   line-height: 1.45;
   margin-top: 4px;
   color: $primary-colors-sky-blue;
-}
-
-.option-tag:hover .option-tag-tooltip {
-  visibility: visible;
-  opacity: 1;
 }
 
 .delete-btn {
@@ -546,6 +507,32 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.details-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  img {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(14, 43, 115, 0.2);
+  }
 }
 
 .edit-btn {

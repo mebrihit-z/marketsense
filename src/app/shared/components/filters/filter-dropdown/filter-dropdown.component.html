@@ -17,8 +17,10 @@
           <div class="tooltip-arrow"></div>
         </div>
       </div>
-      <span class="count">{{ selectedCount }}/{{ uniqueOptionCount }}</span>
-      <img src="assets/icons/caret-down-icon.svg" alt="Caret Down" class="caret-down-icon">
+      <div class="right">
+        <span class="count">{{ selectedCount }}/{{ uniqueOptionCount }}</span>
+        <img src="assets/icons/caret-down-icon.svg" alt="Caret Down" class="caret-down-icon">
+      </div>
     </button>
 
     <div class="panel" *ngIf="open" (click)="onPanelClick($event)">

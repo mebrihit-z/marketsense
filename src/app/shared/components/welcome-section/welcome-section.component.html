@@ -54,6 +54,14 @@
                     <div class="option-row-actions">
                       <button
                         type="button"
+                        class="details-btn"
+                        (click)="toggleDetailsTooltip(option, $event)"
+                        [attr.aria-expanded]="isDetailsTooltipOpen(option)"
+                        aria-label="View saved view details">
+                        <img src="assets/icons/info-icon.svg" alt="" />
+                      </button>
+                      <button
+                        type="button"
                         class="edit-btn"
                         (click)="editOption(option, $event)"
                         aria-label="Edit preset">
@@ -74,19 +82,14 @@
                     </div>
                   </div>
                   <p class="option-saved-date">Saved {{ option.savedDate }}</p>
-                  <div class="option-tags">
-                    <span class="option-tag" *ngFor="let tag of option.tags; let tagIndex = index">
-                      <span class="option-tag-text">{{ tag }}</span>
-                      <span class="option-tag-tooltip" *ngIf="savedViewTagTooltipFields(option, tagIndex) as tipFields">
-                        <span class="option-tag-tooltip-stack">
-                          <div class="option-tag-tooltip-field" *ngFor="let field of tipFields">
-                            <div class="option-tag-tooltip-field-label">{{ field.label }}</div>
-                            <div class="option-tag-tooltip-field-value">{{ field.value }}</div>
-                          </div>
-                        </span>
-                      </span>
+                  <span class="option-hover-tooltip" *ngIf="isDetailsTooltipOpen(option) && savedViewHoverTooltipFields(option) as tipFields">
+                    <span class="option-hover-tooltip-stack">
+                      <div class="option-hover-tooltip-field" *ngFor="let field of tipFields">
+                        <div class="option-hover-tooltip-field-label">{{ field.label }}</div>
+                        <div class="option-hover-tooltip-field-value">{{ field.value }}</div>
+                      </div>
                     </span>
-                  </div>
+                  </span>
                 </div>
                 <div class="option-set-default">
                   <input

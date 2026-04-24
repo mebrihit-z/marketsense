@@ -29,9 +29,8 @@ export interface SavedViewTagTooltipField {
 export interface ViewingOption {
   name: string;
   savedDate: string;
-  tags: string[];
-  /** Same length as `tags`: tooltip fields per chip (label above value). */
-  tagTooltipFields?: SavedViewTagTooltipField[][];
+  /** Unified hover-card content for this saved view row. */
+  hoverTooltipFields?: SavedViewTagTooltipField[];
   isActive: boolean;
   /** Marks which saved view should be treated as default. */
   isDefault?: boolean;
@@ -92,6 +91,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   pendingEditName = '';
   pendingEditError = '';
   pendingEditSelections = false;
+  openDetailsTooltipKey: string | null = null;
 
   constructor(
     private readonly userProfileService: UserProfileService,
@@ -150,6 +150,14 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return name || null;
   }
 
+  private viewingOptionKey(option: ViewingOption): string {
+    const raw = option.raw as SavedView | undefined;
+    if (raw?.id != null && String(raw.id).trim() !== '') {
+      return String(raw.id);
+    }
+    return option.name?.trim() || '__unknown';
+  }
+
   /**
    * Stable row identity (id as string, else name). Lists re-create option objects after default/refresh,
    * so `===` on ViewingOption is unsafe — use this for Active/apply/delete instead.
@@ -198,13 +206,12 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
         const mapped = views.map((item, index) => {
           const name = item?.name ?? `View ${index + 1}`;
           const savedDate = this.formatSavedDate(item?.savedAt);
-          const { tags, tagTooltipFields } = this.buildSavedViewTagsAndTooltips(item);
+          const hoverTooltipFields = this.buildSavedViewHoverTooltipFields(item);
           const key = this.savedViewRowKey(item, index);
           return {
             name,
             savedDate,
-            tags,
-            tagTooltipFields,
+            hoverTooltipFields,
             isDefault: item?.isDefault === true,
             isActive: activeKey != null && key === activeKey,
             raw: item,
@@ -356,13 +363,12 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   /**
-   * Saved Views dropdown chips plus hover tooltips (filters, time horizon).
+   * Saved Views unified hover tooltip fields (filters, time horizon, chart dimensions).
    */
-  private buildSavedViewTagsAndTooltips(
+  private buildSavedViewHoverTooltipFields(
     view: SavedView | null | undefined
-  ): { tags: string[]; tagTooltipFields: SavedViewTagTooltipField[][] } {
-    const tags: string[] = [];
-    const tagTooltipFields: SavedViewTagTooltipField[][] = [];
+  ): SavedViewTagTooltipField[] {
+    const fields: SavedViewTagTooltipField[] = [];
 
     const state: unknown = view?.state;
     let raw: unknown = state;
@@ -381,43 +387,41 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
 
     if (raw && typeof raw === 'object') {
       const coerced = this.coerceSavedViewStateForTags(raw as SavedViewState);
-      const investorTag = this.formatSavedViewInvestorTag(coerced);
-      if (investorTag) {
-        tags.push(investorTag);
-        tagTooltipFields.push(this.buildInvestorTooltipFields(coerced));
-      }
-      const productTag = this.formatSavedViewProductTag(coerced);
-      if (productTag) {
-        tags.push(productTag);
-        tagTooltipFields.push(this.buildProductTooltipFields(coerced));
-      }
+      fields.push(...this.buildInvestorTooltipFields(coerced));
+      fields.push(...this.buildProductTooltipFields(coerced));
     }
 
-    const timeTag = this.formatSavedViewTimeHorizonTag(view);
-    if (timeTag && view) {
-      tags.push(timeTag);
-      tagTooltipFields.push(this.buildTimeHorizonTooltipFields(view));
+    if (view) {
+      fields.push(...this.buildTimeHorizonTooltipFields(view));
     }
 
-    const minFlowTag = this.formatSavedViewMinFlowTag(view);
-    if (minFlowTag && view) {
-      tags.push(minFlowTag);
-      tagTooltipFields.push(this.buildMinFlowTooltipFields(view));
+    if (view) {
+      fields.push(...this.buildMinFlowTooltipFields(view));
     }
 
     const chartDims = view?.chartDimensions;
     if (chartDims && typeof chartDims === 'object') {
       if (chartDims.assetFlows) {
-        tags.push(this.formatChartHierarchyChip('Asset Flows', chartDims.assetFlows));
-        tagTooltipFields.push(this.buildChartDimensionsTooltipFields(chartDims.assetFlows));
+        fields.push({
+          label: 'Asset Flows Hierarchy:',
+          value: this.formatChartHierarchyChip('Asset Flows', chartDims.assetFlows).replace(
+            /^Asset Flows -\s*/i,
+            ''
+          ),
+        });
       }
       if (chartDims.assetAllocation) {
-        tags.push(this.formatChartHierarchyChip('Asset Allocation', chartDims.assetAllocation));
-        tagTooltipFields.push(this.buildChartDimensionsTooltipFields(chartDims.assetAllocation));
+        fields.push({
+          label: 'Asset Allocation Hierarchy:',
+          value: this.formatChartHierarchyChip('Asset Allocation', chartDims.assetAllocation).replace(
+            /^Asset Allocation -\s*/i,
+            ''
+          ),
+        });
       }
     }
 
-    return { tags, tagTooltipFields };
+    return fields;
   }
 
   /** Display labels aligned with flow-dimension ids in Asset Flows / Asset Allocation. */
@@ -514,47 +518,6 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     };
   }
 
-  /**
-   * First selected label only when it is the sole value; otherwise same label plus (+n)
-   * where n is how many additional values are not listed.
-   */
-  private formatSavedViewSegmentLabel(label: string, totalSelected: number): string {
-    if (!label) return '';
-    const notShown = totalSelected - 1;
-    if (notShown <= 0) return label;
-    return `${label} (+${notShown})`;
-  }
-
-  private formatSavedViewInvestorTag(state: SavedViewState): string | null {
-    const regions = state.investorRegion;
-    const types = state.investorType;
-    const region = regions?.[0];
-    const type = types?.[0];
-    if (!region && !type) return null;
-    const rCount = regions?.length ?? 0;
-    const tCount = types?.length ?? 0;
-    const rSeg = region ? this.formatSavedViewSegmentLabel(region, rCount) : '';
-    const tSeg = type ? this.formatSavedViewSegmentLabel(type, tCount) : '';
-    if (region && type) return `Investor - ${rSeg} / ${tSeg}`;
-    if (region) return `Investor - ${rSeg}`;
-    return `Investor - ${tSeg}`;
-  }
-
-  private formatSavedViewProductTag(state: SavedViewState): string | null {
-    const regions = state.productRegion;
-    const ptypes = state.productType;
-    const region = regions?.[0];
-    const ptype = ptypes?.[0];
-    if (!region && !ptype) return null;
-    const rCount = regions?.length ?? 0;
-    const tCount = ptypes?.length ?? 0;
-    const rSeg = region ? this.formatSavedViewSegmentLabel(region, rCount) : '';
-    const tSeg = ptype ? this.formatSavedViewSegmentLabel(ptype, tCount) : '';
-    if (region && ptype) return `Product - ${rSeg} / ${tSeg}`;
-    if (region) return `Product - ${rSeg}`;
-    return `Product - ${tSeg}`;
-  }
-
   /** Chip label from {@link SavedView} time-horizon fields saved by the filters bar. */
   private formatSavedViewTimeHorizonTag(view: SavedView | null | undefined): string | null {
     if (!view || typeof view !== 'object') return null;
@@ -639,86 +602,71 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       {
         name: 'High-confidence Equities',
         savedDate: 'Mar 28, 2026',
-        tags: [
-          'Investor - United States (+1) / Endowment',
-          'Product - North America / Equities (+1)',
-          'Time horizon - 0 to +3 mo',
-          'Min flow value - $0 to Max',
-        ],
-        tagTooltipFields: [
-          [
-            { label: 'Investor Region:', value: 'United States, Europe' },
-            { label: 'Investor Type:', value: 'Endowment' },
-          ],
-          [
-            { label: 'Product Region:', value: 'North America' },
-            { label: 'Product Type:', value: 'Equities, Fixed Income' },
-          ],
-          [{ label: 'Time horizon:', value: '0 to +3 mo' }],
-          [{ label: 'Min flow value:', value: '$0 to Max' }],
+        hoverTooltipFields: [
+          { label: 'Investor Region:', value: 'United States, Europe' },
+          { label: 'Investor Type:', value: 'Endowment' },
+          { label: 'Product Region:', value: 'North America' },
+          { label: 'Product Type:', value: 'Equities, Fixed Income' },
+          { label: 'Time horizon:', value: '0 to +3 mo' },
+          { label: 'Min flow value:', value: '$0 to Max' },
         ],
         isActive: false,
       },
       {
         name: 'Global Alternatives View',
         savedDate: 'Mar 25, 2026',
-        tags: [
-          'Investor - Europe (+2) / Foundation (+1)',
-          'Product - US (+1) / Alternatives',
-          'Time horizon - -6 mo to Today',
-        ],
-        tagTooltipFields: [
-          [
-            { label: 'Investor Region:', value: 'Europe, Asia, Americas' },
-            { label: 'Investor Type:', value: 'Foundation, Pension' },
-          ],
-          [
-            { label: 'Product Region:', value: 'US, UK' },
-            { label: 'Product Type:', value: 'Alternatives' },
-          ],
-          [{ label: 'Time horizon:', value: '-6 mo to 0' }],
+        hoverTooltipFields: [
+          { label: 'Investor Region:', value: 'Europe, Asia, Americas' },
+          { label: 'Investor Type:', value: 'Foundation, Pension' },
+          { label: 'Product Region:', value: 'US, UK' },
+          { label: 'Product Type:', value: 'Alternatives' },
+          { label: 'Time horizon:', value: '-6 mo to 0' },
         ],
         isActive: false,
       },
       {
         name: 'All Equities',
         savedDate: 'Mar 20, 2026',
-        tags: [
-          'Investor - United States / Pensions (+1)',
-          'Product - Global (+1) / Equities (+2)',
-          'Time horizon - Today to +12 mo',
-          'Min flow value - $500M to Max',
-        ],
-        tagTooltipFields: [
-          [
-            { label: 'Investor Region:', value: 'United States' },
-            { label: 'Investor Type:', value: 'Pensions, Endowment' },
-          ],
-          [
-            { label: 'Product Region:', value: 'Global, Emerging Markets' },
-            { label: 'Product Type:', value: 'Equities, Private Equity, Real Estate' },
-          ],
-          [{ label: 'Time horizon:', value: '0 to +12 mo' }],
-          [{ label: 'Min flow value:', value: '$500M to Max' }],
+        hoverTooltipFields: [
+          { label: 'Investor Region:', value: 'United States' },
+          { label: 'Investor Type:', value: 'Pensions, Endowment' },
+          { label: 'Product Region:', value: 'Global, Emerging Markets' },
+          { label: 'Product Type:', value: 'Equities, Private Equity, Real Estate' },
+          { label: 'Time horizon:', value: '0 to +12 mo' },
+          { label: 'Min flow value:', value: '$500M to Max' },
         ],
         isActive: false,
       },
     ];
   }
 
-  /** Fields for the hover tooltip on a tag chip; null when there is nothing to show. */
-  savedViewTagTooltipFields(option: ViewingOption, index: number): SavedViewTagTooltipField[] | null {
-    const rows = option.tagTooltipFields?.[index];
+  /** Fields for the unified hover tooltip on a saved-view row; null when there is nothing to show. */
+  savedViewHoverTooltipFields(option: ViewingOption): SavedViewTagTooltipField[] | null {
+    const rows = option.hoverTooltipFields;
     if (!rows?.length) return null;
     return rows;
+  }
+
+  isDetailsTooltipOpen(option: ViewingOption): boolean {
+    return this.openDetailsTooltipKey === this.viewingOptionKey(option);
+  }
+
+  toggleDetailsTooltip(option: ViewingOption, event: Event): void {
+    event.stopPropagation();
+    const key = this.viewingOptionKey(option);
+    this.openDetailsTooltipKey = this.openDetailsTooltipKey === key ? null : key;
   }
 
   toggleViewingDropdown(): void {
     if (this.savedViewsCount === 0) {
       this.isViewingDropdownOpen = false;
+      this.openDetailsTooltipKey = null;
       return;
     }
     this.isViewingDropdownOpen = !this.isViewingDropdownOpen;
+    if (!this.isViewingDropdownOpen) {
+      this.openDetailsTooltipKey = null;
+    }
     if (this.isViewingDropdownOpen && this.filterButton) {
       setTimeout(() => {
         this.updateDropdownPosition();
@@ -782,6 +730,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       }))
     );
     this.isViewingDropdownOpen = false;
+    this.openDetailsTooltipKey = null;
 
     // Notify the rest of the app (e.g., filters bar) to apply this saved view's filters.
     if (typeof window !== 'undefined') {
@@ -844,6 +793,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
    */
   deleteOption(option: ViewingOption, event: Event): void {
     event.stopPropagation();
+    this.openDetailsTooltipKey = null;
     const resolved = this.viewingOptions.find((o) => this.viewingOptionMatches(o, option)) ?? option;
     this.pendingDeleteOption = resolved;
   }
@@ -854,6 +804,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
    */
   editOption(option: ViewingOption, event: Event): void {
     event.stopPropagation();
+    this.openDetailsTooltipKey = null;
     const resolved = this.viewingOptions.find((o) => this.viewingOptionMatches(o, option)) ?? option;
     this.pendingEditOption = resolved;
     this.pendingEditName = resolved.name ?? '';
@@ -1030,6 +981,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
    */
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
+    this.openDetailsTooltipKey = null;
     if (this.isViewingDropdownOpen) {
       const target = event.target as HTMLElement;
       const filterContainer = target.closest('.viewing-filter-container');
