@@ -86,6 +86,12 @@ export default class AskMarketsenseModalComponent implements OnChanges {
    */
   private conversationThreadCleared: boolean = false;
 
+  /**
+   * Card id (or null when last open was not from a flow card) that the current in-modal thread
+   * was tied to. Used to clear the conversation when the user opens the modal from a different card.
+   */
+  private modalSessionOpeningCardId: string | null = null;
+
   /** Cache: which query-result column keys are numeric (right-aligned), per {@link AnalysisResult} instance. */
   private readonly queryTableNumericColumnKeys = new WeakMap<AnalysisResult, Set<string>>();
 
@@ -141,6 +147,26 @@ export default class AskMarketsenseModalComponent implements OnChanges {
     if (changes['isVisible']) {
       if (this.isVisible) {
         document.body.style.overflow = 'hidden';
+        const openingId = this.resolvedOpeningCardId();
+        const hadThread =
+          this._localAnalyses.length > 0 || (!!this.analysisResult && !this.conversationThreadCleared);
+        const switchingToAnotherCard =
+          openingId != null &&
+          this.modalSessionOpeningCardId != null &&
+          openingId !== this.modalSessionOpeningCardId;
+        const leavingCardForNonCard =
+          openingId == null &&
+          this.modalSessionOpeningCardId != null &&
+          hadThread;
+        const enteringCardFromNonCardWithThread =
+          openingId != null &&
+          this.modalSessionOpeningCardId == null &&
+          hadThread;
+        if (switchingToAnotherCard || leavingCardForNonCard || enteringCardFromNonCardWithThread) {
+          this.resetThreadForNewOpeningContext();
+        }
+        this.modalSessionOpeningCardId = openingId;
+
         // Reopen on the New Question tab; keep the in-modal conversation across close/reopen
         // (e.g. X or overlay) so the thread is not cleared until Clear Analysis or a new starter question.
         this.activeTab = 'new-question';
@@ -276,6 +302,34 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       return { title: fromService };
     }
     return undefined;
+  }
+
+  /** Card id for the current open (input or {@link AskMarketsenseCardContextService}). */
+  private resolvedOpeningCardId(): string | null {
+    const fromInput = this.card?.id;
+    if (typeof fromInput === 'string' && fromInput.trim()) {
+      return fromInput.trim();
+    }
+    const fromCtx = this.askCardContext.getActiveCard()?.id;
+    if (typeof fromCtx === 'string' && fromCtx.trim()) {
+      return fromCtx.trim();
+    }
+    return null;
+  }
+
+  /** Clear in-modal thread when opening from a different card (or leaving a card session for a global entry). */
+  private resetThreadForNewOpeningContext(): void {
+    this._localAnalyses = [];
+    this.conversationThreadCleared = true;
+    this.userMessage = '';
+    this.followUpMessage = '';
+    this.errorMessage = null;
+    this.isWaitingForResponse = false;
+    this.isVisualizationModalOpen = false;
+    this.expandedAnalysis = null;
+    this.isQueryResultsModalOpen = false;
+    this.expandedTableAnalysis = null;
+    this.clearAnalysis.emit();
   }
 
   /** HTTP errors and service-thrown failures: nested `error.message` (API envelope) or flat message. */
