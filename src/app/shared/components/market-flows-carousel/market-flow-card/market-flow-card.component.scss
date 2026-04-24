@@ -152,7 +152,7 @@ $card-aum-gray: #94a3b8;
   border: none;
   cursor: pointer;
   color: $primary-colors-midnight-blue;
-  transition: color 0.2s, background-color 0.2s;
+  transition: color 0.2s;
   border-radius: 8px;
   position: relative;
   z-index: 10;
@@ -161,21 +161,8 @@ $card-aum-gray: #94a3b8;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 
-  &:hover {
-    background-color: $overlay-light;
-  }
-
-  &:active {
-    background-color: $overlay-light;
-  }
-
-
-
   &.pinned {
     color: $primary-colors-midnight-blue;
-    &:hover {
-      background-color: rgba($primary-colors-midnight-blue, 0.08);
-    }
   }
 }
 

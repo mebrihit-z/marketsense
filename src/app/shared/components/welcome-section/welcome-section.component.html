@@ -54,14 +54,6 @@
                     <div class="option-row-actions">
                       <button
                         type="button"
-                        class="details-btn"
-                        (click)="toggleDetailsTooltip(option, $event)"
-                        [attr.aria-expanded]="isDetailsTooltipOpen(option)"
-                        aria-label="View saved view details">
-                        <img src="assets/icons/info-icon.svg" alt="" />
-                      </button>
-                      <button
-                        type="button"
                         class="edit-btn"
                         (click)="editOption(option, $event)"
                         aria-label="Edit preset">
@@ -82,28 +74,43 @@
                     </div>
                   </div>
                   <p class="option-saved-date">Saved {{ option.savedDate }}</p>
-                  <span class="option-hover-tooltip" *ngIf="isDetailsTooltipOpen(option) && savedViewHoverTooltipFields(option) as tipFields">
-                    <span class="option-hover-tooltip-stack">
-                      <div class="option-hover-tooltip-field" *ngFor="let field of tipFields">
-                        <div class="option-hover-tooltip-field-label">{{ field.label }}</div>
-                        <div class="option-hover-tooltip-field-value">{{ field.value }}</div>
-                      </div>
-                    </span>
-                  </span>
                 </div>
-                <div class="option-set-default">
-                  <input
-                    type="checkbox"
-                    [id]="defaultCheckboxId(option)"
-                    [checked]="option.isDefault"
-                    (change)="toggleDefaultForOption(option, $event)"
-                    [attr.aria-labelledby]="defaultCheckboxLabelId(option)" />
-                  <label
-                    [for]="defaultCheckboxId(option)"
-                    [id]="defaultCheckboxLabelId(option)"
-                    class="option-set-default-label">
-                    Set as default
-                  </label>
+                <div class="option-set-default-block">
+                  <div class="option-details-wrap">
+                    <button
+                      type="button"
+                      class="option-details-btn"
+                      (click)="toggleDetailsTooltip(option, $event)"
+                      [attr.aria-expanded]="isDetailsTooltipOpen(option)">
+                      Show saved selections
+                    </button>
+                    <div
+                      class="saved-view-details-panel"
+                      *ngIf="isDetailsTooltipOpen(option) && savedViewHoverTooltipFields(option) as tipFields"
+                      role="region"
+                      [attr.aria-label]="'Saved selections for ' + option.name">
+                      <div class="saved-view-details-panel__stack">
+                        <div class="saved-view-details-field" *ngFor="let field of tipFields">
+                          <div class="saved-view-details-field__label">{{ field.label }}</div>
+                          <div class="saved-view-details-field__value">{{ field.value }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="option-set-default">
+                    <input
+                      type="checkbox"
+                      [id]="defaultCheckboxId(option)"
+                      [checked]="option.isDefault"
+                      (change)="toggleDefaultForOption(option, $event)"
+                      [attr.aria-labelledby]="defaultCheckboxLabelId(option)" />
+                    <label
+                      [for]="defaultCheckboxId(option)"
+                      [id]="defaultCheckboxLabelId(option)"
+                      class="option-set-default-label">
+                      Set as default
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

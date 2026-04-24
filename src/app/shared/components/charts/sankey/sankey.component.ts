@@ -591,6 +591,38 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
     }
 
+    /**
+     * Places the sankey tooltip near the pointer and keeps it within the viewport
+     * (e.g. when hovering the rightmost column).
+     */
+    private positionSankeyTooltip(
+      event: MouseEvent,
+      tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
+    ): void {
+      const pad = 12;
+      const margin = 8;
+      const el = tooltip.node();
+      if (!el) return;
+      let left = event.clientX + pad;
+      let top = event.clientY - 10;
+      tooltip.style('left', `${left}px`).style('top', `${top}px`);
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      if (left + w > window.innerWidth - margin) {
+        left = event.clientX - w - pad;
+      }
+      if (left < margin) {
+        left = margin;
+      }
+      if (top + h > window.innerHeight - margin) {
+        top = event.clientY - h - 10;
+      }
+      if (top < margin) {
+        top = margin;
+      }
+      tooltip.style('left', `${left}px`).style('top', `${top}px`);
+    }
+
   // -----------------------------------------
   // MAIN FUNCTION
   // -----------------------------------------
@@ -644,7 +676,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .append('div')
       .attr('id', this.tooltipId)
       .attr('class', 'sankey-tooltip')
-      .style('position', 'absolute')
+      .style('position', 'fixed')
       .style('background-color', tooltipBg)
       .style('color', tooltipText)
       .style('border', `1px solid ${tooltipBorder}`)
@@ -809,7 +841,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     const leftMargin = 8;   // Minimal padding so edge labels aren’t clipped
-    const rightMargin = 8;
+    // Extra right inset so the last column, hover stroke, and link highlight aren’t flush/cut off
+    const rightMargin = 24;
     const topMargin = 15;   // Small padding at top (Outflows/Inflows labels are outside chart)
     const bottomMargin = 50;
 
@@ -1099,12 +1132,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
         
         tooltip
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 10) + 'px')
           .style('opacity', '1')
           .style('display', 'block')
           .html(tooltipHtml);
-        
+        component.positionSankeyTooltip(event, tooltip);
+
         // Highlight the hovered link
         d3.select(this)
           .attr('opacity', 1)
@@ -1119,9 +1151,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .attr('opacity', 0.2);
       })
       .on('mousemove', function(event) {
-        tooltip
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 10) + 'px');
+        component.positionSankeyTooltip(event, tooltip);
       })
       .on('mouseout', function() {
         tooltip.style('opacity', '0').style('display', 'none');
@@ -1365,12 +1395,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
         
         tooltip
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 10) + 'px')
           .style('opacity', '1')
           .style('display', 'block')
           .html(tooltipHtml);
-        
+        component.positionSankeyTooltip(event, tooltip);
+
         // Highlight the hovered node (hover styles in SCSS; for nodes with custom fill use brighter stroke)
         const sel = d3.select(this);
         const displayStyle = getNodeDisplayStyle(node.name);
@@ -1414,9 +1443,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           .attr('opacity', 0.15);
       })
       .on('mousemove', function(event) {
-        tooltip
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 10) + 'px');
+        component.positionSankeyTooltip(event, tooltip);
       })
       .on('mouseout', function(event, d) {
         tooltip.style('opacity', '0').style('display', 'none');

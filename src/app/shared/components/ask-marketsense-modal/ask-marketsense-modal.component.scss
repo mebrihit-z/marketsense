@@ -102,11 +102,22 @@
   transition: opacity 0.2s, background-color 0.2s;
   color: $text-midnight-blue;
 
-  &:hover:not(.close-btn) {
-    
+  img {
+    transition: filter 0.15s ease;
   }
 
-  &.close-btn:hover {
+  &:hover,
+  &:focus-visible {
+    img {
+      // Stroke icons are <img> SVG; approximate bolder strokes via tiny drop-shadows
+      filter: drop-shadow(0.5px 0 0 $text-midnight-blue)
+        drop-shadow(-0.5px 0 0 $text-midnight-blue) drop-shadow(0 0.5px 0 $text-midnight-blue)
+        drop-shadow(0 -0.5px 0 $text-midnight-blue);
+    }
+  }
+
+  &.close-btn:hover,
+  &.close-btn:focus-visible {
     background: transparent;
     background-color: transparent;
   }
@@ -122,7 +133,14 @@
   display: block;
   flex-shrink: 0;
 }
-
+.expanded-close-icon{
+  width: 36px;
+  height: 36px;
+}
+.maximize-icon{
+  width: 20px;
+  height: 20px;
+}
 .close-x-icon__path {
   transition: stroke-width 0.2s ease;
 }

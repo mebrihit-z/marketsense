@@ -67,8 +67,20 @@
   transition: opacity 0.2s;
   padding: 0;
 
-  &:hover {
-    background-color: $window-btn-hover-background;
+  .close-icon {
+    display: block;
+    transition: filter 0.15s ease;
+  }
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+
+    .close-icon {
+      filter: drop-shadow(0.5px 0 0 $text-midnight-blue)
+        drop-shadow(-0.5px 0 0 $text-midnight-blue) drop-shadow(0 0.5px 0 $text-midnight-blue)
+        drop-shadow(0 -0.5px 0 $text-midnight-blue);
+    }
   }
 }
 

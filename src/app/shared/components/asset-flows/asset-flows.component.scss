@@ -25,7 +25,14 @@
     padding: 16px;
   }
 }
-
+.download-icon{
+  width: 22px;
+  height: 22px;
+}
+.pinned-icon{
+  width: 30px;
+  height: 30px;
+}
 .visualization-container {
   padding: 16px 12px;
   width: 100%;
@@ -206,14 +213,18 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: $overlay-light;
-  }
 
   img {
-    transition: filter 0.2s;
+    transition: filter 0.15s ease;
+  }
+
+  &:hover,
+  &:focus-visible {
+    img {
+      filter: drop-shadow(0.5px 0 0 $text-midnight-blue)
+        drop-shadow(-0.5px 0 0 $text-midnight-blue) drop-shadow(0 0.5px 0 $text-midnight-blue)
+        drop-shadow(0 -0.5px 0 $text-midnight-blue);
+    }
   }
 }
 

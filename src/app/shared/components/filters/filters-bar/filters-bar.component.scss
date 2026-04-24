@@ -44,9 +44,20 @@
         margin: 4px 16px 6px;
     }
 
+    // Nesting: a later `.view-filters-label` rule would always win for the span, so the label
+    // must be styled under this block for hover text/background to apply.
+    .view-filters-label {
+        color: $white;
+    }
+
     &:hover {
-        font-weight: 700;
-        
+        // Distinct from dashboard strip (#e9f7ff) and from $sticky-btn-hover-background / $bg-sky-blue,
+        // so the hover state is actually visible; white label stays readable.
+        background-color: $sticky-btn-hover-background;
+        color: $text-midnight-blue;
+        .view-filters-label {
+            color: $text-midnight-blue;
+        }
     }
 }
 
@@ -1234,8 +1245,5 @@
         margin-bottom: 12px;
         gap: 10px;
     }
-}
-.view-filters-label{
-    color: $primary-colors-sky-blue;
 }
 

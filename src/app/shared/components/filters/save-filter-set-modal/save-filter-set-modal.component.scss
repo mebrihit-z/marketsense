@@ -101,11 +101,25 @@
   background: none;
   border: none;
   cursor: pointer;
+  color: $text-midnight-blue;
   display: flex;
   align-items: center;
   justify-content: center;
-  &:hover {
-    background-color: $window-btn-hover-background;
+  padding: 0;
+  flex-shrink: 0;
+
+  .close-icon {
+    display: block;
+    transition: filter 0.15s ease;
+  }
+
+  &:hover,
+  &:focus-visible {
+    .close-icon {
+      filter: drop-shadow(0.5px 0 0 $text-midnight-blue)
+        drop-shadow(-0.5px 0 0 $text-midnight-blue) drop-shadow(0 0.5px 0 $text-midnight-blue)
+        drop-shadow(0 -0.5px 0 $text-midnight-blue);
+    }
   }
 }
 

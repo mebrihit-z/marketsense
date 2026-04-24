@@ -3,7 +3,7 @@
     <!-- Window Controls - Always visible -->
     <div class="window-controls">
       <button class="window-btn maximize-btn" (click)="toggleCollapse()" [attr.aria-label]="isCollapsed ? 'Expand' : 'Collapse'">
-        <img src="assets/icons/maximize-icon.svg" alt="Maximize" />
+        <img src="assets/icons/maximize-icon.svg" alt="Maximize" class="maximize-icon"/>
       </button>
       <button class="window-btn close-btn" (click)="onClose()" aria-label="Close" type="button">
         <img src="assets/icons/x-icon.svg" alt="Close" class="expanded-close-icon"/>
@@ -53,7 +53,7 @@
     </div>
 
     <div class="horizontal-divider"></div>
-    <!-- Main Content - New Question (context scrolls with conversation when there are analyses, not fixed above) -->
+    <!-- Main Content - New Question (context banner only before first response; conversation scrolls after) -->
     <div class="main-content" *ngIf="activeTab === 'new-question'">
       <ng-container *ngIf="!hasDisplayAnalyses; else withAnalyses">
         <ng-container *ngTemplateOutlet="cardContextBanner" />
@@ -97,7 +97,6 @@
       <!-- STATE 2: After first question - analysis scrolls; follow-up at bottom of column -->
       <ng-template #withAnalyses>
         <div class="scrollable-content" #conversationScrollContainer>
-          <ng-container *ngTemplateOutlet="cardContextBanner" />
           <ng-container *ngFor="let analysis of displayAnalyses; let i = index">
             <!-- Question Section -->
             <section class="analysis-section question-section">
