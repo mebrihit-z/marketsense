@@ -464,7 +464,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
         this.updateSankeyData();
       }
     }
-    this.emitChartDimensionsSnapshot();
+    // Defer so parent (filters bar bindings) is not updated mid–change detection (NG0100)
+    queueMicrotask(() => this.emitChartDimensionsSnapshot());
   }
 
   /**

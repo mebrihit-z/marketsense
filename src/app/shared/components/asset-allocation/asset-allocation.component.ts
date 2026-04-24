@@ -209,7 +209,8 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         changes['totalInvestorRegions'] || changes['totalInvestorTypes'] ||
         changes['totalProductRegions']) {
       this.updateDimensions();
-      this.emitChartDimensionsSnapshot();
+      // Defer so parent (filters bar bindings) is not updated mid–change detection (NG0100)
+      queueMicrotask(() => this.emitChartDimensionsSnapshot());
     }
 
     // Handle data updates when filters or time horizon change (match asset-flows / filter bar)

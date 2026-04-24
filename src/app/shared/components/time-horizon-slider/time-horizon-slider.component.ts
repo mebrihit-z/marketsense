@@ -1,5 +1,7 @@
 /* eslint-disable */
 import {
+  AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -32,8 +34,13 @@ export interface TimeHorizonRangeIndices {
   templateUrl: './time-horizon-slider.component.html',
   styleUrl: './time-horizon-slider.component.scss',
 })
-export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges {
-  constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
+export class TimeHorizonSliderComponent
+  implements OnInit, AfterViewInit, OnDestroy, OnChanges
+{
+  constructor(
+    private readonly historicAnchor: AssetFlowHistoricAnchorService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   private static readonly AXIS_INSET_DESKTOP_PX = 14;
   private static readonly AXIS_INSET_MOBILE_PX = 8;
@@ -61,6 +68,8 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
     typeof window !== 'undefined' &&
     window.innerWidth <= TimeHorizonSliderComponent.COMPACT_AXIS_MAX_INNER_WIDTH_PX;
   private sliderTrackWidthFallback = 620;
+  /** Set from the slider container in a microtask so layout + dev-mode CD see a stable width (NG0100). */
+  private sliderOuterWidthCache = 620;
   private isDragging = false;
   private dragType: 'start' | 'end' | null = null;
   private hasDragged = false;
@@ -79,6 +88,15 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
       document.addEventListener('touchstart', this.documentCaptureListener, true);
     }
     this.refreshCompactAxis();
+  }
+
+  ngAfterViewInit(): void {
+    // Reading getBoundingClientRect in the same CD pass as the first paint can differ between
+    // dev-mode’s double check; defer the first real measure until after the current turn.
+    queueMicrotask(() => {
+      this.syncSliderOuterWidthFromElement();
+      this.cdr.markForCheck();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -109,6 +127,8 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
   @HostListener('window:resize')
   onWindowResize(): void {
     this.refreshCompactAxis();
+    this.syncSliderOuterWidthFromElement();
+    this.cdr.markForCheck();
   }
 
   private refreshCompactAxis(): void {
@@ -168,10 +188,15 @@ export class TimeHorizonSliderComponent implements OnInit, OnDestroy, OnChanges 
     return inset + (index / numSteps) * trackWidth;
   }
 
-  private getSliderOuterWidthPx(): number {
+  private syncSliderOuterWidthFromElement(): void {
     const el = this.sliderContainerRef?.nativeElement;
-    if (el) return Math.max(0, el.getBoundingClientRect().width);
-    return this.sliderTrackWidthFallback;
+    if (!el) return;
+    const w = el.getBoundingClientRect().width;
+    if (w > 0) this.sliderOuterWidthCache = w;
+  }
+
+  private getSliderOuterWidthPx(): number {
+    return this.sliderOuterWidthCache;
   }
 
   private getAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
