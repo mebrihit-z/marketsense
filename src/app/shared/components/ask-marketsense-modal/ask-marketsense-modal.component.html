@@ -53,20 +53,10 @@
     </div>
 
     <div class="horizontal-divider"></div>
-    <!-- Main Content - New Question (context strip sits just below the gold line, above inputs — see mock) -->
+    <!-- Main Content - New Question (context scrolls with conversation when there are analyses, not fixed above) -->
     <div class="main-content" *ngIf="activeTab === 'new-question'">
-      <div
-        *ngIf="bannerCardTitle"
-        class="card-context-banner"
-        role="status"
-        [attr.aria-label]="'Asking in context: ' + bannerCardTitle">
-        <span class="card-context-eyebrow">Context</span>
-        <p class="card-context-body">
-          You're asking about {{ bannerCardTitle }}. What would you like to know about this product sub-type?
-        </p>
-      </div>
-      <!-- STATE 1: Before first question - input at the top -->
       <ng-container *ngIf="!hasDisplayAnalyses; else withAnalyses">
+        <ng-container *ngTemplateOutlet="cardContextBanner" />
         <div class="input-section">
           <div class="input-wrapper">
             <textarea 
@@ -104,9 +94,10 @@
         </div>
       </ng-container>
 
-      <!-- STATE 2: After first question - analysis scrolls, input sticks to bottom -->
+      <!-- STATE 2: After first question - analysis scrolls; follow-up at bottom of column -->
       <ng-template #withAnalyses>
         <div class="scrollable-content">
+          <ng-container *ngTemplateOutlet="cardContextBanner" />
           <ng-container *ngFor="let analysis of displayAnalyses; let i = index">
             <!-- Question Section -->
             <section class="analysis-section question-section">
@@ -270,6 +261,21 @@
           </div>
         </div>
         <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+      </ng-template>
+
+      <ng-template #cardContextBanner>
+        <div
+          *ngIf="bannerCardTitle"
+          class="card-context-banner"
+          role="status"
+          [attr.aria-label]="'Context. You are asking about ' + bannerCardTitle + ' — product sub-type context.'">
+          <span class="card-context-header">Context</span>
+          <p class="card-context-line">
+            <span>You're asking about </span>
+            <strong class="card-context-name">{{ bannerCardTitle }}</strong>
+            <span>. What would you like to know about this product sub-type?</span>
+          </p>
+        </div>
       </ng-template>
     </div>
 

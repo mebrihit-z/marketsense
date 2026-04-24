@@ -131,39 +131,45 @@
   stroke-width: 2.1;
 }
 
-// Below gold horizontal line, above the ask input (when opened from a flow card)
+// “From this card” panel: cream background, gold left rail, label + bold title
 .card-context-banner {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   max-width: 100%;
   margin: 0 0 12px 0;
-  padding: 12px 14px;
+  padding: 12px 16px 12px 14px;
   box-sizing: border-box;
   flex-shrink: 0;
   background-color: $neutral-colors-neutral-250;
-  border-radius: 4px;
-  border: 1px solid $secondary-colors-gold-250;
+  border-left: 5px solid $secondary-colors-gold-750;
+  border-radius: 0 4px 4px 0;
 }
 
-.card-context-eyebrow {
+.card-context-header {
+  display: block;
   font-weight: 600;
   font-size: 11px;
   line-height: 16px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: $text-neutral-750;
+  color: $text-midnight-blue;
 }
 
-.card-context-body {
+.card-context-line {
   margin: 0;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   color: $text-midnight-blue;
   word-wrap: break-word;
+}
+
+.card-context-line .card-context-name {
+  font-weight: 700;
+  color: $text-midnight-blue;
 }
 
 // Header
