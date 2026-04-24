@@ -1,25 +1,24 @@
 /* eslint-disable */
 
-const COMPACT_SCALE_EPS = 1e-6;
+/** One fraction digit, stable (avoids 184.80000000003-style float rendering). */
+function formatOneDecimalString(n: number): string {
+  return n.toFixed(1);
+}
 
 /**
- * Scaled mantissa for SI-style compact currency (base 1000): exactly **one** fraction digit.
- * If half-up rounding would imply more dollars than {@link absDollars}, uses floor at
- * 1 decimal instead so values like 999,950 do not become $1,000K.
+ * Scaled mantissa for SI-style compact currency (base 1000): **one** fraction digit.
+ * When half-up rounding would show **1000.0X** (e.g. 999,950 → $1000.0K), floor to the
+ * same precision so the label does not read as the next full unit. We do **not** otherwise
+ * cap by {@link absDollars}: e.g. $3.4B is normal rounding of ~$3.39B, not a claim to ≥ $3.4B.
  */
 function formatCompactUsdMantissa(absDollars: number, divisor: number, suffix: string): string {
   const scaled = absDollars / divisor;
   const quantum = 10;
   let mantissa = Math.round(scaled * quantum) / quantum;
-  if (mantissa * divisor > absDollars + COMPACT_SCALE_EPS) {
+  if (mantissa >= 1000) {
     mantissa = Math.floor(scaled * quantum + 1e-9) / quantum;
   }
-  const num = mantissa.toLocaleString('en-US', {
-    useGrouping: false,
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  return `$${num}${suffix}`;
+  return `$${formatOneDecimalString(mantissa)}${suffix}`;
 }
 
 /**
@@ -41,7 +40,8 @@ export function formatFlowCurrencyUsd(valueDollars: number): string {
   } else if (abs >= 1_000) {
     core = formatCompactUsdMantissa(abs, 1_000, 'K');
   } else {
-    const formatted = abs.toLocaleString('en-US', {
+    const rounded = Number.parseFloat(formatOneDecimalString(abs));
+    const formatted = rounded.toLocaleString('en-US', {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     });
