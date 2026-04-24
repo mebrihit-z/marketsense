@@ -815,6 +815,24 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     return item.key;
   }
 
+  isDimension1InvestorRegion(): boolean {
+    return this.selectedDimension1?.id === 'investor-region';
+  }
+
+  /**
+   * With Dimension 1 = investor region, each row is scoped by a non-empty super list.
+   * For any other Dimension 1, the combined treemap uses an empty super list; visibility must depend on data.
+   */
+  isTreemapRowVisible(item: { data: SankeyData; investorRegions: string[] }): boolean {
+    const d = item?.data;
+    if (!d) return false;
+    const hasPayload = (d.links?.length ?? 0) > 0 || (d.nodes?.length ?? 0) > 0;
+    if (this.isDimension1InvestorRegion()) {
+      return item.investorRegions.length > 0 && hasPayload;
+    }
+    return hasPayload;
+  }
+
   /**
    * Filters asset flows data based on the selected time horizon range
    * If start and end are provided, filters data between those dates (inclusive)

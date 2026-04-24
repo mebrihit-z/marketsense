@@ -169,10 +169,21 @@ app-treemap {
         0 4px 16px rgba(15, 23, 42, 0.1),
         0 0 0 1px rgba(15, 23, 42, 0.04);
       opacity: 0;
-      transform: translate(10px, 10px);
+      transform: none;
       max-width: min(90vw, 520px);
       z-index: 10000;
     }
   }
+}
+
+// Appended to document.body (escapes treemap scroll/overflow). D3 also sets most styles inline.
+.treemap-floating-tooltip {
+  position: fixed;
+  pointer-events: none;
+  box-sizing: border-box;
+  max-width: min(90vw, 520px);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  z-index: 100000;
 }
 

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewEncapsulation, HostListener } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import {
@@ -56,6 +56,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
    */
   @Input() dataUrl?: string;
   @Input() selectedInvestorRegions: string[] = [];
+  /**
+   * When true (default), an empty `selectedInvestorRegions` means “no super slice” and the chart is cleared.
+   * When false, empty super list is ignored and `filterSankeyData` runs with no super filter (data is already scoped).
+   * Asset allocation uses false when Dimension 1 is not investor region.
+   */
+  @Input() useSuperListFilter: boolean = true;
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
   /** Minimum flow value in billions ($B); links below this are hidden when greater than 0. */
@@ -75,6 +81,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   private rawAssetFlowsData?: AssetFlowRecord[];
   private resizeObserver?: ResizeObserver;
 
+  private static bodyTooltipIdSeq = 0;
+  /** One portal tooltip per instance so multiple treemaps on the page do not clash. */
+  private readonly bodyTooltipId = `treemap-body-tt-${++TreemapComponent.bodyTooltipIdSeq}`;
+
   constructor(
     private el: ElementRef,
     private http: HttpClient,
@@ -90,6 +100,146 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       if (value) return value;
     }
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  @HostListener('window:blur')
+  onWindowBlur(): void {
+    this.hideTreemapTooltipAndHighlights();
+  }
+
+  private removeBodyTooltipIfPresent(): void {
+    document.getElementById(this.bodyTooltipId)?.remove();
+  }
+
+  /**
+   * True when the hovered cell sits on the right half of the treemap — tooltip opens to the left of the pointer.
+   */
+  private shouldAnchorTooltipLeftOfPointer(anchorCell: HTMLElement | null): boolean {
+    if (!anchorCell) return false;
+    const chart = this.el?.nativeElement?.querySelector?.('.chart-container') as HTMLElement | null;
+    if (!chart) return false;
+    const cr = chart.getBoundingClientRect();
+    if (cr.width <= 0) return false;
+    const ar = anchorCell.getBoundingClientRect();
+    const cellCenterX = ar.left + ar.width / 2;
+    const chartMidX = cr.left + cr.width / 2;
+    return cellCenterX >= chartMidX;
+  }
+
+  /**
+   * Places a fixed-position tooltip near the pointer and nudges it so it stays
+   * inside the layout viewport (avoids right/bottom clipping from scroll parents).
+   * Tooltip is attached to `document.body` to escape `overflow: auto` on treemap parents.
+   *
+   * @param anchorCell The hovered `.node` (or its wrapper); used to flip tooltip to the left of the cursor on the right side of the chart.
+   */
+  private positionTreemapTooltipElement(
+    tooltipEl: HTMLElement,
+    event: MouseEvent,
+    anchorCell: HTMLElement | null = null
+  ): void {
+    const pad = 12;
+    const offX = 10;
+    const offY = 10;
+    const vv = window.visualViewport;
+    const vw = (vv?.width ?? window.innerWidth) || 400;
+    const vh = (vv?.height ?? window.innerHeight) || 300;
+    const maxW = Math.max(100, Math.min(520, vw * 0.9, vw - 2 * pad));
+    tooltipEl.style.boxSizing = 'border-box';
+    tooltipEl.style.maxWidth = `${maxW}px`;
+    tooltipEl.style.wordBreak = 'break-word';
+    tooltipEl.style.overflowWrap = 'anywhere';
+
+    const useLeftOfPointer = this.shouldAnchorTooltipLeftOfPointer(anchorCell);
+
+    const measureAndClamp = (clientX: number, clientY: number): void => {
+      if (useLeftOfPointer) {
+        tooltipEl.style.left = '-9999px';
+        tooltipEl.style.top = `${clientY + offY}px`;
+        const tw = tooltipEl.getBoundingClientRect().width;
+        let left = clientX - offX - tw;
+        let top = clientY + offY;
+        tooltipEl.style.left = `${left}px`;
+        tooltipEl.style.top = `${top}px`;
+        const r = tooltipEl.getBoundingClientRect();
+        if (r.left < pad) {
+          left = pad;
+        }
+        if (r.right > vw - pad) {
+          left = vw - pad - r.width;
+        }
+        top = r.top;
+        if (r.bottom > vh - pad) {
+          top = vh - pad - r.height;
+        }
+        if (top < pad) {
+          top = pad;
+        }
+        tooltipEl.style.left = `${left}px`;
+        tooltipEl.style.top = `${top}px`;
+        return;
+      }
+
+      tooltipEl.style.left = `${clientX + offX}px`;
+      tooltipEl.style.top = `${clientY + offY}px`;
+      const r = tooltipEl.getBoundingClientRect();
+      let left = r.left;
+      let top = r.top;
+      if (r.right > vw - pad) {
+        left = vw - pad - r.width;
+      }
+      if (left < pad) {
+        left = pad;
+      }
+      if (r.bottom > vh - pad) {
+        top = vh - pad - r.height;
+      }
+      if (top < pad) {
+        top = pad;
+      }
+      tooltipEl.style.left = `${left}px`;
+      tooltipEl.style.top = `${top}px`;
+    };
+
+    measureAndClamp(event.clientX, event.clientY);
+    const r1 = tooltipEl.getBoundingClientRect();
+    if (r1.right > vw - pad + 0.5) {
+      tooltipEl.style.maxWidth = `${Math.max(100, Math.floor(vw - 2 * pad - 1))}px`;
+      measureAndClamp(event.clientX, event.clientY);
+    }
+  }
+
+  /**
+   * Hides the floating tooltip and clears node highlights. Used as a catch-all when
+   * per-cell mouseleave does not run (e.g. parent cells use pointer-events: none) or
+   * when the window loses focus (stuck tooltip after Alt-Tab).
+   */
+  private hideTreemapTooltipAndHighlights(): void {
+    const host = this.el?.nativeElement as HTMLElement | undefined;
+    if (!host) return;
+    const container = host.querySelector('.chart-container') as HTMLElement | null;
+    if (!container) return;
+    const tip = document.getElementById(this.bodyTooltipId);
+    if (tip) {
+      tip.style.setProperty('opacity', '0');
+      tip.style.setProperty('visibility', 'hidden');
+    }
+    for (const nodeEl of Array.from(
+      container.querySelectorAll<HTMLElement>('div.node')
+    )) {
+      if (!nodeEl.classList.contains('highlighted')) continue;
+      nodeEl.classList.remove('highlighted');
+      const depth = parseInt(nodeEl.getAttribute('data-treemap-depth') || '0', 10);
+      nodeEl.style.zIndex = String(1000 + depth);
+      nodeEl.style.boxShadow = 'none';
+      if (depth === 3) {
+        nodeEl.style.borderWidth = '2px';
+        nodeEl.style.borderColor = '#F5F1EB';
+      } else {
+        nodeEl.style.borderWidth = '1px';
+        nodeEl.style.borderColor = 'rgba(0,0,0,0.12)';
+      }
+    }
   }
 
   ngAfterViewInit(): void {
@@ -112,6 +262,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     
     // Handle filter changes - check if any filter input changed
     const filterChanged = changes['selectedInvestorRegions'] || 
+                          changes['useSuperListFilter'] ||
                           changes['selectedProductTypes'] || 
                           changes['selectedProductSubTypes'] ||
                           changes['minFlowValue'] ||
@@ -139,6 +290,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnDestroy(): void {
+    this.removeBodyTooltipIfPresent();
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
@@ -251,8 +403,12 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (!this.originalData) {
       return;
     }
-    // When no investor regions are selected, treat as no data for this treemap.
-    if (this.selectedInvestorRegions && this.selectedInvestorRegions.length === 0) {
+    // When no super list is selected, treat as no data (unless data is pre-scoped: useSuperListFilter = false).
+    if (
+      this.useSuperListFilter &&
+      this.selectedInvestorRegions &&
+      this.selectedInvestorRegions.length === 0
+    ) {
       this.loadedData = {
         nodes: [],
         links: [],
@@ -546,6 +702,36 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
   }
 
+  /**
+   * Makes each Dimension-1 (superparent) row the same vertical share of the chart.
+   * Otherwise tiny-flow regions get paper-thin bands and headers overlap neighbors.
+   * Relative sizes within a region are preserved; only the split between regions changes.
+   */
+  private equalizeSuperparentBandWeights(hierarchy: TreemapNodeData): void {
+    const supers = hierarchy.children;
+    if (!supers || supers.length <= 1) return;
+    for (const sp of supers) {
+      const leaves: TreemapNodeData[] = [];
+      this.collectLeafNodes(sp, leaves);
+      if (leaves.length === 0) continue;
+      let sum = 0;
+      for (const L of leaves) {
+        sum += Math.max(0, +(L.layoutValue ?? 0));
+      }
+      if (sum <= 0) {
+        const u = 1 / leaves.length;
+        for (const L of leaves) {
+          L.layoutValue = u;
+        }
+        continue;
+      }
+      const scale = 1 / sum;
+      for (const L of leaves) {
+        L.layoutValue = Math.max(0, +(L.layoutValue ?? 0)) * scale;
+      }
+    }
+  }
+
   private buildHierarchy(sankeyData: SankeyDataLocal): TreemapNodeData {
     // Map SubAsset -> Parent per SuperParent
     const outParentOf = new Map<string, string>();
@@ -821,6 +1007,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private createTreemap(): void {
+    this.removeBodyTooltipIfPresent();
     const container = this.el.nativeElement.querySelector('.chart-container') as HTMLElement;
     if (!container) {
       console.error('ReallocationTreemap: Chart container not found');
@@ -837,6 +1024,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     const hierarchy = this.buildHierarchy(this.loadedData);
     this.applyCellSizeBounds(hierarchy);
+    this.equalizeSuperparentBandWeights(hierarchy);
     
     if (!hierarchy.children || hierarchy.children.length === 0) {
       console.warn('ReallocationTreemap: Hierarchy has no children', hierarchy);
@@ -847,13 +1035,18 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Get container dimensions or use defaults
     const containerWidth = container.parentElement?.clientWidth || container.offsetWidth || 1800;
     const width = Math.max(containerWidth - 40, 800); // Account for padding
-    // Scale height by number of investor regions so all data values are visible: 1 region = compact, 2 = medium, 3+ = larger
+    // Scale height by number of superparents (Dimension 1). Each band needs a minimum pixel height
+    // so region titles stay readable; do not hard-cap too low when there are many regions.
     const baseHeight = Math.round(width * (380 / 1800) + 200);   // ~580px at 1800 width for 1 region
     const perRegionExtra = Math.round(width * (220 / 1800) + 120); // ~340px extra per additional region
+    const MIN_SUPERPARENT_BAND_PX = 128;
+    const heightFromMinBands = numRegions * MIN_SUPERPARENT_BAND_PX + 48;
+    const formulaHeight = Math.max(420, baseHeight + (numRegions - 1) * perRegionExtra);
+    const softMaxHeight = Math.min(12000, Math.round(Math.max(width, containerWidth) * 6));
     const height = Math.min(
-      Math.max(420, baseHeight + (numRegions - 1) * perRegionExtra),
-      1600
-    ); // min 420, cap 1600
+      softMaxHeight,
+      Math.max(formulaHeight, heightFromMinBands)
+    );
 
     const root = d3.hierarchy(hierarchy)
       .sum(d => (d && !d.children && d.layoutValue != null) ? d.layoutValue : 0);
@@ -867,7 +1060,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       })
       .paddingOuter(4)
       .paddingTop((d) => {
-        if (d.depth === 1) return 30;
+        // Reserve a clear strip for the Dimension-1 (superparent) title on each horizontal band
+        if (d.depth === 1) return numRegions > 10 ? 38 : 34;
         if (d.depth === 2) return 24;
         // Increase padding for depth 3 nodes with children to accommodate multi-line labels when needed
         if (d.depth === 3) return d.children && d.children.length > 0 ? 45 : 20;
@@ -894,9 +1088,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.getCssVariable('--treemap-tooltip-text') || '#0a0a0a';
     const tooltipBorder =
       this.getCssVariable('--treemap-tooltip-border') || 'rgba(10, 10, 10, 0.12)';
-    const tooltip = d3.select(container)
+    const tooltip = d3
+      .select('body')
       .append('div')
-      .attr('class', 'tooltip')
+      .attr('id', this.bodyTooltipId)
+      .attr('class', 'treemap-floating-tooltip tooltip')
       .style('position', 'fixed')
       .style('pointer-events', 'none')
       .style('background', tooltipBg)
@@ -905,20 +1101,29 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('padding', '10px 14px')
       .style('font-size', '14px')
       .style('line-height', '1.45')
+      .style('box-sizing', 'border-box')
+      .style('word-break', 'break-word')
+      .style('overflow-wrap', 'anywhere')
       .style(
         'box-shadow',
         '0 4px 16px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.04)'
       )
       .style('opacity', '0')
-      .style('transform', 'translate(10px, 10px)')
+      .style('visibility', 'hidden')
+      .style('transform', 'none')
       .style('max-width', 'min(90vw, 520px)')
-      .style('z-index', '10000');
+      .style('z-index', '100000');
+
+    d3.select(container).on('mouseleave.treemap', () => {
+      this.hideTreemapTooltipAndHighlights();
+    });
 
     const nodes = chartDiv.selectAll('div.node')
       .data(root.descendants().filter(d => d.depth > 0))
       .enter()
       .append('div')
       .attr('class', 'node')
+      .attr('data-treemap-depth', (d) => d.depth)
       .classed('superparent', d => d.depth === 1)
       .classed('group', d => d.depth === 2)
       .classed('parent', d => d.depth === 3 && !!d.children)
@@ -1176,10 +1381,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
         const timeHorizonDisplay = component.getTimeHorizonDisplayString();
         const sampleSize = component.sumNClientsInSubtree(d as TreemapHierarchyNode);
-        tooltip.style('opacity', '1');
-        tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay, sampleSize));
-        tooltip.style('left', event.clientX + 'px');
-        tooltip.style('top', event.clientY + 'px');
+        tooltip
+          .style('opacity', '1')
+          .style('visibility', 'visible')
+          .html(component.buildTooltipHtml(path, value, timeHorizonDisplay, sampleSize));
+        component.positionTreemapTooltipElement(
+          tooltip.node() as HTMLElement,
+          event,
+          this.parentNode as HTMLElement
+        );
 
         d3.select(this.parentNode as HTMLDivElement)
           .classed('highlighted', true)
@@ -1192,7 +1402,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
           .style('z-index', '2000');
       })
       .on('mouseleave', function(event: MouseEvent, d) {
-        tooltip.style('opacity', '0');
+        tooltip.style('opacity', '0').style('visibility', 'hidden');
         d3.select(this.parentNode as HTMLDivElement)
           .classed('highlighted', false)
           .style('border-width', () => {
@@ -1241,17 +1451,22 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     nodes.on('mousemove', function(event: MouseEvent, d) {
       if (d.depth === 1) {
-        tooltip.style('opacity', '0');
+        tooltip.style('opacity', '0').style('visibility', 'hidden');
         return;
       }
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
       const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
       const timeHorizonDisplay = component.getTimeHorizonDisplayString();
       const sampleSize = component.sumNClientsInSubtree(d as TreemapHierarchyNode);
-      tooltip.style('opacity', '1');
-      tooltip.html(component.buildTooltipHtml(path, value, timeHorizonDisplay, sampleSize));
-      tooltip.style('left', event.clientX + 'px');
-      tooltip.style('top', event.clientY + 'px');
+      tooltip
+        .style('opacity', '1')
+        .style('visibility', 'visible')
+        .html(component.buildTooltipHtml(path, value, timeHorizonDisplay, sampleSize));
+      component.positionTreemapTooltipElement(
+        tooltip.node() as HTMLElement,
+        event,
+        this as HTMLElement
+      );
       
       // Highlight the hovered cell
       d3.select(this)
@@ -1266,7 +1481,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     });
 
     nodes.on('mouseleave', function(event: MouseEvent, d) {
-      tooltip.style('opacity', '0');
+      tooltip.style('opacity', '0').style('visibility', 'hidden');
       
       // Remove highlighting from the cell
       d3.select(this)
