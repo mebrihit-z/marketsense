@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core'
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
@@ -65,7 +65,7 @@ export interface AssetFlowData {
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
 })
-export class AssetFlowsComponent implements OnInit, OnChanges {
+export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() selectedProductTypes: string[] = [];
   @Input() selectedProductSubTypes: string[] = [];
   @Input() selectedInvestorRegions: string[] = [];
@@ -124,6 +124,12 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
   
   // Raw asset flows data (before filtering)
   private rawAssetFlowsData: AssetFlowRecord[] | undefined;
+
+  /**
+   * Coalesces `updateSankeyData` in one animation frame when several `@Input`s change together,
+   * without stacking delayed timeouts.
+   */
+  private sankeyDataRefreshRaf: number | null = null;
   
   // Filter options extracted from data
   filterOptions: FilterOptions | undefined;
@@ -317,6 +323,20 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     // Update cached array for template (only when map actually changes)
     this.updateSelectedRegionsArray();
   }
+
+  /**
+   * Schedules a single `updateSankeyData` on the next animation frame; cancels any pending run
+   * so rapid input churn does not stack multiple timeouts.
+   */
+  private queueSankeyDataRefresh(): void {
+    if (this.sankeyDataRefreshRaf != null) {
+      cancelAnimationFrame(this.sankeyDataRefreshRaf);
+    }
+    this.sankeyDataRefreshRaf = requestAnimationFrame(() => {
+      this.sankeyDataRefreshRaf = null;
+      this.updateSankeyData();
+    });
+  }
   
   /**
    * Update the cached selected regions array and region data array (called only when sankeyDataMap changes)
@@ -461,7 +481,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
         changes['selectedProductTypes'] || changes['selectedInvestorTypes'] ||
         changes['selectedProductRegions'] || changes['selectedProductSubTypes']) {
         if (this.rawAssetFlowsData) {
-        this.updateSankeyData();
+        this.queueSankeyDataRefresh();
       }
     }
     // Defer so parent (filters bar bindings) is not updated mid–change detection (NG0100)
@@ -477,7 +497,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
     this.selectedDimension2 = this.resolveSavedDimension(saved.dimension2, 'dimension2');
     this.selectedDimension3 = this.resolveSavedDimension(saved.dimension3, 'dimension3');
     if (this.rawAssetFlowsData) {
-      this.updateSankeyData();
+      this.queueSankeyDataRefresh();
     }
     this.emitChartDimensionsSnapshot();
   }
@@ -605,7 +625,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
 
     // Recompute Sankey data when any flow dimension changes
     if (this.rawAssetFlowsData) {
-      this.updateSankeyData();
+      this.queueSankeyDataRefresh();
     }
     this.emitChartDimensionsSnapshot();
   }
@@ -900,5 +920,12 @@ export class AssetFlowsComponent implements OnInit, OnChanges {
    */
   getFilterOptions(): FilterOptions | undefined {
     return this.filterOptions;
+  }
+
+  ngOnDestroy(): void {
+    if (this.sankeyDataRefreshRaf != null) {
+      cancelAnimationFrame(this.sankeyDataRefreshRaf);
+      this.sankeyDataRefreshRaf = null;
+    }
   }
 }

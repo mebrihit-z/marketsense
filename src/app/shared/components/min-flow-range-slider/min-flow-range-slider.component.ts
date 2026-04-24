@@ -1,6 +1,7 @@
 /* eslint-disable */
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -65,7 +66,10 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   /** Snapshot while dragging so handle positions stay in sync before parent CD runs. */
   private dragSnapshot: MinFlowRange | null = null;
 
-  constructor(private readonly ngZone: NgZone) {}
+  constructor(
+    private readonly ngZone: NgZone,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['options']) return;
@@ -281,20 +285,31 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   onDocumentMove(event: MouseEvent | TouchEvent): void {
     if (!this.isDragging) return;
     if (event.cancelable) event.preventDefault();
-    this.handleDrag(event);
+    // Document listeners run inside NgZone by default → every move ran full-app change detection
+    // while dragging past the Sankey, which could freeze the tab even without rangeChange emits.
+    this.ngZone.runOutsideAngular(() => {
+      this.handleDrag(event);
+      this.cdr.detectChanges();
+    });
   }
 
   @HostListener('document:mouseup')
   @HostListener('document:touchend')
   onDocumentUp(): void {
     if (!this.isDragging) return;
+    const finalRange = this.dragSnapshot
+      ? { startIndex: this.dragSnapshot.startIndex, endIndex: this.dragSnapshot.endIndex }
+      : { startIndex: this.range.startIndex, endIndex: this.range.endIndex };
     this.isDragging = false;
     this.dragType = null;
     this.dragContainer = null;
-    this.dragSnapshot = null;
     if (typeof document !== 'undefined' && document.body) {
       document.body.classList.remove('min-flow-range-dragging');
     }
+    // During drag we only update dragSnapshot so handles move. Emitting rangeChange on every
+    // mousemove was updating Sankey min/max filters each frame → full D3 rebuilds and hangs.
+    this.emitRange(finalRange);
+    this.dragSnapshot = null;
     setTimeout(() => {
       this.hasDragged = false;
     }, 100);
@@ -319,19 +334,15 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     const r = this.dragSnapshot ?? this.range;
 
     if (this.dragType === 'start') {
-      const next = {
+      this.dragSnapshot = {
         startIndex: Math.min(clampedIndex, r.endIndex),
         endIndex: r.endIndex,
       };
-      this.dragSnapshot = next;
-      this.emitRange(next);
     } else {
-      const next = {
+      this.dragSnapshot = {
         startIndex: r.startIndex,
         endIndex: Math.max(clampedIndex, r.startIndex),
       };
-      this.dragSnapshot = next;
-      this.emitRange(next);
     }
 
     this.hasDragged = true;

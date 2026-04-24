@@ -115,6 +115,17 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   private lastDataHash: string = '';
   private lastFiltersHash: string = '';
   private tooltipId: string;
+  /** True after destroy so the global render queue can skip this instance. */
+  private hostDestroyed = false;
+  /** Avoids full rebuild when time inputs are re-written with the same strings. */
+  private lastHorizonInputsKey = '';
+
+  /**
+   * One `createSankey` per animation frame app-wide (deduped per instance) so N regional
+   * charts do not all layout in the same long task ("stacking" / tab freeze).
+   */
+  private static readonly renderQueue: SankeyComponent[] = [];
+  private static pumpRafId: number | null = null;
 
   constructor(
     private el: ElementRef,
@@ -423,11 +434,41 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.loadedData = this.data;
       this.lastDataHash = this.getDataHash(this.data);
       this.lastFiltersHash = this.getFiltersHash();
-      setTimeout(() => {
-        this.createSankey();
-      }, 0);
+      this.scheduleCreateSankey();
     } else {
       
+    }
+  }
+
+  private scheduleCreateSankey(): void {
+    const q = SankeyComponent.renderQueue;
+    const i = q.indexOf(this);
+    if (i >= 0) {
+      q.splice(i, 1);
+    }
+    q.push(this);
+    SankeyComponent.ensurePumpScheduled();
+  }
+
+  private static ensurePumpScheduled(): void {
+    if (SankeyComponent.pumpRafId != null) {
+      return;
+    }
+    SankeyComponent.pumpRafId = requestAnimationFrame(() => SankeyComponent.runPump());
+  }
+
+  private static runPump(): void {
+    SankeyComponent.pumpRafId = null;
+    while (SankeyComponent.renderQueue.length > 0) {
+      const cmp = SankeyComponent.renderQueue.shift()!;
+      if (cmp.hostDestroyed || !cmp.el?.nativeElement) {
+        continue;
+      }
+      cmp.createSankey();
+      break;
+    }
+    if (SankeyComponent.renderQueue.length > 0) {
+      SankeyComponent.ensurePumpScheduled();
     }
   }
 
@@ -455,7 +496,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // Horizon labels affect tooltips; recreate so copy matches the slider.
     if (changes['timeHorizon'] || changes['timeHorizonStart'] || changes['timeHorizonEnd']) {
       if (this.data || this.loadedData) {
-        shouldRecreate = true;
+        const horizonKey = `${this.timeHorizon ?? ''}|${this.timeHorizonStart ?? ''}|${this.timeHorizonEnd ?? ''}`;
+        if (horizonKey !== this.lastHorizonInputsKey) {
+          this.lastHorizonInputsKey = horizonKey;
+          shouldRecreate = true;
+        }
       }
     }
 
@@ -482,9 +527,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Only recreate if something actually changed
     if (shouldRecreate && this.el?.nativeElement) {
-      setTimeout(() => {
-        this.createSankey();
-      }, 0);
+      this.scheduleCreateSankey();
     }
   }
 
@@ -627,6 +670,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   // MAIN FUNCTION
   // -----------------------------------------
   private createSankey() {
+    if (this.hostDestroyed || !this.el?.nativeElement) {
+      return;
+    }
     const dataToUse = this.getFilteredData();
     const element = this.el.nativeElement.querySelector('.regional-sankey');
     if (!dataToUse) {
@@ -1546,6 +1592,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnDestroy(): void {
+    this.hostDestroyed = true;
+    const q = SankeyComponent.renderQueue;
+    const i = q.indexOf(this);
+    if (i >= 0) {
+      q.splice(i, 1);
+    }
+    if (SankeyComponent.pumpRafId != null && q.length === 0) {
+      cancelAnimationFrame(SankeyComponent.pumpRafId);
+      SankeyComponent.pumpRafId = null;
+    }
     // Clean up tooltip when component is destroyed
     d3.select('body').select(`#${this.tooltipId}`).remove();
   }

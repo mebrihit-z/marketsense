@@ -464,28 +464,80 @@ export function convertAssetFlowsToSankey(
       }
     }
   } else {
-    // 1) Parent(Start) -> Sub(Source)
-    for (const r of neg) {
-      const nc = rowNc(r);
-      links.push({
-        source: parentStartName(r.__super, r.__parent),
-        target: subSourceName(r.__super, r.__sub),
-        value: Math.abs(r.Asset_Flow_Value),
-        date: r.Asset_Flow_Date,
-        ...(nc > 0 ? { nClientsTotal: nc } : {}),
-      });
-    }
+    // Aggregate parallel leaf edges by (source, target). One link per raw row made link counts
+    // equal to row count (×2 per side), which froze the browser with d3-sankey + cascade prune.
+    type LeafEdgeAgg = {
+      value: number;
+      nClientsTotal: number;
+      date?: string;
+      hasDateConflict: boolean;
+    };
+    const leafEdgeKey = (source: string, target: string) => `${source}\0${target}`;
+    const bumpLeafEdge = (
+      map: Map<string, LeafEdgeAgg>,
+      source: string,
+      target: string,
+      value: number,
+      nc: number,
+      date?: string
+    ): void => {
+      const k = leafEdgeKey(source, target);
+      const cur = map.get(k) ?? {
+        value: 0,
+        nClientsTotal: 0,
+        hasDateConflict: false,
+      };
+      cur.value += value;
+      if (nc > 0) {
+        cur.nClientsTotal += nc;
+      }
+      if (date) {
+        if (cur.date === undefined) {
+          cur.date = date;
+        } else if (cur.date !== date) {
+          cur.hasDateConflict = true;
+          cur.date = undefined;
+        }
+      }
+      map.set(k, cur);
+    };
+    const flushLeafEdges = (map: Map<string, LeafEdgeAgg>, includeDate: boolean): void => {
+      for (const [k, a] of map) {
+        const sep = k.indexOf('\0');
+        const source = k.slice(0, sep);
+        const target = k.slice(sep + 1);
+        const rec: SankeyLink = {
+          source,
+          target,
+          value: a.value,
+        };
+        if (a.nClientsTotal > 0) {
+          rec.nClientsTotal = a.nClientsTotal;
+        }
+        if (includeDate && a.date && !a.hasDateConflict) {
+          rec.date = a.date;
+        }
+        links.push(rec);
+      }
+    };
 
-    // 2) Sub(Source) -> Pool (per SuperParent)
+    const negStartToSub = new Map<string, LeafEdgeAgg>();
+    const negSubToPool = new Map<string, LeafEdgeAgg>();
     for (const r of neg) {
       const nc = rowNc(r);
-      links.push({
-        source: subSourceName(r.__super, r.__sub),
-        target: poolName(r.__super),
-        value: Math.abs(r.Asset_Flow_Value),
-        ...(nc > 0 ? { nClientsTotal: nc } : {}),
-      });
+      const v = Math.abs(r.Asset_Flow_Value);
+      bumpLeafEdge(
+        negStartToSub,
+        parentStartName(r.__super, r.__parent),
+        subSourceName(r.__super, r.__sub),
+        v,
+        nc,
+        r.Asset_Flow_Date
+      );
+      bumpLeafEdge(negSubToPool, subSourceName(r.__super, r.__sub), poolName(r.__super), v, nc);
     }
+    flushLeafEdges(negStartToSub, true);
+    flushLeafEdges(negSubToPool, false);
   }
 
   // 3) Capital Out / Capital In (PER SUPERPARENT)
@@ -558,28 +610,78 @@ export function convertAssetFlowsToSankey(
       }
     }
   } else {
-    // 4) Pool -> Sub(Destination) (per SuperParent)
-    for (const r of pos) {
-      const nc = rowNc(r);
-      links.push({
-        source: poolName(r.__super),
-        target: subDestName(r.__super, r.__sub),
-        value: r.Asset_Flow_Value,
-        ...(nc > 0 ? { nClientsTotal: nc } : {}),
-      });
-    }
+    type LeafEdgeAgg = {
+      value: number;
+      nClientsTotal: number;
+      date?: string;
+      hasDateConflict: boolean;
+    };
+    const leafEdgeKey = (source: string, target: string) => `${source}\0${target}`;
+    const bumpLeafEdge = (
+      map: Map<string, LeafEdgeAgg>,
+      source: string,
+      target: string,
+      value: number,
+      nc: number,
+      date?: string
+    ): void => {
+      const k = leafEdgeKey(source, target);
+      const cur = map.get(k) ?? {
+        value: 0,
+        nClientsTotal: 0,
+        hasDateConflict: false,
+      };
+      cur.value += value;
+      if (nc > 0) {
+        cur.nClientsTotal += nc;
+      }
+      if (date) {
+        if (cur.date === undefined) {
+          cur.date = date;
+        } else if (cur.date !== date) {
+          cur.hasDateConflict = true;
+          cur.date = undefined;
+        }
+      }
+      map.set(k, cur);
+    };
+    const flushLeafEdges = (map: Map<string, LeafEdgeAgg>, includeDate: boolean): void => {
+      for (const [k, a] of map) {
+        const sep = k.indexOf('\0');
+        const source = k.slice(0, sep);
+        const target = k.slice(sep + 1);
+        const rec: SankeyLink = {
+          source,
+          target,
+          value: a.value,
+        };
+        if (a.nClientsTotal > 0) {
+          rec.nClientsTotal = a.nClientsTotal;
+        }
+        if (includeDate && a.date && !a.hasDateConflict) {
+          rec.date = a.date;
+        }
+        links.push(rec);
+      }
+    };
 
-    // 5) Sub(Destination) -> Parent(End)
+    const posPoolToSub = new Map<string, LeafEdgeAgg>();
+    const posSubToEnd = new Map<string, LeafEdgeAgg>();
     for (const r of pos) {
       const nc = rowNc(r);
-      links.push({
-        source: subDestName(r.__super, r.__sub),
-        target: parentEndName(r.__super, r.__parent),
-        value: r.Asset_Flow_Value,
-        date: r.Asset_Flow_Date,
-        ...(nc > 0 ? { nClientsTotal: nc } : {}),
-      });
+      const v = r.Asset_Flow_Value;
+      bumpLeafEdge(posPoolToSub, poolName(r.__super), subDestName(r.__super, r.__sub), v, nc);
+      bumpLeafEdge(
+        posSubToEnd,
+        subDestName(r.__super, r.__sub),
+        parentEndName(r.__super, r.__parent),
+        v,
+        nc,
+        r.Asset_Flow_Date
+      );
     }
+    flushLeafEdges(posPoolToSub, false);
+    flushLeafEdges(posSubToEnd, true);
   }
 
   // 6) Parent(End) -> SuperParent(End)

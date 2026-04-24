@@ -7,6 +7,7 @@ import {
   EventEmitter,
   HostListener,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
@@ -39,7 +40,8 @@ export class TimeHorizonSliderComponent
 {
   constructor(
     private readonly historicAnchor: AssetFlowHistoricAnchorService,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
   ) {}
 
   private static readonly AXIS_INSET_DESKTOP_PX = 14;
@@ -348,19 +350,28 @@ export class TimeHorizonSliderComponent
   onDocumentMove(event: MouseEvent | TouchEvent): void {
     if (!this.isDragging) return;
     if (event.cancelable) event.preventDefault();
-    this.handlePointerDrag(event);
+    // Avoid running full-app change detection on every pointer move (filters bar + charts).
+    this.ngZone.runOutsideAngular(() => {
+      this.handlePointerDrag(event);
+      this.cdr.detectChanges();
+    });
   }
 
   @HostListener('document:mouseup')
   @HostListener('document:touchend')
   onDocumentUp(): void {
     if (!this.isDragging) return;
+    const rangeAtEnd = { ...this.range };
     this.isDragging = false;
     this.dragType = null;
     this.dragContainer = null;
     if (typeof document !== 'undefined' && document.body) {
       document.body.classList.remove('time-horizon-dragging');
     }
+    // During drag we skipped rangeChange so parent CD did not run every frame; sync indices once.
+    this.rangeChange.emit(rangeAtEnd);
+    // Heavy outputs (dashboard / Sankey) were deferred from every mousemove for the same reason.
+    this.emitHeavyTimeHorizonOutputs(rangeAtEnd);
     setTimeout(() => {
       this.hasDragged = false;
     }, 100);
@@ -406,10 +417,26 @@ export class TimeHorizonSliderComponent
 
   private publishRange(): void {
     const next = { ...this.range };
-    this.rangeChange.emit(next);
+    if (!this.isDragging) {
+      this.rangeChange.emit(next);
+    }
+    if (this.isDragging) {
+      return;
+    }
+    this.emitHeavyTimeHorizonOutputs(next);
+  }
+
+  /**
+   * Emits dashboard / chart-driving outputs. Deferred during handle drag so asset flows
+   * (Sankey rebuild) runs once per interaction instead of on every pointer move.
+   */
+  private emitHeavyTimeHorizonOutputs(next: TimeHorizonRangeIndices): void {
     const h = this.horizons;
     const endHorizon = h[next.endIndex];
     const startHorizon = h[next.startIndex];
+    if (endHorizon == null || startHorizon == null) {
+      return;
+    }
     const anchorIndex = h.indexOf('0');
     if (anchorIndex >= 0) {
       const inferred: 'historical' | 'forecasted' =
