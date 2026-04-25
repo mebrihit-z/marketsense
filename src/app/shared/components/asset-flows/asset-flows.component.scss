@@ -34,7 +34,7 @@
   height: 30px;
 }
 .visualization-container {
-  padding: 16px 12px;
+  padding: 16px 0;
   width: 100%;
   overflow-x: hidden;
   overflow-y: hidden;
@@ -46,8 +46,15 @@
     display: block;
     width: 100%;
   }
+  app-sankey {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
   @media (max-width: 768px) {
-    padding: 0px 16px 24px 16px;
+    padding: 0 0 24px 0;
   }
 }
 
@@ -303,7 +310,7 @@
 .visualization-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 48px;
   height: auto;
   width: 100%;
@@ -314,12 +321,14 @@
 // Sankey region title (Global, United Kingdom, United States) - explicit styles so text shows on VDI
 .sankey-region-container {
   width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 8px 32px 8px;
+  padding: 20px 0 32px 0;
+  box-sizing: border-box;
   @media (max-width: 768px) {
-    padding: 0px;
+    padding: 0;
   }
 }
 

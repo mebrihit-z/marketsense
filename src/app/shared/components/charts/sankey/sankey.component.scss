@@ -1,6 +1,10 @@
 // Scoped palette so Sankey looks identical on VDI and local (avoids theme/global CSS differences)
 @use '_variables' as *;
 :host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   --text-primary: #0A0A0A;
   --red-link: #DC2626;
   --green-link: #059669;
@@ -25,26 +29,28 @@
 .sankey-container {
   position: relative;
   width: 100%;
-  height: 700px;
+  height: 960px;
   display: flex;
   flex-direction: column;
 }
 
-// Scroll wrapper: like treemap, allow horizontal scroll when container is narrow
+// Scroll wrapper: overflow-x when SVG is wider than the host (see TS SANKEY_MIN_DRAW_WIDTH_PX)
 // Horizontal padding so stroke/hover at the right edge is not clipped by the scrollport
 .sankey-chart-scroll {
   flex: 1;
   min-height: 0;
   width: 100%;
-  padding: 0 6px;
+  padding: 0 0 8px;
   box-sizing: border-box;
   overflow-x: auto;
-  overflow-y: hidden;
+  /* Let node labels paint slightly below the chart band without clipping */
+  overflow-y: visible;
 }
 
 .sankey-container > .sankey-chart-scroll > .regional-sankey {
-  min-width: 1200px; // Chart keeps readable width; scroll when container is smaller
-  width: 100%;
+  min-width: 100%;
+  width: max-content;
+  max-width: none;
   height: 100%;
   min-height: 320px;
 }
@@ -76,7 +82,7 @@
 
 // Tooltip is appended to body by D3 – container look comes from inline TS using --sankey-tooltip-* from :host
 
-// SVG root – fill container
+// SVG fills the fixed chart band (height set in TS, typically ≤ 960px)
 .sankey-container .regional-sankey ::ng-deep .sankey-svg {
   display: block;
   width: 100%;
@@ -177,23 +183,55 @@
 // Sankey node and link labels – readable typography
 .sankey-container ::ng-deep {
   .sankey-node-label {
-    font-size: 12px !important;
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.03em;
-    word-spacing: 0.05em;
+    letter-spacing: 0.02em;
+    word-spacing: 0.04em;
+    fill: $text-midnight-blue;
     color: $text-midnight-blue;
     pointer-events: none;
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
   }
 
-  .sankey-node-label-name {
-    letter-spacing: 0.03em;
-    word-spacing: 0.08em;
-  }
-
-  .sankey-node-label-value {
-    font-weight: bold;
+  /* Match treemap `.label` / `.value` (treemap.component.ts + treemap.component.scss) */
+  .sankey-treemap-label {
+    font-size: 12px;
+    font-weight: 400;
     letter-spacing: 0.02em;
+    fill: #00113f;
+  }
+
+  .sankey-treemap-value {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    fill: #00113f;
+  }
+
+  .sankey-node-label-leaf-compact {
+    letter-spacing: 0.01em;
+
+    .sankey-treemap-label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .sankey-treemap-value {
+      font-size: 12px;
+      font-weight: 700;
+    }
+  }
+
+  /* Short Sankey bars: keep label+value visible with tighter type */
+  .sankey-node-label-thin {
+    .sankey-treemap-label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .sankey-treemap-value {
+      font-size: 12px;
+      font-weight: 700;
+    }
   }
 
   .sankey-link-value-label {

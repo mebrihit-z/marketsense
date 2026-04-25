@@ -102,14 +102,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * For ordinary links: floor layout thickness vs. the largest link so ribbons stay visible.
    * Does not change raw $ in tooltips or totals.
    */
-  @Input() linkLayoutVisibilityFloorFraction: number = 0.010;
+  @Input() linkLayoutVisibilityFloorFraction: number = 0.012;
   /**
    * Target minimum node height in pixels; layout link weights are boosted iteratively until met.
    * Set 0 to disable. Does not change raw $ in tooltips.
    */
-  @Input() minNodeHeightPx: number = 2;
+  @Input() minNodeHeightPx: number = 8;
   /** Minimum drawn link stroke width in pixels. */
-  @Input() minLinkStrokePx: number = 0.5;
+  @Input() minLinkStrokePx: number = 1.75;
 
   private loadedData?: RegionalSankeyData;
   private lastDataHash: string = '';
@@ -161,13 +161,84 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     };
 
     if (this.isStructuralCapitalFlowName(sourceName) || this.isStructuralCapitalFlowName(targetName)) {
-      return boostedLayout(structuralFrac, 6, 0.012);
+      return boostedLayout(structuralFrac, 6, 0.014);
     }
-    return boostedLayout(generalFrac, 8, 0.006);
+    return boostedLayout(generalFrac, 8, 0.008);
+  }
+
+  /**
+   * Maps linear layout weight → d3-sankey `link.value` so a single huge ribbon cannot use almost
+   * the entire chart height. Uses √x (proportions still rank-correct; small flows stay visible).
+   * {@link SankeyLinkExtra#rawValue} and tooltips are unchanged (true USD).
+   */
+  private sankeyLinkLayoutRenderValue(linearLayout: number): number {
+    const x = Math.max(0, Number.isFinite(linearLayout) ? linearLayout : 0);
+    if (x <= 0) return 0;
+    return Math.sqrt(x);
   }
 
   private linkFlowForTotals(link: SankeyLinkExtra): number {
     return link.rawValue != null ? link.rawValue : link.value;
+  }
+
+  /**
+   * Max nodes stacked in any one Sankey column (same depth). Used for node padding and label
+   * density (chart height stays capped so the view does not scroll).
+   */
+  private maxSankeyColumnStack(nodes: Array<{ name: string }>): number {
+    if (!nodes.length) return 1;
+    let cSource = 0;
+    let cDest = 0;
+    let cParentStart = 0;
+    let cParentEnd = 0;
+    let cSuper = 0;
+    let cOther = 0;
+    for (const { name } of nodes) {
+      if (name.includes('(Source)')) cSource++;
+      else if (name.includes('(Destination)')) cDest++;
+      else if (name.includes('(Start)') && !name.includes('Super')) cParentStart++;
+      else if (name.includes('(End)') && !name.includes('Super')) cParentEnd++;
+      else if (name.includes('Super Start') || name.includes('Super End')) cSuper++;
+      else cOther++;
+    }
+    return Math.max(1, cSource, cDest, cParentStart, cParentEnd, cSuper, cOther);
+  }
+
+  /**
+   * Greedy vertical packing: sorted by `desiredY`, each assigned y is at least `minGap` below the previous.
+   * Used for leaf label tops (hanging baseline) and parent row centers when columns are dense.
+   */
+  private packVerticalLabelYs(
+    nodes: SankeyNodeExtra[],
+    predicate: (n: SankeyNodeExtra) => boolean,
+    desiredY: (n: SankeyNodeExtra) => number,
+    minGap: number
+  ): Map<SankeyNodeExtra, number> {
+    const list = nodes.filter(predicate).sort((a, b) => desiredY(a) - desiredY(b));
+    const out = new Map<SankeyNodeExtra, number>();
+    let prevY = -Infinity;
+    for (const n of list) {
+      const want = desiredY(n);
+      const y = Math.max(want, prevY + minGap);
+      out.set(n, y);
+      prevY = y;
+    }
+    return out;
+  }
+
+  /**
+   * Shift every packed y by the same amount upward so no label anchor sits below `maxY`.
+   * Greedy vertical packing can push the last labels past the SVG bottom; this keeps them visible.
+   */
+  private clampPackedLabelYsMax(m: Map<SankeyNodeExtra, number>, maxY: number): void {
+    if (m.size === 0) return;
+    let peak = -Infinity;
+    m.forEach(y => {
+      if (y > peak) peak = y;
+    });
+    if (peak <= maxY) return;
+    const delta = peak - maxY;
+    m.forEach((y, k) => m.set(k, y - delta));
   }
 
   private isSankeyFlowPillarNode(name: string): boolean {
@@ -597,6 +668,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return formatted;
     }
 
+    /** When {@link formatNodeName} strips everything, still show a short leaf/sub label. */
+    private leafLabelDisplayBody(fullName: string): string {
+      const formatted = this.formatNodeName(fullName).trim();
+      if (formatted.length > 0) return formatted;
+      return (
+        fullName
+          .replace(/\s*\(Source\)\s*$/i, '')
+          .replace(/\s*\(Destination\)\s*$/i, '')
+          .trim() ||
+        fullName.trim() ||
+        '—'
+      );
+    }
+
     /** Formats a date string (ISO or YYYY-MM-DD) to a readable tooltip format e.g. "Mar 31, 2026" */
     private formatDateForTooltip(dateStr: string): string {
       if (!dateStr || typeof dateStr !== 'string') return dateStr ?? '';
@@ -689,22 +774,37 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     d3.select(element).select('svg').remove();
     d3.select('body').select(`#${this.tooltipId}`).remove();
     
-    // Get the container width dynamically
+    // Use full width of the chart scroll host (parent chain can be wider than .regional-sankey alone)
     const nativeRect = this.el.nativeElement.getBoundingClientRect();
     const elementRect = element.getBoundingClientRect();
-    
-    // Use container width; enforce minimum so chart is readable and scrolls horizontally when container is small (like treemap)
-    const MIN_CHART_WIDTH = 1200;
-    const baseContainerWidth = elementRect.width > 0 ? elementRect.width : 
-                          nativeRect.width > 0 ? nativeRect.width : 
-                          element.clientWidth || 
-                          element.offsetWidth || 
-                          this.el.nativeElement.clientWidth || 
-                          this.el.nativeElement.offsetWidth ||
-                          window.innerWidth || MIN_CHART_WIDTH;
-    const width = Math.max(baseContainerWidth, MIN_CHART_WIDTH);
-    const baseHeight = elementRect.height > 0 ? elementRect.height : nativeRect.height > 0 ? nativeRect.height : 700;
-    const height = Math.max(baseHeight, 320);
+    const scrollHost = element.parentElement;
+    const scrollW =
+      scrollHost && scrollHost.clientWidth > 0 ? scrollHost.clientWidth : 0;
+    const baseContainerWidth =
+      scrollW > 0
+        ? scrollW
+        : elementRect.width > 0
+          ? elementRect.width
+          : nativeRect.width > 0
+            ? nativeRect.width
+            : element.clientWidth ||
+              element.offsetWidth ||
+              this.el.nativeElement.clientWidth ||
+              this.el.nativeElement.offsetWidth ||
+              window.innerWidth ||
+              400;
+    /** When the host is narrower than this, draw a wider SVG so `.sankey-chart-scroll` can pan horizontally. */
+    const SANKEY_MIN_DRAW_WIDTH_PX = 960;
+    const flooredBase = Math.floor(baseContainerWidth);
+    const width = Math.max(
+      320,
+      flooredBase,
+      flooredBase < SANKEY_MIN_DRAW_WIDTH_PX ? SANKEY_MIN_DRAW_WIDTH_PX : 0
+    );
+    /** Fixed band: no vertical scroll; layout scales inside this height (taller for label / node room). */
+    const SANKEY_MAX_HEIGHT_PX = 960;
+    const baseHeight = elementRect.height > 0 ? elementRect.height : nativeRect.height > 0 ? nativeRect.height : 960;
+    const height = Math.min(SANKEY_MAX_HEIGHT_PX, Math.max(360, baseHeight || 960));
 
     // Create tooltip (append to body for positioning; inline styles required because body is outside component)
     d3.select('body').select(`#${this.tooltipId}`).remove();
@@ -886,18 +986,30 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       d.baseLayoutValue = this.layoutValueForLink(d.rawValue, maxRawLinkValue, sName, tName);
     }
 
-    const leftMargin = 8;   // Minimal padding so edge labels aren’t clipped
-    // Extra right inset so the last column, hover stroke, and link highlight aren’t flush/cut off
-    const rightMargin = 24;
-    const topMargin = 15;   // Small padding at top (Outflows/Inflows labels are outside chart)
-    const bottomMargin = 50;
+    const maxColumnStack = this.maxSankeyColumnStack(prunedNodes);
+    const denseLeafLayout = this.sankeyHasLeafDimension && maxColumnStack >= 12;
+    const effectiveMinNodeInput = Math.max(0, this.minNodeHeightPx ?? 8);
+    const effectiveMinNodeFloor = this.sankeyHasLeafDimension ? 8 : 5;
+    const minNodePx = Math.max(effectiveMinNodeInput, effectiveMinNodeFloor);
+    const dynamicNodePadding = Math.min(
+      14,
+      Math.max(denseLeafLayout ? 6 : 5, Math.floor(280 / Math.max(maxColumnStack, 8)))
+    );
+
+    // Minimal horizontal inset; labels use overflow visible on SVG (tight = more flow width)
+    /** Horizontal stagger between stacked same-side labels; keep modest so anchors stay near nodes. */
+    const labelLaneStride = maxColumnStack > 22 ? 11 : maxColumnStack > 14 ? 9 : 7;
+    const laneSpread = labelLaneStride * 2;
+    const leftMargin = 8 + laneSpread + (maxColumnStack > 14 ? 10 : 6);
+    const rightMargin = 8 + laneSpread + (maxColumnStack > 14 ? 10 : 6);
+    const topMargin = 12;
+    /** Extra room below the flow so packed node labels are not clipped by the SVG. */
+    const bottomMargin = 64;
 
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(20)
-      .nodePadding(10)
+      .nodePadding(dynamicNodePadding)
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
-
-    const minNodePx = Math.max(0, this.minNodeHeightPx ?? 8);
     let linkMultipliers = prunedLayoutLinkDefs.map(() => 1);
     // Assigned on every iteration of the loop below (always runs ≥ once).
     let graph!: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>;
@@ -910,7 +1022,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const sankeyLinks: SankeyLinkExtra[] = prunedLayoutLinkDefs.map((def, i) => ({
         source: def.source,
         target: def.target,
-        value: def.baseLayoutValue * linkMultipliers[i],
+        value: this.sankeyLinkLayoutRenderValue(def.baseLayoutValue * linkMultipliers[i]),
         rawValue: def.rawValue,
         date: def.date,
         nClientsTotal: def.nClientsTotal,
@@ -985,8 +1097,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('class', 'sankey-svg')
       .attr('width', width)
       .attr('height', height)
-      .attr('viewBox', `0 0 ${width} ${height-50}`)
-      .attr('preserveAspectRatio', 'none');
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'none')
+      .attr('overflow', 'visible');
 
     // Chart group – no zoom/pan so labels stay readable
     const chartGroup = svg.append('g')
@@ -1123,8 +1236,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // -----------------------------------------
     // Capture component reference for use in callbacks
     const component = this;
-    const minLkStroke = Math.max(0.5, this.minLinkStrokePx ?? 1.5);
-    const linkRestOpacity = 0.52;
+    const minLkStroke = Math.max(1.25, this.minLinkStrokePx ?? 1.75);
+    const linkRestOpacity = 0.64;
     const linkStrokePx = (link: SankeyLinkExtra) =>
       Math.max(minLkStroke, Number(link.width) || 0);
 
@@ -1513,29 +1626,169 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // -----------------------------------------
     // 8. Node Labels (with values inline)
     // -----------------------------------------
+    const isLeafChartLabel = (n: SankeyNodeExtra) =>
+      n.name.includes('(Source)') || n.name.includes('(Destination)');
+    const isParentStartOnly = (n: SankeyNodeExtra) =>
+      n.name.includes('(Start)') && !n.name.includes('Super');
+    const isParentEndOnly = (n: SankeyNodeExtra) =>
+      n.name.includes('(End)') && !n.name.includes('Super');
+
+    const chartInnerH = height - topMargin - bottomMargin;
+    const leafCount = graph.nodes.filter(n => isLeafChartLabel(n as SankeyNodeExtra)).length;
+    /** Single-line leaves (`Name: $…`); slightly smaller type when many rows. */
+    const leafCompact = leafCount > 18;
+    const leafMinGap = Math.max(
+      13,
+      Math.min(18, Math.floor((chartInnerH - 20) / Math.max(leafCount, 1)))
+    );
+    const leafPackedY = this.packVerticalLabelYs(
+      graph.nodes as SankeyNodeExtra[],
+      isLeafChartLabel,
+      n => (n.y0! + n.y1!) / 2,
+      leafMinGap
+    );
+    /** Room below last label row (`alignment-baseline: middle`). */
+    const labelYMax = height - 12;
+    this.clampPackedLabelYsMax(leafPackedY, labelYMax);
+
+    const parentBandCount =
+      graph.nodes.filter(n => isParentStartOnly(n as SankeyNodeExtra)).length +
+      graph.nodes.filter(n => isParentEndOnly(n as SankeyNodeExtra)).length;
+    const parentMinGap =
+      maxColumnStack > 16 && parentBandCount > 1
+        ? Math.max(
+            15,
+            Math.min(22, Math.floor((chartInnerH - 40) / Math.max(parentBandCount, 1)))
+          )
+        : 0;
+    const parentStartMidY =
+      parentMinGap > 0
+        ? this.packVerticalLabelYs(
+            graph.nodes as SankeyNodeExtra[],
+            isParentStartOnly,
+            n => (n.y0! + n.y1!) / 2,
+            parentMinGap
+          )
+        : new Map<SankeyNodeExtra, number>();
+    const parentEndMidY =
+      parentMinGap > 0
+        ? this.packVerticalLabelYs(
+            graph.nodes as SankeyNodeExtra[],
+            isParentEndOnly,
+            n => (n.y0! + n.y1!) / 2,
+            parentMinGap
+          )
+        : new Map<SankeyNodeExtra, number>();
+    const parentLabelMidY = new Map<SankeyNodeExtra, number>([
+      ...parentStartMidY,
+      ...parentEndMidY,
+    ]);
+    this.clampPackedLabelYsMax(parentLabelMidY, labelYMax);
+
+    /** Super Start / Super End share one column each; without packing, every label uses the node mid and stacks overlap when nodes are thin. */
+    const isSuperStartTerminal = (n: SankeyNodeExtra) => n.name.includes('(Super Start)');
+    const isSuperEndTerminal = (n: SankeyNodeExtra) => n.name.includes('(Super End)');
+    const superStartCount = graph.nodes.filter(n => isSuperStartTerminal(n as SankeyNodeExtra)).length;
+    const superEndCount = graph.nodes.filter(n => isSuperEndTerminal(n as SankeyNodeExtra)).length;
+    const superGapForCount = (count: number) =>
+      count > 1
+        ? Math.max(15, Math.min(28, Math.floor((chartInnerH - 56) / Math.max(count, 1))))
+        : 0;
+    const superStartGap = superGapForCount(superStartCount);
+    const superEndGap = superGapForCount(superEndCount);
+    const superStartPackedY =
+      superStartGap > 0
+        ? this.packVerticalLabelYs(
+            graph.nodes as SankeyNodeExtra[],
+            isSuperStartTerminal,
+            n => (n.y0! + n.y1!) / 2,
+            superStartGap
+          )
+        : new Map<SankeyNodeExtra, number>();
+    const superEndPackedY =
+      superEndGap > 0
+        ? this.packVerticalLabelYs(
+            graph.nodes as SankeyNodeExtra[],
+            isSuperEndTerminal,
+            n => (n.y0! + n.y1!) / 2,
+            superEndGap
+          )
+        : new Map<SankeyNodeExtra, number>();
+    const superTerminalLabelY = new Map<SankeyNodeExtra, number>([
+      ...superStartPackedY,
+      ...superEndPackedY,
+    ]);
+    this.clampPackedLabelYsMax(superTerminalLabelY, labelYMax);
+    /** Allow packed super labels to move farther from a tiny node's mid than leaf labels. */
+    const superLabelMaxVerticalDriftPx = Math.max(72, Math.min(220, Math.floor(chartInnerH * 0.42)));
+
+    /** Same horizontal inset for leaf `(Source)` / `(Destination)` as parent/hub nodes; no stagger so labels share one vertical line per column. */
+    const nodeLabelGapPx = 6;
+    /** Cap how far packed leaf `y` may drift from the node's vertical center (avoids "missing" labels off the bar). */
+    const leafLabelMaxVerticalDriftPx = 52;
+
     const getLabelX = (d: SankeyNodeExtra): number => {
-      if (d.name.includes('Reallocation Pool')) return d.x1! + 12;
-      if (d.name.includes('(Source)')) return d.x1! + 12;
-      if (d.name.includes('(Destination)')) return d.x0! - 12;
+      if (d.name.includes('Reallocation Pool')) return d.x1! + 4;
+      if (d.name.includes('(Source)')) return d.x1! + nodeLabelGapPx;
+      if (d.name.includes('(Destination)')) return d.x0! - nodeLabelGapPx;
       // Place New Capital and Capital In labels to the right of the node
-      if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return d.x1! + 12;
-      if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return d.x0! - 12;
-      if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return d.x1! + 12;
+      if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return d.x1! + nodeLabelGapPx;
+      if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return d.x0! - nodeLabelGapPx;
+      if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return d.x1! + nodeLabelGapPx;
       return (d.x0! + d.x1!) / 2;
     };
+    /** Approx max chars for one `Name: $…` row (wider budget → less `…` truncation). */
+    const maxLeafInlineChars = leafCompact
+      ? maxColumnStack > 26
+        ? 52
+        : maxColumnStack > 16
+          ? 56
+          : 60
+      : maxColumnStack > 26
+        ? 58
+        : maxColumnStack > 16
+          ? 64
+          : 72;
+    const maxParentInlineChars = maxColumnStack > 26 ? 54 : maxColumnStack > 16 ? 60 : 68;
+
     const nodeLabels = chartGroup.append('g')
       .attr('class', 'sankey-node-labels')
       .selectAll('text')
       .data(graph.nodes)
       .enter()
       .append('text')
-      .attr('class', 'sankey-node-label')
+      .attr('class', d => {
+        const n = d as SankeyNodeExtra;
+        if (!isLeafChartLabel(n)) return 'sankey-node-label';
+        return leafCompact
+          ? 'sankey-node-label sankey-node-label-leaf sankey-node-label-leaf-compact'
+          : 'sankey-node-label sankey-node-label-leaf';
+      })
       .attr('x', getLabelX)
-      .attr('y', d => (d.y0! + d.y1!) / 2)
+      .attr('y', d => {
+        const n = d as SankeyNodeExtra;
+        const mid = (n.y0! + n.y1!) / 2;
+        if (isLeafChartLabel(n)) {
+          const packed = leafPackedY.get(n) ?? mid;
+          const lo = mid - leafLabelMaxVerticalDriftPx;
+          const hi = mid + leafLabelMaxVerticalDriftPx;
+          return Math.max(lo, Math.min(hi, packed));
+        }
+        if (superTerminalLabelY.has(n)) {
+          const packed = superTerminalLabelY.get(n)!;
+          const lo = mid - superLabelMaxVerticalDriftPx;
+          const hi = mid + superLabelMaxVerticalDriftPx;
+          return Math.max(lo, Math.min(hi, packed));
+        }
+        if (parentLabelMidY.has(n)) {
+          return parentLabelMidY.get(n)!;
+        }
+        return mid;
+      })
       .attr('text-anchor', d => {
         if (d.name.includes('(Source)')) return 'start';
         if (d.name.includes('(Destination)')) return 'end';
-        // Label at x1 + 12: anchor start so "Realloc: …" sits to the right of the node, not centered on it
+        // Label at x1 + small gap: anchor start so "Realloc: …" sits just right of the node
         if (d.name.includes('Reallocation Pool')) return 'start';
         if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return 'start';
         // Positive/inflow side: anchor at end so text sits to the left of the node
@@ -1545,48 +1798,86 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return 'middle';
       })
       .attr('alignment-baseline', 'middle');
-    
-    // Add label text
-    nodeLabels.append('tspan')
-      .attr('class', 'sankey-node-label-name')
-      .text(d => {
-        if (d.name.includes('Capital Out')) {
-          return 'Capital Out:';
-        }
-        if (d.name.includes('Capital In')) {
-          return 'Capital In:';
-        }
-        // Use short label for Reallocation Pool to avoid overlap
-        if (d.name.includes('Reallocation Pool')) {
-          return 'Realloc:';
-        }
-        // Format the name (replace United States with U.S and United Kingdom with U.K)
-        const formattedName = this.formatNodeName(d.name);
-        // Truncate long labels (slightly longer for readability)
-        const maxLength = 28;
-        const label = formattedName.length > maxLength ? formattedName.substring(0, maxLength) + '...' : formattedName;
-        return label + ':';
-      });
-    
-    // Add value text as tspan (inline after the name, same row for all nodes including Super Start / End)
-    nodeLabels.append('tspan')
-      .attr('class', 'sankey-node-label-value')
-      .attr('dx', '8px')
-      .text(d => {
-        const hubFull = tripleHubTotalsFull.get(d.name);
-        const useHubFullTotals =
-          this.isReallocOrSuperTerminalHub(d.name) && hubFull != null;
-        const value = useHubFullTotals
+
+    const truncateName = (formattedName: string, maxLen: number): string =>
+      formattedName.length > maxLen ? formattedName.substring(0, maxLen) + '…' : formattedName;
+
+    /** Same row as treemap: `Name:` ({@link formatFlowCurrencyUsd} value follows in value style). */
+    const appendTreemapStyleLabelValue = (
+      el: d3.Selection<SVGTextElement, unknown, null, undefined>,
+      labelBody: string,
+      valueDollars: number,
+      maxInlineChars: number
+    ): void => {
+      const valStr = formatFlowCurrencyUsd(valueDollars);
+      const sep = ': ';
+      const tail = sep + valStr;
+      const nameBudget = Math.max(4, maxInlineChars - tail.length);
+      const nm = truncateName(labelBody, nameBudget);
+      // Use parent <text x="…"> + text-anchor only; an explicit x on the first tspan breaks `end` anchoring for Destinations.
+      el.append('tspan')
+        .attr('class', 'sankey-treemap-label')
+        .text(`${nm}${sep}`);
+      el.append('tspan').attr('class', 'sankey-treemap-value').text(valStr);
+    };
+
+    const cmp = this;
+    nodeLabels.each(function (d) {
+      const n = d as SankeyNodeExtra;
+      const el = d3.select(this) as d3.Selection<SVGTextElement, unknown, null, undefined>;
+
+      const hubFull = tripleHubTotalsFull.get(n.name);
+      const useHubFullTotals =
+        cmp.isReallocOrSuperTerminalHub(n.name) && hubFull != null;
+      const rawValue =
+        useHubFullTotals && hubFull != null
           ? Math.max(hubFull.incoming, hubFull.outgoing)
-          : nodeValues.get(d) || 0;
-        const nodeX = d.x0 !== undefined ? d.x0 : (d.x1 || 0);
-        const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
-        if (d.name.includes('Capital Out') || d.name.includes('Capital In')) {
-          return formatFlowCurrencyUsd(value);
-        }
-        const signed = isLeftOfReallocation ? -value : value;
-        return formatFlowCurrencyUsd(signed);
-      });
+          : nodeValues.get(n) || 0;
+      const nodeX = n.x0 !== undefined ? n.x0 : (n.x1 || 0);
+      const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
+      const signedValue =
+        n.name.includes('Capital Out') || n.name.includes('Capital In')
+          ? rawValue
+          : isLeftOfReallocation
+            ? -rawValue
+            : rawValue;
+
+      if (isLeafChartLabel(n)) {
+        appendTreemapStyleLabelValue(
+          el,
+          cmp.leafLabelDisplayBody(n.name),
+          signedValue,
+          maxLeafInlineChars
+        );
+        return;
+      }
+
+      if (n.name.includes('Capital Out')) {
+        appendTreemapStyleLabelValue(el, 'Capital Out', rawValue, maxParentInlineChars);
+        return;
+      }
+      if (n.name.includes('Capital In')) {
+        appendTreemapStyleLabelValue(el, 'Capital In', rawValue, maxParentInlineChars);
+        return;
+      }
+      if (n.name.includes('Reallocation Pool')) {
+        appendTreemapStyleLabelValue(el, 'Realloc', signedValue, maxParentInlineChars);
+        return;
+      }
+
+      appendTreemapStyleLabelValue(
+        el,
+        cmp.formatNodeName(n.name),
+        signedValue,
+        maxParentInlineChars
+      );
+    });
+
+    nodeLabels.each(function (d) {
+      const node = d as SankeyNodeExtra;
+      const h = (node.y1 ?? 0) - (node.y0 ?? 0);
+      d3.select(this).classed('sankey-node-label-thin', h < 16);
+    });
 
     // Link values are not drawn – only node labels show values (next to each node)
   }
