@@ -796,34 +796,43 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
      */
     private positionSankeyTooltip(
       event: MouseEvent,
-      tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
+    tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
+    forceLeftOfCursor?: boolean
     ): void {
-      const pad = 12;
+    const pad = 12;
     const verticalOffset = 3;
-      const margin = 8;
-      const el = tooltip.node();
-      if (!el) return;
-      let left = event.clientX + pad;
+    const margin = 8;
+    const el = tooltip.node();
+    if (!el) return;
+    const chartRect = this.el?.nativeElement?.getBoundingClientRect?.();
+    const chartCenterX =
+      chartRect && Number.isFinite(chartRect.left) && Number.isFinite(chartRect.width)
+        ? chartRect.left + chartRect.width / 2
+        : window.innerWidth / 2;
+    const preferLeftOfCursor =
+      forceLeftOfCursor !== undefined ? forceLeftOfCursor : event.clientX > chartCenterX;
+    let left = preferLeftOfCursor ? event.clientX - pad : event.clientX + pad;
     // Prefer rendering below the hovered point/node for clearer context.
     let top = event.clientY + verticalOffset;
-      tooltip.style('left', `${left}px`).style('top', `${top}px`);
-      const w = el.offsetWidth;
-      const h = el.offsetHeight;
-      if (left + w > window.innerWidth - margin) {
-        left = event.clientX - w - pad;
-      }
-      if (left < margin) {
-        left = margin;
-      }
-      if (top + h > window.innerHeight - margin) {
+    tooltip.style('left', `${left}px`).style('top', `${top}px`);
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    left = preferLeftOfCursor ? event.clientX - w - pad : event.clientX + pad;
+    if (left + w > window.innerWidth - margin) {
+      left = event.clientX - w - pad;
+    }
+    if (left < margin) {
+      left = margin;
+    }
+    if (top + h > window.innerHeight - margin) {
       // If there is not enough room below, flip above the pointer.
       top = event.clientY - h - pad;
-      }
-      if (top < margin) {
-        top = margin;
-      }
-      tooltip.style('left', `${left}px`).style('top', `${top}px`);
     }
+    if (top < margin) {
+      top = margin;
+    }
+    tooltip.style('left', `${left}px`).style('top', `${top}px`);
+  }
 
   // -----------------------------------------
   // MAIN FUNCTION
@@ -1648,12 +1657,18 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (nClientsOutgoing > 0) {
           tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: ${nClientsOutgoing.toLocaleString('en-US')}</div>`;
         }
-        
+
         tooltip
           .style('opacity', '1')
           .style('display', 'block')
           .html(tooltipHtml);
-        component.positionSankeyTooltip(event, tooltip);
+        const hoveredNodeMidX = ((node.x0 ?? 0) + (node.x1 ?? 0)) / 2;
+        const isRightSideNodeByName =
+          node.name.includes('Super End') ||
+          node.name.includes('(End)') ||
+          node.name.includes('(Destination)');
+        const forceLeftOfCursor = isRightSideNodeByName || hoveredNodeMidX > width / 2;
+        component.positionSankeyTooltip(event, tooltip, forceLeftOfCursor);
 
         // Highlight the hovered node (hover styles in SCSS; for nodes with custom fill use brighter stroke)
         const sel = d3.select(this);
@@ -1697,8 +1712,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           })
           .attr('opacity', 0.15);
       })
-      .on('mousemove', function(event) {
-        component.positionSankeyTooltip(event, tooltip);
+      .on('mousemove', function(event, d) {
+        const hoveredNode = d as SankeyNodeExtra;
+        const hoveredNodeMidX = ((hoveredNode.x0 ?? 0) + (hoveredNode.x1 ?? 0)) / 2;
+        const isRightSideNodeByName =
+          hoveredNode.name.includes('Super End') ||
+          hoveredNode.name.includes('(End)') ||
+          hoveredNode.name.includes('(Destination)');
+        const forceLeftOfCursor = isRightSideNodeByName || hoveredNodeMidX > width / 2;
+        component.positionSankeyTooltip(event, tooltip, forceLeftOfCursor);
       })
       .on('mouseout', function(event, d) {
         tooltip.style('opacity', '0').style('display', 'none');
