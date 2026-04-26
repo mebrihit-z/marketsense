@@ -799,11 +799,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
     ): void {
       const pad = 12;
+    const verticalOffset = 3;
       const margin = 8;
       const el = tooltip.node();
       if (!el) return;
       let left = event.clientX + pad;
-      let top = event.clientY - 10;
+    // Prefer rendering below the hovered point/node for clearer context.
+    let top = event.clientY + verticalOffset;
       tooltip.style('left', `${left}px`).style('top', `${top}px`);
       const w = el.offsetWidth;
       const h = el.offsetHeight;
@@ -814,7 +816,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         left = margin;
       }
       if (top + h > window.innerHeight - margin) {
-        top = event.clientY - h - 10;
+      // If there is not enough room below, flip above the pointer.
+      top = event.clientY - h - pad;
       }
       if (top < margin) {
         top = margin;
@@ -1068,18 +1071,22 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     /** Extra room below the flow so packed node labels are not clipped by the SVG. */
     const bottomMargin = 64;
 
-    const nodeSort = (a: SankeyNodeExtra, b: SankeyNodeExtra) =>
-      d3.ascending(
-        this.sankeySuperKeyForNodeSort(a.name),
-        this.sankeySuperKeyForNodeSort(b.name)
-      ) || d3.ascending(a.name ?? '', b.name ?? '');
-
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(20)
       .nodePadding(dynamicNodePadding)
-      .nodeSort(nodeSort)
       .iterations(32)
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
+    const hasLeftLeafInPruned = prunedNodes.some(n => n.name.includes('(Source)'));
+    const hasRightLeafInPruned = prunedNodes.some(n => n.name.includes('(Destination)'));
+    const hasSparseSide = !hasLeftLeafInPruned || !hasRightLeafInPruned;
+    if (hasSparseSide) {
+      sankeyGen.nodeSort((a: SankeyNodeExtra, b: SankeyNodeExtra) =>
+        d3.ascending(
+          this.sankeySuperKeyForNodeSort(a.name),
+          this.sankeySuperKeyForNodeSort(b.name)
+        ) || d3.ascending(a.name ?? '', b.name ?? '')
+      );
+    }
     let linkMultipliers = prunedLayoutLinkDefs.map(() => 1);
     // Assigned on every iteration of the loop below (always runs ≥ once).
     let graph!: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>;
@@ -1726,19 +1733,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const leafCount = graph.nodes.filter(n => isLeafChartLabel(n as SankeyNodeExtra)).length;
     /** Single-line leaves (`Name: $…`); slightly smaller type when many rows. */
     const leafCompact = leafCount > 18;
-    const leafMinGap = Math.max(
-      13,
-      Math.min(18, Math.floor((chartInnerH - 20) / Math.max(leafCount, 1)))
-    );
-    const leafPackedY = this.packVerticalLabelYs(
-      graph.nodes as SankeyNodeExtra[],
-      isLeafChartLabel,
-      n => (n.y0! + n.y1!) / 2,
-      leafMinGap
-    );
     /** Room below last label row (`alignment-baseline: middle`). */
     const labelYMax = height - 12;
-    this.clampPackedLabelYsMax(leafPackedY, labelYMax);
 
     const parentBandCount =
       graph.nodes.filter(n => isParentStartOnly(n as SankeyNodeExtra)).length +
@@ -1813,9 +1809,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     /** Same horizontal inset for leaf `(Source)` / `(Destination)` as parent/hub nodes; no stagger so labels share one vertical line per column. */
     const nodeLabelGapPx = 6;
-    /** Cap how far packed leaf `y` may drift from the node's vertical center (avoids "missing" labels off the bar). */
-    const leafLabelMaxVerticalDriftPx = 52;
-
     const getLabelX = (d: SankeyNodeExtra): number => {
       const refX = reallocationRefX(d.name);
       if (d.name.includes('Reallocation Pool')) return d.x1! + 4;
@@ -1859,10 +1852,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const n = d as SankeyNodeExtra;
         const mid = (n.y0! + n.y1!) / 2;
         if (isLeafChartLabel(n)) {
-          const packed = leafPackedY.get(n) ?? mid;
-          const lo = mid - leafLabelMaxVerticalDriftPx;
-          const hi = mid + leafLabelMaxVerticalDriftPx;
-          return Math.max(lo, Math.min(hi, packed));
+          // Keep leaf/sub labels on the same horizontal line as the node.
+          return mid;
         }
         if (superTerminalLabelY.has(n)) {
           const packed = superTerminalLabelY.get(n)!;
