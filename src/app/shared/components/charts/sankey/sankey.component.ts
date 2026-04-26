@@ -182,6 +182,77 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   /**
+   * Groups all nodes in a super-dimension band (region/segment) so d3-sankey can align vertical
+   * positions and reduce crossing when several super values are on the same chart.
+   * Matches `convertAssetFlowsToSankey` naming: `Super:…`, `… (Super Start)`, `…: Reallocation Pool`, etc.
+   */
+  private sankeySuperKeyForNodeSort(name: string | undefined | null): string {
+    if (!name) return '\u0000';
+    const n = name.trim();
+    if (/\s*\(Super Start\)\s*$/i.test(n)) {
+      return n.replace(/\s*\(Super Start\)\s*$/i, '').trim();
+    }
+    if (/\s*\(Super End\)\s*$/i.test(n)) {
+      return n.replace(/\s*\(Super End\)\s*$/i, '').trim();
+    }
+    const rePool = /^(.*):\s*Reallocation Pool\s*$/i.exec(n);
+    if (rePool) {
+      return rePool[1].trim();
+    }
+    const c = n.indexOf(':');
+    if (c >= 0) {
+      return n.slice(0, c).trim();
+    }
+    if (n.includes('Capital In') || n.includes('Capital Out')) {
+      return '\u0001structural';
+    }
+    return '\u0002' + n;
+  }
+
+  private buildReallocationPoolXBySuperMap(
+    nodes: Array<{ name?: string; x0?: number; x1?: number }>
+  ): Map<string, number> {
+    const m = new Map<string, number>();
+    for (const node of nodes) {
+      if (!node.name || !node.name.includes('Reallocation Pool')) {
+        continue;
+      }
+      const k = this.sankeySuperKeyForNodeSort(node.name);
+      const x = node.x0 != null && Number.isFinite(node.x0) ? node.x0 : (node.x1 != null && Number.isFinite(node.x1) ? node.x1 : null);
+      if (x != null) {
+        m.set(k, x);
+      }
+    }
+    return m;
+  }
+
+  private getReallocationRefXForName(
+    bySuper: ReadonlyMap<string, number>,
+    name: string,
+    globalFallback: number | null
+  ): number | null {
+    const k = this.sankeySuperKeyForNodeSort(name);
+    if (bySuper.has(k)) {
+      return bySuper.get(k)!;
+    }
+    return globalFallback;
+  }
+
+  private getReallocationRefXForLink(
+    bySuper: ReadonlyMap<string, number>,
+    source: { name?: string },
+    target: { name?: string },
+    globalFallback: number | null
+  ): number | null {
+    for (const p of [source, target]) {
+      if (!p?.name) continue;
+      const v = this.getReallocationRefXForName(bySuper, p.name, null);
+      if (v != null) return v;
+    }
+    return globalFallback;
+  }
+
+  /**
    * Max nodes stacked in any one Sankey column (same depth). Used for node padding and label
    * density (chart height stays capped so the view does not scroll).
    */
@@ -928,25 +999,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     this.cascadeMuteValueRangeOrphans(layoutLinkDefs, dataToUse);
 
+    // Only nodes that participate in at least one *unmuted* (value-range–passing) link.
+    // Do not add Super Start/End or pillar hubs from the full pre–value-range link list: with
+    // several super-dimension values, a hub with every link pruned by value range would still
+    // land in the node array, stay disconnected in d3-sankey (depth 0), and sit on the
+    // wrong horizontal side of the reallocation column — breaking left = outflow / right = inflow.
     const nodeIncluded = new Set<string>();
     for (const def of layoutLinkDefs) {
       if (def.mutedByValueRange) continue;
       nodeIncluded.add(dataToUse.nodes[def.source].name);
       nodeIncluded.add(dataToUse.nodes[def.target].name);
-    }
-    for (const node of dataToUse.nodes) {
-      if (!this.isSankeyFlowPillarNode(node.name)) continue;
-      const touched = (dataToUse.links || []).some(
-        l => l.source === node.name || l.target === node.name
-      );
-      if (touched) {
-        nodeIncluded.add(node.name);
-      }
-    }
-    for (const node of dataToUse.nodes) {
-      if (node.name.includes('(Super Start)') || node.name.includes('(Super End)')) {
-        nodeIncluded.add(node.name);
-      }
     }
 
     const prunedNodes = dataToUse.nodes.filter(n => nodeIncluded.has(n.name));
@@ -1006,9 +1068,17 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     /** Extra room below the flow so packed node labels are not clipped by the SVG. */
     const bottomMargin = 64;
 
+    const nodeSort = (a: SankeyNodeExtra, b: SankeyNodeExtra) =>
+      d3.ascending(
+        this.sankeySuperKeyForNodeSort(a.name),
+        this.sankeySuperKeyForNodeSort(b.name)
+      ) || d3.ascending(a.name ?? '', b.name ?? '');
+
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
       .nodeWidth(20)
       .nodePadding(dynamicNodePadding)
+      .nodeSort(nodeSort)
+      .iterations(32)
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
     let linkMultipliers = prunedLayoutLinkDefs.map(() => 1);
     // Assigned on every iteration of the loop below (always runs ≥ once).
@@ -1167,17 +1237,24 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       }
     });
 
-    // Find the Reallocation Pool node to use as reference point
-    const reallocationPoolNode = graph.nodes.find(node => 
-      node.name && node.name.includes('Reallocation Pool')
+    // Reference x for each super-dimension band (per `…: Reallocation Pool`), plus a global fallback
+    // from the first pool so sign/color/labels use the same hub as the flow, not a random peer.
+    const reallocationPoolNode = graph.nodes.find(
+      node => node.name && node.name.includes('Reallocation Pool')
     );
-    
-    // Get the x position of the Reallocation Pool node (use x0 as reference)
-    const reallocationPoolX = reallocationPoolNode?.x0 !== undefined 
-      ? reallocationPoolNode.x0 
-      : (reallocationPoolNode?.x1 !== undefined ? reallocationPoolNode.x1 : null);
+    const reallocationPoolX =
+      reallocationPoolNode?.x0 !== undefined
+        ? reallocationPoolNode.x0
+        : reallocationPoolNode?.x1 !== undefined
+          ? reallocationPoolNode.x1
+          : null;
+    const reallocationXBySuper = this.buildReallocationPoolXBySuperMap(
+      graph.nodes as SankeyNodeExtra[]
+    );
+    const reallocationRefX = (name: string) =>
+      this.getReallocationRefXForName(reallocationXBySuper, name, reallocationPoolX);
 
-    // Assign link colors based on position relative to Reallocation Pool
+    // Assign link colors based on position relative to the relevant Reallocation Pool
     // Links to the right of Reallocation Pool are green, others are red
     // Capital In links are always blue; Capital Out links are orange
     graph.links.forEach(link => {
@@ -1199,8 +1276,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return;
       }
       
-      // If Reallocation Pool position is not found, fall back to midpoint logic
-      if (reallocationPoolX === null) {
+      const refX = this.getReallocationRefXForLink(
+        reallocationXBySuper,
+        source,
+        target,
+        reallocationPoolX
+      );
+      
+      // If no reallocation x, fall back to midpoint logic
+      if (refX === null) {
         const allXPositions: number[] = [];
         graph.nodes.forEach(node => {
           if (node.x0 !== undefined) allXPositions.push(node.x0);
@@ -1220,13 +1304,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const sourceX = source.x0 !== undefined ? source.x0 : (source.x1 || 0);
       const targetX = target.x0 !== undefined ? target.x0 : (target.x1 || 0);
       
-      // Link is green if source or target is to the right of Reallocation Pool
-      if (sourceX > reallocationPoolX || targetX > reallocationPoolX) {
-        // Links to the right of Reallocation Pool are green
-        // linkExtra.color = this.getCssVariable('--green-link') || '#059669';
+      // Link is green if source or target is to the right of the band's Reallocation Pool
+      if (sourceX > refX || targetX > refX) {
         linkExtra.color = 'rgba(104, 188, 102, 0.8)';
       } else {
-        // Links to the left of Reallocation Pool are outflow (negative flows)
+        // Links to the left of the pool are outflow (negative flows)
         linkExtra.color = 'rgba(238, 152, 153, 0.8)';
       }
     });
@@ -1261,10 +1343,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const value = component.linkFlowForTotals(link);
         const sourceX = source.x0 !== undefined ? source.x0 : (source.x1 || 0);
         const targetX = target.x0 !== undefined ? target.x0 : (target.x1 || 0);
+        const linkRefX = component.getReallocationRefXForLink(
+          reallocationXBySuper,
+          source,
+          target,
+          reallocationPoolX
+        );
         const isLeftOfReallocation =
-          reallocationPoolX !== null &&
-          sourceX < reallocationPoolX &&
-          targetX <= reallocationPoolX;
+          linkRefX !== null &&
+          sourceX < linkRefX &&
+          targetX <= linkRefX;
         const signedValue = isLeftOfReallocation ? -Math.abs(value) : value;
         const formattedValue = component.formatTooltipCurrencyNoDecimals(signedValue);
         
@@ -1435,7 +1523,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const incoming = useHubFullTotals ? hubFull.incoming : nodeIncoming.get(node) || 0;
         const outgoing = useHubFullTotals ? hubFull.outgoing : nodeOutgoing.get(node) || 0;
         const nodeX = node.x0 !== undefined ? node.x0 : (node.x1 || 0);
-        const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
+        const refX = reallocationRefX(node.name);
+        const isLeftOfReallocation = refX !== null && nodeX < refX;
         const isStructuralCapitalNode =
           node.name.includes('Capital In') || node.name.includes('Capital Out');
         const signMultiplier = isLeftOfReallocation && !isStructuralCapitalNode ? -1 : 1;
@@ -1728,13 +1817,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const leafLabelMaxVerticalDriftPx = 52;
 
     const getLabelX = (d: SankeyNodeExtra): number => {
+      const refX = reallocationRefX(d.name);
       if (d.name.includes('Reallocation Pool')) return d.x1! + 4;
       if (d.name.includes('(Source)')) return d.x1! + nodeLabelGapPx;
       if (d.name.includes('(Destination)')) return d.x0! - nodeLabelGapPx;
       // Place New Capital and Capital In labels to the right of the node
       if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return d.x1! + nodeLabelGapPx;
-      if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return d.x0! - nodeLabelGapPx;
-      if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return d.x1! + nodeLabelGapPx;
+      if (refX !== null && d.x0! > refX) return d.x0! - nodeLabelGapPx;
+      if (refX !== null && d.x1! < refX) return d.x1! + nodeLabelGapPx;
       return (d.x0! + d.x1!) / 2;
     };
     /** Approx max chars for one `Name: $…` row (wider budget → less `…` truncation). */
@@ -1786,15 +1876,17 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return mid;
       })
       .attr('text-anchor', d => {
-        if (d.name.includes('(Source)')) return 'start';
-        if (d.name.includes('(Destination)')) return 'end';
+        const n = d as SankeyNodeExtra;
+        const refX = reallocationRefX(n.name);
+        if (n.name.includes('(Source)')) return 'start';
+        if (n.name.includes('(Destination)')) return 'end';
         // Label at x1 + small gap: anchor start so "Realloc: …" sits just right of the node
-        if (d.name.includes('Reallocation Pool')) return 'start';
-        if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return 'start';
+        if (n.name.includes('Reallocation Pool')) return 'start';
+        if (n.name.includes('Capital Out') || n.name.includes('Capital In')) return 'start';
         // Positive/inflow side: anchor at end so text sits to the left of the node
-        if (reallocationPoolX !== null && d.x0! > reallocationPoolX) return 'end';
+        if (refX !== null && d.x0! > refX) return 'end';
         // Negative/outflow side: anchor at start so text sits to the right of the node
-        if (reallocationPoolX !== null && d.x1! < reallocationPoolX) return 'start';
+        if (refX !== null && d.x1! < refX) return 'start';
         return 'middle';
       })
       .attr('alignment-baseline', 'middle');
@@ -1834,7 +1926,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           ? Math.max(hubFull.incoming, hubFull.outgoing)
           : nodeValues.get(n) || 0;
       const nodeX = n.x0 !== undefined ? n.x0 : (n.x1 || 0);
-      const isLeftOfReallocation = reallocationPoolX !== null && nodeX < reallocationPoolX;
+      const refXForNode = reallocationRefX(n.name);
+      const isLeftOfReallocation = refXForNode !== null && nodeX < refXForNode;
       const signedValue =
         n.name.includes('Capital Out') || n.name.includes('Capital In')
           ? rawValue
