@@ -254,15 +254,6 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // When the Investor Region filter has no selections, do not build any Sankey data.
-    if (this.selectedInvestorRegions && this.selectedInvestorRegions.length === 0) {
-      this.sankeyDataMap.clear();
-      this.sankeySuperValuesMap.clear();
-      this.selectedRegionsArray = [];
-      this.regionDataArray = [];
-      return;
-    }
-    
     const { values: superValues } = this.getSuperDimensionValues();
     const dim1Id = this.selectedDimension1?.id || 'investor-region';
     let individualValues = superValues;
