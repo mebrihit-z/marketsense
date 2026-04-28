@@ -524,21 +524,68 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       .join(' ');
   }
 
+  /**
+   * Flow/total/Growth-dollar-style columns use compact USD; excludes rank/pct columns (e.g. growth_rank).
+   */
+  private isUsdStyleQueryColumnKey(keyLower: string): boolean {
+    if (keyLower.includes('flow') || keyLower.includes('total')) {
+      return true;
+    }
+    if (
+      keyLower.includes('growth') &&
+      !keyLower.includes('rank') &&
+      !keyLower.includes('percent') &&
+      !keyLower.endsWith('_pct') &&
+      !keyLower.endsWith('_pct_chg')
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Parse numeric table strings (with optional commas); mirrors {@link isQueryTableNumericCellValue} rules. */
+  private parseQueryTableNumericString(value: string): number | null {
+    const t = value.trim();
+    if (t === '' || /^(n\/a|na|—|-)$/i.test(t)) return null;
+    if (this.toDate(value)) return null;
+    const normalized = t.replace(/,/g, '');
+    if (!/^-?\d*(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(normalized)) return null;
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /** Numbers in the query table: USD columns compact; other integers grouped with locale separators. */
+  private formatQueryTableNumericForDisplay(key: string, num: number): string {
+    if (!Number.isFinite(num)) return '—';
+    const keyLower = key.toLowerCase();
+    if (this.isUsdStyleQueryColumnKey(keyLower)) {
+      return formatFlowCurrencyUsd(num);
+    }
+    if (Number.isInteger(num)) {
+      return num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    }
+    return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+
   /** Format cell value for display (e.g. large numbers as $XX.XB, dates as readable format) */
   formatCellValue(key: string, value: unknown): string {
     if (value == null) return '—';
     if (typeof value === 'number') {
-      const keyLower = key.toLowerCase();
-      // Match flow amounts: inflow/outflow, net_flow, cash_flow, and totals (e.g. total_inflow) that include "flow"
-      if (keyLower.includes('flow') || keyLower.includes('total')) {
-        return formatFlowCurrencyUsd(value);
-      }
-      if (Number.isInteger(value)) return String(value);
-      return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      return this.formatQueryTableNumericForDisplay(key, value);
+    }
+    if (typeof value === 'bigint') {
+      return this.formatQueryTableNumericForDisplay(key, Number(value));
     }
     const date = this.toDate(value);
     if (date) {
       return this.formatQueryTableDateString(key, date);
+    }
+    if (typeof value === 'string') {
+      const n = this.parseQueryTableNumericString(value);
+      if (n !== null) {
+        return this.formatQueryTableNumericForDisplay(key, n);
+      }
+      return value;
     }
     return String(value);
   }
