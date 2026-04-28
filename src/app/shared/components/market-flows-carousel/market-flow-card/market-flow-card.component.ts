@@ -78,6 +78,16 @@ export class MarketFlowCardComponent {
     return buildMarketFlowPercentageHoverLabel(this.card, null, this.historicAnchor.getAnchor());
   }
 
+  /** Footer: sample count with grouping (e.g. 1,097). */
+  get sampleSizeDisplay(): string {
+    if (!this.card) return '—';
+    const n = this.card.nClientsTotal;
+    if (n != null && n > 0 && Number.isFinite(n)) {
+      return n.toLocaleString('en-US');
+    }
+    return '—';
+  }
+
   /** Hover only (no “Sample size” prefix—the line already shows the label and count). */
   get sampleSizeHoverLabel(): string {
     if (!this.card) return '';
