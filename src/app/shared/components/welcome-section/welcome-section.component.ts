@@ -116,6 +116,24 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   ngOnInit(): void {
     this.hydrateProfileFromPreference();
     this.loadSavedViews();
+
+    // VDI/OAuth path: user id can arrive after initial render.
+    // Re-load saved views/profile metadata once a stable id is available.
+    this.userReadySub = this.userProfileService.user$
+      .pipe(
+        map((user) => this.userProfileService.getUserId() ?? user?.sub ?? null),
+        map((id) => (id != null && String(id).trim() !== '' ? String(id).trim() : null)),
+        distinctUntilChanged(),
+        filter((id): id is string => id !== null)
+      )
+      .subscribe((userId) => {
+        if (this.lastLoadedUserId === userId) {
+          return;
+        }
+        this.lastLoadedUserId = userId;
+        this.hydrateProfileFromPreference();
+        this.loadSavedViews();
+      });
   }
 
   ngAfterViewInit(): void {
@@ -125,6 +143,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
   }
 
   private userReadySub?: Subscription;
+  private lastLoadedUserId: string | undefined;
 
   ngOnDestroy(): void {
     this.userReadySub?.unsubscribe();
