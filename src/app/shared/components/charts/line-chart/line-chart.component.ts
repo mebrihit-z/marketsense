@@ -828,6 +828,34 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     hitAreas.on('mouseenter', handleMouseEnter)
             .on('mouseleave', handleMouseLeave);
 
+    if (piPointsForBoundDots && piPointsForBoundDots.length > 0) {
+      type PiBoundHitDatum = { i: number; upper: number; lower: number; edge: 'upper' | 'lower' };
+      const boundHitDatum: PiBoundHitDatum[] = [
+        ...piPointsForBoundDots.map(d => ({ ...d, edge: 'upper' as const })),
+        ...piPointsForBoundDots.map(d => ({ ...d, edge: 'lower' as const })),
+      ];
+      const handlePiBoundMouseEnter = function (_evt: MouseEvent, d: PiBoundHitDatum): void {
+        const index = d.i;
+        if (index < 0 || index >= component.data.length) return;
+        const yVal = d.edge === 'upper' ? d.upper : d.lower;
+        showTooltip(index, xScale(index), yScale(yVal));
+      };
+      g.append('g')
+        .attr('class', 'line-chart-pi-bound-hit-areas')
+        .selectAll<SVGCircleElement, PiBoundHitDatum>('circle')
+        .data(boundHitDatum)
+        .enter()
+        .append('circle')
+        .attr('cx', d => xScale(d.i))
+        .attr('cy', d => yScale(d.edge === 'upper' ? d.upper : d.lower))
+        .attr('r', 12)
+        .attr('fill', 'transparent')
+        .style('pointer-events', 'all')
+        .style('cursor', 'pointer')
+        .on('mouseenter', handlePiBoundMouseEnter)
+        .on('mouseleave', hideTooltip);
+    }
+
     // X Axis - show exactly one tick per data point
     // When the series spans both positive and negative Y, keep the axis at the bottom (same as an all-positive chart).
     // Otherwise, negative net flow at the latest point → top; positive → bottom (avoids crowding when values stay negative).

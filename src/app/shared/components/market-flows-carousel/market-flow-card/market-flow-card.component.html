@@ -45,27 +45,6 @@
       </button>
     </div>
   </div>
-
-  <!-- Sentiment badge (Bullish/Bearish) – below title, slightly indented -->
-  <div class="sentiment-row">
-    <span
-      class="sentiment-pill"
-      [class.negative]="card.percentageColor === 'red'"
-      [class.positive]="card.percentageColor === 'green'"
-      [class.neutral-sentiment]="card.percentageColor === 'neutral'">
-      {{
-        card.sentiment ??
-          (card.percentageColor === 'red'
-            ? 'Bearish'
-            : card.percentageColor === 'green'
-              ? 'Bullish'
-              : card.valueColor === 'red'
-                ? 'Bearish'
-                : 'Bullish')
-      }}
-    </span>
-  </div>
-
   <!-- Value row: main value (left) | percentage pill + AUM (right), same row -->
   <div class="value-row">
     <div

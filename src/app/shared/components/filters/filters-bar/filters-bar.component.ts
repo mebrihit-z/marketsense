@@ -427,6 +427,19 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /**
+   * Product Sub-Type dropdown: only lists sub-types under the currently selected Product Types.
+   * The full {@link productSubTypeOptions} stays unfiltered so type/sub-type sync stays correct.
+   */
+  get filteredProductSubTypeOptions(): GroupedFilterOption[] {
+    const selectedTypes = this.state.productType;
+    if (!selectedTypes?.length) {
+      return [];
+    }
+    const typeSet = new Set(selectedTypes);
+    return this.productSubTypeOptions.filter((g) => typeSet.has(g.category));
+  }
+
+  /**
    * Local storage key for saved filter views.
    */
   private readonly SAVED_VIEWS_STORAGE_KEY = 'marketsense.savedViews';
