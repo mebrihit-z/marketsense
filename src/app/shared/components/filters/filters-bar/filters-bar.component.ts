@@ -280,6 +280,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           
           // Initialize productRegion selection with all options selected
           this.state.productRegion = filterOptions.productRegions;
+
+          this.refreshFilteredProductSubTypeOptions();
           
           // Emit initial selections
           this.productTypeChange.emit(this.state.productType);
@@ -299,6 +301,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
           this.investorRegionOptions = [];
           this.investorTypeOptions = [];
           this.productRegionOptions = [];
+          this.refreshFilteredProductSubTypeOptions();
           this.emitFilterOptionTotals();
 
           // Still attempt to apply default saved view even if option extraction failed.
@@ -313,6 +316,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         this.investorRegionOptions = [];
         this.investorTypeOptions = [];
         this.productRegionOptions = [];
+        this.refreshFilteredProductSubTypeOptions();
         this.emitFilterOptionTotals();
 
         // Still attempt to apply default saved view even if options failed to load.
@@ -388,6 +392,14 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   productRegionOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
   productTypeOptions: FilterOption[] = []; // Will be loaded from asset-flows-data.json
   productSubTypeOptions: GroupedFilterOption[] = []; // Will be loaded from asset-flows-data.json
+  /**
+   * Sub-type groups shown in the Product Sub-Type dropdown (subset of {@link productSubTypeOptions}).
+   * Must keep a stable array reference across change detection when data is unchanged; a getter that
+   * returned a new array each tick caused FilterDropdown to rebuild pendingMap every cycle and broke
+   * group "Deselect all" / header toggles while the panel was open.
+   */
+  filteredProductSubTypeOptions: GroupedFilterOption[] = [];
+  private filteredProductSubTypeDeps = '';
    // centralized state (Option A)
    state = {
     investorRegion: [] as string[],
@@ -427,16 +439,26 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /**
-   * Product Sub-Type dropdown: only lists sub-types under the currently selected Product Types.
-   * The full {@link productSubTypeOptions} stays unfiltered so type/sub-type sync stays correct.
+   * Recomputes {@link filteredProductSubTypeOptions} only when selected product types or the loaded
+   * sub-type option groups change, preserving reference stability otherwise.
    */
-  get filteredProductSubTypeOptions(): GroupedFilterOption[] {
+  private refreshFilteredProductSubTypeOptions(): void {
+    const typeKey = [...(this.state.productType ?? [])].sort().join('\0');
+    const optsKey = this.productSubTypeOptions.map((g) => g.category).join('\0');
+    const dep = `${optsKey}|${typeKey}`;
+    if (dep === this.filteredProductSubTypeDeps) {
+      return;
+    }
+    this.filteredProductSubTypeDeps = dep;
     const selectedTypes = this.state.productType;
     if (!selectedTypes?.length) {
-      return [];
+      this.filteredProductSubTypeOptions = [];
+      return;
     }
     const typeSet = new Set(selectedTypes);
-    return this.productSubTypeOptions.filter((g) => typeSet.has(g.category));
+    this.filteredProductSubTypeOptions = this.productSubTypeOptions.filter((g) =>
+      typeSet.has(g.category)
+    );
   }
 
   /**
@@ -463,6 +485,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     // Handle product type changes - deselect related sub-types when product type is deselected
     if (key === 'productType') {
       this.handleProductTypeChange(previousValues, values);
+      this.refreshFilteredProductSubTypeOptions();
       this.productTypeChange.emit(values);
     } else if (key === 'productSubType') {
       this.productSubTypeChange.emit(this.state.productSubType);
@@ -595,6 +618,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       this.state[key] = [];
     });
     this.aiConfidenceRange = { min: 50, max: 100 };
+    this.refreshFilteredProductSubTypeOptions();
     
     // Show "Select All Filters" button after clearing
     this.showSelectAll = true;
@@ -636,6 +660,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     
     // Hide "Select All Filters" button after selecting
     this.showSelectAll = false;
+
+    this.refreshFilteredProductSubTypeOptions();
     
     // Emit all filter change events to notify parent components
     this.productSubTypeChange.emit(this.state.productSubType);
@@ -841,6 +867,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         this.state[key] = [...value];
       }
     });
+
+    this.refreshFilteredProductSubTypeOptions();
 
     // Re-emit filter changes so downstream components update.
     this.productTypeChange.emit(this.state.productType);
