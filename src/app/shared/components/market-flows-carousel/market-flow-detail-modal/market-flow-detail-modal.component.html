@@ -148,13 +148,6 @@
     <div class="detail-modal-header-left">
       <h2 class="detail-modal-title">{{ card.title }}</h2>
       <span
-        class="detail-modal-sentiment"
-        [class.is-positive]="getHeadlinePercentageColor() === 'green'"
-        [class.is-negative]="getHeadlinePercentageColor() === 'red'"
-        [class.is-neutral]="getHeadlinePercentageColor() === 'neutral'">
-        {{ getCardSentimentLabel() }}
-      </span>
-      <span
         class="detail-modal-pct-pill flow-value-hover"
         [class.is-positive]="getHeadlinePercentageColor() === 'green'"
         [class.is-negative]="getHeadlinePercentageColor() === 'red'"
