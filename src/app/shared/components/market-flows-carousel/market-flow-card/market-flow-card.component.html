@@ -52,7 +52,24 @@
       [class.negative]="card.valueColor === 'red'"
       [class.positive]="card.valueColor === 'green'"
       [attr.data-flow-tooltip]="valueHoverFullLabel">
-      {{ card.value }}
+      <span class="net-flow-trend-icon" aria-hidden="true">
+        @if (card.valueColor === 'green') {
+          <img
+            src="assets/icons/up-curved-arrow-icon.svg"
+            alt=""
+            class="net-flow-trend-svg"
+            width="26"
+            height="26">
+        } @else {
+          <img
+            src="assets/icons/down-curved-arrow-icon.svg"
+            alt=""
+            class="net-flow-trend-svg"
+            width="26"
+            height="26">
+        }
+      </span>
+      <span class="large-value-text">{{ card.value }}</span>
     </div>
     <div class="badge-container">
       <span

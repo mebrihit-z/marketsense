@@ -252,6 +252,9 @@ $card-aum-gray: #94a3b8;
 }
 
 .large-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 27px;
   font-weight: 400;
   line-height: 1.2;
@@ -270,6 +273,25 @@ $card-aum-gray: #94a3b8;
   &.flow-value-hover {
     @include flow-styled-hover-tooltip;
   }
+}
+
+.net-flow-trend-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.net-flow-trend-svg {
+  display: block;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.large-value-text {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .value-row .badge-container {
