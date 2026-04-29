@@ -408,7 +408,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       aggregatedData.set(record.Product_Sub_Type, existing);
     });
 
-    // % change = ((New − Old) / Old) × 100 — Old = net flow at horizon start, New = net flow at horizon end
+    // % change = ((New − Old) / |Old|) × 100 — Old = net flow at horizon start, New = net flow at horizon end
     const horizonWin = this.getCurrentAggregationWindowYearMonths();
     const netFlowAtHorizonStart = new Map<string, number>();
     const netFlowAtHorizonEnd = new Map<string, number>();
