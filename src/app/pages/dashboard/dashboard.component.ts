@@ -16,6 +16,8 @@ import { MarketFlowCard } from '../../shared/components/market-flows-carousel/ma
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
 import HeaderComponent from '../../shared/components/header/header.component';
+import { DisclaimerBannerComponent } from '../../shared/components/disclaimer-banner/disclaimer-banner.component';
+import DisclosureModalComponent from '../../shared/components/disclosure-modal/disclosure-modal.component';
 import WelcomeSectionComponent from '../../shared/components/welcome-section/welcome-section.component';
 import AskMarketsenseSectionComponent from '../../shared/components/ask-marketsense-section/ask-marketsense-section.component';
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
@@ -48,11 +50,15 @@ import type {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [HeaderComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, WelcomeSectionComponent, AskMarketsenseSectionComponent, AskMarketsenseStickyButtonComponent],
+  imports: [HeaderComponent, DisclaimerBannerComponent, DisclosureModalComponent, CommonModule, FiltersBarComponent, FeaturedMarketFlowsCarouselComponent, AssetFlowsComponent, AssetAllocationComponent, WelcomeSectionComponent, AskMarketsenseSectionComponent, AskMarketsenseStickyButtonComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
 export default class DashboardComponent implements OnInit, AfterViewInit {
+  showDisclaimerBanner = true;
+  isDisclaimerBannerAtBottom = false;
+  isDisclosureModalOpen = false;
+
   @ViewChild('filtersSticky', { read: ElementRef }) private filtersStickyRef?: ElementRef<HTMLElement>;
   @ViewChild(AssetFlowsComponent) private assetFlowsComp?: AssetFlowsComponent;
   @ViewChild(AssetAllocationComponent) private assetAllocComp?: AssetAllocationComponent;
@@ -101,6 +107,24 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadAssetFlowsData();
+  }
+
+  openDisclosureModal(): void {
+    this.isDisclosureModalOpen = true;
+  }
+
+  closeDisclosureModal(): void {
+    this.isDisclosureModalOpen = false;
+  }
+
+  onDisclosureAcknowledged(): void {
+    this.isDisclosureModalOpen = false;
+    this.isDisclaimerBannerAtBottom = true;
+    this.showDisclaimerBanner = true;
+  }
+
+  dismissDisclaimerBanner(): void {
+    this.showDisclaimerBanner = false;
   }
 
   ngAfterViewInit(): void {

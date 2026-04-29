@@ -1,0 +1,86 @@
+<div
+  class="disclosure-modal-backdrop"
+  *ngIf="isVisible"
+  (click)="onClose()">
+  <div class="disclosure-modal" role="dialog" aria-modal="true" aria-label="Data Methodology and Insights Disclosure" (click)="$event.stopPropagation()">
+    <div class="disclosure-modal__header">
+      <div class="disclosure-modal__title-wrap">
+        <div class="disclosure-modal__title-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M9 15H11V9H9V15ZM10 7C10.2833 7 10.5208 6.90417 10.7125 6.7125C10.9042 6.52083 11 6.28333 11 6C11 5.71667 10.9042 5.47917 10.7125 5.2875C10.5208 5.09583 10.2833 5 10 5C9.71667 5 9.47917 5.09583 9.2875 5.2875C9.09583 5.47917 9 5.71667 9 6C9 6.28333 9.09583 6.52083 9.2875 6.7125C9.47917 6.90417 9.71667 7 10 7ZM10 20C8.61667 20 7.31667 19.7375 6.1 19.2125C4.88333 18.6875 3.825 17.975 2.925 17.075C2.025 16.175 1.3125 15.1167 0.7875 13.9C0.2625 12.6833 0 11.3833 0 10C0 8.61667 0.2625 7.31667 0.7875 6.1C1.3125 4.88333 2.025 3.825 2.925 2.925C3.825 2.025 4.88333 1.3125 6.1 0.7875C7.31667 0.2625 8.61667 0 10 0C11.3833 0 12.6833 0.2625 13.9 0.7875C15.1167 1.3125 16.175 2.025 17.075 2.925C17.975 3.825 18.6875 4.88333 19.2125 6.1C19.7375 7.31667 20 8.61667 20 10C20 11.3833 19.7375 12.6833 19.2125 13.9C18.6875 15.1167 17.975 16.175 17.075 17.075C16.175 17.975 15.1167 18.6875 13.9 19.2125C12.6833 19.7375 11.3833 20 10 20Z" fill="#FFBA20"/>
+          </svg>
+        </div>
+        <h2 class="disclosure-modal__title">Data Methodology &amp; Insights Disclosure</h2>
+      </div>
+      <button type="button" class="disclosure-modal__close" aria-label="Close disclosure" (click)="onClose()">
+        &times;
+      </button>
+    </div>
+
+    <div class="disclosure-modal__body">
+      <section class="disclosure-item">
+        <div class="disclosure-item__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="27" viewBox="0 0 26 27" fill="none">
+            <path d="M4 26.6667V20.9333C2.73333 19.7778 1.75 18.4278 1.05 16.8833C0.35 15.3389 0 13.7111 0 12C0 8.66667 1.16667 5.83333 3.5 3.5C5.83333 1.16667 8.66667 0 12 0C14.7778 0 17.2389 0.816667 19.3833 2.45C21.5278 4.08333 22.9222 6.21111 23.5667 8.83333L25.3 15.6667C25.4111 16.0889 25.3333 16.4722 25.0667 16.8167C24.8 17.1611 24.4444 17.3333 24 17.3333H21.3333V21.3333C21.3333 22.0667 21.0722 22.6944 20.55 23.2167C20.0278 23.7389 19.4 24 18.6667 24H16V26.6667H13.3333V21.3333H18.6667V14.6667H22.2667L21 9.5C20.4889 7.47778 19.4 5.83333 17.7333 4.56667C16.0667 3.3 14.1556 2.66667 12 2.66667C9.42222 2.66667 7.22222 3.56667 5.4 5.36667C3.57778 7.16667 2.66667 9.35556 2.66667 11.9333C2.66667 13.2667 2.93889 14.5333 3.48333 15.7333C4.02778 16.9333 4.8 18 5.8 18.9333L6.66667 19.7333V26.6667H4ZM10.6667 17.3333H13.3333L13.5333 15.6667C13.7111 15.6 13.8722 15.5222 14.0167 15.4333C14.1611 15.3444 14.2889 15.2444 14.4 15.1333L15.9333 15.8L17.2667 13.5333L15.9333 12.5333C15.9778 12.3556 16 12.1778 16 12C16 11.8222 15.9778 11.6444 15.9333 11.4667L17.2667 10.4667L15.9333 8.2L14.4 8.86667C14.2889 8.75556 14.1611 8.65556 14.0167 8.56667C13.8722 8.47778 13.7111 8.4 13.5333 8.33333L13.3333 6.66667H10.6667L10.4667 8.33333C10.2889 8.4 10.1278 8.47778 9.98333 8.56667C9.83889 8.65556 9.71111 8.75556 9.6 8.86667L8.06667 8.2L6.73333 10.4667L8.06667 11.4667C8.02222 11.6444 8 11.8222 8 12C8 12.1778 8.02222 12.3556 8.06667 12.5333L6.73333 13.5333L8.06667 15.8L9.6 15.1333C9.71111 15.2444 9.83889 15.3444 9.98333 15.4333C10.1278 15.5222 10.2889 15.6 10.4667 15.6667L10.6667 17.3333ZM12 14C11.4444 14 10.9722 13.8056 10.5833 13.4167C10.1944 13.0278 10 12.5556 10 12C10 11.4444 10.1944 10.9722 10.5833 10.5833C10.9722 10.1944 11.4444 10 12 10C12.5556 10 13.0278 10.1944 13.4167 10.5833C13.8056 10.9722 14 11.4444 14 12C14 12.5556 13.8056 13.0278 13.4167 13.4167C13.0278 13.8056 12.5556 14 12 14Z" fill="#0059BB"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="disclosure-item__title">Predictive Modeling</h3>
+          <p class="disclosure-item__text">
+            MarketSense leverages advanced neural networks and Bayesian statistical forecasting to interpret historical market patterns. Our AI models analyze over 4,000 temporal variables simultaneously to identify signal clusters that precede significant market shifts.
+          </p>
+        </div>
+      </section>
+
+      <section class="disclosure-item">
+        <div class="disclosure-item__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 24C8.64444 24 5.80556 23.4833 3.48333 22.45C1.16111 21.4167 0 20.1556 0 18.6667V5.33333C0 3.86667 1.17222 2.61111 3.51667 1.56667C5.86111 0.522222 8.68889 0 12 0C15.3111 0 18.1389 0.522222 20.4833 1.56667C22.8278 2.61111 24 3.86667 24 5.33333V18.6667C24 20.1556 22.8389 21.4167 20.5167 22.45C18.1944 23.4833 15.3556 24 12 24ZM12 8.03333C13.9778 8.03333 15.9667 7.75 17.9667 7.18333C19.9667 6.61667 21.0889 6.01111 21.3333 5.36667C21.0889 4.72222 19.9722 4.11111 17.9833 3.53333C15.9944 2.95556 14 2.66667 12 2.66667C9.97778 2.66667 7.99444 2.95 6.05 3.51667C4.10556 4.08333 2.97778 4.7 2.66667 5.36667C2.97778 6.03333 4.10556 6.64444 6.05 7.2C7.99444 7.75556 9.97778 8.03333 12 8.03333ZM12 14.6667C12.9333 14.6667 13.8333 14.6222 14.7 14.5333C15.5667 14.4444 16.3944 14.3167 17.1833 14.15C17.9722 13.9833 18.7167 13.7778 19.4167 13.5333C20.1167 13.2889 20.7556 13.0111 21.3333 12.7V8.7C20.7556 9.01111 20.1167 9.28889 19.4167 9.53333C18.7167 9.77778 17.9722 9.98333 17.1833 10.15C16.3944 10.3167 15.5667 10.4444 14.7 10.5333C13.8333 10.6222 12.9333 10.6667 12 10.6667C11.0667 10.6667 10.1556 10.6222 9.26667 10.5333C8.37778 10.4444 7.53889 10.3167 6.75 10.15C5.96111 9.98333 5.22222 9.77778 4.53333 9.53333C3.84444 9.28889 3.22222 9.01111 2.66667 8.7V12.7C3.22222 13.0111 3.84444 13.2889 4.53333 13.5333C5.22222 13.7778 5.96111 13.9833 6.75 14.15C7.53889 14.3167 8.37778 14.4444 9.26667 14.5333C10.1556 14.6222 11.0667 14.6667 12 14.6667ZM12 21.3333C13.0222 21.3333 14.0611 21.2556 15.1167 21.1C16.1722 20.9444 17.1444 20.7389 18.0333 20.4833C18.9222 20.2278 19.6667 19.9389 20.2667 19.6167C20.8667 19.2944 21.2222 18.9667 21.3333 18.6333V15.3667C20.7556 15.6778 20.1167 15.9556 19.4167 16.2C18.7167 16.4444 17.9722 16.65 17.1833 16.8167C16.3944 16.9833 15.5667 17.1111 14.7 17.2C13.8333 17.2889 12.9333 17.3333 12 17.3333C11.0667 17.3333 10.1556 17.2889 9.26667 17.2C8.37778 17.1111 7.53889 16.9833 6.75 16.8167C5.96111 16.65 5.22222 16.4444 4.53333 16.2C3.84444 15.9556 3.22222 15.6778 2.66667 15.3667V18.6667C2.77778 19 3.12778 19.3222 3.71667 19.6333C4.30556 19.9444 5.04444 20.2278 5.93333 20.4833C6.82222 20.7389 7.8 20.9444 8.86667 21.1C9.93333 21.2556 10.9778 21.3333 12 21.3333Z" fill="#0059BB"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="disclosure-item__title">Data Integrity</h3>
+          <p class="disclosure-item__text">
+            Insights are generated through a hybrid ingestion engine combining Mercer&apos;s proprietary institutional capital flow data with high-fidelity external signals, including real-time order book imbalances and macroeconomic indicator releases.
+          </p>
+        </div>
+      </section>
+
+      <section class="disclosure-item">
+        <div class="disclosure-item__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="27" height="28" viewBox="0 0 27 28" fill="none">
+            <path d="M2.16667 17.3667L0 15.8L6.66667 5.13333L10.6667 9.8L16 1.13333L20 7.13333L24.5 0L26.6667 1.56667L20.0667 12.0333L16.1 6.06667L11.0333 14.3L7 9.6L2.16667 17.3667ZM18 22.6667C18.9333 22.6667 19.7222 22.3444 20.3667 21.7C21.0111 21.0556 21.3333 20.2667 21.3333 19.3333C21.3333 18.4 21.0111 17.6111 20.3667 16.9667C19.7222 16.3222 18.9333 16 18 16C17.0667 16 16.2778 16.3222 15.6333 16.9667C14.9889 17.6111 14.6667 18.4 14.6667 19.3333C14.6667 20.2667 14.9889 21.0556 15.6333 21.7C16.2778 22.3444 17.0667 22.6667 18 22.6667ZM24.8 28L21.2 24.4C20.7333 24.7111 20.2278 24.9444 19.6833 25.1C19.1389 25.2556 18.5778 25.3333 18 25.3333C16.3333 25.3333 14.9167 24.75 13.75 23.5833C12.5833 22.4167 12 21 12 19.3333C12 17.6667 12.5833 16.25 13.75 15.0833C14.9167 13.9167 16.3333 13.3333 18 13.3333C19.6667 13.3333 21.0833 13.9167 22.25 15.0833C23.4167 16.25 24 17.6667 24 19.3333C24 19.9111 23.9222 20.4722 23.7667 21.0167C23.6111 21.5611 23.3778 22.0667 23.0667 22.5333L26.6667 26.1333L24.8 28Z" fill="#0059BB"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="disclosure-item__title">Understanding Prediction Interval</h3>
+          <p class="disclosure-item__text">
+            The visual probability cones represent a 95% statistical prediction interval. These shaded areas illustrate the range of potential outcomes based on current volatility; a narrowing cone suggests high-conviction stability, while expanding cones indicate rising regime uncertainty.
+          </p>
+        </div>
+      </section>
+
+      <section class="disclosure-item">
+        <div class="disclosure-item__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="26" viewBox="0 0 24 26" fill="none">
+            <path d="M0 25.3333V22.6667H16V25.3333H0ZM7.53333 18.8667L0 11.3333L2.8 8.46667L10.4 16L7.53333 18.8667ZM16 10.4L8.46667 2.8L11.3333 0L18.8667 7.53333L16 10.4ZM22.1333 24L4.73333 6.6L6.6 4.73333L24 22.1333L22.1333 24Z" fill="#0059BB"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="disclosure-item__title">Professional Judgment</h3>
+          <p class="disclosure-item__text">
+            All model outputs are directional in nature and intended for institutional analysis purposes only. MarketSense provides decision-support intelligence; final strategic allocations must rely on independent professional judgment and internal risk compliance frameworks.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="disclosure-modal__footer">
+      <p class="disclosure-modal__meta">Last updated: Oct 2023 • v4.2.0-STABLE</p>
+      <div class="disclosure-modal__actions">
+        <button type="button" class="disclosure-modal__btn disclosure-modal__btn--secondary" (click)="onPrint()">Print Disclosure</button>
+        <button type="button" class="disclosure-modal__btn disclosure-modal__btn--primary" (click)="onAcknowledge()">Acknowledge</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,5 +1,9 @@
 <div >
-  <app-header></app-header>
+  <app-header
+    [showTopDisclaimerBanner]="showDisclaimerBanner && !isDisclaimerBannerAtBottom"
+    (learnMoreClicked)="openDisclosureModal()"
+    (dismissDisclaimer)="dismissDisclaimerBanner()">
+  </app-header>
   <div class="dashboard-container" 
       [class.asset-allocation-pinned]="isAssetAllocationPinned"
       [class.asset-flows-pinned]="isAssetFlowsPinned">
@@ -108,4 +112,17 @@
 
   <!-- Sticky Ask MarketSense AI button (fixed bottom-right when scrolling) -->
   <app-ask-marketsense-sticky-button></app-ask-marketsense-sticky-button>
+
+  <app-disclaimer-banner
+    [isVisible]="showDisclaimerBanner && isDisclaimerBannerAtBottom"
+    position="bottom"
+    (learnMore)="openDisclosureModal()"
+    (close)="dismissDisclaimerBanner()">
+  </app-disclaimer-banner>
+
+  <app-disclosure-modal
+    [isVisible]="isDisclosureModalOpen"
+    (close)="closeDisclosureModal()"
+    (acknowledge)="onDisclosureAcknowledged()">
+  </app-disclosure-modal>
 </div>

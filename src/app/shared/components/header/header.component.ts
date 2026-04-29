@@ -1,8 +1,9 @@
 /* eslint-disable */
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ProfileModalComponent } from '../profile-modal/profile-modal.component';
+import { DisclaimerBannerComponent } from '../disclaimer-banner/disclaimer-banner.component';
 import UserProfileService from '../../services/user-profile.service';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { Subscription } from 'rxjs';
@@ -10,11 +11,15 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, ProfileModalComponent],
+  imports: [CommonModule, RouterModule, ProfileModalComponent, DisclaimerBannerComponent],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
 })
 export default class HeaderComponent implements OnInit, OnDestroy {
+  @Input() showTopDisclaimerBanner = true;
+  @Output() learnMoreClicked = new EventEmitter<void>();
+  @Output() dismissDisclaimer = new EventEmitter<void>();
+
   isProfileModalOpen = false;
   lastUpdatedLabel = 'N/A';
   private assetFlowsSub?: Subscription;
@@ -41,6 +46,7 @@ export default class HeaderComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.assetFlowsSub?.unsubscribe();
+    document.body.style.overflow = '';
   }
 
   /** Last login: from UserProfileService or default (like welcome section). */
@@ -63,6 +69,14 @@ export default class HeaderComponent implements OnInit, OnDestroy {
 
   closeProfileModal(): void {
     this.isProfileModalOpen = false;
+  }
+
+  closeDisclaimerBanner(): void {
+    this.dismissDisclaimer.emit();
+  }
+
+  openDisclosureModal(): void {
+    this.learnMoreClicked.emit();
   }
 
   private formatDate(value: string): string {

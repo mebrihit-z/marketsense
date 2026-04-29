@@ -38,5 +38,12 @@
       </div>
     </div>
   </div>
+
+  <app-disclaimer-banner
+    [isVisible]="showTopDisclaimerBanner"
+    position="top"
+    (learnMore)="openDisclosureModal()"
+    (close)="closeDisclaimerBanner()">
+  </app-disclaimer-banner>
 </div>
 
