@@ -768,6 +768,22 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return formatted;
     }
 
+    /**
+     * Label/tooltip title for Sankey nodes. When Dimension 1 is Investor Region, super-terminal
+     * hubs for the United States read as "US Investors" instead of "US" / "U.S".
+     */
+    private formatSankeyNodeDisplayName(fullName: string): string {
+      const base = this.formatNodeName(fullName);
+      if (
+        this.dimension1Id === 'investor-region' &&
+        (fullName.includes('(Super Start)') || fullName.includes('(Super End)')) &&
+        (base === 'US' || base === 'U.S')
+      ) {
+        return 'US Investors';
+      }
+      return base;
+    }
+
     /** When {@link formatNodeName} strips everything, still show a short leaf/sub label. */
     private leafLabelDisplayBody(fullName: string): string {
       const formatted = this.formatNodeName(fullName).trim();
@@ -1492,7 +1508,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
                                (target.name && (target.name.includes('(Source)') || target.name.includes('(Destination)')));
         
         let tooltipHtml = `
-          <div><strong>${component.formatNodeName(source.name)}</strong> → <strong>${component.formatNodeName(target.name)}</strong></div>
+          <div><strong>${component.formatSankeyNodeDisplayName(source.name)}</strong> → <strong>${component.formatSankeyNodeDisplayName(target.name)}</strong></div>
           <div style="margin-top: 4px;">Value: ${formattedValue}</div>
         `;
         // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
@@ -2091,7 +2107,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
       appendTreemapStyleLabelValue(
         el,
-        cmp.formatNodeName(n.name),
+        cmp.formatSankeyNodeDisplayName(n.name),
         signedValue,
         maxParentInlineChars
       );
