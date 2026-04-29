@@ -180,3 +180,96 @@
     justify-content: flex-end;
   }
 }
+
+// Print: only the disclosure content (see onPrint() + html.print-disclosure-only). Lives here with ViewEncapsulation.None so `body` / `app-dashboard` selectors apply.
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body app-root {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  html.print-disclosure-only {
+    body app-dashboard app-header,
+    body app-dashboard .dashboard-container,
+    body app-dashboard app-ask-marketsense-sticky-button,
+    body app-dashboard app-disclaimer-banner {
+      display: none !important;
+    }
+
+    body app-dashboard app-disclosure-modal {
+      display: block !important;
+    }
+
+    body .disclosure-modal-backdrop {
+      position: static !important;
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: center !important;
+      inset: auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: transparent !important;
+      z-index: auto !important;
+    }
+
+    body .disclosure-modal {
+      max-height: none !important;
+      width: min(860px, 100%) !important;
+      overflow: visible !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      box-shadow: none !important;
+    }
+
+    body .disclosure-modal__body {
+      overflow: visible !important;
+      gap: 10px !important;
+      padding: 14px 16px !important;
+    }
+
+    body .disclosure-item {
+      gap: 12px !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    body .disclosure-item__text {
+      font-size: 12px !important;
+      line-height: 1.45 !important;
+    }
+
+    body .disclosure-modal__close,
+    body .disclosure-modal__actions {
+      display: none !important;
+    }
+
+    body .disclosure-modal__footer {
+      padding: 14px 16px !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      justify-content: flex-start !important;
+    }
+
+    body .disclosure-modal__meta {
+      margin: 0 !important;
+    }
+  }
+}

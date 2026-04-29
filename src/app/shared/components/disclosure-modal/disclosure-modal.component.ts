@@ -1,4 +1,5 @@
-import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+/* eslint-disable */
+import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -7,6 +8,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './disclosure-modal.component.html',
   styleUrl: './disclosure-modal.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export default class DisclosureModalComponent implements OnChanges {
   @Input() isVisible = false;
@@ -30,7 +32,30 @@ export default class DisclosureModalComponent implements OnChanges {
   }
 
   onPrint(): void {
-    window.print();
+    const root = document.documentElement;
+    const cls = 'print-disclosure-only';
+    root.classList.add(cls);
+
+    let done = false;
+    /** Browser `setTimeout` ids are numeric (distinct from Node's `Timer` type). */
+    let fallbackId: number | undefined;
+
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      root.classList.remove(cls);
+      window.removeEventListener('afterprint', finish);
+      if (fallbackId !== undefined) {
+        window.clearTimeout(fallbackId);
+      }
+    };
+
+    window.addEventListener('afterprint', finish);
+    fallbackId = window.setTimeout(finish, 120_000);
+
+    queueMicrotask(() => {
+      window.print();
+    });
   }
 
   onAcknowledge(): void {
