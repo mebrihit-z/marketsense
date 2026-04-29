@@ -115,15 +115,20 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
 
   closeDisclosureModal(): void {
     this.isDisclosureModalOpen = false;
+    this.relocateDisclaimerBannerToPageEnd();
   }
 
   onDisclosureAcknowledged(): void {
     this.isDisclosureModalOpen = false;
+    this.relocateDisclaimerBannerToPageEnd();
+  }
+
+  relocateDisclaimerBannerToPageEnd(): void {
     this.isDisclaimerBannerAtBottom = true;
     this.showDisclaimerBanner = true;
   }
 
-  dismissDisclaimerBanner(): void {
+  hideDisclaimerBanner(): void {
     this.showDisclaimerBanner = false;
   }
 

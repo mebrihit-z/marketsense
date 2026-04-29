@@ -2,7 +2,7 @@
   <app-header
     [showTopDisclaimerBanner]="showDisclaimerBanner && !isDisclaimerBannerAtBottom"
     (learnMoreClicked)="openDisclosureModal()"
-    (dismissDisclaimer)="dismissDisclaimerBanner()">
+    (dismissDisclaimer)="relocateDisclaimerBannerToPageEnd()">
   </app-header>
   <div class="dashboard-container" 
       [class.asset-allocation-pinned]="isAssetAllocationPinned"
@@ -117,7 +117,7 @@
     [isVisible]="showDisclaimerBanner && isDisclaimerBannerAtBottom"
     position="bottom"
     (learnMore)="openDisclosureModal()"
-    (close)="dismissDisclaimerBanner()">
+    (close)="hideDisclaimerBanner()">
   </app-disclaimer-banner>
 
   <app-disclosure-modal
