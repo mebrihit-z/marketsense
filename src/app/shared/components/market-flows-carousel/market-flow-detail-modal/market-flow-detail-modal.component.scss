@@ -123,7 +123,7 @@
 .inline-panel .content-container {
   width: 45%;
   min-width: 260px;
-  @media (max-width: 1024px) and (min-width: 769px) {
+  @media (max-width: 1440px) and (min-width: 769px) {
     width: 100%;
     gap:8px
   }
@@ -135,7 +135,7 @@
   gap: 36px;
   width: 100%;
   min-width: 0;
-  @media (max-width: 1024px) and (min-width: 769px) {
+  @media (max-width: 1440px) and (min-width: 769px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
@@ -146,12 +146,12 @@
 .inline-panel .chart-section {
   flex: 1 1 0;
   min-width: 0;
-  @media (min-width: 1025px) {
+  @media (min-width: 1441px) {
     max-width: 55%;
   }
 }
 
-@media (max-width: 1024px) and (min-width: 769px) {
+@media (max-width: 1440px) and (min-width: 769px) {
   .inline-panel .chart-section {
     width: 100%;
     max-width: 100%;
@@ -480,9 +480,9 @@
 // Net flow / inflow / outflow summary strip (replaces former NET VALUE + EXPECTED CHANGE cards)
 .flow-summary-strip {
   display: grid;
-  // Net flow uses remaining width; inflow/outflow stay compact and right-aligned for clearer separation.
-  grid-template-columns: 1fr auto auto;
-  gap: 16px 24px;
+  // Give net flow extra width while keeping inflow/outflow separated.
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px 20px;
   padding: 16px 18px;
   border: 1px solid #e5e5e5;
   border-radius: 2px;
@@ -514,16 +514,19 @@
 }
 
 .flow-summary-value {
-  font-size: 28px;
+  font-size: clamp(20px, 1.7vw, 28px);
   line-height: 1.15;
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .flow-summary-net {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 
   &.net-positive {
     color: $secondary-colors-green-1000;
@@ -552,7 +555,45 @@
 }
 
 .flow-summary-io {
+  justify-content: flex-end;
   color: $neutral-colors-neutral-1000;
+}
+
+// Small laptops / narrow inline panel: keep one row, but compress typography and gutters.
+@media (max-width: 1280px) and (min-width: 701px) {
+  .inline-panel .flow-summary-strip {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.85fr) minmax(0, 0.85fr);
+    gap: 12px 14px;
+    padding: 14px 14px;
+  }
+
+  .inline-panel .flow-summary-value {
+    font-size: clamp(18px, 1.35vw, 24px);
+    letter-spacing: -0.25px;
+  }
+}
+
+// In the inline expanded panel, give Net flow a full row only on phone-like widths.
+@media (max-width: 700px) {
+  .inline-panel .flow-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 20px;
+  }
+
+  .inline-panel .flow-summary-cell:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .inline-panel .flow-summary-cell:nth-child(2),
+  .inline-panel .flow-summary-cell:nth-child(3) {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .inline-panel .flow-summary-cell:nth-child(2) .flow-summary-io,
+  .inline-panel .flow-summary-cell:nth-child(3) .flow-summary-io {
+    justify-content: flex-start;
+  }
 }
 
 .flow-summary-value.flow-value-hover {
@@ -683,9 +724,10 @@
 
 .flow-breakdown-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  column-gap: 12px;
-  align-items: baseline;
+  // Dedicated value/% columns plus explicit gutters prevent text/value overlap.
+  grid-template-columns: minmax(0, 1fr) minmax(7ch, max-content) minmax(4.5rem, max-content);
+  column-gap: 18px;
+  align-items: start;
   padding: 10px 14px;
   font-size: 15px;
   font-weight: 500;
@@ -700,9 +742,11 @@
     min-width: 0;
     font-weight: 500;
     text-align: left;
+    overflow-wrap: anywhere;
   }
 
   .col-value {
+    min-width: 0;
     font-weight: 500;
     text-align: right;
     white-space: nowrap;
@@ -940,19 +984,6 @@
   }
 }
 
-// Responsive adjustments
-@media (max-width: 1024px) {
-  .modal-container {
-    // width: 95%;
-    // min-width: 500px;
-  }
-
-  .main-content {
-  
-  }
-
-}
-
 @media (max-width: 768px) {
   .modal-container {
     // width: 100%;
@@ -981,7 +1012,7 @@
   }
 
   .flow-summary-value {
-    font-size: 22px;
+    font-size: 18px;
   }
 }
 

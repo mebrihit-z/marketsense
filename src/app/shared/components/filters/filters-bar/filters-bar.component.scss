@@ -287,8 +287,7 @@
     min-width: 0;
     
     @media (max-width: 1200px) {
-        overflow-x: auto;
-        overflow-y: visible;
+        overflow: visible;
     }
 
     @media (max-width: 1024px) and (min-width: 769px) {
@@ -342,8 +341,7 @@
     width: 100%;
     
     @media (max-width: 1200px) {
-        overflow-x: auto;
-        overflow-y: visible;
+        overflow: visible;
     }
 
     @media (max-width: 1024px) and (min-width: 769px) {
