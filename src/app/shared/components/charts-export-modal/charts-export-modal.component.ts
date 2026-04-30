@@ -14,9 +14,12 @@ export class ChartsExportModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Input() title: string = 'Export Chart';
   @Input() subtitle: string = 'Choose your preferred export format';
+  /** When true, shows a CSV option (e.g. Sankey/tabular underlying data). */
+  @Input() showCsvExport = false;
   @Output() close = new EventEmitter<void>();
   @Output() exportPNG = new EventEmitter<void>();
   @Output() exportPDF = new EventEmitter<void>();
+  @Output() exportCSV = new EventEmitter<void>();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible']) {
@@ -36,6 +39,11 @@ export class ChartsExportModalComponent implements OnChanges {
 
   onExportPDF(): void {
     this.exportPDF.emit();
+    this.onClose();
+  }
+
+  onExportCSV(): void {
+    this.exportCSV.emit();
     this.onClose();
   }
 }

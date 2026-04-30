@@ -122,6 +122,12 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   cachedSelectedProductTypes: string[] = [];
   cachedSelectedProductSubTypes: string[] = [];
   
+  /**
+   * Asset-flow rows feeding `convertAssetFlowsToSankey` for the current chart: same time window /
+   * filter-bar / data-mode pipeline, with zero-value flows removed (matches converter input).
+   */
+  private sankeySourceAssetRows: AssetFlowRecord[] = [];
+
   // Raw asset flows data (before filtering)
   private rawAssetFlowsData: AssetFlowRecord[] | undefined;
 
@@ -251,6 +257,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   private updateSankeyData(): void {
     if (!this.rawAssetFlowsData) {
       console.warn('No raw asset flows data available');
+      this.sankeySourceAssetRows = [];
       return;
     }
 
@@ -271,12 +278,16 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
 
     if (!filteredData || filteredData.length === 0) {
       console.warn('No data after filtering');
+      this.sankeySourceAssetRows = [];
       this.sankeyDataMap.clear();
       this.sankeySuperValuesMap.clear();
       this.selectedRegionsArray = [];
       this.regionDataArray = [];
       return;
     }
+
+    // Same nonzero filter as `convertAssetFlowsToSankey` before conversion
+    this.sankeySourceAssetRows = filteredData.filter((r) => Math.abs(r.Asset_Flow_Value) > 1e-9);
 
     // Convert to Sankey using Dimension 1 as super, Dimension 2 as parent, Dimension 3 as leaf
     const dimensionConfig = this.getSankeyDimensionConfig();
@@ -784,10 +795,117 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
     if (rows.length > maxRows) {
       y += 8;
       pdf.setFontSize(9);
-      pdf.text(`Showing ${maxRows} of ${rows.length} rows. Use XLS for full dataset.`, margin, y);
+      pdf.text(`Showing ${maxRows} of ${rows.length} rows. Export CSV for the full dataset.`, margin, y);
     }
 
     pdf.save(`${this.getExportBaseName()}-sankey.pdf`);
+  }
+
+  onExportCSV(): void {
+    const csvObjects = this.buildSankeySourceCsvRows();
+    if (csvObjects.length === 0) {
+      return;
+    }
+    const escapeCell = (v: string): string => {
+      const s = String(v);
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const headers = Object.keys(csvObjects[0]);
+    const headerRow = headers.map((h) => escapeCell(h)).join(',');
+    const dataRows = csvObjects.map((row) =>
+      headers.map((h) => escapeCell(row[h] ?? '')).join(',')
+    );
+    const csv = [headerRow, ...dataRows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${this.getExportBaseName()}-sankey-source-rows.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Rows fed into the Sankey builder for the visible chart(s): filtered asset-flow records,
+   * scoped to each panel's Dimension‑1 selection and category filters mirrored in the chart.
+   */
+  private buildSankeySourceCsvRows(): Record<string, string>[] {
+    let rows = [...this.sankeySourceAssetRows];
+    rows = this.filterRecordsBySankeyCategoryPickers(rows);
+    const out: Record<string, string>[] = [];
+    const fieldOrder = this.csvAssetFlowFieldOrder();
+
+    this.regionDataArray.forEach((regionData) => {
+      const supers = new Set(regionData.investorRegions ?? []);
+      if (supers.size === 0) {
+        return;
+      }
+      rows.forEach((record) => {
+        if (!supers.has(this.getSankeySuperValueForRecord(record))) {
+          return;
+        }
+        const row: Record<string, string> = {};
+        fieldOrder.forEach((key) => {
+          row[key] = this.csvCellForAssetFlowField(record, key);
+        });
+        out.push(row);
+      });
+    });
+    return out;
+  }
+
+  /** Matches `filterSankeyData` inputs passed from the Asset Flows host into {@link SankeyComponent}. */
+  private filterRecordsBySankeyCategoryPickers(records: AssetFlowRecord[]): AssetFlowRecord[] {
+    let next = records;
+    if (this.cachedSelectedProductTypes?.length) {
+      next = next.filter((r) => this.cachedSelectedProductTypes.includes(r.Product_Type));
+    }
+    if (this.cachedSelectedProductSubTypes?.length) {
+      next = next.filter((r) => this.cachedSelectedProductSubTypes.includes(r.Product_Sub_Type));
+    }
+    return next;
+  }
+
+  private getSankeySuperValueForRecord(record: AssetFlowRecord): string {
+    const field = this.getSankeyDimensionConfig().superField;
+    const v = record[field as keyof AssetFlowRecord];
+    if (typeof v === 'string' && v.trim().length > 0) {
+      return v.trim();
+    }
+    return 'Unknown';
+  }
+
+  private csvAssetFlowFieldOrder(): string[] {
+    return [
+      'Investor_Region',
+      'Investor_Types',
+      'Product_Region',
+      'Product_Type',
+      'Product_Sub_Type',
+      'Asset_Flow_Date',
+      'Asset_Flow_Value',
+      'N_Clients',
+      'Model_Type',
+      'Fcst_Flow_Upper',
+      'Fcst_Flow_Lower',
+      'Model_Version',
+      'Load_Date',
+      'Latest',
+    ];
+  }
+
+  private csvCellForAssetFlowField(record: AssetFlowRecord, key: string): string {
+    const raw = record[key as keyof AssetFlowRecord];
+    if (raw === undefined || raw === null) {
+      return '';
+    }
+    if (typeof raw === 'number') {
+      return Number.isFinite(raw) ? String(raw) : '';
+    }
+    return String(raw);
   }
 
   private buildTableCanvas(

@@ -67,8 +67,10 @@
 <app-charts-export-modal
   [isVisible]="showExportModal"
   [title]="'Export Asset Flows'"
-  [subtitle]="'PNG or PDF snapshot of the Sankey view'"
+  [subtitle]="'PNG, PDF, or CSV of the Sankey view'"
+  [showCsvExport]="true"
   (close)="onCloseExportModal()"
   (exportPNG)="onExportPNG()"
-  (exportPDF)="onExportPDF()">
+  (exportPDF)="onExportPDF()"
+  (exportCSV)="onExportCSV()">
 </app-charts-export-modal>

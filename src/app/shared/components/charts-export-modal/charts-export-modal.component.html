@@ -37,6 +37,19 @@
           <p class="option-description">Export chart data report as PDF</p>
         </div>
       </button>
+
+      <!-- CSV Option (underlying asset-flow rows for Sankey / treemap) -->
+      <button *ngIf="showCsvExport" type="button" class="export-option" (click)="onExportCSV()">
+        <div class="option-content">
+          <div class="option-header">
+            <div class="option-icon csv-icon">
+              <img src="assets/icons/download-icon.svg" alt="CSV" class="csv-icon-img">
+            </div>
+            <span class="option-title">CSV</span>
+          </div>
+          <p class="option-description">Export underlying asset-flow rows used to build this chart</p>
+        </div>
+      </button>
     </div>
   </div>
 </div>

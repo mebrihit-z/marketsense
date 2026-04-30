@@ -72,9 +72,11 @@
 <app-charts-export-modal
   [isVisible]="showExportModal"
   [title]="'Export Asset Allocation'"
-  [subtitle]="'PNG or PDF snapshot of the treemap'"
+  [subtitle]="'PNG, PDF, or CSV of the treemap'"
+  [showCsvExport]="true"
   (close)="onCloseExportModal()"
   (exportPNG)="onExportPNG()"
-  (exportPDF)="onExportPDF()">
+  (exportPDF)="onExportPDF()"
+  (exportCSV)="onExportCSV()">
 </app-charts-export-modal>
 

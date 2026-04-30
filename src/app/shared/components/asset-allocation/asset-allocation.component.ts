@@ -133,6 +133,12 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   // Cached arrays to avoid creating new arrays in template
   cachedSelectedProductTypes: string[] = [];
   cachedSelectedProductSubTypes: string[] = [];
+
+  /**
+   * Asset-flow rows feeding `convertAssetFlowsToSankey` for the current treemap (time + filter bar,
+   * plus treemap-specific investor-region scoping when applicable), with zero-value flows removed.
+   */
+  private treemapSourceAssetRows: AssetFlowRecord[] = [];
   
   // Data loading
   private rawAssetFlowsData?: AssetFlowRecord[];
@@ -522,10 +528,115 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     if (rows.length > maxRows) {
       y += 8;
       pdf.setFontSize(9);
-      pdf.text(`Showing ${maxRows} of ${rows.length} rows. Use XLS for full dataset.`, margin, y);
+      pdf.text(`Showing ${maxRows} of ${rows.length} rows. Export CSV for the full dataset.`, margin, y);
     }
 
     pdf.save(`${this.getExportBaseName()}-treemap.pdf`);
+  }
+
+  onExportCSV(): void {
+    const csvObjects = this.buildTreemapSourceCsvRows();
+    if (csvObjects.length === 0) {
+      return;
+    }
+    const escapeCell = (v: string): string => {
+      const s = String(v);
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const headers = Object.keys(csvObjects[0]);
+    const headerRow = headers.map((h) => escapeCell(h)).join(',');
+    const dataRows = csvObjects.map((row) =>
+      headers.map((h) => escapeCell(row[h] ?? '')).join(',')
+    );
+    const csv = [headerRow, ...dataRows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${this.getExportBaseName()}-treemap-source-rows.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Underlying asset-flow rows for the treemap: same inputs as `convertAssetFlowsToSankey`, with
+   * dimension super scoping when the treemap row carries a non-empty super list (combined view uses
+   * an empty list = no extra super filter).
+   */
+  private buildTreemapSourceCsvRows(): Record<string, string>[] {
+    let rows = [...this.treemapSourceAssetRows];
+    rows = this.filterRecordsByTreemapCategoryPickers(rows);
+    const out: Record<string, string>[] = [];
+    const fieldOrder = this.csvAssetFlowFieldOrder();
+
+    this.regionDataArray.forEach((regionData) => {
+      const supers = new Set(regionData.investorRegions ?? []);
+      rows.forEach((record) => {
+        if (supers.size > 0 && !supers.has(this.getSankeySuperValueForRecord(record))) {
+          return;
+        }
+        const row: Record<string, string> = {};
+        fieldOrder.forEach((key) => {
+          row[key] = this.csvCellForAssetFlowField(record, key);
+        });
+        out.push(row);
+      });
+    });
+    return out;
+  }
+
+  /** Mirrors treemap `filterSankeyData` product-type / sub-type arguments from {@link updateRegionDataArray}. */
+  private filterRecordsByTreemapCategoryPickers(records: AssetFlowRecord[]): AssetFlowRecord[] {
+    let next = records;
+    if (this.cachedSelectedProductTypes?.length) {
+      next = next.filter((r) => this.cachedSelectedProductTypes.includes(r.Product_Type));
+    }
+    if (this.cachedSelectedProductSubTypes?.length) {
+      next = next.filter((r) => this.cachedSelectedProductSubTypes.includes(r.Product_Sub_Type));
+    }
+    return next;
+  }
+
+  private getSankeySuperValueForRecord(record: AssetFlowRecord): string {
+    const field = this.getSankeyDimensionConfig().superField;
+    const v = record[field as keyof AssetFlowRecord];
+    if (typeof v === 'string' && v.trim().length > 0) {
+      return v.trim();
+    }
+    return 'Unknown';
+  }
+
+  private csvAssetFlowFieldOrder(): string[] {
+    return [
+      'Investor_Region',
+      'Investor_Types',
+      'Product_Region',
+      'Product_Type',
+      'Product_Sub_Type',
+      'Asset_Flow_Date',
+      'Asset_Flow_Value',
+      'N_Clients',
+      'Model_Type',
+      'Fcst_Flow_Upper',
+      'Fcst_Flow_Lower',
+      'Model_Version',
+      'Load_Date',
+      'Latest',
+    ];
+  }
+
+  private csvCellForAssetFlowField(record: AssetFlowRecord, key: string): string {
+    const raw = record[key as keyof AssetFlowRecord];
+    if (raw === undefined || raw === null) {
+      return '';
+    }
+    if (typeof raw === 'number') {
+      return Number.isFinite(raw) ? String(raw) : '';
+    }
+    return String(raw);
   }
 
   private buildTableCanvas(
@@ -700,11 +811,13 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   private updateTreemapData(): void {
     if (!this.rawAssetFlowsData) {
       console.warn('AssetAllocation: No raw asset flows data available');
+      this.treemapSourceAssetRows = [];
       return;
     }
 
     // When the Investor Region filter has no selections, clear treemap data entirely.
     if (this.selectedInvestorRegions && this.selectedInvestorRegions.length === 0) {
+      this.treemapSourceAssetRows = [];
       this.treemapDataMap.clear();
       this.treemapSuperValuesMap.clear();
       this.regionDataArray = [];
@@ -722,6 +835,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
     filteredData = this.filterDataByFilterBar(filteredData);
     if (!filteredData || filteredData.length === 0) {
       console.warn('AssetAllocation: No data after time horizon filter');
+      this.treemapSourceAssetRows = [];
       this.treemapDataMap.clear();
       this.treemapSuperValuesMap.clear();
       this.regionDataArray = [];
@@ -737,11 +851,13 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
         : [...new Set(filteredData.map((r) => r.Investor_Region))].filter(Boolean).sort();
       filteredData = filteredData.filter((r) => regionsToUse.includes(r.Investor_Region));
       if (filteredData.length === 0) {
+        this.treemapSourceAssetRows = [];
         this.treemapDataMap.clear();
         this.treemapSuperValuesMap.clear();
         this.regionDataArray = [];
         return;
       }
+      this.treemapSourceAssetRows = filteredData.filter((r) => Math.abs(r.Asset_Flow_Value) > 1e-9);
       const singleSankeyData = convertAssetFlowsToSankey(filteredData, dimensionConfig);
       this.treemapDataMap.clear();
       this.treemapSuperValuesMap.clear();
@@ -751,6 +867,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
       return;
     }
 
+    this.treemapSourceAssetRows = filteredData.filter((r) => Math.abs(r.Asset_Flow_Value) > 1e-9);
     const allRegionsSankeyData = convertAssetFlowsToSankey(filteredData, dimensionConfig);
     this.treemapDataMap.clear();
     this.treemapSuperValuesMap.clear();
