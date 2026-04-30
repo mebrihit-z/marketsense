@@ -262,19 +262,13 @@
   font-weight: 500;
   font-size: 14px;
   line-height: 1.3;
-  color: $white;
+  color: $text-midnight-blue;
+  background-color: #F3F3F5;
   white-space: nowrap;
-
-  &.is-positive {
-    background-color: $secondary-colors-green-1000;
-  }
-
-  &.is-negative {
-    background-color: $red-badge;
-  }
+  border: 1px solid $neutral-colors-neutral-500;
 
   &.is-neutral {
-    background-color: $text-neutral-750;
+    color: $neutral-colors-neutral-750;
   }
 
   &.flow-value-hover {
@@ -527,6 +521,10 @@
 }
 
 .flow-summary-net {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
   &.net-positive {
     color: $secondary-colors-green-1000;
   }
@@ -538,6 +536,19 @@
   &.net-neutral {
     color: $neutral-colors-neutral-1000;
   }
+}
+
+.detail-net-flow-trend-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.detail-net-flow-trend-svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .flow-summary-io {
@@ -701,20 +712,11 @@
   .col-pct {
     min-width: 4.5rem;
     text-align: right;
-    font-weight: 600;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
+    color: $neutral-colors-neutral-1000;
 
-    &.pct-positive {
-      color: $traffic-colors-success-green;
-    }
 
-    &.pct-negative {
-      color: $traffic-colors-danger-crimson;
-    }
-
-    &.pct-neutral {
-      color: $neutral-colors-neutral-750;
-    }
   }
   @media (max-width: 768px) {
     font-size: 14px;

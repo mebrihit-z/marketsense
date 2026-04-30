@@ -308,19 +308,14 @@ $card-aum-gray: #94a3b8;
   font-weight: 500;
   font-size: 12px;
   line-height: 1.3;
-  color: white;
+  color: $text-midnight-blue;
+  background-color: #F3F3F5;
   white-space: nowrap;
 
-  &.positive {
-    background-color: $secondary-colors-green-1000;
-  }
-
-  &.negative {
-    background-color: $red-badge;
-  }
+  border: 1px solid $neutral-colors-neutral-500;
 
   &.neutral {
-    background-color: $text-neutral-750;
+    color: $text-neutral-750;
   }
 
   /** Same styled tooltip as the main flow value, aligned to the right. */

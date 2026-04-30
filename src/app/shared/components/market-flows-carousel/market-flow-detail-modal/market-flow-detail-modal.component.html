@@ -211,6 +211,23 @@
         [class.net-negative]="getFlowUsdTotals().netUsd < 0"
         [class.net-neutral]="getFlowUsdTotals().netUsd === 0"
         [attr.data-flow-tooltip]="getProjectedValueHoverTitle()">
+        <span class="detail-net-flow-trend-icon" aria-hidden="true" *ngIf="getFlowUsdTotals().netUsd !== 0">
+          <img
+            *ngIf="getFlowUsdTotals().netUsd > 0; else downTrendIcon"
+            src="assets/icons/up-curved-arrow-icon.svg"
+            alt=""
+            class="detail-net-flow-trend-svg"
+            width="24"
+            height="24">
+          <ng-template #downTrendIcon>
+            <img
+              src="assets/icons/down-curved-arrow-icon.svg"
+              alt=""
+              class="detail-net-flow-trend-svg"
+              width="24"
+              height="24">
+          </ng-template>
+        </span>
         {{ getNetFlowDisplay() }}
       </div>
     </div>
