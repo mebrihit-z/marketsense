@@ -166,6 +166,12 @@ $min-flow-handle-cluster-top-mobile: $min-flow-rail-y-mobile + $min-flow-track-h
   overflow: visible;
   box-shadow: 0 2px 8px rgba(0, 17, 63, 0.18);
 
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 13px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 14px;
+  }
   &.min-flow-range-value-tooltip--spread-start {
     transform: translateX(-$min-flow-tooltip-spread);
     &::after {
@@ -326,7 +332,7 @@ $min-flow-handle-cluster-top-mobile: $min-flow-rail-y-mobile + $min-flow-track-h
 
 :host.min-flow-range--filters-compact .min-flow-range-label {
   max-width: none;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
   letter-spacing: -0.01em;
 
@@ -338,6 +344,12 @@ $min-flow-handle-cluster-top-mobile: $min-flow-rail-y-mobile + $min-flow-track-h
   &.min-flow-range-label--active {
     font-weight: 700;
     color: $primary-colors-midnight-blue;
+  }
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 13px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 15px;
   }
 }
 

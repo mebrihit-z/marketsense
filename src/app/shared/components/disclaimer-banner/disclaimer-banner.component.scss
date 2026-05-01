@@ -28,6 +28,18 @@
   align-items: flex-start;
   gap: 8px;
   min-width: 0;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  @media (min-width: 1921px) {
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
 }
 
 .disclaimer-banner__icon {
@@ -41,6 +53,12 @@
   font-size: 14px;
   line-height: 1.35;
   color: $neutral-colors-neutral-1000;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 15px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
 }
 
 .disclaimer-banner__link {
@@ -68,7 +86,18 @@
   justify-content: center;
   padding: 0;
   flex-shrink: 0;
-
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+  @media (min-width: 1921px) {
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
   &:hover {
     color: #5f6a80;
   }

@@ -226,6 +226,9 @@
   line-height: 1.25;
   letter-spacing: -0.03em;
   color: #0A0A0A;
+  @media (min-width: 1921px) {
+    font-size: 28px;
+  }
 }
 
 .detail-modal-sentiment {
@@ -266,7 +269,7 @@
   background-color: #F3F3F5;
   white-space: nowrap;
   border: 1px solid $neutral-colors-neutral-500;
-
+ 
   &.is-neutral {
     color: $neutral-colors-neutral-750;
   }
@@ -675,6 +678,13 @@
   background: $bg-gray-lightest;
   transition: background 0.15s ease, color 0.15s ease;
 
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 14px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
+
   .flow-breakdown-tab-icon {
     display: flex;
     flex-shrink: 0;
@@ -729,7 +739,7 @@
   column-gap: 18px;
   align-items: start;
   padding: 10px 14px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.35;
   color: $neutral-colors-neutral-1000;
@@ -761,6 +771,12 @@
     color: $neutral-colors-neutral-1000;
 
 
+  }
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 15px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
   }
   @media (max-width: 768px) {
     font-size: 14px;
@@ -920,6 +936,9 @@
   color: $neutral-colors-neutral-750;
   position: relative;
   overflow: visible;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 .detail-modal-data-sample-label {

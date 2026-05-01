@@ -60,6 +60,13 @@
   display: flex;
   align-items: center;
   gap: 4px;
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 24px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 28px;
+  }
   
   @media (max-width: 768px) {
     font-size: 20px;
@@ -93,6 +100,9 @@
   line-height: 16px;
   color: $text-neutral-1000;
   white-space: nowrap;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 .saved-views-wrap {
@@ -146,7 +156,13 @@
   font-weight: 500;
   font-size: 14px;
   line-height: 16px;
-  color: #00113F
+  color: #00113F;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
 }
 
 .caret-icon {

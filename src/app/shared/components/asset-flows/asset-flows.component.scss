@@ -617,6 +617,12 @@
   line-height: 16px;
   color: #00113F;
   display: block;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 15px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 
   @media (max-width: 768px) {
     font-size: 12px;

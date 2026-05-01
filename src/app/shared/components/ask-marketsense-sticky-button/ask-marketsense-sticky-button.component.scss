@@ -26,6 +26,13 @@
   color: $white;
   padding: 10px 16px;
   gap: 8px;
+  font-size: 14px;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 15px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
   &:hover {
     background-color: $sticky-btn-hover-background;
     color: $text-midnight-blue;

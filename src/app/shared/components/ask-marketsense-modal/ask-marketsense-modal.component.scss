@@ -250,6 +250,9 @@
   cursor: pointer;
   transition: all 0.2s;
   color: $text-midnight-blue;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 
   &.active {
     background-color: $bg-midnight-blue;
@@ -313,7 +316,9 @@
   line-height: 20px;
   margin: 0 0 8px 0;
   color: $text-midnight-blue;
-
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
   .question-section & {
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -331,6 +336,9 @@
   line-height: 20px;
   margin: 0 0 8px 0;
   color: $text-midnight-blue;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 .question-timestamp {
@@ -354,6 +362,9 @@
   margin: 0;
   color: $text-midnight-blue;
   white-space: pre-wrap;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 // Query Results table (above AI-Generated Summary)
@@ -408,6 +419,9 @@
     border-collapse: collapse;
     font-size: 14px;
     line-height: 20px;
+    @media (min-width: 1921px) {
+      font-size: 16px;
+    }
   }
 
   .query-results-th {
@@ -460,6 +474,9 @@
     margin-bottom: 8px;
     color: $text-midnight-blue;
     padding-left: 8px;
+    @media (min-width: 1921px) {
+      font-size: 16px;
+    }
 
     &::before {
       content: '';
@@ -522,6 +539,9 @@
   color: $text-midnight-blue;
   transition: background-color 0.2s, border-color 0.2s;
   flex-shrink: 0;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.04);
@@ -602,6 +622,9 @@
   font-style: normal;
   font-family: 'Noto Sans', sans-serif;
   color: $text-midnight-blue;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 
   &::placeholder {
     color: $text-neutral-750;

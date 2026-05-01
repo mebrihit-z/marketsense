@@ -119,6 +119,12 @@
   line-height: 16px;
   color: #00113F;
   display: block;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
 
   @media (max-width: 768px) {
     font-size: 12px;
@@ -132,7 +138,12 @@
   line-height: 20px;
   color: $text-midnight-blue;
   flex-shrink: 0;
-
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
   @media (max-width: 768px) {
     font-size: 14px;
     line-height: 18px;
@@ -159,6 +170,13 @@
   align-items: center;
   justify-content: space-between;
   text-align: left;
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
 
   @media (max-width: 768px) {
     padding: 12px;
@@ -246,7 +264,12 @@
   transition: background-color 0.15s;
   background-color: $bg-white;
   color: $text-midnight-blue;
-
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
   @media (max-width: 768px) {
     padding: 12px;
     font-size: 13px;

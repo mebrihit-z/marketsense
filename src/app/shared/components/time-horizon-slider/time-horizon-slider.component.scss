@@ -62,6 +62,12 @@ $time-horizon-card-flex-basis: 680px;
     white-space: nowrap;
     color: $text-midnight-blue;
     font-weight: 400;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+      font-size: 16px;
+    }
+    @media (min-width: 1921px) {
+      font-size: 20px;
+    }
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
@@ -160,6 +166,12 @@ $time-horizon-card-flex-basis: 680px;
     line-height: 18px;
     font-weight: 400;
     letter-spacing: -0.1px;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+      font-size: 13px;
+    }
+    @media (min-width: 1921px) {
+      font-size: 15px;
+    }
   }
 
   .tooltip-arrow {
@@ -337,6 +349,12 @@ $time-horizon-card-flex-basis: 680px;
   max-width: none;
   overflow: visible;
   box-shadow: 0 2px 8px rgba(0, 17, 63, 0.18);
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 13px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 14px;
+  }
 
   &.time-horizon-value-tooltip--spread-start {
     transform: translateX(-$time-horizon-tooltip-spread);
@@ -509,6 +527,13 @@ $time-horizon-card-flex-basis: 680px;
   @media (max-width: 768px) {
     font-size: 10px;
     letter-spacing: -0.02em;
+  }
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 13px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 15px;
   }
 }
 

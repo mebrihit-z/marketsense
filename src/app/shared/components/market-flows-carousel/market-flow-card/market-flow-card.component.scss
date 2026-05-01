@@ -132,6 +132,9 @@ $card-aum-gray: #94a3b8;
   color: $text-midnight-blue;
   margin: 0;
   flex: 1;
+  @media (min-width: 1921px) {
+    font-size: 24px;
+  }
 }
 
 .card-actions {
@@ -260,6 +263,9 @@ $card-aum-gray: #94a3b8;
   line-height: 1.2;
   letter-spacing: -0.02em;
   flex-shrink: 0;
+  @media (min-width: 1921px) {
+    font-size: 32px;
+  }
 
   &.positive {
     color: $secondary-colors-green-1000;
@@ -311,7 +317,9 @@ $card-aum-gray: #94a3b8;
   color: $text-midnight-blue;
   background-color: #F3F3F5;
   white-space: nowrap;
-
+  @media (min-width: 1921px) {
+    font-size: 14px;
+  }
   border: 1px solid $neutral-colors-neutral-500;
 
   &.neutral {
@@ -350,6 +358,9 @@ $card-aum-gray: #94a3b8;
   font-weight: 400;
   position: relative;
   overflow: visible;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 /** Italic on the label only. */
@@ -379,6 +390,9 @@ $card-aum-gray: #94a3b8;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 
   &:hover {
     text-decoration: underline;

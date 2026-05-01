@@ -386,7 +386,13 @@
     line-height: 20px; /* 142.857% */
     letter-spacing: -0.15px;
     margin-top: 0;
-
+ 
+    @media (min-width: 1537px) and (max-width: 1920px) {
+      font-size: 16px;
+    }
+    @media (min-width: 1921px) {
+      font-size: 20px;
+    }
     @media (max-width: 768px) {
         font-size: 13px;
         gap: 6px;
@@ -524,6 +530,12 @@
     font-weight: 600;
     white-space: nowrap;
     flex: 0 0 auto;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+        font-size: 14px;
+    }
+    @media (min-width: 1921px) {
+        font-size: 16px;
+    }
 }
 
 .pinned-chip-value {
@@ -535,6 +547,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+        font-size: 14px;
+    }
+    @media (min-width: 1921px) {
+        font-size: 16px;
+    }
 }
 
 .pinned-chip-tooltip {
@@ -956,6 +974,12 @@
     padding: 0;
     transition: opacity 0.2s ease;
     
+    @media (min-width: 1537px) and (max-width: 1920px) {
+        font-size: 16px;
+    }
+    @media (min-width: 1921px) {
+        font-size: 20px;
+    }
     &:hover {
         font-weight: 700;
     }
@@ -1055,6 +1079,12 @@
     line-height: 20px;
     color: $primary-colors-midnight-blue;
     white-space: nowrap;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+        font-size: 16px;
+      }
+      @media (min-width: 1921px) {
+        font-size: 20px;
+      }
 }
 
 .info-btn-wrapper {
@@ -1117,6 +1147,12 @@
         line-height: 18px;
         font-weight: 400;
         letter-spacing: -0.1px;
+        @media (min-width: 1537px) and (max-width: 1920px) {
+            font-size: 13px;
+        }
+        @media (min-width: 1921px) {
+            font-size: 15px;
+        }
     }
     
     .tooltip-arrow {

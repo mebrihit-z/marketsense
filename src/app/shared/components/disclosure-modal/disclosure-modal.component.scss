@@ -54,7 +54,10 @@
   font-size: 20px;
   line-height: 1.2;
   font-weight: 800;
-  color: $white
+  color: $white;
+  @media (min-width: 1921px) {
+    font-size: 22px;
+  }
 }
 
 .disclosure-modal__close {
@@ -65,6 +68,12 @@
   line-height: 1;
   cursor: pointer;
   padding: 0 2px;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 30px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 34px;
+  }
 }
 
 .disclosure-modal__body {
@@ -100,6 +109,9 @@
   font-size: 18px;
   line-height: 1.2;
   font-weight: 700;
+  @media (min-width: 1921px) {
+    font-size: 20px;
+  }
 }
 
 .disclosure-item__text {
@@ -107,6 +119,9 @@
   color: #44474e;
   font-size: 14px;
   line-height: 1.55;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 .disclosure-modal__footer {
@@ -125,6 +140,9 @@
   color: #44474e;
   font-size: 14px;
   line-height: 16px;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 .disclosure-modal__actions {
@@ -140,6 +158,9 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  @media (min-width: 1921px) {
+    font-size: 15px;
+  }
 }
 
 .disclosure-modal__btn--secondary {

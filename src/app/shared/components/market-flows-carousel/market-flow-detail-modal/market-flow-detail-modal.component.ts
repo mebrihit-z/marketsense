@@ -686,7 +686,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * @param pointCount - When there are more than 8 points, the anchor (delta 0) uses "0" instead of a long date to avoid x-axis crowding.
+   * @param pointCount - When there are more than 5 points, the anchor (delta 0) uses "0" instead of a long date to avoid x-axis crowding.
    */
   private formatYearMonthAsHorizonAxisTick(ym: string, pointCount?: number): string {
     const anchorYm = this.historicAnchor.getAnchorYearMonth();
@@ -694,7 +694,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const delta = detailModalUtil.monthsBetweenYearMonths(anchorYm, ym);
     if (delta === null) return ym;
     if (delta === 0) {
-      if (pointCount != null && pointCount > 8) {
+      if (pointCount != null && pointCount > 5) {
         return '0';
       }
       return this.getZeroTimeHorizonDateLabel();

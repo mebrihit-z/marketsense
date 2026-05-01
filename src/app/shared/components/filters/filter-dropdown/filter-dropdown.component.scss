@@ -28,6 +28,9 @@
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
+    @media (min-width: 1921px) {
+      height: $filters-height-desktop-large;
+    }
     &:hover {
         border-color: $filter-border-hover-color;
     }
@@ -57,6 +60,14 @@
     font-weight: 500;
     line-height: 16px;
     margin-right: 0;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+      font-size: 14px;
+      padding:4px 10px; 
+    }
+    @media (min-width: 1921px) {
+      font-size: 18px;
+      padding:6px 12px; 
+    }
 }
 .caret-down-icon {
     @media (max-width: 1024px) and (min-width: 769px) {
@@ -122,6 +133,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 20px;
+  }
 }
 .info-btn-wrapper {
   position: relative;
@@ -184,6 +201,12 @@
     line-height: 18px;
     font-weight: 400;
     letter-spacing: -0.1px;
+    @media (min-width: 1537px) and (max-width: 1920px) {
+      font-size: 13px;
+    }
+    @media (min-width: 1921px) {
+      font-size: 15px;
+    }
   }
   
   .tooltip-arrow {
@@ -276,6 +299,13 @@
   color: $text-midnight-blue;
   line-height: 14px; /* 100% */
   letter-spacing: -0.15px;
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
   
   &.grouped-option {
     padding-left: 8px;
