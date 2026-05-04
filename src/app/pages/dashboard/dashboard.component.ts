@@ -515,9 +515,11 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
         };
       });
 
-    const cardsInValueRange = cards.filter(c =>
-      this.absoluteUsdPassesChartValueRange(Math.abs(c.netFlowUsd ?? 0))
-    );
+    const cardsInValueRange = cards.filter(c => {
+      const sampleOk = (c.nClientsTotal ?? 0) >= 3;
+      if (!sampleOk) return false;
+      return this.absoluteUsdPassesChartValueRange(Math.abs(c.netFlowUsd ?? 0));
+    });
 
     // Sort cards: pinned cards first (in order of pinning), then others by absolute value
     return cardsInValueRange.sort((a, b) => {
