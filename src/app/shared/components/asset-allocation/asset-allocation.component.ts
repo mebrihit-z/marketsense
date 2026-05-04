@@ -569,6 +569,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   private buildTreemapSourceCsvRows(): Record<string, string>[] {
     let rows = [...this.treemapSourceAssetRows];
     rows = this.filterRecordsByTreemapCategoryPickers(rows);
+    rows = rows.filter((r) => (r.N_Clients ?? 0) > 3);
     const out: Record<string, string>[] = [];
     const fieldOrder = this.csvAssetFlowFieldOrder();
 

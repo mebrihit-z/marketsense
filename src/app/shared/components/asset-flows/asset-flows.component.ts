@@ -835,6 +835,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   private buildSankeySourceCsvRows(): Record<string, string>[] {
     let rows = [...this.sankeySourceAssetRows];
     rows = this.filterRecordsBySankeyCategoryPickers(rows);
+    rows = rows.filter((r) => (r.N_Clients ?? 0) > 3);
     const out: Record<string, string>[] = [];
     const fieldOrder = this.csvAssetFlowFieldOrder();
 
