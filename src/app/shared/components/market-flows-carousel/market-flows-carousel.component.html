@@ -34,7 +34,9 @@
 
   <!-- Carousel: grid when no selection, two-column (detail left + stacked cards right) when a card is selected -->
   <div class="carousel-container" *ngIf="!selectedCardForDetail">
-    <div class="cards-grid">
+    <div
+      class="cards-grid"
+      [style.grid-template-columns]="'repeat(' + cardsPerSlide + ', minmax(0, 1fr))'">
       <app-market-flow-card
         *ngFor="let card of visibleCards"
         [card]="card"

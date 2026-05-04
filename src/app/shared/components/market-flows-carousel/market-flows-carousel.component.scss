@@ -269,9 +269,21 @@
   align-items: start;
   min-height: 400px;
 
-  @media (min-width: 1025px) {
-    /* Stacked column matches detail row height; cards fill that rail equally */
+  /* Wide desktop: detail left + stacked rail right (rail stretches to modal height). */
+  @media (min-width: 1401px) {
     align-items: stretch;
+  }
+
+  /*
+   * 3-up card breakpoint (matches carousel cardsPerSlide): stack like iPad —
+   * expanded panel full width, other cards below, then pagination.
+   */
+  @media (max-width: 1400px) and (min-width: 1025px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 24px;
+    align-items: start;
+    min-height: 0;
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
@@ -298,6 +310,12 @@
   grid-column: 1;
   grid-row: 1;
 
+  @media (max-width: 1400px) and (min-width: 1025px) {
+    order: 1;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   @media (max-width: 1024px) and (min-width: 769px) {
     order: 1; /* iPad: detail on top of the two cards */
     grid-column: auto;
@@ -313,11 +331,24 @@
   gap: 16px;
   overflow: visible;
 
-  @media (min-width: 1025px) {
+  @media (min-width: 1401px) {
     display: flex;
     flex-direction: column;
     min-height: 0;
     align-self: stretch;
+  }
+
+  @media (max-width: 1400px) and (min-width: 1025px) {
+    order: 2;
+    grid-column: auto;
+    grid-row: auto;
+    align-self: start;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    max-height: none;
+    padding: 12px 0;
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
@@ -345,6 +376,12 @@
   width: 100%;
   gap: 16px;
 
+  @media (max-width: 1400px) and (min-width: 1025px) {
+    order: 3;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   @media (max-width: 1024px) and (min-width: 769px) {
     order: 3; /* iPad: below the two cards */
     grid-column: auto;
@@ -359,22 +396,15 @@
   }
 }
 
+// Column count is driven by `cardsPerSlide` in market-flows-carousel.component.ts (getter + inline style).
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+  /* Avoid stretching rows to a uniform height that + height:100% cards can squash with flex (overlapping text). */
+  align-items: start;
   transition: transform 0.3s ease-in-out;
-  
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  @media (max-width: 1024px) and (min-width: 769px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
+
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
     overflow: visible;
   }
 }

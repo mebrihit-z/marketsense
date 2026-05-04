@@ -6,8 +6,12 @@
   min-width: 0;
 }
 
-/** Right rail next to the open detail: share height with the modal row and grow equally (desktop only). */
-@media (min-width: 1025px) {
+/**
+ * Right rail beside the expanded detail (wide desktop only): equal-height column with the modal.
+ * Do not apply at 1025–1400px — there cards sit in a horizontal row under the detail; flex + min-height:0
+ * collapses card bodies and overlaps text (see market-flows-carousel “3-up” layout).
+ */
+@media (min-width: 1401px) {
   :host.stacked-rail {
     min-height: 0;
     flex: 1 1 0;
@@ -92,6 +96,7 @@ $card-aum-gray: #94a3b8;
   display: flex;
   flex-direction: column;
   gap: 7px;
+  min-height: min-content;
   height: 100%;
   position: relative;
   overflow: visible;
@@ -122,6 +127,7 @@ $card-aum-gray: #94a3b8;
   align-items: center;
   justify-content: space-between;
   min-height: 32px;
+  flex-shrink: 0;
 }
 
 .card-title {
@@ -252,6 +258,7 @@ $card-aum-gray: #94a3b8;
   justify-content: space-between;
   gap: 16px;
   margin-top: 12px;
+  flex-shrink: 0;
 }
 
 .large-value {
@@ -350,6 +357,7 @@ $card-aum-gray: #94a3b8;
   justify-content: space-between;
   margin-top: auto;
   padding-top: 8px;
+  flex-shrink: 0;
 }
 .sample-size-container {
   color: $neutral-colors-neutral-750;

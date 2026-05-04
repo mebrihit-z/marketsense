@@ -38,10 +38,9 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   private _documentCardCaptureListener = (e: MouseEvent | PointerEvent | TouchEvent) => this.onDocumentCardCapture(e);
 
   currentSlideIndex: number = 0;
-  
-  cardsPerSlide = 4;
-  /** Number of cards to show in stacked column when detail is open: 2 on iPad, 3 on laptop */
-  stackedCardsCount = 3;
+
+  /** Tracks last column count so resize can clamp slide index when crossing breakpoints. */
+  private lastCardsPerSlideResolved = 4;
 
   constructor(
     private carouselHost: ElementRef<HTMLElement>,
@@ -50,7 +49,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   ) {}
 
   ngOnInit(): void {
-    this.updateCardsPerSlide();
+    this.lastCardsPerSlideResolved = this.cardsPerSlide;
     if (typeof document !== 'undefined') {
       // Use bubble phase (false) so button/link handlers run first; we only open card if hit was on card body
       document.addEventListener('mousedown', this._documentCardCaptureListener, false);
@@ -102,24 +101,40 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   
   @HostListener('window:resize')
   onWindowResize(): void {
-    this.updateCardsPerSlide();
-  }
-  
-  updateCardsPerSlide(): void {
-    const width = window.innerWidth;
-    if (width <= 768) {
-      this.cardsPerSlide = 1; // Mobile: 1 card
-    } else if (width <= 1024) {
-      this.cardsPerSlide = 2; // iPad: 2 cards
-      this.stackedCardsCount = 2;
-    } else {
-      this.cardsPerSlide = 4; // Desktop: 4 cards
-      this.stackedCardsCount = 3;
+    const next = this.cardsPerSlide;
+    if (next === this.lastCardsPerSlideResolved) {
+      return;
     }
-    // Reset to first slide when cards per slide changes
-    this.currentSlideIndex = 0;
+    this.lastCardsPerSlideResolved = next;
+    const slideCount = Math.max(1, Math.ceil(this.filteredCards.length / next));
+    const maxIdx = Math.max(0, slideCount - 1);
+    this.currentSlideIndex = Math.min(this.currentSlideIndex, maxIdx);
   }
-  
+
+  private viewportWidth(): number {
+    return typeof window !== 'undefined' ? window.innerWidth : 1920;
+  }
+
+  /** Visible market-flow cards per page: 4 → 3 → 2 → 1 by viewport width. */
+  get cardsPerSlide(): number {
+    const w = this.viewportWidth();
+    if (w <= 768) {
+      return 1;
+    }
+    if (w <= 1024) {
+      return 2;
+    }
+    if (w <= 1400) {
+      return 3;
+    }
+    return 4;
+  }
+
+  /** Stacked rail beside detail: 2 on tablet, 3 on large desktop. */
+  get stackedCardsCount(): number {
+    return this.viewportWidth() <= 1024 ? 2 : 3;
+  }
+
   // Modal state
   showModal: boolean = false;
   selectedCard: MarketFlowCard | null = null;
