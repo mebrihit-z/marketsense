@@ -1,29 +1,10 @@
 <div class="filters-bar-root" #filtersRoot>
 
+  <div
+    class="filters-bar-container"
+    [class.filters-bar-main-collapsed]="stickyEngaged && stickyBarCollapsed">
 
-
-  <button
-    *ngIf="stickyEngaged && stickyBarCollapsed"
-    type="button"
-    class="filters-bar-sticky-collapsed-btn"
-    (click)="toggleStickyBarCollapse()"
-    title="Show filters"
-    aria-label="Show filters bar">
-  
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M14 13L14 3C14 2.44772 13.5523 2 13 2L3 2C2.44771 2 2 2.44772 2 3L2 13C2 13.5523 2.44771 14 3 14L13 14C13.5523 14 14 13.5523 14 13Z" stroke="#FFB70E" stroke-width="1.33" stroke-linejoin="round"/>
-      <path d="M14 5.99994L2 5.99994M14 3.6666L14 11.9999M2 3.6666L2 11.9999M6.66667 9.33327L8 10.6666L9.33333 9.33327" stroke="#FFB70E" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <span class="view-filters-label">View filters</span>
-  </button>
-
-
-
-  <ng-container *ngIf="!stickyEngaged || !stickyBarCollapsed">
-
-    <div class="filters-bar-container">
-
-  <div class="filters-root">
+  <div class="filters-root" *ngIf="!stickyEngaged || !stickyBarCollapsed">
 
     <div class="filters-and-toggles-content">
 
@@ -238,6 +219,21 @@
       <div class="filters-bar-footer-actions" [class.with-minimize]="stickyEngaged">
         <div class="filters-bar-footer-left" *ngIf="stickyEngaged">
           <button
+            *ngIf="stickyBarCollapsed"
+            type="button"
+            class="filters-bar-sticky-expand-btn"
+            (click)="toggleStickyBarCollapse()"
+            title="Show filters"
+            aria-label="Show filters bar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M14 13L14 3C14 2.44772 13.5523 2 13 2L3 2C2.44771 2 2 2.44772 2 3L2 13C2 13.5523 2.44771 14 3 14L13 14C13.5523 14 14 13.5523 14 13Z" stroke="#FFB70E" stroke-width="1.33" stroke-linejoin="round"/>
+              <path d="M14 5.99994L2 5.99994M14 3.6666L14 11.9999M2 3.6666L2 11.9999M6.66667 9.33327L8 10.6666L9.33333 9.33327" stroke="#FFB70E" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="view-filters-label">View filters</span>
+          </button>
+          <button
+            *ngIf="!stickyBarCollapsed"
+            type="button"
             class="action-btn"
             (click)="toggleStickyBarCollapse()"
             title="Hide filters bar"
@@ -356,8 +352,6 @@
       </div>
 
     </div>
-
-  </ng-container>
 
 </div>
 

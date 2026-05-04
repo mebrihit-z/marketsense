@@ -11,7 +11,8 @@
     width: 100%;
 }
 
-.filters-bar-sticky-collapsed-btn {
+// Sticky minimized: expand control lives in footer row (aligned with pinned chips).
+.filters-bar-sticky-expand-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -24,39 +25,44 @@
     color: $white;
     background-color: $primary-colors-midnight-blue;
     transition: background-color 0.15s ease, color 0.15s ease;
-    margin-top: 24px;   
-    margin-left: 24px;
-    
+    margin: 0;
+    flex-shrink: 0;
+
     svg {
         display: block;
         flex-shrink: 0;
     }
 
-    @media (max-width: 1024px) {
-        margin: 6px 32px 8px;
-    }
-
-    @media (max-width: 768px) {
-        margin: 6px 24px 8px;
-    }
-
-    @media (max-width: 480px) {
-        margin: 4px 16px 6px;
-    }
-
-    // Nesting: a later `.view-filters-label` rule would always win for the span, so the label
-    // must be styled under this block for hover text/background to apply.
     .view-filters-label {
         color: $white;
     }
 
     &:hover {
-        // Distinct from dashboard strip (#e9f7ff) and from $sticky-btn-hover-background / $bg-sky-blue,
-        // so the hover state is actually visible; white label stays readable.
         background-color: $sticky-btn-hover-background;
         color: $text-midnight-blue;
         .view-filters-label {
             color: $text-midnight-blue;
+        }
+    }
+}
+
+.filters-bar-container.filters-bar-main-collapsed {
+    padding-top: 0px;
+    @media (max-width: 1024px) {
+        padding-top: 12px;
+    }
+    @media (max-width: 480px) {
+        padding-top: 10px;
+    }
+
+    .filters-bar-footer {
+        border-top: 1px solid $bg-gray-medium;
+        padding-top: 16px;
+        @media (max-width: 1024px) {
+            padding-top: 12px;
+        }
+        @media (max-width: 480px) {
+            padding-top: 10px;
         }
     }
 }

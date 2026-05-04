@@ -71,13 +71,6 @@
         margin-top: -1rem;
         padding-top: 1rem;
     }
-
-    // Collapsed sticky state: show only the navy "Show filters" button, no full-width ice-blue bar.
-    &:has(app-filters-bar.filters-bar-host-collapsed) {
-        background-color: transparent;
-        box-shadow: none;
-        padding-top: 0;
-    }
 }
 
 .dashboard-content {

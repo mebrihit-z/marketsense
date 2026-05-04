@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, HostBinding, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged, filter, map } from 'rxjs/operators';
@@ -66,14 +66,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @Input() assetAllocationChartDimensions: SavedChartHierarchyDimensions | null = null;
   /** When true (set by dashboard while the bar is position:sticky at the top), user can minimize the bar. */
   public stickyEngaged = false;
-  /** While sticky: when true, only the compact "Show filters" strip is visible. */
+  /** While sticky: when true, the main dropdown/slider chrome is hidden; the footer row (chips + actions) stays visible. */
   stickyBarCollapsed = false;
-
-  /** Lets the dashboard strip stay transparent when only "Show filters" is visible (see `.dashboard-filters-sticky:has(...)`). */
-  @HostBinding('class.filters-bar-host-collapsed')
-  get filtersBarHostCollapsedClass(): boolean {
-    return this.stickyEngaged && this.stickyBarCollapsed;
-  }
 
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
@@ -1378,26 +1372,38 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   ): void {
     this.openTooltip = null;
     this.openFilterDropdownTooltip = null;
-    if (key === 'timeHorizon') {
-      this.openDropdown = null;
-      this.filterDropdownOpened.emit();
-      queueMicrotask(() => {
+
+    const wasCollapsed = this.stickyEngaged && this.stickyBarCollapsed;
+    if (wasCollapsed) {
+      this.stickyBarCollapsed = false;
+    }
+
+    const run = (): void => {
+      if (key === 'timeHorizon') {
+        this.openDropdown = null;
+        this.filterDropdownOpened.emit();
         const el = this.timeHorizonPinTarget?.nativeElement;
         el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-      });
-      return;
-    }
-    if (key === 'valueRange') {
-      this.openDropdown = null;
-      this.filterDropdownOpened.emit();
-      queueMicrotask(() => {
+        return;
+      }
+      if (key === 'valueRange') {
+        this.openDropdown = null;
+        this.filterDropdownOpened.emit();
         const el = this.valueRangePinTarget?.nativeElement;
         el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-      });
-      return;
+        return;
+      }
+      this.openDropdown = key;
+      this.filterDropdownOpened.emit();
+    };
+
+    if (wasCollapsed) {
+      setTimeout(run, 0);
+    } else if (key === 'timeHorizon' || key === 'valueRange') {
+      queueMicrotask(run);
+    } else {
+      run();
     }
-    this.openDropdown = key;
-    this.filterDropdownOpened.emit();
   }
 
   /** Compact human-readable summary for a pinned chip. */

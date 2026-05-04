@@ -449,7 +449,11 @@ export class TimeHorizonSliderComponent
 
   private onDocumentCapture(event: MouseEvent | TouchEvent): void {
     const targetEl = event.target as HTMLElement;
-    if (targetEl?.closest?.('.filters-sticky-minimize-btn, .filters-bar-sticky-collapsed-btn')) {
+    if (
+      targetEl?.closest?.(
+        '.filters-sticky-minimize-btn, .filters-bar-sticky-expand-btn'
+      )
+    ) {
       return;
     }
     const container = this.sliderContainerRef?.nativeElement;
