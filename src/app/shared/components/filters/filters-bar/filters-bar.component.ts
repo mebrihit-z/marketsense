@@ -653,9 +653,11 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       this.state.productSubType = this.getUniqueProductSubTypeValues();
     }
     
-    // Select all investor region options
+    // Investor regions: only data-backed options (static placeholders are disabled; see loadFilterOptionsFromAssetFlows).
     if (this.investorRegionOptions.length > 0) {
-      this.state.investorRegion = this.investorRegionOptions.map(opt => opt.value);
+      this.state.investorRegion = this.investorRegionOptions
+        .filter(opt => !opt.disabled)
+        .map(opt => opt.value);
     }
     
     // Hide "Select All Filters" button after selecting
