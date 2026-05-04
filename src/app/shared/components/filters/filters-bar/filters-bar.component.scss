@@ -857,23 +857,37 @@
     flex-wrap: nowrap;
 
     // Keep Time Horizon and Value Range cards identical in width on large screens.
-    > app-time-horizon-slider,
-    > .time-horizon-container.min-flow-value-in-bar {
+    > .time-horizon-pin-target,
+    > .value-range-pin-target {
         min-width: 0;
     }
 
-    > app-time-horizon-slider {
+    > .time-horizon-pin-target {
         flex: 0 1 calc((100% - 12px) * 0.6);
         width: calc((100% - 12px) * 0.6);
         max-width: none;
         min-width: 0;
+        display: block;
     }
 
-    > .time-horizon-container.min-flow-value-in-bar {
+    > .time-horizon-pin-target app-time-horizon-slider {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    > .value-range-pin-target {
         flex: 0 1 calc((100% - 12px) * 0.4);
         width: calc((100% - 12px) * 0.4);
         max-width: none;
         min-width: 0;
+        display: block;
+    }
+
+    > .value-range-pin-target .time-horizon-container.min-flow-value-in-bar {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
     
     @media (max-width: 1200px) {
@@ -887,8 +901,8 @@
         margin-top: 4px;
         flex-wrap: wrap;
 
-        > app-time-horizon-slider,
-        > .time-horizon-container.min-flow-value-in-bar {
+        > .time-horizon-pin-target,
+        > .value-range-pin-target {
             flex: none;
             width: 100%;
         }
@@ -902,8 +916,8 @@
         margin-top: 8px;
         flex-wrap: wrap;
 
-        > app-time-horizon-slider,
-        > .time-horizon-container.min-flow-value-in-bar {
+        > .time-horizon-pin-target,
+        > .value-range-pin-target {
             flex: none;
             width: 100%;
         }

@@ -171,21 +171,24 @@
 
           <div class="toggles-container">
 
-            <!-- Time Horizon: own white card (app component) -->
+            <!-- Time Horizon: own white card (app component); scroll target for footer pinned chip -->
+            <div class="time-horizon-pin-target" #timeHorizonPinTarget>
+              <app-time-horizon-slider
+                [range]="timeHorizonRange"
+                [infoTooltipOpen]="isTooltipOpen('timeHorizon')"
+                [infoTooltipText]="getTooltipText('timeHorizon')"
+                (rangeChange)="onTimeHorizonRangeFromSlider($event)"
+                (timeHorizonChange)="onTimeHorizonEndFromSlider($event)"
+                (timeHorizonRangeChange)="timeHorizonRangeChange.emit($event)"
+                (inferredDataTypeChange)="onTimeHorizonInferredDataType($event)"
+                (infoToggle)="onInfoClick('timeHorizon', $event)" />
+            </div>
 
-            <app-time-horizon-slider
-              [range]="timeHorizonRange"
-              [infoTooltipOpen]="isTooltipOpen('timeHorizon')"
-              [infoTooltipText]="getTooltipText('timeHorizon')"
-              (rangeChange)="onTimeHorizonRangeFromSlider($event)"
-              (timeHorizonChange)="onTimeHorizonEndFromSlider($event)"
-              (timeHorizonRangeChange)="timeHorizonRangeChange.emit($event)"
-              (inferredDataTypeChange)="onTimeHorizonInferredDataType($event)"
-              (infoToggle)="onInfoClick('timeHorizon', $event)" />
+            <!-- Min flow value: separate white card; scroll target for footer pinned chip -->
 
-            <!-- Min flow value: separate white card -->
+            <div class="value-range-pin-target" #valueRangePinTarget *ngIf="minFlowValueOptions.length">
 
-            <div class="time-horizon-container min-flow-value-in-bar" *ngIf="minFlowValueOptions.length">
+            <div class="time-horizon-container min-flow-value-in-bar">
 
               <div class="label-with-info">
                 <label class="toggle-label">Value Range:</label>
@@ -217,6 +220,8 @@
 
             </div>
 
+            </div>
+
           </div>
 
         </div>
@@ -244,7 +249,8 @@
             <span>Minimize Filters</span>
           </button>
         </div>
-        <div class="pinned-selected-filters" *ngIf="hasPinnedSelectedFilters()">
+        <div class="pinned-selected-filters">
+          <ng-container *ngIf="hasPinnedSelectedFilters()">
           <button type="button" class="pinned-chip" (click)="openFromPinned('investorRegion')" aria-label="Open Investor Region filter">
             <span class="pinned-chip-title">Investor Region</span>
             <span class="pinned-chip-value">{{ getPinnedSummary('investorRegion') }}</span>
@@ -285,6 +291,34 @@
               <div class="pinned-chip-tooltip-title">Product Type</div>
               <ul class="pinned-chip-tooltip-list">
                 <li *ngFor="let item of getPinnedHoverValues('productType')">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
+          </ng-container>
+
+          <button type="button" class="pinned-chip" (click)="openFromPinned('timeHorizon')" aria-label="Scroll to Time Horizon">
+            <span class="pinned-chip-title">Time Horizon</span>
+            <span class="pinned-chip-value">{{ getPinnedTimeHorizonSummary() }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Time Horizon</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedTimeHorizonHoverValues()">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="pinned-chip"
+            *ngIf="minFlowValueOptions.length"
+            (click)="openFromPinned('valueRange')"
+            aria-label="Scroll to Value Range">
+            <span class="pinned-chip-title">Value Range</span>
+            <span class="pinned-chip-value">{{ getPinnedValueRangeSummary() }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Value Range</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedValueRangeHoverValues()">{{ item }}</li>
               </ul>
             </div>
           </button>

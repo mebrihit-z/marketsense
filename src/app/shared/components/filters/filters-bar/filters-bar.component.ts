@@ -29,6 +29,8 @@ import {
   MIN_FLOW_VALUE_OPTIONS_VERSION,
   migrateMinFlowRangeIndicesV1ToV2,
   createDefaultMinFlowRange,
+  displayMinFlowEndLabel,
+  displayMinFlowStartLabel,
   type MinFlowRangeSelection,
 } from '../../../utils/min-flow-value-options.util';
 
@@ -76,6 +78,8 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('sliderContainer', { static: false }) sliderContainer!: ElementRef<HTMLElement>;
   @ViewChild('filtersRoot', { static: false }) filtersRoot!: ElementRef<HTMLElement>;
   @ViewChild('productSubTypeDropdown', { static: false }) productSubTypeDropdown!: FilterDropdownComponent;
+  @ViewChild('timeHorizonPinTarget', { static: false }) timeHorizonPinTarget?: ElementRef<HTMLElement>;
+  @ViewChild('valueRangePinTarget', { static: false }) valueRangePinTarget?: ElementRef<HTMLElement>;
   @ViewChild('aiConfidenceInfoBtn', { static: false }) aiConfidenceInfoBtn!: ElementRef<HTMLButtonElement>;
   @ViewChild('minFlowValueInfoBtn', { static: false }) minFlowValueInfoBtn?: ElementRef<HTMLButtonElement>;
   @ViewChild('aiConfidenceTooltip', { static: false }) aiConfidenceTooltip!: ElementRef<HTMLDivElement>;
@@ -1308,7 +1312,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  /** Whether pinned selected-filter chips should be shown. */
+  /** Whether any of the four multi-select filters has at least one value (drives filter chips in the pinned row). */
   hasPinnedSelectedFilters(): boolean {
     return (
       (this.state.investorRegion?.length ?? 0) > 0 ||
@@ -1318,10 +1322,80 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     );
   }
 
-  /** Opens a filter dropdown from its pinned chip. */
-  openFromPinned(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): void {
+  /** One-line label for the current time horizon range (pinned chip). */
+  getPinnedTimeHorizonSummary(): string {
+    const horizons = UNIFIED_TIME_HORIZONS;
+    const start = horizons[this.timeHorizonRange.startIndex] ?? '';
+    const end = horizons[this.timeHorizonRange.endIndex] ?? '';
+    if (start && end && start !== end) {
+      return `${start} → ${end}`;
+    }
+    return end || start || this.selectedTimeHorizon;
+  }
+
+  /** Tooltip list for the time horizon pinned chip. */
+  getPinnedTimeHorizonHoverValues(): string[] {
+    const horizons = UNIFIED_TIME_HORIZONS;
+    const start = horizons[this.timeHorizonRange.startIndex] ?? '';
+    const end = horizons[this.timeHorizonRange.endIndex] ?? '';
+    const lines: string[] = [];
+    if (start && end) {
+      lines.push(`Range: ${start} → ${end}`);
+    } else if (end) {
+      lines.push(`End: ${end}`);
+    }
+    lines.push(`View: ${this.dataType === 'historical' ? 'Historical' : 'Forecasted'}`);
+    return lines;
+  }
+
+  /** Compact label for Value Range pinned chip (aligned with min-flow slider display helpers). */
+  getPinnedValueRangeSummary(): string {
+    const opts = this.minFlowValueOptions;
+    if (!opts.length) return '';
+    const startOpt = opts[this.minFlowRange.startIndex];
+    const start = displayMinFlowStartLabel(startOpt?.label ?? '');
+    const end = displayMinFlowEndLabel(opts, this.minFlowRange.endIndex);
+    return `${start} → ${end}`;
+  }
+
+  getPinnedValueRangeHoverValues(): string[] {
+    const opts = this.minFlowValueOptions;
+    if (!opts.length) return [];
+    const low = opts[this.minFlowRange.startIndex]?.label ?? '';
+    const high = opts[this.minFlowRange.endIndex]?.label ?? '';
+    return [`Minimum: ${low}`, `Maximum: ${high}`];
+  }
+
+  /** Opens a filter dropdown from its pinned chip, or scrolls to Time Horizon / Value Range for slider chips. */
+  openFromPinned(
+    key:
+      | 'investorRegion'
+      | 'investorType'
+      | 'productRegion'
+      | 'productType'
+      | 'timeHorizon'
+      | 'valueRange'
+  ): void {
     this.openTooltip = null;
     this.openFilterDropdownTooltip = null;
+    if (key === 'timeHorizon') {
+      this.openDropdown = null;
+      this.filterDropdownOpened.emit();
+      queueMicrotask(() => {
+        const el = this.timeHorizonPinTarget?.nativeElement;
+        el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      });
+      return;
+    }
+    if (key === 'valueRange') {
+      this.openDropdown = null;
+      this.filterDropdownOpened.emit();
+      queueMicrotask(() => {
+        const el = this.valueRangePinTarget?.nativeElement;
+        el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      });
+      return;
+    }
     this.openDropdown = key;
     this.filterDropdownOpened.emit();
   }
