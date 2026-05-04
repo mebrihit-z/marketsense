@@ -112,6 +112,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() minNodeHeightPx: number = 8;
   /** Minimum drawn link stroke width in pixels. */
   @Input() minLinkStrokePx: number = 1.75;
+  /**
+   * When true, links that touch sub-asset tier nodes — names ending in `(Source)` or `(Destination)` —
+   * use a single fixed layout weight so those ribbons share the same thickness; all other links keep
+   * flow-based layout. USD stays in labels/tooltips via {@link SankeyLinkExtra#rawValue}.
+   */
+  @Input() uniformLinkLayout = true;
+
+  /** Layout weight for each leaf/sub link when {@link uniformLinkLayout} applies. */
+  private static readonly UNIFORM_LAYOUT_LINK_WEIGHT = 1;
 
   private loadedData?: RegionalSankeyData;
   private lastDataHash: string = '';
@@ -187,6 +196,19 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   private linkFlowForTotals(link: SankeyLinkExtra): number {
     return link.rawValue != null ? link.rawValue : link.value;
+  }
+
+  /** Sub-asset nodes from `convertAssetFlowsToSankey` — product sub-type `(Source)` / `(Destination)`. */
+  private isLeafSubSankeyNodeName(name: string | undefined | null): boolean {
+    return (
+      typeof name === 'string' &&
+      (name.includes('(Source)') || name.includes('(Destination)'))
+    );
+  }
+
+  /** True when either end of the link is a leaf/sub node. */
+  private sankeyLinkTouchesLeafSubTier(sourceName: string, targetName: string): boolean {
+    return this.isLeafSubSankeyNodeName(sourceName) || this.isLeafSubSankeyNodeName(targetName);
   }
 
   /**
@@ -332,6 +354,134 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   private isProductRegionDimension1(): boolean {
     return this.dimension1Id === 'product-region';
+  }
+
+  /** Matches column `nodePadding` with floors/caps for Capital In/Out vs Super Start/End spacing. */
+  private structuralCapitalSuperGapPx(layoutNodePaddingPx: number): number {
+    return Math.max(18, Math.min(layoutNodePaddingPx + 10, 36));
+  }
+
+  /**
+   * Draw the Capital In branch under the investor `(Super Start)` bar:
+   * - `${sp}: Capital In (Super)` stacks just below `${sp} (Super Start)`.
+   * - `Capital In (${sp})` (what users read as "Capital In") is vertically **centered**
+   *   on that stub — d3 normally drops it toward the pool,yielding a long vertical offset.
+   * Caller runs `sankeyGen.update(graph)` next, then hub spreading.
+   */
+  private anchorCapitalInUnderInvestorBar(
+    graph: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>,
+    gapPx: number
+  ): void {
+    const capMidRe = /^Capital In \((.+)\)\s*$/i;
+    const nodes = graph.nodes as SankeyNodeExtra[];
+    /** Breathing room under the investor bar; slightly more than caps so ribbons do not kiss the trunk. */
+    const gap = this.structuralCapitalSuperGapPx(gapPx);
+
+    for (const capMid of nodes) {
+      const midM = capMidRe.exec((capMid.name ?? '').trim());
+      if (!midM) continue;
+
+      const sp = midM[1].trim();
+      const superStart = nodes.find(n => n.name === `${sp} (Super Start)`);
+      if (!superStart || superStart.y0 == null || superStart.y1 == null) continue;
+      if (capMid.y0 == null || capMid.y1 == null) continue;
+
+      const capSuper = nodes.find(n => n.name === `${sp}: Capital In (Super)`);
+      const ssBottom = superStart.y1 + gap;
+
+      if (capSuper && capSuper.y0 != null && capSuper.y1 != null) {
+        const hS = capSuper.y1 - capSuper.y0;
+        capSuper.y0 = ssBottom;
+        capSuper.y1 = ssBottom + hS;
+
+        const hM = capMid.y1 - capMid.y0;
+        const midCy = (capSuper.y0 + capSuper.y1) / 2;
+        let capMidY0 = midCy - hM / 2;
+        const minTopBelowInvestor = superStart.y1 + gap;
+        if (capMidY0 < minTopBelowInvestor) {
+          capMidY0 = minTopBelowInvestor;
+        }
+        capMid.y0 = capMidY0;
+        capMid.y1 = capMidY0 + hM;
+      } else {
+        const hM = capMid.y1 - capMid.y0;
+        capMid.y0 = ssBottom;
+        capMid.y1 = ssBottom + hM;
+      }
+    }
+  }
+
+  /**
+   * Mirror {@link anchorCapitalInUnderInvestorBar} on the sink side:
+   * `Pool → Capital Out (${sp}) → ${sp}: Capital Out (Super)` clustered under `${sp} (Super End)`
+   * so the visible Capital Out pillar is not stranded toward slack / pool-aligned y.
+   * Caller runs `sankeyGen.update(graph)` next, then hub spreading.
+   */
+  private anchorCapitalOutUnderSuperEndBar(
+    graph: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>,
+    gapPx: number
+  ): void {
+    const capMidRe = /^Capital Out \((.+)\)\s*$/i;
+    const nodes = graph.nodes as SankeyNodeExtra[];
+    const gap = this.structuralCapitalSuperGapPx(gapPx);
+
+    for (const capMid of nodes) {
+      const midM = capMidRe.exec((capMid.name ?? '').trim());
+      if (!midM) continue;
+
+      const sp = midM[1].trim();
+      const superEnd = nodes.find(n => n.name === `${sp} (Super End)`);
+      if (!superEnd || superEnd.y0 == null || superEnd.y1 == null) continue;
+      if (capMid.y0 == null || capMid.y1 == null) continue;
+
+      const capOutSuper = nodes.find(n => n.name === `${sp}: Capital Out (Super)`);
+      const endBottom = superEnd.y1 + gap;
+
+      if (capOutSuper && capOutSuper.y0 != null && capOutSuper.y1 != null) {
+        const hS = capOutSuper.y1 - capOutSuper.y0;
+        capOutSuper.y0 = endBottom;
+        capOutSuper.y1 = endBottom + hS;
+
+        const hM = capMid.y1 - capMid.y0;
+        const midCy = (capOutSuper.y0 + capOutSuper.y1) / 2;
+        let capMidY0 = midCy - hM / 2;
+        const minTopBelowSuperEnd = superEnd.y1 + gap;
+        if (capMidY0 < minTopBelowSuperEnd) {
+          capMidY0 = minTopBelowSuperEnd;
+        }
+        capMid.y0 = capMidY0;
+        capMid.y1 = capMidY0 + hM;
+      } else {
+        const hM = capMid.y1 - capMid.y0;
+        capMid.y0 = endBottom;
+        capMid.y1 = endBottom + hM;
+      }
+    }
+  }
+
+  /** Pull the laid-out flow block up so the top node sits on `extentTop` (drops top slack from d3 columns). */
+  private shiftSankeyGraphVertically(
+    graph: SankeyGraph<SankeyNodeExtra, SankeyLinkExtra>,
+    extentTop: number
+  ): void {
+    let minY = Infinity;
+    for (const n of graph.nodes as SankeyNodeExtra[]) {
+      if (n.y0 != null && Number.isFinite(n.y0)) {
+        minY = Math.min(minY, n.y0);
+      }
+    }
+    if (!Number.isFinite(minY)) return;
+    const delta = extentTop - minY;
+    if (Math.abs(delta) < 0.25) return;
+
+    for (const n of graph.nodes as SankeyNodeExtra[]) {
+      if (n.y0 != null && Number.isFinite(n.y0)) n.y0 += delta;
+      if (n.y1 != null && Number.isFinite(n.y1)) n.y1 += delta;
+    }
+    for (const l of graph.links as SankeyLinkExtra[]) {
+      if (l.y0 != null && Number.isFinite(l.y0)) l.y0 += delta;
+      if (l.y1 != null && Number.isFinite(l.y1)) l.y1 += delta;
+    }
   }
 
   /**
@@ -690,7 +840,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         changes['linkLayoutVisibilityFloorFraction'] ||
         changes['minNodeHeightPx'] ||
         changes['minLinkStrokePx'] ||
-        changes['sankeyHasLeafDimension']) {
+        changes['sankeyHasLeafDimension'] ||
+        changes['uniformLinkLayout']) {
       const newFiltersHash = this.getFiltersHash();
       if (newFiltersHash !== this.lastFiltersHash) {
         this.lastFiltersHash = newFiltersHash;
@@ -1020,11 +1171,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const linkTgt = link.target;
       const sourceName = typeof linkSrc === 'string' ? linkSrc : '';
       const targetName = typeof linkTgt === 'string' ? linkTgt : '';
-      const layoutValue = this.applyDimension1LayoutAdjustment(
-        this.layoutValueForLink(raw, maxRawAll, sourceName, targetName),
-        sourceName,
-        targetName
-      );
+      const leafUniform =
+        this.uniformLinkLayout && this.sankeyLinkTouchesLeafSubTier(sourceName, targetName);
+      const layoutValue = leafUniform
+        ? SankeyComponent.UNIFORM_LAYOUT_LINK_WEIGHT
+        : this.applyDimension1LayoutAdjustment(
+            this.layoutValueForLink(raw, maxRawAll, sourceName, targetName),
+            sourceName,
+            targetName
+          );
 
       const minVal = this.minFlowValue ?? 0;
       const maxVal = this.maxFlowValue;
@@ -1100,15 +1255,17 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return;
     }
 
-    const maxRawLinkValue = d3.max(prunedLayoutLinkDefs, l => l.rawValue) || 1;
-    for (const d of prunedLayoutLinkDefs) {
-      const sName = prunedNodes[d.source].name;
-      const tName = prunedNodes[d.target].name;
-      d.baseLayoutValue = this.applyDimension1LayoutAdjustment(
-        this.layoutValueForLink(d.rawValue, maxRawLinkValue, sName, tName),
-        sName,
-        tName
-      );
+    if (!this.uniformLinkLayout) {
+      const maxRawLinkValue = d3.max(prunedLayoutLinkDefs, l => l.rawValue) || 1;
+      for (const d of prunedLayoutLinkDefs) {
+        const sName = prunedNodes[d.source].name;
+        const tName = prunedNodes[d.target].name;
+        d.baseLayoutValue = this.applyDimension1LayoutAdjustment(
+          this.layoutValueForLink(d.rawValue, maxRawLinkValue, sName, tName),
+          sName,
+          tName
+        );
+      }
     }
 
     /** When Dimension 1 is not Investor Region (e.g. Investor Type), mids stack more densely — allot taller nodes/links and chart height. */
@@ -1216,8 +1373,24 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     // Leave `nodeSort` unset so d3-sankey can sort columns by breadth after relaxation — custom
     // name-based sorts blocked that and caused crossing, vertically inconsistent links (spaghetti paths).
+    const hasLeafTierForUniform =
+      this.uniformLinkLayout &&
+      prunedLayoutLinkDefs.some(d =>
+        this.sankeyLinkTouchesLeafSubTier(
+          prunedNodes[d.source].name,
+          prunedNodes[d.target].name
+        )
+      );
     const sankeyGen = sankey<SankeyNodeExtra, SankeyLinkExtra>()
-      .nodeWidth(dim1ReadabilityBoost ? 22 : 20)
+      .nodeWidth(
+        hasLeafTierForUniform
+          ? dim1ReadabilityBoost
+            ? 18
+            : 17
+          : dim1ReadabilityBoost
+            ? 22
+            : 20
+      )
       .nodePadding(dynamicNodePadding)
       .iterations(56)
       .extent([[leftMargin, topMargin], [width - rightMargin, height - bottomMargin]]);
@@ -1233,7 +1406,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const sankeyLinks: SankeyLinkExtra[] = prunedLayoutLinkDefs.map((def, i) => ({
         source: def.source,
         target: def.target,
-        value: this.sankeyLinkLayoutRenderValue(def.baseLayoutValue * linkMultipliers[i]),
+        value: this.uniformLinkLayout
+          ? SankeyComponent.UNIFORM_LAYOUT_LINK_WEIGHT * linkMultipliers[i]
+          : this.sankeyLinkLayoutRenderValue(def.baseLayoutValue * linkMultipliers[i]),
         rawValue: def.rawValue,
         date: def.date,
         nClientsTotal: def.nClientsTotal,
@@ -1298,10 +1473,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       links: linksBalanced,
     });
 
+    this.anchorCapitalInUnderInvestorBar(graph, dynamicNodePadding);
+    this.anchorCapitalOutUnderSuperEndBar(graph, dynamicNodePadding);
+    sankeyGen.update(graph);
+
     // Product Region already has heavy trunk fan-in/out; preserve d3 stacks to avoid extra vertical weaving.
-    if (!this.isProductRegionDimension1()) {
+    if (!this.uniformLinkLayout && !this.isProductRegionDimension1()) {
       this.spreadHubLinkStacksToNodeHeight(graph);
     }
+
+    this.shiftSankeyGraphVertically(graph, topMargin);
 
     // -----------------------------------------
     // 2. Create SVG (no zoom – chart at fixed scale for readable labels)
@@ -1462,9 +1643,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     // -----------------------------------------
     // Capture component reference for use in callbacks
     const component = this;
+    const strokeScale =
+      (hasLeafTierForUniform ? 0.85 : 1) * (dim1ReadabilityBoost ? 1.3 : 1);
     const minLkStroke = Math.max(
-      1.25,
-      (this.minLinkStrokePx ?? 1.75) * (dim1ReadabilityBoost ? 1.3 : 1)
+      hasLeafTierForUniform ? 1.1 : 1.25,
+      (this.minLinkStrokePx ?? 1.75) * strokeScale
     );
     const linkRestOpacity = 0.64;
     const linkStrokePx = (link: SankeyLinkExtra) =>
@@ -1481,6 +1664,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('stroke-linecap', 'butt')
       .attr('stroke-linejoin', 'miter')
       .attr('fill', 'none')
+      // Narrow hit-testing to the stroked ribbon (avoid huge bbox / overlaps feeling like “empty” hovers).
+      .attr('pointer-events', 'stroke')
       .attr('opacity', linkRestOpacity)
       .attr('class', 'sankey-link')
       .on('mouseover', function(event, d) {
@@ -1548,13 +1733,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         component.positionSankeyTooltip(event, tooltip);
       })
       .on('mouseout', function() {
-        tooltip.style('opacity', '0').style('display', 'none');
-        d3.select(this)
-          .attr('opacity', linkRestOpacity)
-          .attr('stroke-width', (d: any) => linkStrokePx(d as SankeyLinkExtra));
-        
-        // Restore all links opacity
-        chartGroup.selectAll('path').attr('opacity', linkRestOpacity);
+        resetInteractiveState();
       });
 
     // -----------------------------------------
@@ -1641,6 +1820,32 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return { class: `sankey-node-rect sankey-node-${effectiveCls}` };
       }
       return { class: `sankey-node-rect sankey-node-${effectiveCls}` };
+    };
+
+    /** Hide tooltip + restore link/node visuals (shared by link/node mouseout and leaving the SVG area). */
+    const resetInteractiveState = () => {
+      tooltip.style('opacity', '0').style('display', 'none');
+      chartGroup
+        .selectAll('path')
+        .attr('opacity', linkRestOpacity)
+        .attr('stroke-width', (d: unknown) => linkStrokePx(d as SankeyLinkExtra))
+        .attr('stroke', (d: unknown) => {
+          const le = d as SankeyLinkExtra;
+          return le.color || component.getCssVariable('--default-gray') || '#999';
+        });
+      chartGroup
+        .selectAll('rect')
+        .attr('opacity', 1)
+        .each(function (d: unknown) {
+          const n = d as SankeyNodeExtra;
+          const sel = d3.select(this as SVGRectElement);
+          sel.classed('sankey-node-hovered', false);
+          const displayStyle = getNodeDisplayStyle(n.name);
+          sel.attr('stroke-width', displayStyle.fill ? 1 : null);
+          if (displayStyle.stroke) {
+            sel.attr('stroke', displayStyle.stroke);
+          }
+        });
     };
 
     // -----------------------------------------
@@ -1962,13 +2167,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     /** Same horizontal inset for leaf `(Source)` / `(Destination)` as parent/hub nodes; no stagger so labels share one vertical line per column. */
     const nodeLabelGapPx = 6;
+    /** Shift labels down slightly so they sit on the node’s visual center line (baseline middle reads a bit high on 12px type). */
+    const nodeLabelVerticalNudgePx = 4;
     const getLabelX = (d: SankeyNodeExtra): number => {
       const refX = reallocationRefX(d.name);
       if (d.name.includes('Reallocation Pool')) return d.x1! + 4;
       if (d.name.includes('(Source)')) return d.x1! + nodeLabelGapPx;
       if (d.name.includes('(Destination)')) return d.x0! - nodeLabelGapPx;
-      // Place New Capital and Capital In labels to the right of the node
-      if (d.name.includes('Capital Out') || d.name.includes('Capital In')) return d.x1! + nodeLabelGapPx;
+      // Capital Out labels to the left of the bar; Capital In stays to the right
+      if (d.name.includes('Capital Out')) return d.x0! - nodeLabelGapPx;
+      if (d.name.includes('Capital In')) return d.x1! + nodeLabelGapPx;
       if (refX !== null && d.x0! > refX) return d.x0! - nodeLabelGapPx;
       if (refX !== null && d.x1! < refX) return d.x1! + nodeLabelGapPx;
       return (d.x0! + d.x1!) / 2;
@@ -2007,20 +2215,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('y', d => {
         const n = d as SankeyNodeExtra;
         const mid = (n.y0! + n.y1!) / 2;
+        let y: number;
         if (isLeafChartLabel(n)) {
-          // Keep leaf/sub labels on the same horizontal line as the node.
-          return mid;
-        }
-        if (superTerminalLabelY.has(n)) {
+          y = mid;
+        } else if (superTerminalLabelY.has(n)) {
           const packed = superTerminalLabelY.get(n)!;
           const lo = mid - superLabelMaxVerticalDriftPx;
           const hi = mid + superLabelMaxVerticalDriftPx;
-          return Math.max(lo, Math.min(hi, packed));
+          y = Math.max(lo, Math.min(hi, packed));
+        } else if (parentLabelMidY.has(n)) {
+          y = parentLabelMidY.get(n)!;
+        } else {
+          y = mid;
         }
-        if (parentLabelMidY.has(n)) {
-          return parentLabelMidY.get(n)!;
-        }
-        return mid;
+        return y + nodeLabelVerticalNudgePx;
       })
       .attr('text-anchor', d => {
         const n = d as SankeyNodeExtra;
@@ -2029,7 +2237,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         if (n.name.includes('(Destination)')) return 'end';
         // Label at x1 + small gap: anchor start so "Realloc: …" sits just right of the node
         if (n.name.includes('Reallocation Pool')) return 'start';
-        if (n.name.includes('Capital Out') || n.name.includes('Capital In')) return 'start';
+        if (n.name.includes('Capital Out')) return 'end';
+        if (n.name.includes('Capital In')) return 'start';
         // Positive/inflow side: anchor at end so text sits to the left of the node
         if (refX !== null && d.x0! > refX) return 'end';
         // Negative/outflow side: anchor at start so text sits to the right of the node
@@ -2119,6 +2328,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       const thinThreshold = dim1ReadabilityBoost ? 18 : 16;
       d3.select(this).classed('sankey-node-label-thin', h < thinThreshold);
     });
+
+    // Clearing hover state: mouseout doesn't always fire (e.g. transparent SVG margins), but hit target is svg root.
+    svg.on('pointermove', function (this: SVGSVGElement, event: PointerEvent) {
+      if (event.target === this) {
+        resetInteractiveState();
+      }
+    });
+    svg.on('pointerleave', resetInteractiveState);
 
     // Link values are not drawn – only node labels show values (next to each node)
     this.cdr.markForCheck();

@@ -98,6 +98,11 @@
   cursor: pointer;
 }
 
+/* Match SVG attr pointer-events='stroke'; keeps hover on the ribbon, not oversized path bbox. */
+.sankey-container ::ng-deep .sankey-link {
+  pointer-events: stroke;
+}
+
 // Node colors (design palette) – stroke matches fill
 .sankey-container ::ng-deep {
   .sankey-node-reallocation-pool { fill: #6f6e6a; stroke: #6f6e6a; }

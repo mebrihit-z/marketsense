@@ -346,6 +346,16 @@ export function convertAssetFlowsToSankey(
     return `${sp}: Reallocation Pool`;
   }
 
+  // Dedicated capital super terminals so Capital In/Out can render
+  // on their own structural branch, separate from regular super start/end flow trunks.
+  function capitalInSuperName(sp: string): string {
+    return `${sp}: Capital In (Super)`;
+  }
+
+  function capitalOutSuperName(sp: string): string {
+    return `${sp}: Capital Out (Super)`;
+  }
+
   // Helpers to scope nodes by SuperParent so regions don't merge
   function parentStartName(sp: string, p: string): string {
     return `${sp}: ${p} (Start)`;
@@ -553,16 +563,18 @@ export function convertAssetFlowsToSankey(
   for (const [sp, net] of Object.entries(netBySp).sort()) {
     if (net > 1e-9) {
       const nnName = `Capital In (${sp})`;
+      const capInSuper = capitalInSuperName(sp);
+      add(capInSuper);
       add(nnName);
 
-      // SuperParent -> Capital Out
+      // Dedicated Capital In super -> Capital In
       links.push({
-        source: `${sp} (Super Start)`,
+        source: capInSuper,
         target: nnName,
         value: net,
       });
 
-      // Capital Out -> Pool
+      // Capital In -> Pool
       links.push({
         source: nnName,
         target: poolName(sp),
@@ -570,19 +582,21 @@ export function convertAssetFlowsToSankey(
       });
     } else if (net < -1e-9) {
       const wdName = `Capital Out (${sp})`;
+      const capOutSuper = capitalOutSuperName(sp);
       add(wdName);
+      add(capOutSuper);
 
-      // Pool -> Capital In
+      // Pool -> Capital Out
       links.push({
         source: poolName(sp),
         target: wdName,
         value: Math.abs(net),
       });
 
-      // Capital In -> Super End (to complete the flow)
+      // Capital Out -> dedicated Capital Out super
       links.push({
         source: wdName,
-        target: `${sp} (Super End)`,
+        target: capOutSuper,
         value: Math.abs(net),
       });
     }
