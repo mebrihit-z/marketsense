@@ -8,10 +8,10 @@
 
 /**
  * Right rail beside the expanded detail (wide desktop only): equal-height column with the modal.
- * Do not apply at 1025–1400px — there cards sit in a horizontal row under the detail; flex + min-height:0
+ * Do not apply at 1025–1280px — there cards sit in a horizontal row under the detail; flex + min-height:0
  * collapses card bodies and overlaps text (see market-flows-carousel “3-up” layout).
  */
-@media (min-width: 1401px) {
+@media (min-width: 1281px) {
   :host.stacked-rail {
     min-height: 0;
     flex: 1 1 0;

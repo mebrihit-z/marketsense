@@ -270,7 +270,7 @@
   min-height: 400px;
 
   /* Wide desktop: detail left + stacked rail right (rail stretches to modal height). */
-  @media (min-width: 1401px) {
+  @media (min-width: 1281px) {
     align-items: stretch;
   }
 
@@ -278,7 +278,7 @@
    * 3-up card breakpoint (matches carousel cardsPerSlide): stack like iPad —
    * expanded panel full width, other cards below, then pagination.
    */
-  @media (max-width: 1400px) and (min-width: 1025px) {
+  @media (max-width: 1280px) and (min-width: 1025px) {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
     gap: 24px;
@@ -310,7 +310,7 @@
   grid-column: 1;
   grid-row: 1;
 
-  @media (max-width: 1400px) and (min-width: 1025px) {
+  @media (max-width: 1280px) and (min-width: 1025px) {
     order: 1;
     grid-column: auto;
     grid-row: auto;
@@ -331,14 +331,14 @@
   gap: 16px;
   overflow: visible;
 
-  @media (min-width: 1401px) {
+  @media (min-width: 1281px) {
     display: flex;
     flex-direction: column;
     min-height: 0;
     align-self: stretch;
   }
 
-  @media (max-width: 1400px) and (min-width: 1025px) {
+  @media (max-width: 1280px) and (min-width: 1025px) {
     order: 2;
     grid-column: auto;
     grid-row: auto;
@@ -376,7 +376,7 @@
   width: 100%;
   gap: 16px;
 
-  @media (max-width: 1400px) and (min-width: 1025px) {
+  @media (max-width: 1280px) and (min-width: 1025px) {
     order: 3;
     grid-column: auto;
     grid-row: auto;

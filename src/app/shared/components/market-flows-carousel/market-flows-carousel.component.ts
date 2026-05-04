@@ -115,7 +115,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     return typeof window !== 'undefined' ? window.innerWidth : 1920;
   }
 
-  /** Visible market-flow cards per page: 4 → 3 → 2 → 1 by viewport width. */
+  /** Visible market-flow cards per page: 5 (>1920) → 4 → 3 → 2 → 1 by viewport width. */
   get cardsPerSlide(): number {
     const w = this.viewportWidth();
     if (w <= 768) {
@@ -124,13 +124,19 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     if (w <= 1024) {
       return 2;
     }
-    if (w <= 1400) {
+    if (w <= 1280) {
       return 3;
+    }
+    if (w > 1920) {
+      return 5;
     }
     return 4;
   }
 
-  /** Stacked rail beside detail: 2 on tablet, 3 on large desktop. */
+  /**
+   * Stacked rail beside expanded detail: 2 on tablet; 3 on desktop (including >1920).
+   * Ultra-wide uses 5 cards in the grid but only 3 in the rail, same as 1281–1920.
+   */
   get stackedCardsCount(): number {
     return this.viewportWidth() <= 1024 ? 2 : 3;
   }
