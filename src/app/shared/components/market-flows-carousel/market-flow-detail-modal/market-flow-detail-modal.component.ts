@@ -20,7 +20,6 @@ import {
 import * as detailModalUtil from './market-flow-detail-modal.util';
 import {
   formatFlowCurrencyUsd,
-  formatFlowCurrencyUsdFull,
   parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
@@ -812,20 +811,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return 'Not in the data for this product in the current view, or no rows match your filters.';
   }
 
-  /** Full USD string for tooltip on compact net flow display. */
+  /** Compact $K/$M/$B/$T for tooltip on net flow (same style as chart hovers). */
   getProjectedValueHoverTitle(): string {
     const dynamic = this.computeFilteredProjectedValue();
     if (dynamic != null) {
-      return formatFlowCurrencyUsdFull(dynamic);
+      return formatFlowCurrencyUsd(dynamic);
     }
     const fromCard = this.card?.netFlowUsd;
     if (fromCard != null && Number.isFinite(fromCard)) {
-      return formatFlowCurrencyUsdFull(fromCard);
+      return formatFlowCurrencyUsd(fromCard);
     }
-    if (!this.card) return formatFlowCurrencyUsdFull(0);
+    if (!this.card) return formatFlowCurrencyUsd(0);
     const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
     if (Number.isFinite(d)) {
-      return formatFlowCurrencyUsdFull(d);
+      return formatFlowCurrencyUsd(d);
     }
     return this.card.value;
   }

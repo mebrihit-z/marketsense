@@ -5,7 +5,7 @@ import TitleComponent from '../../title/title.component';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import { buildMarketFlowPercentageHoverLabel } from '../../../utils/market-flow-percentage-hover-label.util';
 import {
-  formatFlowCurrencyUsdFull,
+  formatFlowCurrencyUsd,
   parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 
@@ -98,17 +98,17 @@ export class MarketFlowCardComponent {
     return 'Not in the data for this product in the current view, or no rows match your filters.';
   }
 
-  /** Full USD amount for native tooltip on compact {@link MarketFlowCard.value}. */
+  /** Net flow tooltip: compact $K/$M/$B/$T (same as {@link MarketFlowCard.value}). */
   get valueHoverFullLabel(): string {
     if (!this.card?.value) return '';
     const prefix = 'Net flow: ';
     const exact = this.card.netFlowUsd;
     if (exact != null && Number.isFinite(exact)) {
-      return prefix + formatFlowCurrencyUsdFull(exact);
+      return prefix + formatFlowCurrencyUsd(exact);
     }
     const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
     if (Number.isFinite(d)) {
-      return prefix + formatFlowCurrencyUsdFull(d);
+      return prefix + formatFlowCurrencyUsd(d);
     }
     return prefix + this.card.value;
   }
