@@ -10,8 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Above .dashboard-filters-sticky (999); keep in sync with other app overlays */
-  z-index: 100100;
+  z-index: 1000;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -166,6 +165,12 @@
     width: 16px;
     height: 16px;
   }
+
+  .csv-icon-img {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
 }
 
 .option-title {
@@ -174,14 +179,26 @@
   line-height: 20px;
   letter-spacing: -0.1504px;
   color: $text-midnight-blue;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 15px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 .option-description {
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 16px;
   color: $neutral-colors-neutral-750;
   margin: 0;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 15px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 // Responsive adjustments
@@ -192,4 +209,3 @@
     padding: 24px;
   }
 }
-

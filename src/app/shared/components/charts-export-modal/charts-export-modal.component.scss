@@ -28,7 +28,7 @@
   background-color: $bg-white;
   border: 1px solid $border-light;
   box-shadow: 0px 10px 15px -3px $overlay-shadow-dark, 0px 4px 6px -4px $overlay-shadow-dark;
-  width: 423px;
+  width: 480px;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -189,15 +189,15 @@
 
 .option-description {
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 16px;
   color: $neutral-colors-neutral-750;
   margin: 0;
   @media (min-width: 1537px) and (max-width: 1920px) {
-    font-size: 13px;
+    font-size: 15px;
   }
   @media (min-width: 1921px) {
-    font-size: 14px;
+    font-size: 16px;
   }
 }
 

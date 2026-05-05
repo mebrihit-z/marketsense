@@ -1,5 +1,8 @@
 <div class="modal-overlay" (click)="onClose()" *ngIf="isVisible && !inline">
-  <div class="modal-container" (click)="$event.stopPropagation()">
+  <div
+    class="modal-container market-flow-detail-export-root"
+    #cardExportRoot
+    (click)="$event.stopPropagation()">
     <ng-container *ngTemplateOutlet="detailModalHeader"></ng-container>
 
     <!-- Main Content -->
@@ -72,12 +75,17 @@
     [isVisible]="showExportModal"
     (close)="onCloseExportModal()"
     (exportXLS)="onExportXLS()"
+    (exportCSV)="onExportCSV()"
+    (exportPNG)="onExportPNG()"
     (exportPDF)="onExportPDF()">
   </app-export-modal>
 </div>
 
 <!-- Inline panel (no overlay) for carousel left column -->
-<div class="modal-container inline-panel" *ngIf="inline && card">
+<div
+  class="modal-container inline-panel market-flow-detail-export-root"
+  #cardExportRoot
+  *ngIf="inline && card">
   <ng-container *ngTemplateOutlet="detailModalHeader"></ng-container>
   <div class="main-content">
     <div class="content-container">
@@ -191,9 +199,9 @@
           <span class="detail-modal-ask-ai-label">Ask MarketSense AI</span>
         </span>
       </button>
-      <!-- <button type="button" class="detail-modal-header-btn" (click)="onDownload()" aria-label="Download">
+      <button type="button" class="detail-modal-header-btn" (click)="onDownload()" aria-label="Download">
         <img src="assets/icons/download-icon.svg" alt="" class="detail-modal-header-icon">
-      </button> -->
+      </button>
       <button type="button" class="detail-modal-header-btn" (click)="onClose()" aria-label="Close">
         <img src="assets/icons/x-icon.svg" alt="" class="detail-modal-header-icon detail-modal-close-icon">
       </button>

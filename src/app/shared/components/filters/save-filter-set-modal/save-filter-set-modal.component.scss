@@ -142,7 +142,7 @@
   font-size: 14px;
   line-height: normal;
   letter-spacing: -0.1504px;
-  color: $text-midnight-blue;
+  color: $text-neutral-1000;
   background-color: $bg-white;
   outline: none;
   box-sizing: border-box;
@@ -162,7 +162,7 @@
 
 .default-option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
   padding: 2px 0;
@@ -175,7 +175,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.1504px;
-  color: $text-midnight-blue;
+  color: #0A0A0A;
   @media (min-width: 1921px) {
     font-size: 16px;
   }
@@ -183,6 +183,18 @@
 
 .default-option--wrap .default-option-label {
   line-height: 18px;
+}
+.default-option-label-title {
+  font-size: 14px;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
+}
+.default-option-label-description {
+  font-size: 12px;
+  @media (min-width: 1921px) {
+    font-size: 14px;
+  }
 }
 
 // Same checkbox styling as filter-dropdown `.checkbox-wrapper`

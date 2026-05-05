@@ -1,5 +1,14 @@
 /* eslint-disable */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { MarketFlowCard } from '../market-flow-card/market-flow-card.component';
 import { LineChartComponent } from '../../charts/line-chart/line-chart.component';
@@ -22,6 +31,11 @@ import {
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { buildMarketFlowPercentageHoverLabel } from '../../../utils/market-flow-percentage-hover-label.util';
+import {
+  captureChartAreaToPng,
+  downloadDataUrlAsPng,
+  saveChartAsMultiPagePdf,
+} from '../../../utils/chart-dom-export.util';
 
 /** One row in the investor-type / product-region breakdown table. */
 export interface FlowBreakdownRow {
@@ -41,6 +55,8 @@ export type FlowBreakdownTab = 'investor' | 'product';
   styleUrl: './market-flow-detail-modal.component.scss'
 })
 export default class MarketFlowDetailModalComponent implements OnChanges {
+  @ViewChild('cardExportRoot') private cardExportRoot?: ElementRef<HTMLElement>;
+
   constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
 
   @Input() isVisible: boolean = false;
@@ -947,10 +963,175 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     }
   }
 
-  onExportPDF(): void {
-    if (this.card) {
-      // TODO: Implement PDF export using this.card.id
+  onExportCSV(): void {
+    this.exportExpandedCardAsCsv();
+  }
+
+  async onExportPNG(): Promise<void> {
+    await this.exportExpandedCardAsPng();
+  }
+
+  /**
+   * Rasterizes the expanded detail panel (header, flows, trajectory chart) to PNG.
+   * Invoked from this component's export modal (overlay mode) or from the parent carousel when inline.
+   */
+  async exportExpandedCardAsPng(): Promise<void> {
+    if (!this.card) return;
+    const root = this.cardExportRoot?.nativeElement;
+    if (!root) return;
+    try {
+      await this.waitForExportPaint();
+      const dataUrl = await captureChartAreaToPng(root, { omitMarketFlowHeaderActions: true });
+      if (dataUrl) {
+        downloadDataUrlAsPng(dataUrl, this.getPngExportFilename());
+      }
+    } catch (e) {
+      console.warn('Market flow detail PNG export failed', e);
     }
   }
+
+  async onExportPDF(): Promise<void> {
+    await this.exportExpandedCardAsPdf();
+  }
+
+  /**
+   * Same visual as PNG: full framed card without header action buttons, one landscape page.
+   */
+  async exportExpandedCardAsPdf(): Promise<void> {
+    if (!this.card) return;
+    const root = this.cardExportRoot?.nativeElement;
+    if (!root) return;
+    try {
+      await this.waitForExportPaint();
+      const imageDataUrl = await captureChartAreaToPng(root, { omitMarketFlowHeaderActions: true });
+      if (!imageDataUrl) return;
+      await saveChartAsMultiPagePdf({
+        imageDataUrl,
+        title: this.card.title ?? 'Market flow',
+        timeLine: this.getPdfTimeHorizonSubtitle(),
+        filename: this.getPdfExportFilename(),
+        orientation: 'landscape',
+        fitSinglePage: true,
+      });
+    } catch (e) {
+      console.warn('Market flow detail PDF export failed', e);
+    }
+  }
+
+  private getPngExportFilename(): string {
+    const id = this.card?.id?.replace(/[^\w-]/g, '_') || 'market-flow';
+    return `market-flow-${id}.png`;
+  }
+
+  private getCsvExportFilename(): string {
+    const id = this.card?.id?.replace(/[^\w-]/g, '_') || 'market-flow';
+    return `market-flow-${id}.csv`;
+  }
+
+  private getPdfExportFilename(): string {
+    const id = this.card?.id?.replace(/[^\w-]/g, '_') || 'market-flow';
+    return `market-flow-${id}.pdf`;
+  }
+
+  /**
+   * PDF header line below title: prefer slider range (-9 mo to +9 mo) over a single-point card label.
+   */
+  private getPdfTimeHorizonSubtitle(): string {
+    const r = this.timeHorizonRange;
+    const startR = r?.start?.trim() ?? '';
+    const endR = r?.end?.trim() ?? '';
+    if (startR !== '' && endR !== '') {
+      return `Time horizon: ${startR} to ${endR}`;
+    }
+    const c = this.card;
+    if (!c) return '';
+    const startC = c.timeHorizonStart?.trim() ?? '';
+    const endC = c.timeHorizonEnd?.trim() ?? '';
+    if (startC !== '' && endC !== '') {
+      return `Time horizon: ${startC} to ${endC}`;
+    }
+    const single = c.timeHorizon != null ? String(c.timeHorizon).trim() : '';
+    if (single !== '') {
+      return `Time horizon: ${single}`;
+    }
+    return '';
+  }
+
+  /**
+   * Exports the underlying filtered rows that compose this card in the expanded view.
+   * These are the same asset-flow records used to compute metrics, breakdown, and chart.
+   */
+  exportExpandedCardAsCsv(): void {
+    if (!this.card?.productSubType) return;
+
+    const escapeCell = (v: string): string => {
+      const s = String(v ?? '');
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    const sourceRows = this.applyChartDataFilters(this.card.productSubType);
+    if (sourceRows.length === 0) {
+      return;
+    }
+
+    const headers = this.csvAssetFlowFieldOrder();
+    const dataRows = sourceRows.map((row) =>
+      headers.map((h) => escapeCell(this.csvCellForAssetFlowField(row, h))).join(',')
+    );
+    const csv = [
+      headers.map((h) => escapeCell(h)).join(','),
+      ...dataRows,
+    ].join('\r\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.getCsvExportFilename();
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  private csvAssetFlowFieldOrder(): string[] {
+    return [
+      'Investor_Region',
+      'Investor_Types',
+      'Product_Region',
+      'Product_Type',
+      'Product_Sub_Type',
+      'Asset_Flow_Date',
+      'Asset_Flow_Value',
+      'N_Clients',
+      'Model_Type',
+      'Fcst_Flow_Upper',
+      'Fcst_Flow_Lower',
+      'Model_Version',
+      'Model_Run_Date',
+      'Load_Date',
+      'Latest',
+    ];
+  }
+
+  private csvCellForAssetFlowField(record: AssetFlowRecord, key: string): string {
+    const raw = record[key as keyof AssetFlowRecord];
+    if (raw === undefined || raw === null) {
+      return '';
+    }
+    if (typeof raw === 'number') {
+      return Number.isFinite(raw) ? String(raw) : '';
+    }
+    return String(raw);
+  }
+
+  private async waitForExportPaint(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
 }
 

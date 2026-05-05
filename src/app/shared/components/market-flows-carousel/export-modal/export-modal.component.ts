@@ -16,6 +16,8 @@ export default class ExportModalComponent implements OnChanges {
   @Input() subtitle: string = 'Choose your preferred export format';
   @Output() close = new EventEmitter<void>();
   @Output() exportXLS = new EventEmitter<void>();
+  @Output() exportCSV = new EventEmitter<void>();
+  @Output() exportPNG = new EventEmitter<void>();
   @Output() exportPDF = new EventEmitter<void>();
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -35,6 +37,16 @@ export default class ExportModalComponent implements OnChanges {
 
   onExportXLS(): void {
     this.exportXLS.emit();
+    this.onClose();
+  }
+
+  onExportCSV(): void {
+    this.exportCSV.emit();
+    this.onClose();
+  }
+
+  onExportPNG(): void {
+    this.exportPNG.emit();
     this.onClose();
   }
 

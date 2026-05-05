@@ -713,7 +713,10 @@
   font-size: 16px;
   line-height: 24px;
   margin: 0 0 8px 0;
-  color: #6A7282;;
+  color: $text-midnight-blue;
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
 }
 
 .ai-capability-text {
@@ -721,10 +724,13 @@
   font-size: 14px;
   line-height: 20px;
   text-align: center;
-  color: #6A7282;
+  color: $text-midnight-blue;
   width: 420px;
   @media (max-width: 768px) {
     width: 100%;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
   }
 }
 
@@ -741,7 +747,10 @@
   font-size: 14px;
   line-height: 20px;
   margin: 0;
-  color: #99A1AF;
+  color: $text-neutral-1000;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
 }
 
 // Session History Styles

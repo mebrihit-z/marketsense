@@ -132,14 +132,40 @@ function expandSankeyCaptureBranch(el: HTMLElement): void {
   }
 }
 
+export type CaptureChartAreaToPngOptions = {
+  pixelRatio?: number;
+  /**
+   * Drops `.detail-modal-header-actions` from the raster only (clone path in html-to-image).
+   * Use for market-flow detail PNG/PDF export so icons are omitted without changing the live UI.
+   */
+  omitMarketFlowHeaderActions?: boolean;
+  /** Optional extra filter; return false to omit node (and its subtree) from the raster. Root is never filtered. */
+  filter?: (domNode: HTMLElement) => boolean;
+};
+
 /**
  * Renders visible Sankey / Treemap markup under `root` to a PNG data URL.
  */
 export async function captureChartAreaToPng(
   root: HTMLElement,
-  options?: { pixelRatio?: number }
+  options?: CaptureChartAreaToPngOptions
 ): Promise<string> {
   const pixelRatio = options?.pixelRatio ?? 2;
+  const userFilter = options?.filter;
+  const omitMarketFlowHeaderActions = options?.omitMarketFlowHeaderActions ?? false;
+
+  let filterFn: ((domNode: HTMLElement) => boolean) | undefined;
+  if (omitMarketFlowHeaderActions || userFilter) {
+    filterFn = (domNode: HTMLElement): boolean => {
+      if (omitMarketFlowHeaderActions && domNode.classList?.contains('detail-modal-header-actions')) {
+        return false;
+      }
+      if (userFilter && !userFilter(domNode)) {
+        return false;
+      }
+      return true;
+    };
+  }
   const modified: Array<{ el: HTMLElement; backup: BoxStyleBackup }> = [];
   const seen = new Set<HTMLElement>();
 
@@ -219,6 +245,7 @@ export async function captureChartAreaToPng(
       backgroundColor: '#ffffff',
       width: captureW,
       height: captureH,
+      ...(filterFn ? { filter: filterFn } : {}),
     });
   } finally {
     if (restoreSankeyRectColors) {

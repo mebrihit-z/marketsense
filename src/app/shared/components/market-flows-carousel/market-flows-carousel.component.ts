@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy, HostListener, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy, HostListener, ElementRef, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
@@ -21,6 +21,8 @@ export type { MarketFlowCard } from './market-flow-card/market-flow-card.compone
   styleUrl: './market-flows-carousel.component.scss'
 })
 export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, OnChanges {
+  @ViewChild(MarketFlowDetailModalComponent) private marketFlowDetailModal?: MarketFlowDetailModalComponent;
+
   @Input() cards: MarketFlowCard[] = [];
   @Input() pinnedCardIds: string[] = [];
   @Input() showViewMoreCard: boolean = true;
@@ -437,9 +439,16 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     // Here you would typically trigger the XLS export
   }
 
-  onExportPDF(): void {
-    // Handle PDF export
-    // Here you would typically trigger the PDF export
+  onExportCSV(): void {
+    this.marketFlowDetailModal?.exportExpandedCardAsCsv();
+  }
+
+  async onExportPDF(): Promise<void> {
+    await this.marketFlowDetailModal?.exportExpandedCardAsPdf();
+  }
+
+  async onExportPNG(): Promise<void> {
+    await this.marketFlowDetailModal?.exportExpandedCardAsPng();
   }
   
   onMoreOptions(cardId: string): void {
