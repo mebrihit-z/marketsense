@@ -424,7 +424,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
           .datum(piPoints)
           .attr('class', 'line-chart-prediction-interval')
           .attr('fill', this.forecastLineColor)
-          .attr('fill-opacity', 0.2)
+          .attr('fill-opacity', 0.110)
           .attr('d', piArea)
           .style('pointer-events', 'none');
 
@@ -505,8 +505,8 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     if (piPointsForBoundDots && piPointsForBoundDots.length > 0) {
-      const boundDotR = 6;
-      const boundDotStrokeW = 2;
+      const boundDotR = 4;
+      const boundDotStrokeW = 1.5;
       const pts = piPointsForBoundDots;
       g.append('g')
         .attr('class', 'line-chart-prediction-interval-dots line-chart-prediction-interval-dots--upper')
@@ -847,7 +847,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
         .append('circle')
         .attr('cx', d => xScale(d.i))
         .attr('cy', d => yScale(d.edge === 'upper' ? d.upper : d.lower))
-        .attr('r', 12)
+        .attr('r', 11)
         .attr('fill', 'transparent')
         .style('pointer-events', 'all')
         .style('cursor', 'pointer')
