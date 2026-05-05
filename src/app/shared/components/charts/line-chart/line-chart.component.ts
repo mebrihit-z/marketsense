@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
-import { formatFlowCurrencyUsd, formatFlowCurrencyUsdFull } from '../../../utils/flow-currency-format.util';
+import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 
 @Component({
   selector: 'app-line-chart',
@@ -36,8 +36,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   /** Optional tooltip subtitle per data index (e.g. semantic "+6mo" when the x tick reads "+5mo"). */
   @Input() pointHoverLabels?: Record<number, string>;
   /**
-   * When set for an index, tooltip shows that quarter date and the raw USD amount ({@link formatFlowCurrencyUsdFull}),
-   * not the compact axis format ({@link formatFlowCurrencyUsd}).
+   * When set for an index, tooltip shows that quarter date and the value in compact $K/$M/$B/$T (same as the y-axis).
    */
   @Input() pointTooltipDateLabels?: string[];
   /**
@@ -80,7 +79,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Tooltip block for forecast points with bounds: label line, then full grouped USD range (not compact K/M/B).
+   * Tooltip block for forecast points with bounds: label line, then compact $K/$M/$B/$T range (same as axis).
    */
   private static predictionRangeTooltipFragment(
     index: number,
@@ -95,7 +94,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (l == null || u == null || !Number.isFinite(l) || !Number.isFinite(u)) {
       return '';
     }
-    const rangeValues = `${formatFlowCurrencyUsdFull(l)} to ${formatFlowCurrencyUsdFull(u)}`;
+    const rangeValues = `${formatFlowCurrencyUsd(l)} to ${formatFlowCurrencyUsd(u)}`;
     return (
       `<div class="line-chart-tooltip-prediction-range">` +
       `<div class="line-chart-tooltip-prediction-range-label">${LineChartComponent.escapeHtml('Prediction Range:')}</div>` +
@@ -620,9 +619,9 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       );
 
       if (datePrefix) {
-        const fullUsd = formatFlowCurrencyUsdFull(value);
+        const compactUsd = formatFlowCurrencyUsd(value);
         const safeDate = LineChartComponent.escapeHtml(datePrefix);
-        const safeUsd = LineChartComponent.escapeHtml(fullUsd);
+        const safeUsd = LineChartComponent.escapeHtml(compactUsd);
         component.tooltip.html(
           `<div class="line-chart-tooltip-row line-chart-tooltip-row--dated">` +
           `<div class="line-chart-tooltip-dated-date">${safeDate}</div>` +

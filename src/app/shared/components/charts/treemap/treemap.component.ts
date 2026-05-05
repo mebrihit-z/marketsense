@@ -530,14 +530,6 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     return formatFlowCurrencyUsd(v);
   }
 
-  /** Full dollar amount for tooltips (no compact $B one-decimal rounding). */
-  private formatValueForTooltip(x: number): string {
-    const v = +x || 0;
-    const sign = v < 0 ? '-' : '';
-    const abs = Math.abs(v);
-    return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  }
-
   /** Cells below this size cannot display readable text; hide labels and rely on tooltip */
   private isLabelUnreadable(w: number, h: number): boolean {
     return w < 80 || h < 32;
@@ -1378,7 +1370,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .filter(d => !!d.children && d.depth !== 1)
       .on('mousemove', function(event: MouseEvent, d) {
         const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
-        const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
+        const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
         const timeHorizonDisplay = component.getTimeHorizonDisplayString();
         const sampleSize = component.sumNClientsInSubtree(d as TreemapHierarchyNode);
         tooltip
@@ -1455,7 +1447,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         return;
       }
       const path = d.ancestors().reverse().map(x => x.data.name).join(' › ');
-      const value = component.formatValueForTooltip(component.signedValue(d as TreemapHierarchyNode));
+      const value = component.formatValue(component.signedValue(d as TreemapHierarchyNode));
       const timeHorizonDisplay = component.getTimeHorizonDisplayString();
       const sampleSize = component.sumNClientsInSubtree(d as TreemapHierarchyNode);
       tooltip

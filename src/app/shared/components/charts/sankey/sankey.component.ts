@@ -978,14 +978,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return '';
     }
 
-    /** Full USD format for tooltips with no decimal places. */
-    private formatTooltipCurrencyNoDecimals(valueDollars: number): string {
-      if (valueDollars == null || !Number.isFinite(valueDollars)) return '$0';
-      const sign = valueDollars < 0 ? '-' : '';
-      const abs = Math.abs(valueDollars);
-      return `${sign}$${abs.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-    }
-
     /**
      * Places the sankey tooltip near the pointer and keeps it within the viewport
      * (e.g. when hovering the rightmost column).
@@ -1686,7 +1678,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           sourceX < linkRefX &&
           targetX <= linkRefX;
         const signedValue = isLeftOfReallocation ? -Math.abs(value) : value;
-        const formattedValue = component.formatTooltipCurrencyNoDecimals(signedValue);
+        const formattedValue = formatFlowCurrencyUsd(signedValue);
         
         // Check if this is a subasset link (connected to Source or Destination nodes)
         const isSubassetLink = (source.name && (source.name.includes('(Source)') || source.name.includes('(Destination)'))) ||
@@ -1880,9 +1872,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         const isStructuralCapitalNode =
           node.name.includes('Capital In') || node.name.includes('Capital Out');
         const signMultiplier = isLeftOfReallocation && !isStructuralCapitalNode ? -1 : 1;
-        const formattedValue = component.formatTooltipCurrencyNoDecimals(signMultiplier * value);
-        const formattedIncoming = component.formatTooltipCurrencyNoDecimals(signMultiplier * incoming);
-        const formattedOutgoing = component.formatTooltipCurrencyNoDecimals(signMultiplier * outgoing);
+        const formattedValue = formatFlowCurrencyUsd(signMultiplier * value);
+        const formattedIncoming = formatFlowCurrencyUsd(signMultiplier * incoming);
+        const formattedOutgoing = formatFlowCurrencyUsd(signMultiplier * outgoing);
         
          // Check if this is a parent node (Start/End) and collect subasset information
          let subassetHtml = '';
@@ -1958,7 +1950,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
               const signedSubassetValue = signMultiplier * subasset.value;
-              const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${component.formatTooltipCurrencyNoDecimals(signedSubassetValue)}</strong>`;
+              const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${formatFlowCurrencyUsd(signedSubassetValue)}</strong>`;
                subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
              });
              if (remainingCount > 0) {
