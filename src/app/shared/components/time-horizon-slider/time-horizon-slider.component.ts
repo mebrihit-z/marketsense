@@ -142,6 +142,7 @@ export class TimeHorizonSliderComponent
   tickLabel(index: number): string {
     const full = this.horizons[index];
     if (full == null) return '';
+    if (full === '0') return '|';
     if (!this.compactAxis) return full;
     return TIME_HORIZONS_SHORT_LABELS[index] ?? full;
   }
