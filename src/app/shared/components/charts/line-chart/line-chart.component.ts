@@ -79,7 +79,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   /**
-   * Tooltip block for forecast points with bounds: label line, then compact $K/$M/$B/$T range (same as axis).
+   * Tooltip block for forecast points with bounds: label and compact $K/$M/$B/$T range on one row (same as axis).
    */
   private static predictionRangeTooltipFragment(
     index: number,
