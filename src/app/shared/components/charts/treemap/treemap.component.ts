@@ -568,29 +568,27 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     let headerInner: string;
     if (segments.length === 0) {
       headerInner = path
-        ? `<div style="line-height:1.35;"><strong>${this.escapeHtml(path)}</strong></div>`
+        ? `<div><strong>${this.escapeHtml(path)}</strong></div>`
         : '';
     } else {
       headerInner = segments
         .map((seg, i) => {
           const display = i === 0 ? seg : `› ${seg}`;
-          return `<div style="line-height:1.35;"><strong>${this.escapeHtml(display)}</strong></div>`;
+          return `<div><strong>${this.escapeHtml(display)}</strong></div>`;
         })
         .join('');
     }
 
     const sampleLine =
       sampleSize != null && sampleSize > 0
-        ? `<div>Sample Size: ${this.escapeHtml(sampleSize.toLocaleString('en-US'))}</div>`
+        ? `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: <strong>${this.escapeHtml(sampleSize.toLocaleString('en-US'))}</strong></div>`
         : '';
 
     return `
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="word-break:break-word;">${headerInner}</div>
-        <div>Value: ${value}</div>
-        <div>Time: ${this.escapeHtml(timeHorizonDisplay)}</div>
-        ${sampleLine}
-      </div>
+      <div style="word-break:break-word;">${headerInner}</div>
+      <div style="margin-top: 4px;">Value: <strong>${this.escapeHtml(value)}</strong></div>
+      <div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: <strong>${this.escapeHtml(timeHorizonDisplay)}</strong></div>
+      ${sampleLine}
     `;
   }
 
@@ -1075,24 +1073,30 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       // .style('box-shadow', '0 1px 3px rgba(0,0,0,0.06)');
 
     const tooltipBg =
-      this.getCssVariable('--treemap-tooltip-bg') || '#ffffff';
+      this.getCssVariable('--treemap-tooltip-bg') ||
+      this.getCssVariable('--bg-white') ||
+      '#ffffff';
     const tooltipText =
-      this.getCssVariable('--treemap-tooltip-text') || '#0a0a0a';
+      this.getCssVariable('--treemap-tooltip-text') ||
+      this.getCssVariable('--text-primary') ||
+      '#0a0a0a';
     const tooltipBorder =
       this.getCssVariable('--treemap-tooltip-border') || 'rgba(10, 10, 10, 0.12)';
     const tooltip = d3
       .select('body')
       .append('div')
       .attr('id', this.bodyTooltipId)
-      .attr('class', 'treemap-floating-tooltip tooltip')
+      .attr('class', 'treemap-floating-tooltip')
       .style('position', 'fixed')
       .style('pointer-events', 'none')
-      .style('background', tooltipBg)
+      .style('background-color', tooltipBg)
       .style('color', tooltipText)
       .style('border', `1px solid ${tooltipBorder}`)
       .style('padding', '10px 14px')
       .style('font-size', '14px')
       .style('line-height', '1.45')
+      .style('font-family', `'Noto Sans', sans-serif`)
+      .style('font-weight', '400')
       .style('box-sizing', 'border-box')
       .style('word-break', 'break-word')
       .style('overflow-wrap', 'anywhere')
@@ -1104,7 +1108,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('visibility', 'hidden')
       .style('transform', 'none')
       .style('max-width', 'min(90vw, 520px)')
-      .style('z-index', '100000');
+      .style('z-index', '998');
 
     d3.select(container).on('mouseleave.treemap', () => {
       this.hideTreemapTooltipAndHighlights();

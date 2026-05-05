@@ -86,6 +86,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() dimension1Label?: string;
   /** Selected flow Dimension 1 id (e.g. `investor-type`); boosts layout readability when not `investor-region`. */
   @Input() dimension1Id?: string;
+  /** Flow Dimension 3 label (leaf / Source–Destination breakdown); tooltip heading on (Start)/(End) parent hovers. */
+  @Input() dimension3Label?: string;
   /**
    * True when Dimension 3 is not "None". Enables aggregate Super↔parent reconcile after value-range
    * so trunk link thickness matches surviving leaf links; included in filter hash when it toggles.
@@ -919,6 +921,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       return formatted;
     }
 
+    private escapeTooltipHtml(raw: string): string {
+      return raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /** Matches selected Flow Dimension 3; fallback for hosts that omit {@link dimension3Label}. */
+    private tooltipLeafBreakdownSectionTitle(): string {
+      const t = this.dimension3Label?.trim();
+      return t && t.length > 0 ? t : 'Product Sub-Type';
+    }
+
     /**
      * Label/tooltip title for Sankey nodes. When Dimension 1 is Investor Region, super-terminal
      * hubs for the United States read as "US Investors" instead of "US" / "U.S".
@@ -1686,20 +1702,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         
         let tooltipHtml = `
           <div><strong>${component.formatSankeyNodeDisplayName(source.name)}</strong> → <strong>${component.formatSankeyNodeDisplayName(target.name)}</strong></div>
-          <div style="margin-top: 4px;">Value: ${formattedValue}</div>
+          <div style="margin-top: 4px;">Value: <strong>${formattedValue}</strong></div>
         `;
         // For subasset links, show the Asset_Flow_Date if available, otherwise show time horizon
         if (isSubassetLink && link.date) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Date: ${component.formatDateForTooltip(link.date)}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Date: <strong>${component.formatDateForTooltip(link.date)}</strong></div>`;
         } else {
           const timeInfo = component.formatTimeInfo();
           if (timeInfo) {
-            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+            tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: <strong>${timeInfo}</strong></div>`;
           }
         }
         const linkNc = link.nClientsTotal;
         if (typeof linkNc === 'number' && linkNc > 0) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: ${linkNc.toLocaleString('en-US')}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: <strong>${linkNc.toLocaleString('en-US')}</strong></div>`;
         }
         
         tooltip
@@ -1946,7 +1962,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
              const remainingCount = aggregatedSubassets.length - maxItemsToShow;
              
              subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(10, 10, 10, 0.12); font-size: 13px;">';
-             subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">Product Sub-Type (${aggregatedSubassets.length}):</div>`;
+             const leafSectionTitle = component.escapeTooltipHtml(component.tooltipLeafBreakdownSectionTitle());
+             subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">${leafSectionTitle} (<strong>${aggregatedSubassets.length}</strong>):</div>`;
              subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
              itemsToShow.forEach(subasset => {
               const signedSubassetValue = signMultiplier * subasset.value;
@@ -1964,9 +1981,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         
         let tooltipHtml = `
           <div><strong>${component.formatNodeName(node.name)}</strong></div>
-          <div style="margin-top: 4px;">Total Value: ${formattedValue}</div>
-          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: ${formattedIncoming}</div>
-          <div style="font-size: 13px; opacity: 0.9;">Outgoing: ${formattedOutgoing}</div>
+          <div style="margin-top: 4px;">Total Value: <strong>${formattedValue}</strong></div>
+          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: <strong>${formattedIncoming}</strong></div>
+          <div style="font-size: 13px; opacity: 0.9;">Outgoing: <strong>${formattedOutgoing}</strong></div>
         `;
         let nClientsOutgoing = 0;
         graph.links.forEach(lk => {
@@ -1977,13 +1994,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         });
         
         if (timeInfo) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: ${timeInfo}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: <strong>${timeInfo}</strong></div>`;
         }
         
         tooltipHtml += subassetHtml;
 
         if (nClientsOutgoing > 0) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: ${nClientsOutgoing.toLocaleString('en-US')}</div>`;
+          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: <strong>${nClientsOutgoing.toLocaleString('en-US')}</strong></div>`;
         }
 
         tooltip

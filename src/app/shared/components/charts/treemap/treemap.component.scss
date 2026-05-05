@@ -1,5 +1,8 @@
 @use '_variables' as *;
 app-treemap {
+  /* Match sankey :host so body-appended tooltip reads the same fallbacks via getCssVariable */
+  --text-primary: #0a0a0a;
+  --bg-white: #ffffff;
   --treemap-tooltip-bg: #ffffff;
   --treemap-tooltip-text: #0a0a0a;
   --treemap-tooltip-border: rgba(10, 10, 10, 0.12);
@@ -177,13 +180,15 @@ app-treemap {
 }
 
 // Appended to document.body (escapes treemap scroll/overflow). D3 also sets most styles inline.
+// Typography / stacking aligned with sankey.component.ts body tooltip
 .treemap-floating-tooltip {
   position: fixed;
   pointer-events: none;
   box-sizing: border-box;
+  font-family: 'Noto Sans', sans-serif;
   max-width: min(90vw, 520px);
   word-break: break-word;
   overflow-wrap: anywhere;
-  z-index: 100000;
+  z-index: 998;
 }
 
