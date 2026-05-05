@@ -11,38 +11,13 @@
     width: 100%;
 }
 
-// Sticky minimized: expand control lives in footer row (aligned with pinned chips).
-.filters-bar-sticky-expand-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1;
-    color: $white;
-    background-color: $primary-colors-midnight-blue;
-    transition: background-color 0.15s ease, color 0.15s ease;
-    margin: 0;
+// Keeps class name for time-horizon document-capture ignore; styled via `.action-btn`.
+.filters-bar-footer-left .filters-bar-sticky-expand-btn {
     flex-shrink: 0;
 
     svg {
         display: block;
         flex-shrink: 0;
-    }
-
-    .view-filters-label {
-        color: $white;
-    }
-
-    &:hover {
-        background-color: $sticky-btn-hover-background;
-        color: $text-midnight-blue;
-        .view-filters-label {
-            color: $text-midnight-blue;
-        }
     }
 }
 
