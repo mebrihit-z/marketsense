@@ -1070,7 +1070,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       return s;
     };
 
-    const sourceRows = this.applyChartDataFilters(this.card.productSubType);
+    let sourceRows = this.applyChartDataFilters(this.card.productSubType);
+    sourceRows = sourceRows.filter((row) => (row.N_Clients ?? 0) > 3);
     if (sourceRows.length === 0) {
       return;
     }
