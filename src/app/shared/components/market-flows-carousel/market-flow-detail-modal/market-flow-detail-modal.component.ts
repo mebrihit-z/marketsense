@@ -719,16 +719,6 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Computes the projected value from filtered raw data as the total net flow in USD
-   * for the selected product sub-type and filters.
-   */
-  private computeFilteredProjectedValue(): number | null {
-    const totals = this.computeInflowOutflowNetFromRaw();
-    if (totals) return totals.netUsd;
-    return null;
-  }
-
-  /**
    * Splits filtered rows into gross inflow (sum of positive flows) and gross outflow (sum of negatives).
    * @returns Totals in USD, or null when raw data cannot produce a breakdown for this card.
    */
@@ -809,24 +799,6 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       return 'Sum of client counts (N) from the asset-flow rows that roll up into this product sub-type, with your current filters and time horizon.';
     }
     return 'Not in the data for this product in the current view, or no rows match your filters.';
-  }
-
-  /** Compact $K/$M/$B/$T for tooltip on net flow (same style as chart hovers). */
-  getProjectedValueHoverTitle(): string {
-    const dynamic = this.computeFilteredProjectedValue();
-    if (dynamic != null) {
-      return formatFlowCurrencyUsd(dynamic);
-    }
-    const fromCard = this.card?.netFlowUsd;
-    if (fromCard != null && Number.isFinite(fromCard)) {
-      return formatFlowCurrencyUsd(fromCard);
-    }
-    if (!this.card) return formatFlowCurrencyUsd(0);
-    const d = parseFlowDisplayValueToDollars(String(this.card.value).trim());
-    if (Number.isFinite(d)) {
-      return formatFlowCurrencyUsd(d);
-    }
-    return this.card.value;
   }
 
   /**

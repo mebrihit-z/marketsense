@@ -214,11 +214,10 @@
     <div class="flow-summary-cell">
       <div class="flow-summary-label">Net flow</div>
       <div
-        class="flow-summary-value flow-summary-net flow-value-hover"
+        class="flow-summary-value flow-summary-net"
         [class.net-positive]="getFlowUsdTotals().netUsd > 0"
         [class.net-negative]="getFlowUsdTotals().netUsd < 0"
-        [class.net-neutral]="getFlowUsdTotals().netUsd === 0"
-        [attr.data-flow-tooltip]="getProjectedValueHoverTitle()">
+        [class.net-neutral]="getFlowUsdTotals().netUsd === 0">
         <span class="detail-net-flow-trend-icon" aria-hidden="true" *ngIf="getFlowUsdTotals().netUsd !== 0">
           <img
             *ngIf="getFlowUsdTotals().netUsd > 0; else downTrendIcon"
