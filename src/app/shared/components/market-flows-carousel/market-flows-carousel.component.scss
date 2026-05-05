@@ -368,10 +368,10 @@
 
 /* Pagination in detail layout: below detail on desktop, below cards on iPad */
 .detail-layout-navigation {
-  grid-column: 1;
+  grid-column: 1 / -1;
   grid-row: 2;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   width: 100%;
   gap: 16px;
@@ -391,7 +391,7 @@
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 12px;
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: auto;
   }
 }
@@ -412,7 +412,7 @@
 // Navigation Section
 .navigation-container {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   width: 100%;
   gap: 16px;
