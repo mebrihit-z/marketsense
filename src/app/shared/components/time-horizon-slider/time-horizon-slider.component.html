@@ -81,6 +81,7 @@
         *ngFor="let horizon of horizons; let i = index"
         [class.time-horizon-label--active]="isLabelActive(i)"
         [class.time-horizon-label--today]="i === todayIndex"
+        [class.time-horizon-label--anchor]="i === todayIndex"
         [style.left.px]="milestoneCenterPx(i)"
         [style.transform]="axisLabelTransform(i)"
         [attr.aria-label]="horizon"

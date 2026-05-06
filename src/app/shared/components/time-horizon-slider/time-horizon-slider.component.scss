@@ -537,6 +537,26 @@ $time-horizon-card-flex-basis: 680px;
   }
 }
 
+.time-horizon-label.time-horizon-label--anchor {
+  /* Draw the anchor marker as a real line so it's perfectly centered */
+  width: 0;
+  min-width: 0;
+  line-height: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    /* Match the "today" tick stroke width (3px) for perfect visual alignment */
+    width: 3px;
+    height: 16px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+}
+
 .time-horizon-labels.time-horizon-labels--compact .time-horizon-label {
   top: 0;
   font-size: 10px;

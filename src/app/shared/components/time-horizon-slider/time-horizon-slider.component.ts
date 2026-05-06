@@ -46,6 +46,11 @@ export class TimeHorizonSliderComponent
 
   private static readonly AXIS_INSET_DESKTOP_PX = 14;
   private static readonly AXIS_INSET_MOBILE_PX = 8;
+  /**
+   * Keep in sync with SCSS breakpoints:
+   * `time-horizon-slider.component.scss` switches inset at max-width: 768px.
+   */
+  private static readonly AXIS_INSET_MOBILE_MAX_WIDTH_PX = 768;
   /** Viewports at or below this width use short tick labels and compact axis math (e.g. iPad portrait, tablets). */
   private static readonly COMPACT_AXIS_MAX_INNER_WIDTH_PX = 1024;
 
@@ -142,7 +147,8 @@ export class TimeHorizonSliderComponent
   tickLabel(index: number): string {
     const full = this.horizons[index];
     if (full == null) return '';
-    if (full === '0') return '|';
+    // The anchor marker is drawn via CSS for perfect centering; keep label text empty.
+    if (full === '0') return '';
     if (!this.compactAxis) return full;
     return TIME_HORIZONS_SHORT_LABELS[index] ?? full;
   }
@@ -203,10 +209,12 @@ export class TimeHorizonSliderComponent
   }
 
   private getAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
-    const isMobile =
+    // IMPORTANT: Inset breakpoint must match the CSS track inset breakpoint (768px),
+    // not the compact-axis label breakpoint (1024px), otherwise labels drift vs tick marks.
+    const useMobileInset =
       typeof window !== 'undefined' &&
-      window.innerWidth <= TimeHorizonSliderComponent.COMPACT_AXIS_MAX_INNER_WIDTH_PX;
-    const inset = isMobile
+      window.innerWidth <= TimeHorizonSliderComponent.AXIS_INSET_MOBILE_MAX_WIDTH_PX;
+    const inset = useMobileInset
       ? TimeHorizonSliderComponent.AXIS_INSET_MOBILE_PX
       : TimeHorizonSliderComponent.AXIS_INSET_DESKTOP_PX;
     const trackWidth = Math.max(0, containerWidth - 2 * inset);
