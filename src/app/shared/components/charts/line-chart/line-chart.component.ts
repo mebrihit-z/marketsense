@@ -867,10 +867,11 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
       .tickValues(xTickValues)
       .tickFormat((d, i) => {
         const tickIndex = Math.round(Number(d));
-        if (this.xAxisLabels && this.xAxisLabels.length > tickIndex) {
-          return this.xAxisLabels[tickIndex];
-        }
-        return String(d);
+        const raw =
+          this.xAxisLabels && this.xAxisLabels.length > tickIndex
+            ? this.xAxisLabels[tickIndex]
+            : String(d);
+        return raw.trim() === '0' ? '|' : raw;
       });
 
     const xAxisGroup = g.append('g')
