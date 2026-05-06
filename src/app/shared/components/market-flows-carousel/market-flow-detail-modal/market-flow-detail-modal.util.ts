@@ -147,6 +147,19 @@ export function formatYearMonthAsQuarterEndLongDate(ym: string): string {
   });
 }
 
+/**
+ * Calendar quarter label aligned with the Time Horizon slider (e.g. {@code "2025-06"} → "Q2, 2025").
+ */
+export function formatYearMonthAsQuarterLabel(ym: string): string {
+  const m = ym.trim().match(/^(\d{4})-(\d{2})$/);
+  if (!m) return ym.trim();
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  if (![y, mo].every(Number.isFinite) || mo < 1 || mo > 12) return ym.trim();
+  const quarter = Math.floor((mo - 1) / 3) + 1;
+  return `Q${quarter}, ${y}`;
+}
+
 const QUARTER_END_MONTH = new Set([3, 6, 9, 12]);
 
 function parseYearMonthParts(ym: string): { y: number; m: number } | null {

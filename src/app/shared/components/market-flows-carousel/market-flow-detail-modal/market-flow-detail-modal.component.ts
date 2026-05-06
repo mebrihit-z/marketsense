@@ -611,7 +611,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * @param {Map<string, number>} dateMap - Date to aggregated value (USD)
    * @param {string[]} sortedDates - Sorted date strings
-   * @returns Per-quarter net flow, x-axis labels, and quarter date strings for point tooltips, or null
+   * @returns Per-quarter net flow, x-axis labels, and calendar quarter labels (e.g. Q2, 2025) for point tooltips, or null
    */
   private buildPerQuarterSeriesForTimeHorizonLabels(
     dateMap: Map<string, number>,
@@ -662,7 +662,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       }
     }
     const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym, nPoints));
-    const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterEndLongDate(ym));
+    const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterLabel(ym));
     let forecastStartIndex = orderedYms.length;
     if (anchorYm) {
       for (let i = 0; i < orderedYms.length; i++) {

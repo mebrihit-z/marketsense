@@ -36,7 +36,7 @@ export class LineChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   /** Optional tooltip subtitle per data index (e.g. semantic "+6mo" when the x tick reads "+5mo"). */
   @Input() pointHoverLabels?: Record<number, string>;
   /**
-   * When set for an index, tooltip shows that quarter date and the value in compact $K/$M/$B/$T (same as the y-axis).
+   * When set for an index, tooltip shows that label (e.g. calendar quarter "Q1, 2026") and the value in compact $K/$M/$B/$T (same as the y-axis).
    */
   @Input() pointTooltipDateLabels?: string[];
   /**
