@@ -53,7 +53,7 @@
 ::ng-deep .line-chart-tooltip {
   position: absolute;
   background-color: $primary-colors-midnight-blue;
-  color: #f8fafc;
+  color: #C7EAFF;
   padding: 11px 14px;
   font-size: 15px;
   pointer-events: none;
@@ -81,12 +81,12 @@
   .line-chart-tooltip-value {
     font-size: 16px;
     font-weight: 600;
-    color: #f8fafc;
+    color: #C7EAFF;
   }
 
   .line-chart-tooltip-label {
     font-size: 15px;
-    color: rgba(248, 250, 252, 0.72);
+    color: #C7EAFF;
   }
 
   .line-chart-tooltip-row--dated {
@@ -100,13 +100,13 @@
 
   .line-chart-tooltip-row--dated .line-chart-tooltip-dated-date {
     font-size: 16px;
-    color: #f8fafc;
+    color: #C7EAFF;
     line-height: 1.35;
   }
 
   .line-chart-tooltip-row--dated .line-chart-tooltip-dated-value-row {
     font-size: 16px;
-    color: rgba(248, 250, 252, 0.9);
+    color: #C7EAFF;
     line-height: 1.35;
   }
 
@@ -118,16 +118,16 @@
     gap: 6px;
     font-size: 16px;
     font-weight: 400;
-    color: rgba(248, 250, 252, 0.9);
+    color: #C7EAFF;
     line-height: 1.35;
   }
 
   .line-chart-tooltip-prediction-range-label {
-    color: rgba(248, 250, 252, 0.92);
+    color: inherit;
   }
 
   .line-chart-tooltip-prediction-range-values {
     font-weight: 600;
-    color: #f8fafc;
+    color: #C7EAFF;
   }
 }
