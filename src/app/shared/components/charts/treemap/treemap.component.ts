@@ -14,6 +14,10 @@ import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
+import {
+  FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX,
+  FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX,
+} from '../../../utils/flow-chart-min-width.constants';
 
 interface SankeyDataLocal {
   nodes: Array<{ name: string }>;
@@ -68,6 +72,11 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() minFlowValue: number = 0;
   /** Maximum flow in billions; links above are hidden when set. Null = no upper cap. */
   @Input() maxFlowValue: number | null = null;
+  /**
+   * When true, Flow Dimension 3 includes the leaf tier — same horizontal scroll floor as the Sankey
+   * (`flow-chart-min-width.constants`).
+   */
+  @Input() sankeyHasLeafDimension = false;
   /** Minimum share (0..1) of total treemap area per leaf cell. */
   @Input() minCellShare: number = 0.003;
   /** Maximum share (0..1) of total treemap area per leaf cell. */
@@ -84,6 +93,17 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   private static bodyTooltipIdSeq = 0;
   /** One portal tooltip per instance so multiple treemaps on the page do not clash. */
   private readonly bodyTooltipId = `treemap-body-tt-${++TreemapComponent.bodyTooltipIdSeq}`;
+
+  /** Laid-out treemap width (px); used with treemapScrollHostMinWidthCss for horizontal scroll parity with Sankey. */
+  treemapLayoutWidthPx = FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
+
+  get treemapScrollHostMinWidthCss(): string {
+    const floorPx = this.sankeyHasLeafDimension
+      ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+      : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
+    const w = Math.max(this.treemapLayoutWidthPx, floorPx);
+    return `max(100%, ${w}px)`;
+  }
 
   constructor(
     private el: ElementRef,
@@ -272,6 +292,15 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const timeHorizonChanged = changes['timeHorizon'] || 
                                 changes['timeHorizonStart'] || 
                                 changes['timeHorizonEnd'];
+
+    if (
+      changes['sankeyHasLeafDimension'] &&
+      !changes['sankeyHasLeafDimension'].firstChange &&
+      this.loadedData?.nodes?.length &&
+      this.el?.nativeElement
+    ) {
+      setTimeout(() => this.createTreemap(), 100);
+    }
     
     if (filterChanged || timeHorizonChanged) {
       // If filters or time horizon changed, reapply filters and recreate treemap
@@ -1009,6 +1038,9 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     if (!this.loadedData || !this.loadedData.nodes || this.loadedData.nodes.length === 0) {
       console.warn('ReallocationTreemap: No data loaded or data is empty');
+      this.treemapLayoutWidthPx = this.sankeyHasLeafDimension
+        ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+        : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
       return;
     }
 
@@ -1018,13 +1050,33 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     
     if (!hierarchy.children || hierarchy.children.length === 0) {
       console.warn('ReallocationTreemap: Hierarchy has no children', hierarchy);
+      this.treemapLayoutWidthPx = this.sankeyHasLeafDimension
+        ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+        : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
       return;
     }
 
     const numRegions = hierarchy.children.length;
-    // Get container dimensions or use defaults
-    const containerWidth = container.parentElement?.clientWidth || container.offsetWidth || 1800;
-    const width = Math.max(containerWidth - 40, 800); // Account for padding
+    const scrollHost = container.parentElement as HTMLElement | null;
+    const scrollW =
+      scrollHost && scrollHost.clientWidth > 0 ? scrollHost.clientWidth : 0;
+    const baseContainerWidth =
+      scrollW > 0
+        ? scrollW
+        : container.offsetWidth ||
+          this.el.nativeElement.clientWidth ||
+          window.innerWidth ||
+          1800;
+    const MIN_DRAW_WIDTH_PX = this.sankeyHasLeafDimension
+      ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+      : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
+    const flooredBase = Math.floor(baseContainerWidth);
+    const width = Math.max(
+      320,
+      flooredBase,
+      flooredBase < MIN_DRAW_WIDTH_PX ? MIN_DRAW_WIDTH_PX : 0
+    );
+    this.treemapLayoutWidthPx = width;
     // Scale height by number of superparents (Dimension 1). Each band needs a minimum pixel height
     // so region titles stay readable; do not hard-cap too low when there are many regions.
     const baseHeight = Math.round(width * (380 / 1800) + 200);   // ~580px at 1800 width for 1 region
@@ -1032,7 +1084,10 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const MIN_SUPERPARENT_BAND_PX = 128;
     const heightFromMinBands = numRegions * MIN_SUPERPARENT_BAND_PX + 48;
     const formulaHeight = Math.max(420, baseHeight + (numRegions - 1) * perRegionExtra);
-    const softMaxHeight = Math.min(12000, Math.round(Math.max(width, containerWidth) * 6));
+    const softMaxHeight = Math.min(
+      12000,
+      Math.round(Math.max(width, flooredBase) * 6)
+    );
     const height = Math.min(
       softMaxHeight,
       Math.max(formulaHeight, heightFromMinBands)
@@ -1067,7 +1122,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('width', '100%')
       .style('max-width', width + 'px')
       .style('height', height + 'px')
-      .style('margin', '0 auto')
+      .style('margin', '0')
       .style('background', 'white')
       // .style('border', '1px solid #e6e6e6')
       // .style('box-shadow', '0 1px 3px rgba(0,0,0,0.06)');

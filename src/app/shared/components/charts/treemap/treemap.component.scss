@@ -14,17 +14,23 @@ app-treemap {
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     padding: 32px 20px;
     background: #FFF;
     @media (max-width: 768px) {
       padding: 0px 16px 24px 16px;
     }
 
+    .treemap-chart-host {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 0;
+    }
+
     .chart-container {
       position: relative;
       width: 100%;
-      max-width: 1800px;
+      max-width: none;
       min-height: 320px;
       background: white;
       z-index: 1;

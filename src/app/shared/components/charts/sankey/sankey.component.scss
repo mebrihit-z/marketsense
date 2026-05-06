@@ -35,7 +35,7 @@
   flex-direction: column;
 }
 
-// Scroll wrapper: overflow-x when SVG is wider than the host (see TS SANKEY_MIN_DRAW_WIDTH_PX)
+// Scroll wrapper: overflow-x only when content is deliberately wider than the host
 // Horizontal padding so stroke/hover at the right edge is not clipped by the scrollport
 .sankey-chart-scroll {
   flex: 1;
@@ -48,9 +48,18 @@
   overflow-y: visible;
 }
 
-.sankey-container > .sankey-chart-scroll > .regional-sankey {
-  min-width: 100%;
-  width: max-content;
+.sankey-scroll-pane {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* min-width: max(100%, layout px) is set on .sankey-scroll-pane in the template. */
+.sankey-chart-scroll > .sankey-scroll-pane > .regional-sankey {
+  box-sizing: border-box;
+  width: 100%;
   max-width: none;
   height: 100%;
   min-height: 320px;
@@ -278,7 +287,48 @@
   }
 }
 
+@media (min-width: 1921px) {
+  .sankey-flow-labels {
+    .sankey-label-outflows,
+    .sankey-label-inflows {
+      font-size: 21px;
+    }
+  }
+
+  .sankey-container ::ng-deep {
+    .sankey-node-label {
+      font-size: 14px;
+    }
+
+    .sankey-treemap-label,
+    .sankey-treemap-value {
+      font-size: 14px;
+    }
+
+    .sankey-node-label-leaf-compact .sankey-treemap-label,
+    .sankey-node-label-leaf-compact .sankey-treemap-value,
+    .sankey-node-label-thin .sankey-treemap-label,
+    .sankey-node-label-thin .sankey-treemap-value {
+      font-size: 14px;
+    }
+
+    .sankey-link-value-label {
+      font-size: 14px;
+    }
+
+    .sankey-label-outflows,
+    .sankey-label-inflows {
+      font-size: 18px;
+    }
+
+    .sankey-legend-label {
+      font-size: 15px;
+    }
+  }
+}
+
 .regional-sankey {
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
   position: relative;

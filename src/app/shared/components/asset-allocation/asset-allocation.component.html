@@ -46,6 +46,7 @@
         <app-treemap
           *ngIf="isTreemapRowVisible(regionData)"
           [data]="regionData.data"
+          [sankeyHasLeafDimension]="(selectedDimension3?.id ?? 'none') !== 'none'"
           [useSuperListFilter]="isDimension1InvestorRegion()"
           [selectedInvestorRegions]="regionData.investorRegions"
           [selectedProductTypes]="cachedSelectedProductTypes"

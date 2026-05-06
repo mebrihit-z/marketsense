@@ -1,10 +1,14 @@
 <div class="sankey-container" [style.height.px]="sankeyContainerHeightPx">
-  <div class="sankey-flow-labels">
-    <span class="sankey-label-outflows">Outflows</span>
-    <span class="sankey-label-inflows">Inflows</span>
-  </div>
   <div class="sankey-chart-scroll">
-    <div class="regional-sankey"></div>
+    <div
+      class="sankey-scroll-pane"
+      [style.min-width]="sankeyScrollHostMinWidthCss">
+      <div class="sankey-flow-labels">
+        <span class="sankey-label-outflows">Outflows</span>
+        <span class="sankey-label-inflows">Inflows</span>
+      </div>
+      <div class="regional-sankey"></div>
+    </div>
   </div>
 </div>
 

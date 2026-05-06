@@ -20,6 +20,10 @@ import {
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
+import {
+  FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX,
+  FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX,
+} from '../../../utils/flow-chart-min-width.constants';
 
 // ----------------------
 // TypeScript Models
@@ -124,6 +128,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   /** Layout weight for each leaf/sub link when {@link uniformLinkLayout} applies. */
   private static readonly UNIFORM_LAYOUT_LINK_WEIGHT = 1;
 
+  /**
+   * When `window.innerWidth` is below this, Reallocation Pool labels place the currency value on a second line.
+   */
+  private static readonly REALLOC_LABEL_VALUE_WRAP_MAX_VIEWPORT_WIDTH = 1921;
+
+  /**
+   * When `window.innerWidth` is strictly less than this, apply reduced label character budgets and pixel clamping.
+   */
+  private static readonly SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX = 1540;
+
   private loadedData?: RegionalSankeyData;
   private lastDataHash: string = '';
   private lastFiltersHash: string = '';
@@ -132,12 +146,27 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
   private hostDestroyed = false;
   /** Avoids full rebuild when time inputs are re-written with the same strings. */
   private lastHorizonInputsKey = '';
+  private removeWindowResizeListener: (() => void) | null = null;
 
   /**
    * Total block height (flow labels + chart scroll); grows when many Super Start/End hubs need vertical room.
    * Bound in template; defaults to 960 until `createSankey` runs.
    */
   sankeyContainerHeightPx = 960;
+
+  /**
+   * Laid-out SVG width in px — drives `max(100%, Npx)` on `.sankey-scroll-pane` so narrow viewports get horizontal scroll.
+   */
+  sankeyLayoutWidthPx = 960;
+
+  /** Scroll row: never narrower than the Dimension-3-aware floor, or full host width when wider. */
+  get sankeyScrollHostMinWidthCss(): string {
+    const floorPx = this.sankeyHasLeafDimension
+      ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+      : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
+    const w = Math.max(this.sankeyLayoutWidthPx, floorPx);
+    return `max(100%, ${w}px)`;
+  }
 
   /**
    * One `createSankey` per animation frame app-wide (deduped per instance) so N regional
@@ -765,6 +794,71 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     } else {
       
     }
+
+    // Keep label truncation responsive when crossing inner width below SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX.
+    this.installResizeListener();
+  }
+
+  private installResizeListener(): void {
+    if (this.removeWindowResizeListener) return;
+    let lastW = window.innerWidth;
+    let t: number | null = null;
+    const onResize = () => {
+      if (this.hostDestroyed) return;
+      // Throttle via timeout: resize can fire many times while dragging.
+      if (t != null) window.clearTimeout(t);
+      t = window.setTimeout(() => {
+        t = null;
+        const w = window.innerWidth;
+        const wasTruncateViewport =
+          lastW < SankeyComponent.SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX;
+        const isTruncateViewport =
+          w < SankeyComponent.SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX;
+        const wasReallocWrap =
+          lastW < SankeyComponent.REALLOC_LABEL_VALUE_WRAP_MAX_VIEWPORT_WIDTH;
+        const isReallocWrap =
+          w < SankeyComponent.REALLOC_LABEL_VALUE_WRAP_MAX_VIEWPORT_WIDTH;
+        lastW = w;
+        if (
+          wasTruncateViewport !== isTruncateViewport ||
+          wasReallocWrap !== isReallocWrap
+        ) {
+          this.scheduleCreateSankey();
+        }
+      }, 140);
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    this.removeWindowResizeListener = () => {
+      if (t != null) window.clearTimeout(t);
+      window.removeEventListener('resize', onResize as any);
+    };
+  }
+
+  /**
+   * Reduce inline label char budget when `window.innerWidth` is below
+   * SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX (less horizontal room); encourages "…" truncation.
+   */
+  private responsiveInlineLabelCharBudget(rawBudget: number): number {
+    const b = Math.max(10, Math.floor(Number.isFinite(rawBudget) ? rawBudget : 0));
+    const w = window?.innerWidth ?? 0;
+    if (w < SankeyComponent.SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX) {
+      return Math.max(28, Math.floor(b * 0.78));
+    }
+    return b;
+  }
+
+  /** True while `window.innerWidth` is below SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX (char + pixel truncation). */
+  private isMidViewportTruncationBand(): boolean {
+    const w = window?.innerWidth ?? 0;
+    return w < SankeyComponent.SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX;
+  }
+
+  /** Realloc hub: two-line label (value under the title) for narrower viewports. */
+  private isReallocLabelValueWrappedLayout(): boolean {
+    return (
+      (window?.innerWidth ?? 0) <
+      SankeyComponent.REALLOC_LABEL_VALUE_WRAP_MAX_VIEWPORT_WIDTH
+    );
   }
 
   private scheduleCreateSankey(): void {
@@ -1054,6 +1148,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       }
       d3.select('body').select(`#${this.tooltipId}`).remove();
       this.sankeyContainerHeightPx = 960;
+      this.sankeyLayoutWidthPx = this.sankeyHasLeafDimension
+        ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+        : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
       this.cdr.markForCheck();
       return;
     }
@@ -1062,12 +1159,16 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     d3.select(element).select('svg').remove();
     d3.select('body').select(`#${this.tooltipId}`).remove();
     
-    // Use full width of the chart scroll host (parent chain can be wider than .regional-sankey alone)
+    // Visible width of `.sankey-chart-scroll` (not the inner pane, which can be wider than the viewport).
     const nativeRect = this.el.nativeElement.getBoundingClientRect();
     const elementRect = element.getBoundingClientRect();
-    const scrollHost = element.parentElement;
+    const scrollViewport =
+      (element.closest('.sankey-chart-scroll') as HTMLElement | null) ||
+      element.parentElement;
     const scrollW =
-      scrollHost && scrollHost.clientWidth > 0 ? scrollHost.clientWidth : 0;
+      scrollViewport && scrollViewport.clientWidth > 0
+        ? scrollViewport.clientWidth
+        : 0;
     const baseContainerWidth =
       scrollW > 0
         ? scrollW
@@ -1081,14 +1182,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
               this.el.nativeElement.offsetWidth ||
               window.innerWidth ||
               400;
-    /** When the host is narrower than this, draw a wider SVG so `.sankey-chart-scroll` can pan horizontally. */
-    const SANKEY_MIN_DRAW_WIDTH_PX = 960;
+    /**
+     * When the host is narrower than this, draw a wider SVG so `.sankey-chart-scroll` can pan horizontally.
+     * Dimension 3 (leaf breakdown) layouts need extra width; otherwise use the legacy 960px floor.
+     */
+    const SANKEY_MIN_DRAW_WIDTH_PX = this.sankeyHasLeafDimension
+      ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
+      : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
     const flooredBase = Math.floor(baseContainerWidth);
     const width = Math.max(
       320,
       flooredBase,
       flooredBase < SANKEY_MIN_DRAW_WIDTH_PX ? SANKEY_MIN_DRAW_WIDTH_PX : 0
     );
+    this.sankeyLayoutWidthPx = width;
 
     // Create tooltip (append to body for positioning; inline styles required because body is outside component)
     d3.select('body').select(`#${this.tooltipId}`).remove();
@@ -1352,11 +1459,14 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     drawInnerPx += linkDensitySlackPx;
 
     // Minimal horizontal inset; labels use overflow visible on SVG (tight = more flow width)
-    /** Horizontal stagger between stacked same-side labels; keep modest so anchors stay near nodes. */
+    /** Horizontal stagger proxy for stacked same-side labels — cap inset so flows use nearly full drawable width. */
     const labelLaneStride = maxColumnStack > 22 ? 11 : maxColumnStack > 14 ? 9 : 7;
     const laneSpread = labelLaneStride * 2;
-    const leftMargin = 8 + laneSpread + (maxColumnStack > 14 ? 10 : 6);
-    const rightMargin = 8 + laneSpread + (maxColumnStack > 14 ? 10 : 6);
+    const chartHorizontalSlackPx = Math.min(laneSpread, 22);
+    const leftMargin =
+      6 + chartHorizontalSlackPx + (maxColumnStack > 14 ? 8 : 4);
+    const rightMargin =
+      6 + chartHorizontalSlackPx + (maxColumnStack > 14 ? 8 : 4);
     const topMargin = 12;
     /** Extra room below the flow so packed node labels are not clipped by the SVG. */
     const bottomMargin = dim1ReadabilityBoost && maxColumnStack > 16 ? 84 : 64;
@@ -2204,8 +2314,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           : 72;
     const maxParentInlineCharsRaw = maxColumnStack > 26 ? 54 : maxColumnStack > 16 ? 60 : 68;
     const labelCharBump = dim1ReadabilityBoost ? 6 : 0;
-    const maxLeafInlineChars = maxLeafInlineCharsRaw + labelCharBump;
-    const maxParentInlineChars = maxParentInlineCharsRaw + labelCharBump;
+    const maxLeafInlineChars = this.responsiveInlineLabelCharBudget(maxLeafInlineCharsRaw + labelCharBump);
+    const maxParentInlineChars = this.responsiveInlineLabelCharBudget(maxParentInlineCharsRaw + labelCharBump);
 
     const nodeLabels = chartGroup.append('g')
       .attr('class', 'sankey-node-labels')
@@ -2237,6 +2347,12 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         } else {
           y = mid;
         }
+        if (
+          this.isReallocLabelValueWrappedLayout() &&
+          n.name.includes('Reallocation Pool')
+        ) {
+          y -= 7;
+        }
         return y + nodeLabelVerticalNudgePx;
       })
       .attr('text-anchor', d => {
@@ -2257,7 +2373,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('alignment-baseline', 'middle');
 
     const truncateName = (formattedName: string, maxLen: number): string =>
-      formattedName.length > maxLen ? formattedName.substring(0, maxLen) + '…' : formattedName;
+      formattedName.length > maxLen ? formattedName.substring(0, maxLen) + '...' : formattedName;
 
     /** Same row as treemap: `Name:` ({@link formatFlowCurrencyUsd} value follows in value style). */
     const appendTreemapStyleLabelValue = (
@@ -2276,6 +2392,29 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         .attr('class', 'sankey-treemap-label')
         .text(`${nm}${sep}`);
       el.append('tspan').attr('class', 'sankey-treemap-value').text(valStr);
+    };
+
+    /** Realloc hub when narrow: title + colon on line 1, {@link formatFlowCurrencyUsd} on line 2. */
+    const appendTreemapStyleLabelValueStacked = (
+      el: d3.Selection<SVGTextElement, unknown, null, undefined>,
+      labelBody: string,
+      valueDollars: number,
+      maxInlineChars: number
+    ): void => {
+      const valStr = formatFlowCurrencyUsd(valueDollars);
+      const nameBudget = Math.max(4, maxInlineChars);
+      const nm = truncateName(labelBody, nameBudget);
+      const xAttr = el.node()?.getAttribute('x') ?? '0';
+      el.append('tspan')
+        .attr('class', 'sankey-treemap-label')
+        .attr('x', xAttr)
+        .attr('dy', '0')
+        .text(`${nm}:`);
+      el.append('tspan')
+        .attr('class', 'sankey-treemap-value')
+        .attr('x', xAttr)
+        .attr('dy', '1.12em')
+        .text(valStr);
     };
 
     const cmp = this;
@@ -2319,7 +2458,21 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         return;
       }
       if (n.name.includes('Reallocation Pool')) {
-        appendTreemapStyleLabelValue(el, 'Realloc', signedValue, maxParentInlineChars);
+        if (cmp.isReallocLabelValueWrappedLayout()) {
+          appendTreemapStyleLabelValueStacked(
+            el,
+            'Realloc',
+            signedValue,
+            maxParentInlineChars
+          );
+        } else {
+          appendTreemapStyleLabelValue(
+            el,
+            'Realloc',
+            signedValue,
+            maxParentInlineChars
+          );
+        }
         return;
       }
 
@@ -2330,6 +2483,72 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         maxParentInlineChars
       );
     });
+
+    /**
+     * When inner width is below SANKEY_LABEL_TRUNCATION_INNER_WIDTH_PX, clamp labels by rendered
+     * pixel width to prevent overlaps. We only shrink the name/label part (first tspan) and keep the value visible.
+     */
+    if (this.isMidViewportTruncationBand()) {
+      const clampLabelByPx = (textEl: SVGTextElement, maxPx: number) => {
+        if (!textEl || !(maxPx > 20)) return;
+        // First tspan: "Name: " (class sankey-treemap-label); second tspan: "$…" (value).
+        const tspans = Array.from(textEl.querySelectorAll('tspan'));
+        const labelTspan = tspans.find(t => t.classList.contains('sankey-treemap-label')) as SVGTSpanElement | undefined;
+        if (!labelTspan) return;
+
+        const original = labelTspan.textContent ?? '';
+        if (!original) return;
+
+        // If already fits, done.
+        if (textEl.getComputedTextLength() <= maxPx) return;
+
+        // Preserve the trailing separator (": ") if present.
+        const sep = ': ';
+        const hasSep = original.endsWith(sep);
+        const base = hasSep ? original.slice(0, -sep.length) : original;
+
+        // Iteratively shrink until it fits or becomes too small.
+        const ell = '...';
+        let lo = 0;
+        let hi = base.length;
+
+        // Binary search the largest prefix that fits.
+        while (lo < hi) {
+          const mid = Math.ceil((lo + hi) / 2);
+          labelTspan.textContent = base.slice(0, mid) + (mid < base.length ? ell : '') + (hasSep ? sep : '');
+          if (textEl.getComputedTextLength() <= maxPx) {
+            lo = mid;
+          } else {
+            hi = mid - 1;
+          }
+        }
+
+        const finalPrefix = Math.max(0, lo);
+        labelTspan.textContent =
+          base.slice(0, finalPrefix) + (finalPrefix < base.length ? ell : '') + (hasSep ? sep : '');
+
+        // If still doesn't fit (very small budget), fall back to just ellipsis + sep.
+        if (textEl.getComputedTextLength() > maxPx) {
+          labelTspan.textContent = ell + (hasSep ? sep : '');
+        }
+      };
+
+      // Tuned to match the screenshot density: keep labels short in mid-size viewports.
+      nodeLabels.each(function (d) {
+        const n = d as SankeyNodeExtra;
+        const el = this as SVGTextElement;
+        const isLeaf = isLeafChartLabel(n);
+        if (
+          n.name.includes('Reallocation Pool') &&
+          cmp.isReallocLabelValueWrappedLayout()
+        ) {
+          return;
+        }
+        // Shorter labels for mid-size viewports (match dense dashboard layouts).
+        const maxPx = isLeaf ? 132 : 152;
+        clampLabelByPx(el, maxPx);
+      });
+    }
 
     nodeLabels.each(function (d) {
       const node = d as SankeyNodeExtra;
@@ -2361,6 +2580,8 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       cancelAnimationFrame(SankeyComponent.pumpRafId);
       SankeyComponent.pumpRafId = null;
     }
+    this.removeWindowResizeListener?.();
+    this.removeWindowResizeListener = null;
     // Clean up tooltip when component is destroyed
     d3.select('body').select(`#${this.tooltipId}`).remove();
   }
