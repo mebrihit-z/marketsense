@@ -15,6 +15,7 @@ import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util'
 import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
 import {
+  FLOW_CHART_LARGE_VIEWPORT_MIN_WIDTH_PX,
   FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX,
   FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX,
 } from '../../../utils/flow-chart-min-width.constants';
@@ -89,6 +90,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   private originalData?: SankeyDataLocal;
   private rawAssetFlowsData?: AssetFlowRecord[];
   private resizeObserver?: ResizeObserver;
+  /** Last known “large viewport” typo tier; used to redraw when crossing {@link FLOW_CHART_LARGE_VIEWPORT_MIN_WIDTH_PX}. */
+  private lastTreemapLargeFontViewport?: boolean;
 
   private static bodyTooltipIdSeq = 0;
   /** One portal tooltip per instance so multiple treemaps on the page do not clash. */
@@ -103,6 +106,19 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
     const w = Math.max(this.treemapLayoutWidthPx, floorPx);
     return `max(100%, ${w}px)`;
+  }
+
+  private treemapViewportLargeFonts(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      window.innerWidth >= FLOW_CHART_LARGE_VIEWPORT_MIN_WIDTH_PX
+    );
+  }
+
+  /** +2px on wide viewports — same step as Sankey SVG labels under `@media (min-width: 1921px)`. */
+  private treemapBumpLabelPx(px: number): number {
+    if (!this.treemapViewportLargeFonts()) return px;
+    return px + 2;
   }
 
   constructor(
@@ -125,6 +141,19 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
   @HostListener('window:blur')
   onWindowBlur(): void {
     this.hideTreemapTooltipAndHighlights();
+  }
+
+  @HostListener('window:resize')
+  onTreemapViewportResize(): void {
+    const now = this.treemapViewportLargeFonts();
+    if (this.lastTreemapLargeFontViewport === undefined) return;
+    if (now === this.lastTreemapLargeFontViewport) return;
+    this.lastTreemapLargeFontViewport = now;
+    const container = this.el?.nativeElement?.querySelector('.chart-container') as HTMLElement | null;
+    if (container && this.loadedData?.nodes?.length) {
+      container.innerHTML = '';
+      this.createTreemap();
+    }
   }
 
   private removeBodyTooltipIfPresent(): void {
@@ -608,15 +637,16 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         .join('');
     }
 
+    const detailFsPx = this.treemapViewportLargeFonts() ? 15 : 13;
     const sampleLine =
       sampleSize != null && sampleSize > 0
-        ? `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: <strong>${this.escapeHtml(sampleSize.toLocaleString('en-US'))}</strong></div>`
+        ? `<div style="margin-top: 4px; font-size: ${detailFsPx}px; opacity: 0.9;">Sample Size: <strong>${this.escapeHtml(sampleSize.toLocaleString('en-US'))}</strong></div>`
         : '';
 
     return `
       <div style="word-break:break-word;">${headerInner}</div>
       <div style="margin-top: 4px;">Value: <strong>${this.escapeHtml(value)}</strong></div>
-      <div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: <strong>${this.escapeHtml(timeHorizonDisplay)}</strong></div>
+      <div style="margin-top: 4px; font-size: ${detailFsPx}px; opacity: 0.9;">Time: <strong>${this.escapeHtml(timeHorizonDisplay)}</strong></div>
       ${sampleLine}
     `;
   }
@@ -1030,6 +1060,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
     const container = this.el.nativeElement.querySelector('.chart-container') as HTMLElement;
     if (!container) {
       console.error('ReallocationTreemap: Chart container not found');
+      this.lastTreemapLargeFontViewport = this.treemapViewportLargeFonts();
       return;
     }
 
@@ -1053,6 +1084,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.treemapLayoutWidthPx = this.sankeyHasLeafDimension
         ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
         : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
+      this.lastTreemapLargeFontViewport = this.treemapViewportLargeFonts();
       return;
     }
 
@@ -1148,7 +1180,7 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
       .style('color', tooltipText)
       .style('border', `1px solid ${tooltipBorder}`)
       .style('padding', '10px 14px')
-      .style('font-size', '14px')
+      .style('font-size', this.treemapViewportLargeFonts() ? '16px' : '14px')
       .style('line-height', '1.45')
       .style('font-family', `'Noto Sans', sans-serif`)
       .style('font-weight', '400')
@@ -1548,6 +1580,8 @@ export class TreemapComponent implements AfterViewInit, OnDestroy, OnChanges {
         .style('box-shadow', 'none')
         .style('z-index', () => String(1000 + d.depth));
     });
+
+    this.lastTreemapLargeFontViewport = this.treemapViewportLargeFonts();
   }
 }
 
