@@ -124,6 +124,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * flow-based layout. USD stays in labels/tooltips via {@link SankeyLinkExtra#rawValue}.
    */
   @Input() uniformLinkLayout = true;
+  /**
+   * When false, the Outflows/Inflows caption row is omitted (e.g. parent renders one shared row for stacked charts).
+   */
+  @Input() showFlowColumnLabels = true;
+  /**
+   * When true, horizontal scrolling is delegated to an ancestor scroll host (e.g. stacked Asset Flows pane)
+   * so shared Outflows/Inflows captions pan with wide Sankey SVGs together.
+   */
+  @Input() embedInParentHorizontalScroll = false;
 
   /** Layout weight for each leaf/sub link when {@link uniformLinkLayout} applies. */
   private static readonly UNIFORM_LAYOUT_LINK_WEIGHT = 1;
@@ -781,7 +790,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
    * Generate a hash of filter values to detect actual changes
    */
   private getFiltersHash(): string {
-    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.dimension1Id ?? ''}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}-${this.minNodeHeightPx}-${this.linkLayoutVisibilityFloorFraction}-${this.structuralFlowLayoutFloorFraction}-${this.minLinkStrokePx}-${this.sankeyHasLeafDimension ? 1 : 0}`;
+    return `${this.selectedInvestorRegions.join(',')}-${this.selectedProductTypes.join(',')}-${this.selectedProductSubTypes.join(',')}-${this.dimension1Id ?? ''}-${this.minFlowValue ?? 0}-${this.maxFlowValue ?? ''}-${this.minNodeHeightPx}-${this.linkLayoutVisibilityFloorFraction}-${this.structuralFlowLayoutFloorFraction}-${this.minLinkStrokePx}-${this.sankeyHasLeafDimension ? 1 : 0}-${this.showFlowColumnLabels ? 1 : 0}-${this.embedInParentHorizontalScroll ? 1 : 0}`;
   }
 
   ngAfterViewInit(): void {
@@ -937,7 +946,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         changes['minNodeHeightPx'] ||
         changes['minLinkStrokePx'] ||
         changes['sankeyHasLeafDimension'] ||
-        changes['uniformLinkLayout']) {
+        changes['uniformLinkLayout'] ||
+        changes['showFlowColumnLabels'] ||
+        changes['embedInParentHorizontalScroll']) {
       const newFiltersHash = this.getFiltersHash();
       if (newFiltersHash !== this.lastFiltersHash) {
         this.lastFiltersHash = newFiltersHash;
@@ -1147,7 +1158,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         d3.select(element).select('svg').remove();
       }
       d3.select('body').select(`#${this.tooltipId}`).remove();
-      this.sankeyContainerHeightPx = 960;
       this.sankeyLayoutWidthPx = this.sankeyHasLeafDimension
         ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX
         : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
@@ -1365,7 +1375,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     if (prunedLayoutLinkDefs.length === 0) {
       d3.select('body').select(`#${this.tooltipId}`).remove();
-      this.sankeyContainerHeightPx = 960;
       this.cdr.markForCheck();
       return;
     }
@@ -1401,7 +1410,7 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     const minNodePx = Math.max(effectiveMinNodeInput, effectiveMinNodeFloor);
     const padLoBase = denseLeafLayout ? 7 : 6;
     const padLo = dim1ReadabilityBoost ? padLoBase + 1 : padLoBase;
-    const dynamicNodePadding = Math.min(
+    let dynamicNodePadding = Math.min(
       dim1ReadabilityBoost ? 22 : 16,
       Math.max(
         padLo,
@@ -1410,9 +1419,13 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         )
       )
     );
+    /** Busy column has only a few nodes: avoid tall padding that stretches the d3 extent vertically. */
+    if (maxColumnStack <= 4) {
+      dynamicNodePadding = Math.min(dynamicNodePadding, 10);
+    } else if (maxColumnStack <= 8) {
+      dynamicNodePadding = Math.min(dynamicNodePadding, 12);
+    }
 
-    /** Space for outflow/inflow caption row above the scroll host (approx., matches fixed layout). */
-    const SANKEY_FLOW_LABELS_ROW_RESERVE_PX = 54;
     /**
      * Total SVG pixel height scales with stacked row count × min row height × inter-row padding — not a fixed giant band when data is sparse.
      */
@@ -1427,11 +1440,27 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
           ? 3600
           : 3000
       : 2400;
-    const SANKEY_SVG_TOTAL_HEIGHT_HARD_MIN_PX = 380;
+    /** Few stacked rows: allow a short SVG instead of enforcing a tall canvas + empty band. */
+    let SANKEY_SVG_TOTAL_HEIGHT_HARD_MIN_PX = 380;
     /** Breathable inner band for drawable flow (extent vertical span). */
-    const SANKEY_DRAW_INNER_FLOOR_PX = dim1ReadabilityBoost ? 340 : 300;
+    let SANKEY_DRAW_INNER_FLOOR_PX = dim1ReadabilityBoost ? 340 : 300;
     /** Modest slack for multi-row labels / pooled super-terminal packing. */
-    const SANKEY_INNER_VERTICAL_SLACK_PX = dim1ReadabilityBoost ? 72 : 48;
+    let SANKEY_INNER_VERTICAL_SLACK_PX = dim1ReadabilityBoost ? 72 : 48;
+    if (maxColumnStack <= 4) {
+      SANKEY_DRAW_INNER_FLOOR_PX = Math.min(SANKEY_DRAW_INNER_FLOOR_PX, 118);
+      SANKEY_INNER_VERTICAL_SLACK_PX = Math.min(
+        SANKEY_INNER_VERTICAL_SLACK_PX,
+        16 + maxColumnStack * 7
+      );
+      SANKEY_SVG_TOTAL_HEIGHT_HARD_MIN_PX = 200;
+    } else if (maxColumnStack <= 8) {
+      SANKEY_DRAW_INNER_FLOOR_PX = Math.min(SANKEY_DRAW_INNER_FLOOR_PX, 210);
+      SANKEY_INNER_VERTICAL_SLACK_PX = Math.min(
+        SANKEY_INNER_VERTICAL_SLACK_PX,
+        28 + Math.floor(maxColumnStack * 3.25)
+      );
+      SANKEY_SVG_TOTAL_HEIGHT_HARD_MIN_PX = 292;
+    }
     /** Light extra slack when several Super hubs add label-crossing churn (capped). */
     const superStartCountPruned = prunedNodes.filter(n => n.name.includes('(Super Start)')).length;
     const superEndCountPruned = prunedNodes.filter(n => n.name.includes('(Super End)')).length;
@@ -1449,13 +1478,18 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     /** Many ribbons need a bit more vertical spread than node count alone; keep capped so sparse charts stay short. */
     const linkRowCount = prunedLayoutLinkDefs.length;
-    const linkDensitySlackPx = Math.min(
+    let linkDensitySlackPx = Math.min(
       dim1ReadabilityBoost ? 128 : 96,
       Math.floor(
         Math.pow(Math.max(1, Math.log(linkRowCount + 1)), 2) *
           (dim1ReadabilityBoost ? 2.75 : 2.25)
       )
     );
+    if (maxColumnStack <= 4) {
+      linkDensitySlackPx = Math.min(linkDensitySlackPx, 6 + linkRowCount * 2);
+    } else if (maxColumnStack <= 8) {
+      linkDensitySlackPx = Math.min(linkDensitySlackPx, 16 + linkRowCount * 2);
+    }
     drawInnerPx += linkDensitySlackPx;
 
     // Minimal horizontal inset; labels use overflow visible on SVG (tight = more flow width)
@@ -1467,9 +1501,19 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       6 + chartHorizontalSlackPx + (maxColumnStack > 14 ? 8 : 4);
     const rightMargin =
       6 + chartHorizontalSlackPx + (maxColumnStack > 14 ? 8 : 4);
-    const topMargin = 12;
+    const topMargin =
+      maxColumnStack <= 4 ? 10 : maxColumnStack <= 8 ? 11 : 12;
     /** Extra room below the flow so packed node labels are not clipped by the SVG. */
-    const bottomMargin = dim1ReadabilityBoost && maxColumnStack > 16 ? 84 : 64;
+    let bottomMargin = dim1ReadabilityBoost && maxColumnStack > 16 ? 84 : 64;
+    /** Stacked Asset Flows (shared column labels): trim SVG bottom band so diagrams sit closer vertically. */
+    if (!this.showFlowColumnLabels) {
+      bottomMargin = dim1ReadabilityBoost && maxColumnStack > 16 ? 54 : 40;
+    }
+    if (maxColumnStack <= 4) {
+      bottomMargin = Math.min(bottomMargin, this.showFlowColumnLabels ? 40 : 28);
+    } else if (maxColumnStack <= 8) {
+      bottomMargin = Math.min(bottomMargin, this.showFlowColumnLabels ? 48 : 34);
+    }
 
     let layoutInnerHeightPx = Math.min(
       SANKEY_SVG_TOTAL_HEIGHT_HARD_MAX_PX,
@@ -1486,8 +1530,6 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     }
 
     const height = layoutInnerHeightPx;
-    /** Total chrome = SVG height plus outflows/inflows row; floor keeps tiny datasets from collapsing awkwardly. */
-    this.sankeyContainerHeightPx = Math.max(430, height + SANKEY_FLOW_LABELS_ROW_RESERVE_PX);
 
     // Leave `nodeSort` unset so d3-sankey can sort columns by breadth after relaxation — custom
     // name-based sorts blocked that and caused crossing, vertically inconsistent links (spaghetti paths).

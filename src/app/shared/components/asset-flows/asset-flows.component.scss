@@ -311,11 +311,67 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 48px;
+  gap: 0;
   height: auto;
   width: 100%;
   overflow-x: hidden;
   overflow-y: visible;
+}
+
+/** Wrapper for stacked Sankeys: one horizontal scrollbar for Outflows/Inflows + every chart pane. */
+.asset-flows-sankey-visual {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.asset-flows-sankey-visual--stacked-hscroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0 0 8px;
+  box-sizing: border-box;
+}
+
+.asset-flows-sankey-visual-pane {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.sankey-charts-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+// Single Outflows/Inflows row for stacked Sankeys (matches app-sankey .sankey-flow-labels)
+.asset-flows-sankey-flow-labels {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 6px;
+  margin-bottom: 2px;
+  width: 100%;
+  box-sizing: border-box;
+
+  .sankey-label-outflows {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    color: #dc2626;
+    margin-left: 200px;
+  }
+
+  .sankey-label-inflows {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    color: #059669;
+    margin-right: 200px;
+  }
 }
 
 // Sankey region title (Global, United Kingdom, United States) - explicit styles so text shows on VDI
@@ -329,6 +385,16 @@
   box-sizing: border-box;
   @media (max-width: 768px) {
     padding: 0;
+  }
+
+  /** Minimal vertical rhythm when multiple Dimension‑1 Sankeys are stacked */
+  &--stacked {
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    @media (max-width: 768px) {
+      padding: 0;
+    }
   }
 }
 

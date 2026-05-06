@@ -13,8 +13,9 @@ import {
   type AssetFlowDimensionField,
   type SankeyDimensionConfig,
 } from '../../utils/asset-flows-to-sankey.util';
-import { 
-  filterSankeyData 
+import {
+  filterSankeyData,
+  extractProductSubTypes,
 } from '../../utils/sankey-data.utils';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
 import { AssetFlowHistoricAnchorService } from '../../../core/services/asset-flow-historic-anchor.service';
@@ -28,6 +29,10 @@ import {
   downloadDataUrlAsPng,
   saveChartAsMultiPagePdf,
 } from '../../utils/chart-dom-export.util';
+import {
+  FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX,
+  FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX,
+} from '../../utils/flow-chart-min-width.constants';
 
 export type { FlowDimension };
 
@@ -143,6 +148,16 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
 
   @ViewChild('chartExportRoot', { read: ElementRef }) chartExportRoot?: ElementRef<HTMLElement>;
 
+  /**
+   * Wide pane min-width when several Sankeys share one horizontal scroll host (Outflows/Inflows + charts).
+   * Matches {@link FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX} / {@link FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX} with Sankey.
+   */
+  get stackedSankeysSharedPaneMinWidthCss(): string {
+    const leaf = (this.selectedDimension3?.id ?? 'none') !== 'none';
+    const floorPx = leaf ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
+    return `max(100%, ${floorPx}px)`;
+  }
+
   // Available dimensions for Dimension 1, 2, and 3 dropdowns (includes Product Region for Dimension 1)
   availableDimensions: FlowDimension[] = [
     { id: 'investor-region', label: 'Investor Region', count: 0, active: true },
@@ -251,7 +266,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   /**
    * Filters asset flows data based on time horizon and converts to Sankey format
    * Builds Sankey data map (aggregated when no super values, or per selected values).
-   * Creates one combined Sankey for all other selected regions
+   * With multiple explicit Dimension 1 filter selections, builds one Sankey per value;
+   * otherwise one combined Sankey (including the fallback that shows all supers in data when none selected).
    * Uses Dimension 2 and 3 to control which fields are used for parent and leaf nodes.
    */
   private updateSankeyData(): void {
@@ -262,7 +278,8 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     const { values: superValues } = this.getSuperDimensionValues();
-    const dim1Id = this.selectedDimension1?.id || 'investor-region';
+    /** True when the user multi-selected Dimension 1 in the filter bar (not the "show all" fallback). */
+    const splitSankeyPerDim1Value = superValues.length > 1;
     let individualValues = superValues;
 
     // Filter data by time horizon, Historic vs Forecast (aligns with filters bar), then filter bar selections.
@@ -312,15 +329,33 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
 
     // Require at least one super-dimension value; if none selected, don't render a global aggregate
     if (individualValues.length > 0) {
-      const combinedSankeyData: SankeyData = filterSankeyData(
-        allRegionsSankeyData,
-        individualValues, // Filter by super dimension values (e.g. regions, product types)
-        [], // No product type filter (parent level)
-        []  // No product sub-type filter (leaf level)
-      );
-      const displayKey = individualValues.join(', ');
-      this.sankeyDataMap.set(displayKey, combinedSankeyData);
-      this.sankeySuperValuesMap.set(displayKey, individualValues);
+      if (splitSankeyPerDim1Value && individualValues.length > 1) {
+        for (const val of individualValues) {
+          const oneSankey = filterSankeyData(
+            allRegionsSankeyData,
+            [val],
+            [],
+            []
+          );
+          const nodesLen = oneSankey.nodes?.length ?? 0;
+          const linksLen = oneSankey.links?.length ?? 0;
+          if (nodesLen === 0 || linksLen === 0) {
+            continue;
+          }
+          this.sankeyDataMap.set(val, oneSankey);
+          this.sankeySuperValuesMap.set(val, [val]);
+        }
+      } else {
+        const combinedSankeyData: SankeyData = filterSankeyData(
+          allRegionsSankeyData,
+          individualValues,
+          [],
+          []
+        );
+        const displayKey = individualValues.join(', ');
+        this.sankeyDataMap.set(displayKey, combinedSankeyData);
+        this.sankeySuperValuesMap.set(displayKey, individualValues);
+      }
     }
     // Update cached array for template (only when map actually changes)
     this.updateSelectedRegionsArray();
@@ -341,32 +376,72 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   }
   
   /**
+   * Ranks a Sankey dataset for stacking order: more leaf / sub-type nodes first.
+   */
+  private sankeySubNodeRichnessMetric(data: SankeyData): number {
+    const uniqueSubs = extractProductSubTypes(data).length;
+    if (uniqueSubs > 0) {
+      return uniqueSubs;
+    }
+    const nodes = data.nodes ?? [];
+    const leafTierNodes = nodes.filter(
+      n =>
+        n.name.includes('(Source)') ||
+        n.name.includes('(Destination)')
+    ).length;
+    if (leafTierNodes > 0) {
+      return leafTierNodes;
+    }
+    return nodes.length;
+  }
+
+  /**
    * Update the cached selected regions array and region data array (called only when sankeyDataMap changes)
    * This prevents change detection loops from calling methods in template
    */
   private updateSelectedRegionsArray(): void {
     const keys: string[] = Array.from(this.sankeyDataMap.keys());
-    this.selectedRegionsArray = keys;
-    
+
     // Build cached region data array. Pass super dimension values (not just investor regions) so the Sankey
     // filters correctly for any Dimension 1 (investor region, product type, etc.).
-    this.regionDataArray = keys.map(key => {
-      const data = this.sankeyDataMap.get(key);
-      if (!data) {
-        return null;
-      }
-      const superValues = this.sankeySuperValuesMap.get(key) ?? [];
-      return {
-        key,
-        data,
-        investorRegions: superValues
-      };
-    }).filter(item => item !== null) as Array<{
+    let rows = keys
+      .map(key => {
+        const data = this.sankeyDataMap.get(key);
+        if (!data) {
+          return null;
+        }
+        const superValues = this.sankeySuperValuesMap.get(key) ?? [];
+        return {
+          key,
+          data,
+          investorRegions: superValues,
+        };
+      })
+      .filter(item => item !== null) as Array<{
       key: string;
       data: SankeyData;
       investorRegions: string[];
     }>;
-    
+
+    if (rows.length > 1) {
+      rows = [...rows].sort((a, b) => {
+        const bySub =
+          this.sankeySubNodeRichnessMetric(b.data) -
+          this.sankeySubNodeRichnessMetric(a.data);
+        if (bySub !== 0) {
+          return bySub;
+        }
+        const byNodes = (b.data.nodes?.length ?? 0) - (a.data.nodes?.length ?? 0);
+        if (byNodes !== 0) {
+          return byNodes;
+        }
+        return a.key.localeCompare(b.key);
+      });
+    }
+
+    this.regionDataArray = rows;
+    this.selectedRegionsArray = rows.map(r => r.key);
+
     // Cache product type arrays to avoid creating new arrays in template.
     // When Dimension 2/3 are changed away from Product Type / Product Sub-Types,
     // disable product-type-based filtering inside the Sankey component to avoid

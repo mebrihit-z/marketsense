@@ -1,9 +1,11 @@
-<div class="sankey-container" [style.height.px]="sankeyContainerHeightPx">
-  <div class="sankey-chart-scroll">
+<div class="sankey-container">
+  <div
+    class="sankey-chart-scroll"
+    [class.sankey-chart-scroll--embed-in-parent]="embedInParentHorizontalScroll">
     <div
       class="sankey-scroll-pane"
       [style.min-width]="sankeyScrollHostMinWidthCss">
-      <div class="sankey-flow-labels">
+      <div *ngIf="showFlowColumnLabels" class="sankey-flow-labels">
         <span class="sankey-label-outflows">Outflows</span>
         <span class="sankey-label-inflows">Inflows</span>
       </div>

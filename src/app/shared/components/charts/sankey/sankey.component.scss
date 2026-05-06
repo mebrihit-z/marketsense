@@ -29,16 +29,26 @@
 .sankey-container {
   position: relative;
   width: 100%;
-  min-height: 380px;
-  /* height: set inline from data-driven svg height (+ flow-label row reserve) */
+  min-height: 200px;
+  height: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* Stacked Asset Flows Sankeys: drop default min-height so blocks hug their SVG (no huge white gap). */
+:host-context(.sankey-region-container--stacked) .sankey-container {
+  min-height: 0;
+}
+
+/* Tighter footprint when stacked above another Sankey (parent adds `.sankey-region-container--stacked`). */
+:host-context(.sankey-region-container--stacked) .sankey-chart-scroll {
+  padding-bottom: 2px;
 }
 
 // Scroll wrapper: overflow-x only when content is deliberately wider than the host
 // Horizontal padding so stroke/hover at the right edge is not clipped by the scrollport
 .sankey-chart-scroll {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
   width: 100%;
   padding: 0 0 8px;
@@ -46,6 +56,11 @@
   overflow-x: auto;
   /* Let node labels paint slightly below the chart band without clipping */
   overflow-y: visible;
+}
+
+/** After base `.sankey-chart-scroll` so `overflow-x: visible` wins (stacked Asset Flows parent scroll host). */
+.sankey-chart-scroll.sankey-chart-scroll--embed-in-parent {
+  overflow-x: visible;
 }
 
 .sankey-scroll-pane {
@@ -61,8 +76,8 @@
   box-sizing: border-box;
   width: 100%;
   max-width: none;
-  height: 100%;
-  min-height: 320px;
+  height: auto;
+  min-height: 0;
 }
 
 // Outflows / Inflows labels above the chart (outside SVG)
@@ -98,7 +113,7 @@
 .sankey-container .regional-sankey ::ng-deep .sankey-svg {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 
 // Interactive elements (nodes and links)
@@ -330,13 +345,13 @@
 .regional-sankey {
   box-sizing: border-box;
   width: 100%;
-  height: 100%;
+  height: auto;
   position: relative;
   overflow: visible;
 
   svg {
     width: 100%;
-    height: 100%;
+    height: auto;
     display: block;
     /* Allow node/link hover stroke and labels to paint to the right of the last column */
     overflow: visible;

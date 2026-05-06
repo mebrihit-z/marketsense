@@ -42,25 +42,47 @@
   </div>
   <!-- Regional Sankey Diagram Visualization -->
   <div class="visualization-container" #chartExportRoot>
-    <div *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey" class="sankey-region-container">
-      <app-sankey
-        *ngIf="regionData.investorRegions.length"
-        [data]="regionData.data"
-        [regionKey]="regionData.key"
-        [selectedInvestorRegions]="regionData.investorRegions"
-        [selectedProductTypes]="cachedSelectedProductTypes"
-        [selectedProductSubTypes]="cachedSelectedProductSubTypes"
-        [minFlowValue]="minFlowValue"
-        [maxFlowValue]="maxFlowValue"
-        [dimension1Label]="selectedDimension1?.label"
-        [dimension1Id]="selectedDimension1?.id"
-        [dimension2Label]="selectedDimension2?.label"
-        [dimension3Label]="(selectedDimension3?.id ?? 'none') !== 'none' ? selectedDimension3?.label : undefined"
-        [timeHorizon]="timeHorizon"
-        [timeHorizonStart]="timeHorizonStart"
-        [timeHorizonEnd]="timeHorizonEnd"
-        [sankeyHasLeafDimension]="(selectedDimension3?.id ?? 'none') !== 'none'">
-      </app-sankey>
+    <div
+      class="asset-flows-sankey-visual"
+      [class.asset-flows-sankey-visual--stacked-hscroll]="regionDataArray.length > 1">
+      <div
+        class="asset-flows-sankey-visual-pane"
+        [style.min-width]="regionDataArray.length > 1 ? stackedSankeysSharedPaneMinWidthCss : null">
+        <div
+          *ngIf="regionDataArray.length > 1"
+          class="asset-flows-sankey-flow-labels"
+          aria-hidden="true">
+          <span class="sankey-label-outflows">Outflows</span>
+          <span class="sankey-label-inflows">Inflows</span>
+        </div>
+        <div class="sankey-charts-stack">
+          <div
+            *ngFor="let regionData of regionDataArray; let isLast = last; trackBy: trackByRegionKey"
+            class="sankey-region-container"
+            [class.sankey-region-container--stacked]="regionDataArray.length > 1">
+            <app-sankey
+              *ngIf="regionData.investorRegions.length"
+              [showFlowColumnLabels]="regionDataArray.length <= 1"
+              [embedInParentHorizontalScroll]="regionDataArray.length > 1"
+              [data]="regionData.data"
+              [regionKey]="regionData.key"
+              [selectedInvestorRegions]="regionData.investorRegions"
+              [selectedProductTypes]="cachedSelectedProductTypes"
+              [selectedProductSubTypes]="cachedSelectedProductSubTypes"
+              [minFlowValue]="minFlowValue"
+              [maxFlowValue]="maxFlowValue"
+              [dimension1Label]="selectedDimension1?.label"
+              [dimension1Id]="selectedDimension1?.id"
+              [dimension2Label]="selectedDimension2?.label"
+              [dimension3Label]="(selectedDimension3?.id ?? 'none') !== 'none' ? selectedDimension3?.label : undefined"
+              [timeHorizon]="timeHorizon"
+              [timeHorizonStart]="timeHorizonStart"
+              [timeHorizonEnd]="timeHorizonEnd"
+              [sankeyHasLeafDimension]="(selectedDimension3?.id ?? 'none') !== 'none'">
+            </app-sankey>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
