@@ -23,6 +23,7 @@ import type { SavedChartHierarchyDimensions } from '../../../core/services/saved
 import { extractFilterOptionsFromAssetFlows, type FilterOptions } from '../../utils/asset-flows-filter-options.util';
 import { assetFlowQuarterInTimeWindow } from '../../utils/asset-flow-time-window.util';
 import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
+import { InformationAndDisclosureComponent } from '../information-and-disclosure/information-and-disclosure.component';
 import { jsPDF } from 'jspdf';
 import {
   captureChartAreaToPng,
@@ -66,6 +67,7 @@ export interface AssetFlowData {
     TitleComponent,
     FlowDimensionsComponent,
     ChartsExportModalComponent,
+    InformationAndDisclosureComponent,
   ],
   templateUrl: './asset-flows.component.html',
   styleUrl: './asset-flows.component.scss'
@@ -145,6 +147,7 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
   // Filter options extracted from data
   filterOptions: FilterOptions | undefined;
   showExportModal: boolean = false;
+  isInformationDisclosureOpen = false;
 
   @ViewChild('chartExportRoot', { read: ElementRef }) chartExportRoot?: ElementRef<HTMLElement>;
 
@@ -794,6 +797,15 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
 
   onCloseExportModal(): void {
     this.showExportModal = false;
+  }
+
+  openInformationDisclosureModal(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isInformationDisclosureOpen = true;
+  }
+
+  closeInformationDisclosureModal(): void {
+    this.isInformationDisclosureOpen = false;
   }
 
   async onExportPNG(): Promise<void> {

@@ -5,7 +5,20 @@
       <!-- Left: Title and Button -->
       <div class="title-container">
         <div class="title-row">
-          <app-title title="Asset Flows" subtitle="Aggregated asset flows across selected categories" level="h2"></app-title>
+          <div class="title-container-inner">
+            <div class="title-container-inner-left">
+              <h2>Asset Flows</h2>
+              <button
+                type="button"
+                class="asset-flows-info-btn"
+                aria-haspopup="dialog"
+                aria-label="Asset Flows: information and disclosures"
+                (click)="openInformationDisclosureModal($event)">
+                <img src="assets/icons/info-icon.svg" alt="" width="22" height="22" aria-hidden="true" class="asset-flows-info-btn__icon" />
+              </button>
+            </div>
+            <p class="title-container-inner-left-subtitle">Aggregated asset flows across selected categories</p>
+          </div>
         </div>
       </div>
 
@@ -86,6 +99,12 @@
     </div>
   </div>
 </div>
+
+<app-information-and-disclosure
+  [variant]="'asset-flows'"
+  [isVisible]="isInformationDisclosureOpen"
+  (close)="closeInformationDisclosureModal()">
+</app-information-and-disclosure>
 
 <app-charts-export-modal
   [isVisible]="showExportModal"

@@ -3,6 +3,15 @@
   <div class="header-container">
     <div class="title-section">
       <app-title [title]="headerTitle" level="h2"></app-title>
+      <button
+        type="button"
+        class="market-flows-info-btn"
+        data-market-flow-action
+        aria-haspopup="dialog"
+        aria-label="Market Flows: information and disclosures"
+        (click)="openInformationDisclosureModal($event)">
+        <img src="assets/icons/info-icon.svg" alt="" width="22" height="22" aria-hidden="true" class="market-flows-info-btn__icon" />
+      </button>
     </div>
     <div class="sort-section">
       <span class="sort-label">Sort by:</span>
@@ -175,6 +184,11 @@
     (exportPNG)="onExportPNG()"
     (exportPDF)="onExportPDF()">
   </app-export-modal>
+
+  <app-information-and-disclosure
+    [isVisible]="isInformationDisclosureModalOpen"
+    (close)="closeInformationDisclosureModal()">
+  </app-information-and-disclosure>
 
 </div>
 

@@ -5,7 +5,20 @@
       <!-- Left: Title and Button -->
       <div class="title-container">
         <div class="title-row">
-          <app-title title="Cash Flow by Asset Allocation" subtitle="Three-level drill-down view across selected categories" level="h2"></app-title>
+          <div class="title-container-inner">
+            <div class="title-container-inner-left">
+              <h2>Cash Flow by Asset Allocation</h2>
+              <button
+                type="button"
+                class="asset-allocation-info-btn"
+                aria-haspopup="dialog"
+                aria-label="Cash Flow by Asset Allocation: information and disclosures"
+                (click)="openInformationDisclosureModal($event)">
+                <img src="assets/icons/info-icon.svg" alt="" width="22" height="22" aria-hidden="true" class="asset-allocation-info-btn__icon" />
+              </button>
+            </div>
+            <p class="title-container-inner-left-subtitle">Three-level drill-down view across selected categories</p>
+          </div>
         </div>
       </div>
 
@@ -69,6 +82,12 @@
   (close)="onCloseModal()"
   (askAI)="onAskAI()">
 </app-treemap-cell-modal>
+
+<app-information-and-disclosure
+  [variant]="'asset-allocation'"
+  [isVisible]="isInformationDisclosureOpen"
+  (close)="closeInformationDisclosureModal()">
+</app-information-and-disclosure>
 
 <app-charts-export-modal
   [isVisible]="showExportModal"

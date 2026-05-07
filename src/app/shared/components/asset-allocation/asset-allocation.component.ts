@@ -19,6 +19,7 @@ import { AssetFlowHistoricAnchorService } from '../../../core/services/asset-flo
 import type { SavedChartHierarchyDimensions } from '../../../core/services/saved-views.service';
 import { filterSankeyData } from '../../utils/sankey-data.utils';
 import { ChartsExportModalComponent } from '../charts-export-modal/charts-export-modal.component';
+import { InformationAndDisclosureComponent } from '../information-and-disclosure/information-and-disclosure.component';
 import { jsPDF } from 'jspdf';
 import {
   captureChartAreaToPng,
@@ -60,6 +61,7 @@ export interface TreemapRegion {
     TitleComponent,
     FlowDimensionsComponent,
     ChartsExportModalComponent,
+    InformationAndDisclosureComponent,
   ],
   templateUrl: './asset-allocation.component.html',
   styleUrl: './asset-allocation.component.scss'
@@ -117,6 +119,7 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   showCellModal: boolean = false;
   selectedCellData: TreemapCellData | null = null;
   showExportModal: boolean = false;
+  isInformationDisclosureOpen = false;
 
   @ViewChild('chartExportRoot', { read: ElementRef }) chartExportRoot?: ElementRef<HTMLElement>;
   
@@ -453,6 +456,15 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
 
   onCloseExportModal(): void {
     this.showExportModal = false;
+  }
+
+  openInformationDisclosureModal(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isInformationDisclosureOpen = true;
+  }
+
+  closeInformationDisclosureModal(): void {
+    this.isInformationDisclosureOpen = false;
   }
 
   async onExportPNG(): Promise<void> {

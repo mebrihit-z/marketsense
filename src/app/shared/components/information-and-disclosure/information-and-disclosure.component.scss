@@ -1,0 +1,267 @@
+@use '../../../../_variables' as *;
+
+/** Aligned with {@link disclosure-modal.component.scss} — shared modal shell, body, section grid, footer, and responsive rules. */
+
+.iad-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100005;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.iad-dialog {
+  width: min(860px, 100%);
+  max-height: min(92vh, 780px);
+  background: #f3f3f3;
+  border: 1px solid rgba(196, 198, 207, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.iad-header {
+  background: $bg-midnight-blue;
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  flex-shrink: 0;
+}
+
+.iad-header__lead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.iad-header__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: rgba(255, 186, 32, 0.2);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.iad-header__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: $white;
+  @media (min-width: 1921px) {
+    font-size: 22px;
+  }
+}
+
+.iad-header__close {
+  border: 0;
+  background: transparent;
+  color: #f3f5fb;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 30px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 34px;
+  }
+}
+
+.iad-body {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: $bg-white;
+}
+
+.iad-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  flex-shrink: 0;
+  padding: 0 20px;
+  background: $bg-white;
+  border-bottom: 1px solid rgba(196, 198, 207, 0.15);
+  // Ensure the tab row doesn't add extra "block" height vs disclosure.
+  min-height: 36px;
+}
+
+.iad-tab {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-secondary;
+  padding: 8px 10px 0;
+  margin: 0;
+  position: relative;
+  white-space: nowrap;
+
+  &::after {
+    content: '';
+    display: block;
+    height: 2px;
+    margin-top: 8px;
+    border-radius: 9999px;
+    background: transparent;
+    width: 100%;
+  }
+
+  // Avoid the "boxed tab" look; match disclosure (flat chrome).
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  box-shadow: none;
+
+  &:focus-visible {
+    outline: 2px solid $secondary-colors-blue-750;
+    outline-offset: -2px;
+  }
+}
+
+.iad-tab--active {
+  color: #0a0a0a;
+
+  &::after {
+    background: #155dfc;
+  }
+}
+
+.iad-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px 20px;
+}
+
+.iad-section {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.iad-section__icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0059bb;
+  background: #f2f4f7;
+  font-size: 16px;
+  grid-column: 1;
+}
+
+.iad-section__icon--bare {
+  background: transparent;
+}
+
+.iad-section__copy {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.iad-section__title {
+  margin: 0 0 6px;
+  color: $text-midnight-blue;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+  @media (min-width: 1921px) {
+    font-size: 20px;
+  }
+}
+
+.iad-section__text {
+  margin: 0;
+  color: #44474e;
+  font-size: 14px;
+  line-height: 1.55;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
+}
+.iad-footer {
+  padding: 24px;
+  border-top: 1px solid #d5dbe7;
+  background: $neutral-colors-neutral-250;
+  border-top: 1px solid rgba(196, 198, 207, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.iad-footer__meta {
+  margin: 0;
+  color: #44474e;
+  font-size: 14px;
+  line-height: 16px;
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .iad-dialog {
+    max-height: 96vh;
+  }
+
+  .iad-header__title {
+    font-size: 18px;
+  }
+
+  .iad-section__title {
+    font-size: 16px;
+  }
+
+  .iad-section__text {
+    font-size: 14px;
+  }
+
+  .iad-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .iad-panels {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .iad-tabs {
+    padding: 0 16px;
+    overflow-x: auto;
+  }
+
+  .iad-section {
+    gap: 20px;
+  }
+}

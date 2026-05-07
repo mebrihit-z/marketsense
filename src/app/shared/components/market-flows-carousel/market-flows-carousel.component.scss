@@ -54,7 +54,20 @@
 .title-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+}
+
+.market-flows-info-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: unset;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
 
 .title {
