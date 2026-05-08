@@ -516,7 +516,7 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       });
 
     const cardsInValueRange = cards.filter(c => {
-      const sampleOk = (c.nClientsTotal ?? 0) >= 3;
+      const sampleOk = (c.nClientsTotal ?? 0) > 3;
       if (!sampleOk) return false;
       return this.absoluteUsdPassesChartValueRange(Math.abs(c.netFlowUsd ?? 0));
     });
