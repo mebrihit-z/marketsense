@@ -122,6 +122,7 @@
 
   <app-disclosure-modal
     [isVisible]="isDisclosureModalOpen"
+    [showAcknowledgeButton]="showDisclosureAcknowledgeButton"
     (close)="closeDisclosureModal()"
     (acknowledge)="onDisclosureAcknowledged()">
   </app-disclosure-modal>

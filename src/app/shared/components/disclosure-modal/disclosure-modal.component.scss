@@ -11,6 +11,17 @@
   padding: 20px;
 }
 
+/** Required acknowledgment: backdrop does not dismiss; absorb pointer/touch before they reach the app. */
+.disclosure-modal-backdrop--blocking {
+  cursor: default;
+  touch-action: none;
+}
+
+.disclosure-modal-backdrop--blocking .disclosure-modal {
+  touch-action: auto;
+  user-select: text;
+}
+
 .disclosure-modal {
   width: min(860px, 100%);
   max-height: min(92vh, 780px);

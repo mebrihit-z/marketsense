@@ -1,5 +1,15 @@
 /* eslint-disable */
-import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewEncapsulation,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -10,19 +20,63 @@ import { CommonModule } from '@angular/common';
   styleUrl: './disclosure-modal.component.scss',
   encapsulation: ViewEncapsulation.None,
 })
-export default class DisclosureModalComponent implements OnChanges {
+export default class DisclosureModalComponent implements OnChanges, OnDestroy {
   @Input() isVisible = false;
+  /** When false, user has already acknowledged; only review actions (e.g. Print, Close) remain. */
+  @Input() showAcknowledgeButton = true;
   @Output() close = new EventEmitter<void>();
   @Output() acknowledge = new EventEmitter<void>();
 
+  /** Capture-phase guard so clicks / taps do not reach the page behind the overlay until acknowledged. */
+  private readonly blockingCaptureHandler = (ev: Event): void => {
+    if (!this.isVisible || !this.showAcknowledgeButton) return;
+    const t = ev.target;
+    const el = t instanceof Element ? t : (t as Node)?.parentElement;
+    if (el?.closest('.disclosure-modal')) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+  };
+
   ngOnChanges(changes: SimpleChanges): void {
-    if (!changes['isVisible']) return;
-    document.body.style.overflow = this.isVisible ? 'hidden' : '';
+    if (changes['isVisible']) {
+      document.body.style.overflow = this.isVisible ? 'hidden' : '';
+    }
+    this.syncBlockingPointerCapture();
+  }
+
+  ngOnDestroy(): void {
+    this.detachBlockingPointerCapture();
+    document.body.style.overflow = '';
+  }
+
+  private syncBlockingPointerCapture(): void {
+    this.detachBlockingPointerCapture();
+    if (typeof document === 'undefined') return;
+    if (!this.isVisible || !this.showAcknowledgeButton) return;
+    document.addEventListener('pointerdown', this.blockingCaptureHandler, true);
+    document.addEventListener('click', this.blockingCaptureHandler, true);
+    document.addEventListener('mousedown', this.blockingCaptureHandler, true);
+    document.addEventListener('touchstart', this.blockingCaptureHandler, true);
+  }
+
+  private detachBlockingPointerCapture(): void {
+    if (typeof document === 'undefined') return;
+    document.removeEventListener('pointerdown', this.blockingCaptureHandler, true);
+    document.removeEventListener('click', this.blockingCaptureHandler, true);
+    document.removeEventListener('mousedown', this.blockingCaptureHandler, true);
+    document.removeEventListener('touchstart', this.blockingCaptureHandler, true);
   }
 
   @HostListener('document:keydown.escape')
   handleEscape(): void {
     if (!this.isVisible) return;
+    if (this.showAcknowledgeButton) return;
+    this.onClose();
+  }
+
+  /** Backdrop closes only when acknowledgment is not required (X is available). */
+  onBackdropClick(): void {
+    if (this.showAcknowledgeButton) return;
     this.onClose();
   }
 

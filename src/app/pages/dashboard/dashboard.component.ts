@@ -2,12 +2,15 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   AfterViewInit,
   ChangeDetectorRef,
   ViewChild,
   ElementRef,
   HostListener,
 } from '@angular/core';
+import { Subscription, merge } from 'rxjs';
+import { distinctUntilChanged, filter, map } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import type { FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
@@ -42,10 +45,13 @@ import {
   parseFlowDisplayValueToDollars,
 } from '../../shared/utils/flow-currency-format.util';
 import { horizonEndpointPercentChangeUsd } from '../../shared/utils/horizon-endpoint-percent-change.util';
-import type {
-  SavedChartHierarchyDimensions,
-  SavedViewChartDimensions,
+import {
+  SavedViewsService,
+  type SavedChartHierarchyDimensions,
+  type SavedViewChartDimensions,
 } from '../../core/services/saved-views.service';
+import UserProfileService from '../../shared/services/user-profile.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -54,10 +60,13 @@ import type {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export default class DashboardComponent implements OnInit, AfterViewInit {
+export default class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   showDisclaimerBanner = true;
   isDisclaimerBannerAtBottom = false;
   isDisclosureModalOpen = false;
+  /** Loaded from user preference; false after the user has acknowledged the disclosure. */
+  showDisclosureAcknowledgeButton = true;
+  private disclosureTriggersSub?: Subscription;
 
   @ViewChild('filtersSticky', { read: ElementRef }) private filtersStickyRef?: ElementRef<HTMLElement>;
   @ViewChild(AssetFlowsComponent) private assetFlowsComp?: AssetFlowsComponent;
@@ -102,15 +111,108 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   constructor(
     private cdr: ChangeDetectorRef,
     private assetFlowsData: AssetFlowsDataService,
-    private historicAnchor: AssetFlowHistoricAnchorService
+    private historicAnchor: AssetFlowHistoricAnchorService,
+    private savedViewsService: SavedViewsService,
+    private userProfileService: UserProfileService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadAssetFlowsData();
+    this.initDisclosurePreference();
+  }
+
+  ngOnDestroy(): void {
+    this.disclosureTriggersSub?.unsubscribe();
+  }
+
+  /**
+   * Preference storage keys by OAuth `sub`, explicit `userId`, or login `currentUser.id`.
+   * `UserProfileService` often has no `sub` until async hydrate — `AuthService` covers login storage.
+   */
+  private resolvedUserId(): string | undefined {
+    const fromService = this.userProfileService.getUserId();
+    if (fromService != null && String(fromService).trim() !== '') {
+      return String(fromService).trim();
+    }
+    const fromProfile = this.userProfileService.getuser()?.sub;
+    if (fromProfile != null && String(fromProfile).trim() !== '') {
+      return String(fromProfile).trim();
+    }
+    const authId = this.authService.getCurrentUser()?.id;
+    if (authId != null && String(authId).trim() !== '') {
+      return String(authId).trim();
+    }
+    return undefined;
+  }
+
+  /**
+   * Opens the disclosure once for users who have not acknowledged (stored in user preference).
+   * Re-checks when profile, `currentUser`, or display name becomes available.
+   */
+  private initDisclosurePreference(): void {
+    const run = (): void => this.applyDisclosurePreference();
+    run();
+    queueMicrotask(run);
+    setTimeout(run, 400);
+
+    this.disclosureTriggersSub = merge(
+      this.userProfileService.user$.pipe(
+        map((user) => this.userProfileService.getUserId() ?? user?.sub ?? null),
+        map((id) => (id != null && String(id).trim() !== '' ? String(id).trim() : null)),
+        distinctUntilChanged()
+      ),
+      this.authService.currentUser$.pipe(
+        map((u) => (u?.id != null && String(u.id).trim() !== '' ? String(u.id).trim() : null)),
+        distinctUntilChanged()
+      )
+    )
+      .pipe(filter((id): id is string => id !== null))
+      .subscribe(() => run());
+  }
+
+  private applyDisclosurePreference(): void {
+    const userId = this.resolvedUserId();
+    const load = (): void => {
+      const userName = this.userProfileService.getGivenName();
+      this.savedViewsService.getUserPreference(userId, userName).subscribe({
+        next: (pref) => {
+          const acknowledged = pref?.disclosureAcknowledged === true;
+          this.showDisclosureAcknowledgeButton = !acknowledged;
+          if (!acknowledged) {
+            this.isDisclosureModalOpen = true;
+          } else {
+            // Returning visit after acknowledge: show consolidated disclaimer at page bottom (not in header).
+            this.relocateDisclaimerBannerToPageEnd();
+          }
+          this.cdr.markForCheck();
+        },
+        error: (e) => {
+          console.error('Failed to load disclosure preference', e);
+          this.showDisclosureAcknowledgeButton = true;
+          this.cdr.markForCheck();
+        },
+      });
+    };
+    load();
+    queueMicrotask(load);
   }
 
   openDisclosureModal(): void {
-    this.isDisclosureModalOpen = true;
+    const userId = this.resolvedUserId();
+    const userName = this.userProfileService.getGivenName();
+    this.savedViewsService.getUserPreference(userId, userName).subscribe({
+      next: (pref) => {
+        const acknowledged = pref?.disclosureAcknowledged === true;
+        this.showDisclosureAcknowledgeButton = !acknowledged;
+        this.isDisclosureModalOpen = true;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isDisclosureModalOpen = true;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   closeDisclosureModal(): void {
@@ -119,6 +221,13 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   onDisclosureAcknowledged(): void {
+    const uid = this.resolvedUserId();
+    this.showDisclosureAcknowledgeButton = false;
+    this.savedViewsService.setDisclosureAcknowledged(uid, this.userProfileService.getGivenName()).subscribe({
+      error: (e) => {
+        console.error('Failed to save disclosure acknowledgment', e);
+      },
+    });
     this.isDisclosureModalOpen = false;
     this.relocateDisclaimerBannerToPageEnd();
   }
@@ -137,6 +246,10 @@ export default class DashboardComponent implements OnInit, AfterViewInit {
       this.computeStickyStartScrollY();
       this.updateFiltersStickyEngaged();
     });
+    // Welcome hydrates `givenName` from preference after view init; re-sync disclosure once.
+    setTimeout(() => {
+      this.applyDisclosurePreference();
+    }, 600);
   }
 
   @HostListener('window:scroll')

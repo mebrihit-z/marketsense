@@ -1,8 +1,14 @@
 <div
   class="disclosure-modal-backdrop"
   *ngIf="isVisible"
-  (click)="onClose()">
-  <div class="disclosure-modal" role="dialog" aria-modal="true" aria-label="Data Methodology and Insights Disclosure" (click)="$event.stopPropagation()">
+  [class.disclosure-modal-backdrop--blocking]="showAcknowledgeButton"
+  (click)="onBackdropClick()">
+  <div
+    class="disclosure-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Data Methodology and Insights Disclosure"
+    (click)="$event.stopPropagation()">
     <div class="disclosure-modal__header">
       <div class="disclosure-modal__title-wrap">
         <div class="disclosure-modal__title-icon" aria-hidden="true">
@@ -12,7 +18,12 @@
         </div>
         <h2 class="disclosure-modal__title">Data Methodology &amp; Insights Disclosure</h2>
       </div>
-      <button type="button" class="disclosure-modal__close" aria-label="Close disclosure" (click)="onClose()">
+      <button
+        *ngIf="!showAcknowledgeButton"
+        type="button"
+        class="disclosure-modal__close"
+        aria-label="Close disclosure"
+        (click)="onClose()">
         &times;
       </button>
     </div>
@@ -79,7 +90,13 @@
       <p class="disclosure-modal__meta">Last updated: Oct 2023 • v4.2.0-STABLE</p>
       <div class="disclosure-modal__actions">
         <button type="button" class="disclosure-modal__btn disclosure-modal__btn--secondary" (click)="onPrint()">Print Disclosure</button>
-        <!-- <button type="button" class="disclosure-modal__btn disclosure-modal__btn--primary" (click)="onAcknowledge()">Acknowledge</button> -->
+        <button
+          *ngIf="showAcknowledgeButton"
+          type="button"
+          class="disclosure-modal__btn disclosure-modal__btn--primary"
+          (click)="onAcknowledge()">
+          Acknowledge
+        </button>
       </div>
     </div>
   </div>

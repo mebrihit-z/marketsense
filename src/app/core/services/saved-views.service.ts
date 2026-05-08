@@ -58,6 +58,8 @@ export interface UserPreference {
   role?: string;
   lastLogin?: string;
   savedViews: SavedView[];
+  /** User has acknowledged the Data Methodology disclosure (persisted with saved views / user preference). */
+  disclosureAcknowledged?: boolean;
 }
 
 export interface UserPreferenceProfile {
@@ -125,6 +127,77 @@ export class SavedViewsService {
     return normalized;
   }
 
+  /**
+   * Backend/local may use camelCase, snake_case, or string booleans for disclosure acknowledgment.
+   */
+  private coerceDisclosureAcknowledged(raw: unknown): boolean {
+    if (raw == null) {
+      return false;
+    }
+    if (typeof raw !== 'object') {
+      const v = raw as unknown;
+      if (v === true) return true;
+      if (v === false) return false;
+      if (typeof v === 'string') {
+        return ['true', '1', 'yes'].includes(v.toLowerCase().trim());
+      }
+      if (typeof v === 'number') return v === 1;
+      return false;
+    }
+    const o = raw as Record<string, unknown>;
+    let v: unknown =
+      o['disclosureAcknowledged'] ?? o['disclosure_acknowledged'] ?? o['DisclosureAcknowledged'];
+    if (v == null) {
+      for (const k of Object.keys(o)) {
+        if (
+          /^disclosure.*acknowledg/i.test(k) ||
+          k.replace(/_/g, '').toLowerCase() === 'disclosureacknowledged'
+        ) {
+          v = o[k];
+          break;
+        }
+      }
+    }
+    if (v === true) return true;
+    if (v === false || v == null) return false;
+    if (typeof v === 'string') {
+      return ['true', '1', 'yes'].includes(v.toLowerCase().trim());
+    }
+    if (typeof v === 'number') return v === 1;
+    return false;
+  }
+
+  private applyDisclosureAcknowledgedNormalization(pref: UserPreference): UserPreference {
+    return {
+      ...pref,
+      disclosureAcknowledged: this.coerceDisclosureAcknowledged(pref),
+    };
+  }
+
+  /** Name-slug bucket (legacy) may hold acknowledgment while OAuth `sub` row does not. */
+  private disclosureAcknowledgedFromNameSlugBucket(
+    store: UserPreferenceStoreV2,
+    primaryUserId: string,
+    userName?: string
+  ): boolean {
+    const name = (userName ?? '').trim();
+    if (!name) return false;
+    const slug = this.slugifyUserName(name);
+    if (!slug || slug === primaryUserId) return false;
+    const alt = store.users.find((u) => u.userId === slug);
+    return this.coerceDisclosureAcknowledged(alt);
+  }
+
+  /** Acknowledgment may have been saved under `anonymous` before OAuth profile was ready. */
+  private disclosureAcknowledgedFromAnonymousWhenLoggedIn(
+    store: UserPreferenceStoreV2,
+    resolvedUserId: string | null
+  ): boolean {
+    if (!resolvedUserId || resolvedUserId === this.anonymousUserId) return false;
+    const anon = store.users.find((u) => u.userId === this.anonymousUserId);
+    return this.coerceDisclosureAcknowledged(anon);
+  }
+
   private normalizeText(value?: string): string | undefined {
     if (value == null) return undefined;
     const normalized = String(value).trim();
@@ -177,6 +250,7 @@ export class SavedViewsService {
       _id: docId,
       userId: String(pref.userId).trim(),
       savedViews: Array.isArray(pref.savedViews) ? pref.savedViews.map((v: SavedView) => this.normalizeSavedView(v)) : [],
+      disclosureAcknowledged: this.coerceDisclosureAcknowledged(pref),
     };
   }
 
@@ -705,37 +779,113 @@ export class SavedViewsService {
     );
   }
 
+  /**
+   * Persists disclosure acknowledgment on the same user-preference document as saved views.
+   * Local/dev: `marketsense.savedViews` store; VDI: `upsert` user-preference.
+   */
+  setDisclosureAcknowledged(userId?: string, userName?: string): Observable<void> {
+    if (this.useLocalStorage) {
+      const store = this.readPreferenceStoreFromLocalStorage();
+      const targetUserId =
+        this.resolveEffectiveUserId(store, userId, userName) ?? this.anonymousUserId;
+      const userPref = this.getOrCreateUserPreference(store, targetUserId);
+      userPref.disclosureAcknowledged = true;
+      this.writePreferenceStoreToLocalStorage(store);
+      return of(void 0);
+    }
+
+    const apiUserId = this.resolveUserId(userId);
+    if (!apiUserId || apiUserId === this.anonymousUserId) {
+      return of(void 0);
+    }
+
+    return this.getUserPreferenceFromBackend(apiUserId).pipe(
+      switchMap((existing) => {
+        const seed = Array.isArray(existing?.savedViews) ? [...existing!.savedViews] : [];
+        const next: UserPreference = {
+          ...(existing ?? {}),
+          userId: apiUserId,
+          userName: this.normalizeText(userName) ?? existing?.userName,
+          role: existing?.role,
+          lastLogin: this.resolveLastLogin(existing?.lastLogin),
+          savedViews: seed.map((v) => this.normalizeSavedView(v)),
+          disclosureAcknowledged: true,
+        };
+        return this.upsertUserPreferenceToBackend(next);
+      }),
+      catchError((err) => {
+        console.error('Failed to persist disclosure acknowledgment', err);
+        return of(void 0);
+      })
+    );
+  }
+
   private userNameForSavedViewHeuristic(view: SavedView): string | undefined {
     const legacy = this.getLegacyOwner(view as any);
     return legacy.userName;
   }
 
-  getUserPreference(userId?: string): Observable<UserPreference | null> {
+  /**
+   * @param userName - Optional; when combined with `userId`, resolves the same preference bucket as
+   *   {@link #setDisclosureAcknowledged} / {@link #saveView} via {@link #resolveEffectiveUserId}.
+   */
+  getUserPreference(userId?: string, userName?: string): Observable<UserPreference | null> {
     if (!this.useLocalStorage) {
       const apiUserId = this.resolveUserId(userId);
       if (!apiUserId || apiUserId === this.anonymousUserId) {
         return of(null);
       }
       return this.getUserPreferenceFromBackend(apiUserId).pipe(
+        map((pref) =>
+          pref ? this.applyDisclosureAcknowledgedNormalization(pref) : null
+        ),
         catchError((err) => {
           console.error('Failed to load user preference from backend', err);
           return of<UserPreference | null>(null);
         })
       );
     }
-    const targetUserId = this.resolveUserId(userId);
-    if (!targetUserId) {
-      return of(null);
+
+    const resolvedId = this.resolveUserId(userId);
+    const trimmedName = (userName ?? '').trim();
+
+    // No OAuth/profile id yet: still read `anonymous` row (same bucket as first-time acknowledge before sub is set).
+    if (!resolvedId && !trimmedName) {
+      const store = this.readPreferenceStoreFromLocalStorage();
+      const anon = store.users.find((u) => u.userId === this.anonymousUserId);
+      if (!anon) {
+        return of({
+          userId: this.anonymousUserId,
+          savedViews: [],
+          disclosureAcknowledged: false,
+        });
+      }
+      const normalized = this.applyDisclosureAcknowledgedNormalization(anon);
+      return of({
+        ...normalized,
+        disclosureAcknowledged: normalized.disclosureAcknowledged === true,
+      });
     }
+
     const store = this.readPreferenceStoreFromLocalStorage();
-    const pref = store.users.find((u) => u.userId === targetUserId) ?? null;
-    if (pref) {
-      return of(pref);
+    const targetUserId =
+      this.resolveEffectiveUserId(store, userId, userName) ?? this.anonymousUserId;
+
+    let pref = store.users.find((u) => u.userId === targetUserId) ?? null;
+    if (!pref) {
+      pref = this.getOrCreateUserPreference(store, targetUserId);
+      this.writePreferenceStoreToLocalStorage(store);
     }
-    // First time we see this user id locally: initialize their preference bucket.
-    const created = this.getOrCreateUserPreference(store, targetUserId);
-    this.writePreferenceStoreToLocalStorage(store);
-    return of(created);
+    const normalized = this.applyDisclosureAcknowledgedNormalization(pref);
+    const mergedAck =
+      normalized.disclosureAcknowledged === true ||
+      this.disclosureAcknowledgedFromNameSlugBucket(store, targetUserId, userName) ||
+      this.disclosureAcknowledgedFromAnonymousWhenLoggedIn(store, resolvedId);
+
+    return of({
+      ...normalized,
+      disclosureAcknowledged: mergedAck,
+    });
   }
 
   private readPreferenceStoreFromLocalStorage(): UserPreferenceStoreV2 {
@@ -763,6 +913,7 @@ export class SavedViewsService {
             role: u.role,
             lastLogin: u.lastLogin,
             savedViews: Array.isArray(u.savedViews) ? u.savedViews.map((v) => this.normalizeSavedView(v)) : [],
+            disclosureAcknowledged: this.coerceDisclosureAcknowledged(u),
           }))
           .filter((u) => !this.isRemovableAnonymousUser(u));
         return {
