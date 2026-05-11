@@ -17,7 +17,7 @@
     <!-- Right: Saved views label + trigger -->
     <div class="saved-views-wrap">
       <div class="saved-views-field">
-        <span class="saved-views-label" id="saved-views-field-label">Your saved view(s):</span>
+        <span class="saved-views-label" id="saved-views-field-label">Your saved view(s) [{{ savedViewsCount }}]</span>
         <div class="viewing-filter-container" [class.open]="isViewingDropdownOpen">
           <button
             #filterButton
@@ -28,7 +28,7 @@
             [attr.aria-expanded]="savedViewsCount > 0 && isViewingDropdownOpen"
             [attr.aria-haspopup]="savedViewsCount > 0 ? 'menu' : null"
             [attr.aria-labelledby]="savedViewsCount > 0 ? 'saved-views-field-label saved-views-trigger-text' : null"
-            [attr.aria-label]="savedViewsCount === 0 ? 'Your saved view(s): ' + savedViewsTriggerLabel : null">
+            [attr.aria-label]="savedViewsCount === 0 ? ('Your saved view(s) [' + savedViewsCount + '] ' + savedViewsTriggerLabel) : null">
             <img src="assets/icons/bookmark-icon.svg" alt="" class="bookmark-icon" aria-hidden="true">
             <span class="saved-views-text" id="saved-views-trigger-text">{{ savedViewsTriggerLabel }}</span>
             <img src="assets/icons/caret-down-icon.svg" alt="" class="caret-icon" aria-hidden="true">

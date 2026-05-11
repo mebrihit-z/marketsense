@@ -31,9 +31,10 @@
     padding: 0px;
   }
   @media (max-width: 768px) {
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
     gap: 16px;
-    padding:unset;
+    padding: unset;
   }
 }
 
@@ -140,6 +141,14 @@
 .viewing-filter-container {
   position: relative;
   display: inline-block;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+
+  &.open .caret-icon {
+    transform: rotate(180deg);
+  }
 }
 
 .saved-views-btn {
@@ -152,6 +161,11 @@
   cursor: pointer;
   border: 1px solid $primary-colors-midnight-blue;
   box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    box-sizing: border-box;
+  }
 
   &:hover {
     background-color: $dropdown-hover-background;
@@ -184,6 +198,14 @@
   font-size: 14px;
   line-height: 16px;
   color: #00113F;
+  @media (max-width: 768px) {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
   @media (min-width: 1537px) and (max-width: 1920px) {
     font-size: 16px;
   }
@@ -195,12 +217,6 @@
 .caret-icon {
   flex-shrink: 0;
   transition: transform 0.2s ease;
-}
-
-.viewing-filter-container {
-  &.open .caret-icon {
-    transform: rotate(180deg);
-  }
 }
 
 .welcome-divider {
