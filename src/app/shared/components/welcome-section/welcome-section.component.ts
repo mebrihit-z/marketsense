@@ -79,6 +79,15 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return this.viewingOptions?.length ?? 0;
   }
 
+  /** Trigger text: active (or first) preset name when any exist; otherwise a disabled-state placeholder. */
+  get savedViewsTriggerLabel(): string {
+    if (this.savedViewsCount === 0) {
+      return 'No saved views';
+    }
+    const active = this.viewingOptions.find((o) => o.isActive);
+    return active?.name ?? this.viewingOptions[0]?.name ?? this.viewingFilter;
+  }
+
   @ViewChild('filterButton', { static: false }) filterButton!: ElementRef<HTMLButtonElement>;
   
   dropdownPosition = { top: 0, left: 0 };

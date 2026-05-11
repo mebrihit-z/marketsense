@@ -110,6 +110,33 @@
   position: relative;
 }
 
+.saved-views-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+  }
+}
+
+.saved-views-label {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  color: $text-midnight-blue;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 16px;
+  }
+}
+
 .viewing-filter-container {
   position: relative;
   display: inline-block;
