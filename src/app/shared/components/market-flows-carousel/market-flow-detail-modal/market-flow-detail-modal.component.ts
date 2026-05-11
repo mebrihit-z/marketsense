@@ -166,6 +166,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     if (this.headlineHorizonPctActive()) {
       const pct = this.getHeadlineHorizonEndpointPct();
       if (pct == null) return '—';
+      if (!Number.isFinite(pct)) {
+        return pct > 0 ? '+∞%' : pct < 0 ? '-∞%' : '—';
+      }
       const formatted = MarketFlowDetailModalComponent.formatHeadlinePctAbs(Math.abs(pct));
       return pct >= 0 ? `+${formatted}%` : `-${formatted}%`;
     }
@@ -256,6 +259,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /** Same rounding as dashboard `formatPercentage` for carousel pills. */
   private static formatHeadlinePctAbs(value: number): string {
+    if (!Number.isFinite(value)) return '∞';
     if (value === 0) return '0.0';
     if (value < 0.1) return value.toFixed(2);
     return value.toFixed(1);
@@ -549,7 +553,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * Renders like "+12.5 %" / "-22.3 %" to match dashboard breakdown styling.
    */
   formatBreakdownPct(pct: number | null): string {
-    if (pct == null || !Number.isFinite(pct)) return '—';
+    if (pct == null) return '—';
+    if (pct === Infinity) return '+∞ %';
+    if (pct === -Infinity) return '-∞ %';
+    if (!Number.isFinite(pct)) return '—';
     const rounded = Math.round(pct * 10) / 10;
     const body = Math.abs(rounded).toLocaleString('en-US', {
       minimumFractionDigits: 1,

@@ -238,8 +238,11 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   }
   
   parsePercentage(percentageStr: string): number {
-    // Parse percentages like "+12.3%", "-12.3%", "+4.6%"
-    // Remove + and %, but keep the negative sign
+    // Parse percentages like "+12.3%", "-12.3%", "+4.6%", "+∞%" (horizon baseline 0)
+    if (percentageStr.includes('∞')) {
+      const cleaned = percentageStr.replace(/[+%]/g, '').trim();
+      return cleaned.startsWith('-') ? -Number.MAX_VALUE : Number.MAX_VALUE;
+    }
     const cleaned = percentageStr.replace(/[+%]/g, '').trim();
     const num = parseFloat(cleaned);
     return isNaN(num) ? 0 : num;

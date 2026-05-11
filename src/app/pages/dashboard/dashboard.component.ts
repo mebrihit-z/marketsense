@@ -601,6 +601,11 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
         if (endpointPct == null) {
           percentageChangeStr = '—';
           percentageColor = 'neutral';
+        } else if (!Number.isFinite(endpointPct)) {
+          percentageChangeStr =
+            endpointPct > 0 ? '+∞%' : endpointPct < 0 ? '-∞%' : '—';
+          percentageColor =
+            endpointPct > 0 ? 'green' : endpointPct < 0 ? 'red' : 'neutral';
         } else {
           const formattedPercentage = this.formatPercentage(Math.abs(endpointPct));
           percentageChangeStr =
