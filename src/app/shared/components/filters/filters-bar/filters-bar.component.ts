@@ -410,9 +410,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   // Track which dropdown is currently open
   openDropdown: string | null = null;
 
-  // Track if "Clear All Filters" was clicked to show "Select All Filters" button
-  showSelectAll: boolean = false;
-
   // Track which tooltip is open
   openTooltip: 'aiConfidence' | 'timeHorizon' | 'minFlowValue' | 'investorGroup' | 'productGroup' | null = null;
 
@@ -474,11 +471,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     this.state[key] = key === 'productSubType'
       ? Array.from(new Set(values))
       : values;
-    
-    // Hide "Select All Filters" button when any filter is manually selected
-    if (values.length > 0) {
-      this.showSelectAll = false;
-    }
     
     // Handle product type changes - deselect related sub-types when product type is deselected
     if (key === 'productType') {
@@ -609,29 +601,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /**
-   * @returns {void} Clears all filter selections and resets AI confidence range.
-   */
-  clearAll() {
-    (Object.keys(this.state) as Array<keyof typeof this.state>).forEach((key) => {
-      this.state[key] = [];
-    });
-    this.aiConfidenceRange = { min: 50, max: 100 };
-    this.refreshFilteredProductSubTypeOptions();
-    
-    // Show "Select All Filters" button after clearing
-    this.showSelectAll = true;
-    
-    // Emit all filter change events to notify parent components
-    this.productSubTypeChange.emit([]);
-    this.productTypeChange.emit([]);
-    this.productRegionChange.emit([]);
-    this.investorRegionChange.emit([]);
-    this.investorTypeChange.emit([]);
-    this.minFlowRange = createDefaultMinFlowRange();
-    this.emitMinFlowValueRange();
-  }
-
-  /**
    * @returns {void} Selects all available filter options for all filter types.
    */
   selectAll() {
@@ -657,9 +626,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         .filter(opt => !opt.disabled)
         .map(opt => opt.value);
     }
-    
-    // Hide "Select All Filters" button after selecting
-    this.showSelectAll = false;
 
     this.refreshFilteredProductSubTypeOptions();
     

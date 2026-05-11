@@ -322,17 +322,9 @@
 
         <div class="action-buttons-container">
 
-          <button class="action-btn clear-all-btn" *ngIf="!showSelectAll" (click)="clearAll()">
+          <button class="action-btn select-all-btn" type="button" (click)="selectAll()">
 
-            <img src="assets/icons/refresh-icon.svg" alt="Refresh" class="action-icon">
-
-            <span>Clear All Filters</span>
-
-          </button>
-
-          <button class="action-btn select-all-btn" *ngIf="showSelectAll" (click)="selectAll()">
-
-            <img src="assets/icons/select-all-icon.svg" alt="Refresh" class="action-icon">
+            <img src="assets/icons/select-all-icon.svg" alt="" class="action-icon">
 
             <span>Select All Filters</span>
 

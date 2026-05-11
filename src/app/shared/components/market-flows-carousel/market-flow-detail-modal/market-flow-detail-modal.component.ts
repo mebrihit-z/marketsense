@@ -182,9 +182,20 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.card.percentageColor;
   }
 
-  /** Same % tooltip as market-flow cards (uses card + timeHorizonRange for dates). */
+  /** Same % tooltip as market-flow cards; when headline % follows the slider, dates must too (not card defaults). */
   getHeadlinePercentageHoverLabel(): string {
     if (!this.card) return '';
+    if (this.headlineHorizonPctActive()) {
+      return buildMarketFlowPercentageHoverLabel(
+        {
+          timeHorizon: this.card.timeHorizon,
+          timeHorizonStart: this.timeHorizonRange?.start,
+          timeHorizonEnd: this.timeHorizonRange?.end,
+        },
+        this.timeHorizonRange,
+        this.historicAnchor.getAnchor()
+      );
+    }
     return buildMarketFlowPercentageHoverLabel(
       this.card,
       this.timeHorizonRange,
