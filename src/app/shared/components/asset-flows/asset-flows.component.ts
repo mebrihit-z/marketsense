@@ -3,12 +3,13 @@ import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, OnChanges, S
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SankeyComponent } from '../charts/sankey/sankey.component';
-import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import {
   convertAssetFlowsToSankey,
   filterAssetFlowsByDataTypeResolvingSpan,
+  pickAssetFlowDisclosureMeta,
   type AssetFlowRecord,
+  type DisclosureFooterData,
   type SankeyData,
   type AssetFlowDimensionField,
   type SankeyDimensionConfig,
@@ -64,7 +65,6 @@ export interface AssetFlowData {
     CommonModule,
     FormsModule,
     SankeyComponent,
-    TitleComponent,
     FlowDimensionsComponent,
     ChartsExportModalComponent,
     InformationAndDisclosureComponent,
@@ -159,6 +159,11 @@ export class AssetFlowsComponent implements OnInit, OnChanges, OnDestroy {
     const leaf = (this.selectedDimension3?.id ?? 'none') !== 'none';
     const floorPx = leaf ? FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX : FLOW_CHART_MIN_WIDTH_DIM3_NONE_PX;
     return `max(100%, ${floorPx}px)`;
+  }
+
+  /** Footer metadata for Information & Disclosures modal. */
+  get informationDisclosureFooterData(): DisclosureFooterData {
+    return pickAssetFlowDisclosureMeta(this.rawAssetFlowsData ?? []);
   }
 
   // Available dimensions for Dimension 1, 2, and 3 dropdowns (includes Product Region for Dimension 1)

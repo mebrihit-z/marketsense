@@ -87,7 +87,9 @@
     </div>
 
     <div class="disclosure-modal__footer">
-      <p class="disclosure-modal__meta">Last updated: Oct 2023 • v4.2.0-STABLE</p>
+      <p class="disclosure-modal__meta">
+        Last updated:<span *ngIf="loadDateDisplay"> {{ loadDateDisplay }}</span><span *ngIf="!loadDateDisplay"> —</span><span *ngIf="modelVersionDisplay"> • {{ modelVersionDisplay }}</span>
+      </p>
       <div class="disclosure-modal__actions">
         <button type="button" class="disclosure-modal__btn disclosure-modal__btn--secondary" (click)="onPrint()">Print Disclosure</button>
         <button

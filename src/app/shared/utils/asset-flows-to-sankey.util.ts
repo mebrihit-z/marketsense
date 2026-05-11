@@ -161,6 +161,55 @@ export function normalizeAssetFlowsData(raw: (RawAssetFlowRecord | AssetFlowReco
     .filter((row) => (row.Latest ?? '').trim().toUpperCase() === 'Y');
 }
 
+function parseAssetFlowTimestamp(iso?: string): number {
+  if (!iso || typeof iso !== 'string') return 0;
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : 0;
+}
+
+/** Footer copy for disclosure / information modals: same source row for date and version. */
+export interface AssetFlowDisclosureMeta {
+  loadDate: string | null;
+  modelVersion: string | null;
+}
+
+/** Alias for UI components (same shape as {@link AssetFlowDisclosureMeta}). */
+export type DisclosureFooterData = AssetFlowDisclosureMeta;
+
+function pickBestAssetFlowRowForDisclosure(records: AssetFlowRecord[]): AssetFlowRecord | null {
+  if (!Array.isArray(records) || records.length === 0) return null;
+
+  const latestRows = records.filter((r) => (r.Latest ?? '').trim().toUpperCase() === 'Y');
+  const pool = latestRows.length > 0 ? latestRows : records;
+
+  let best = pool[0]!;
+  let bestScore = -1;
+  for (const r of pool) {
+    const load = parseAssetFlowTimestamp(r.Load_Date);
+    const run = parseAssetFlowTimestamp(r.Model_Run_Date);
+    const flow = parseAssetFlowTimestamp(r.Asset_Flow_Date);
+    const score = Math.max(load, run, flow);
+    if (score > bestScore) {
+      bestScore = score;
+      best = r;
+    }
+  }
+  return best ?? null;
+}
+
+/**
+ * `Load_Date` and `Model_Version` from normalized asset flow rows for disclosure/footer copy.
+ * Prefers rows marked `Latest === 'Y'`, then the row with the greatest `Load_Date`,
+ * `Model_Run_Date`, or `Asset_Flow_Date`.
+ */
+export function pickAssetFlowDisclosureMeta(records: AssetFlowRecord[]): AssetFlowDisclosureMeta {
+  const row = pickBestAssetFlowRowForDisclosure(records);
+  if (!row) return { loadDate: null, modelVersion: null };
+  const loadDate = row.Load_Date?.trim() || null;
+  const modelVersion = row.Model_Version?.trim() || null;
+  return { loadDate, modelVersion };
+}
+
 /** Saved views / UI data mode; row sets are not split by `Model_Type` (historic vs forecast). */
 export type AssetFlowDataTypeFilter = 'historical' | 'forecasted';
 

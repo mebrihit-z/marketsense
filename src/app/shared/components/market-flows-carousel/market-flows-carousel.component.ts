@@ -7,7 +7,11 @@ import ExportModalComponent from './export-modal/export-modal.component';
 import MarketFlowDetailModalComponent from './market-flow-detail-modal/market-flow-detail-modal.component';
 import { InformationAndDisclosureComponent } from '../information-and-disclosure/information-and-disclosure.component';
 import TitleComponent from '../title/title.component';
-import { type AssetFlowRecord } from '../../utils/asset-flows-to-sankey.util';
+import {
+  pickAssetFlowDisclosureMeta,
+  type AssetFlowRecord,
+  type DisclosureFooterData,
+} from '../../utils/asset-flows-to-sankey.util';
 import { parseFlowDisplayValueToBillions } from '../../utils/flow-currency-format.util';
 import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 
@@ -36,6 +40,11 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Output() pinCard = new EventEmitter<string>();
+
+  /** Footer metadata for Information & Disclosures modal. */
+  get informationDisclosureFooterData(): DisclosureFooterData {
+    return pickAssetFlowDisclosureMeta(this.rawAssetFlowsData ?? []);
+  }
 
   /** Document capture listener: open detail on card pointer/mouse down (VDI often doesn't fire click). */
   private _documentCardCaptureListener = (e: MouseEvent | PointerEvent | TouchEvent) => this.onDocumentCardCapture(e);

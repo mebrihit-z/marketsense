@@ -11,6 +11,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import type { DisclosureFooterData } from '../../utils/asset-flows-to-sankey.util';
 
 @Component({
   selector: 'app-disclosure-modal',
@@ -24,6 +25,8 @@ export default class DisclosureModalComponent implements OnChanges, OnDestroy {
   @Input() isVisible = false;
   /** When false, user has already acknowledged; only review actions (e.g. Print, Close) remain. */
   @Input() showAcknowledgeButton = true;
+  /** Asset-flow footer line: formatted `Load_Date` and `Model_Version` from the dashboard. */
+  @Input() footerData: DisclosureFooterData | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() acknowledge = new EventEmitter<void>();
 
@@ -115,5 +118,27 @@ export default class DisclosureModalComponent implements OnChanges, OnDestroy {
   onAcknowledge(): void {
     document.body.style.overflow = '';
     this.acknowledge.emit();
+  }
+
+  get modelVersionDisplay(): string {
+    return (this.footerData?.modelVersion ?? '').trim();
+  }
+
+  /** Human-readable calendar date from `loadDate` (UTC) for stable alignment with pipeline dates. */
+  get loadDateDisplay(): string {
+    const raw = (this.footerData?.loadDate ?? '').trim();
+    if (!raw) return '';
+    const t = Date.parse(raw);
+    if (!Number.isFinite(t)) return raw;
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(t));
+    } catch {
+      return raw;
+    }
   }
 }

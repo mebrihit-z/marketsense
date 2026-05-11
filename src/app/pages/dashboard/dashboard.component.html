@@ -123,6 +123,7 @@
   <app-disclosure-modal
     [isVisible]="isDisclosureModalOpen"
     [showAcknowledgeButton]="showDisclosureAcknowledgeButton"
+    [footerData]="disclosureFooterData"
     (close)="closeDisclosureModal()"
     (acknowledge)="onDisclosureAcknowledged()">
   </app-disclosure-modal>

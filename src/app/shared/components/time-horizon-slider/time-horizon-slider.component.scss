@@ -528,8 +528,10 @@ $time-horizon-card-flex-basis: 680px;
     font-size: 10px;
     letter-spacing: -0.02em;
   }
-
-  @media (min-width: 1537px) and (max-width: 1920px) {
+  @media (max-width: 1280px) and (min-width: 1025px) {
+    font-size: 9px;
+  }
+  @media (max-width: 1920px) and (min-width: 1537px) {
     font-size: 13px;
   }
   @media (min-width: 1921px) {

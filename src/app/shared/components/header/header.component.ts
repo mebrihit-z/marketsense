@@ -6,6 +6,7 @@ import { ProfileModalComponent } from '../profile-modal/profile-modal.component'
 import { DisclaimerBannerComponent } from '../disclaimer-banner/disclaimer-banner.component';
 import UserProfileService from '../../services/user-profile.service';
 import { AssetFlowsDataService } from '../../../core/services/asset-flows-data.service';
+import { pickAssetFlowDisclosureMeta } from '../../utils/asset-flows-to-sankey.util';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -22,6 +23,8 @@ export default class HeaderComponent implements OnInit, OnDestroy {
 
   isProfileModalOpen = false;
   lastUpdatedLabel = 'N/A';
+  /** `Model_Version` from the same asset-flow row as last updated (see {@link pickAssetFlowDisclosureMeta}). */
+  modelVersionLabel = '';
   private assetFlowsSub?: Subscription;
 
   constructor(
@@ -32,14 +35,13 @@ export default class HeaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.assetFlowsSub = this.assetFlowsDataService.getAssetFlows().subscribe({
       next: (rows) => {
-        const latestDateIso = rows
-          .map((row) => row.Load_Date)
-          .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
-          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
-        this.lastUpdatedLabel = latestDateIso ? this.formatDate(latestDateIso) : 'N/A';
+        const meta = pickAssetFlowDisclosureMeta(rows);
+        this.lastUpdatedLabel = meta.loadDate ? this.formatDate(meta.loadDate) : 'N/A';
+        this.modelVersionLabel = (meta.modelVersion ?? '').trim();
       },
       error: () => {
         this.lastUpdatedLabel = 'N/A';
+        this.modelVersionLabel = '';
       },
     });
   }

@@ -9,6 +9,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import type { DisclosureFooterData } from '../../utils/asset-flows-to-sankey.util';
 
 export type InformationDisclosureTabId = 'about' | 'legal';
 
@@ -55,12 +56,34 @@ type InformationDisclosureSection = {
 export class InformationAndDisclosureComponent implements OnChanges {
   @Input() isVisible = false;
   @Input() variant: InformationDisclosureVariant = 'market-flows';
-  /** Footer line (Figma: "Last updated: Oct 2023 • v4.2.0-STABLE"). */
-  @Input() footerMeta = 'Last updated: Oct 2023 • v4.2.0-STABLE';
+  /** `Load_Date` / `Model_Version` from loaded asset flows (same pattern as the main disclosure modal). */
+  @Input() footerData: DisclosureFooterData | null = null;
 
   @Output() close = new EventEmitter<void>();
 
   activeTab: InformationDisclosureTabId = 'about';
+
+  get modelVersionDisplay(): string {
+    return (this.footerData?.modelVersion ?? '').trim();
+  }
+
+  /** Human-readable `Load_Date` (UTC), aligned with pipeline dates. */
+  get loadDateDisplay(): string {
+    const raw = (this.footerData?.loadDate ?? '').trim();
+    if (!raw) return '';
+    const t = Date.parse(raw);
+    if (!Number.isFinite(t)) return raw;
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(t));
+    } catch {
+      return raw;
+    }
+  }
 
   get dialogTitle(): string {
     switch (this.variant) {

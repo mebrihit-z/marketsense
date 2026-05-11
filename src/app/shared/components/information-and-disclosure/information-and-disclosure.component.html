@@ -216,7 +216,9 @@
     </div>
 
     <footer class="iad-footer">
-      <p class="iad-footer__meta">{{ footerMeta }}</p>
+      <p class="iad-footer__meta">
+        Last updated:<span *ngIf="loadDateDisplay"> {{ loadDateDisplay }}</span><span *ngIf="!loadDateDisplay"> —</span><span *ngIf="modelVersionDisplay"> • {{ modelVersionDisplay }}</span>
+      </p>
     </footer>
   </div>
 </div>

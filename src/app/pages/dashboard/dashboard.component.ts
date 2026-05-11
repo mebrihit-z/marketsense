@@ -26,7 +26,9 @@ import AskMarketsenseSectionComponent from '../../shared/components/ask-marketse
 import AskMarketsenseStickyButtonComponent from '../../shared/components/ask-marketsense-sticky-button/ask-marketsense-sticky-button.component';
 import {
   type AssetFlowRecord,
+  type DisclosureFooterData,
   filterAssetFlowsByDataTypeResolvingSpan,
+  pickAssetFlowDisclosureMeta,
 } from '../../shared/utils/asset-flows-to-sankey.util';
 import {
   assetFlowDateToYearMonthUtc,
@@ -66,6 +68,9 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
   isDisclosureModalOpen = false;
   /** Loaded from user preference; false after the user has acknowledged the disclosure. */
   showDisclosureAcknowledgeButton = true;
+  /** `Load_Date` / `Model_Version` from the loaded asset flows payload (disclosure modal footer). */
+  disclosureLoadDate: string | null = null;
+  disclosureModelVersion: string | null = null;
   private disclosureTriggersSub?: Subscription;
 
   @ViewChild('filtersSticky', { read: ElementRef }) private filtersStickyRef?: ElementRef<HTMLElement>;
@@ -116,6 +121,14 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
     private userProfileService: UserProfileService,
     private authService: AuthService
   ) {}
+
+  /** Single object for `app-disclosure-modal` footer (avoids fragile per-field template bindings). */
+  get disclosureFooterData(): DisclosureFooterData {
+    return {
+      loadDate: this.disclosureLoadDate,
+      modelVersion: this.disclosureModelVersion,
+    };
+  }
 
   ngOnInit(): void {
     this.loadAssetFlowsData();
@@ -293,6 +306,9 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
     this.assetFlowsData.getAssetFlows().subscribe({
       next: (data) => {
         this.rawAssetFlowsData = data;
+        const meta = pickAssetFlowDisclosureMeta(data);
+        this.disclosureLoadDate = meta.loadDate;
+        this.disclosureModelVersion = meta.modelVersion;
         this.historicAnchor.rebuild(data);
         this.cdr.detectChanges();
       },

@@ -4,12 +4,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TreemapCellModalComponent, TreemapCellData } from '../charts/treemap-cell-modal/treemap-cell-modal.component';
 import { TreemapComponent } from '../charts/treemap/treemap.component';
-import TitleComponent from '../title/title.component';
 import { FlowDimensionsComponent, type FlowDimension } from '../flow-dimensions/flow-dimensions.component';
 import {
   convertAssetFlowsToSankey,
   filterAssetFlowsByDataTypeResolvingSpan,
+  pickAssetFlowDisclosureMeta,
   type AssetFlowRecord,
+  type DisclosureFooterData,
   type SankeyData,
   type AssetFlowDimensionField,
   type SankeyDimensionConfig,
@@ -58,7 +59,6 @@ export interface TreemapRegion {
     FormsModule,
     TreemapCellModalComponent,
     TreemapComponent,
-    TitleComponent,
     FlowDimensionsComponent,
     ChartsExportModalComponent,
     InformationAndDisclosureComponent,
@@ -120,6 +120,11 @@ export class AssetAllocationComponent implements OnInit, OnChanges {
   selectedCellData: TreemapCellData | null = null;
   showExportModal: boolean = false;
   isInformationDisclosureOpen = false;
+
+  /** Footer metadata for Information & Disclosures modal. */
+  get informationDisclosureFooterData(): DisclosureFooterData {
+    return pickAssetFlowDisclosureMeta(this.rawAssetFlowsData ?? []);
+  }
 
   @ViewChild('chartExportRoot', { read: ElementRef }) chartExportRoot?: ElementRef<HTMLElement>;
   
