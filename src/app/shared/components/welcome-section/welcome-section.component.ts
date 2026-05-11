@@ -246,7 +246,6 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       },
       error: (e) => {
         console.error('Failed to load saved views', e);
-        this.viewingOptions = this.getDefaultViewingOptions();
       },
     });
   }
@@ -611,52 +610,6 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     if (r?.length) out.push({ label: 'Product Region:', value: r.join(', ') });
     if (t?.length) out.push({ label: 'Product Type:', value: t.join(', ') });
     return out;
-  }
-
-  /**
-   * Original static presets used as a fallback when no local saved views exist.
-   */
-  private getDefaultViewingOptions(): ViewingOption[] {
-    return [
-      {
-        name: 'High-confidence Equities',
-        savedDate: 'Mar 28, 2026',
-        hoverTooltipFields: [
-          { label: 'Investor Region:', value: 'United States, Europe' },
-          { label: 'Investor Type:', value: 'Endowment' },
-          { label: 'Product Region:', value: 'North America' },
-          { label: 'Product Type:', value: 'Equities, Fixed Income' },
-          { label: 'Time horizon:', value: '0 to +3 mo' },
-          { label: 'Min flow value:', value: '$0 to Max' },
-        ],
-        isActive: false,
-      },
-      {
-        name: 'Global Alternatives View',
-        savedDate: 'Mar 25, 2026',
-        hoverTooltipFields: [
-          { label: 'Investor Region:', value: 'Europe, Asia, Americas' },
-          { label: 'Investor Type:', value: 'Foundation, Pension' },
-          { label: 'Product Region:', value: 'US, UK' },
-          { label: 'Product Type:', value: 'Alternatives' },
-          { label: 'Time horizon:', value: '-6 mo to 0' },
-        ],
-        isActive: false,
-      },
-      {
-        name: 'All Equities',
-        savedDate: 'Mar 20, 2026',
-        hoverTooltipFields: [
-          { label: 'Investor Region:', value: 'United States' },
-          { label: 'Investor Type:', value: 'Pensions, Endowment' },
-          { label: 'Product Region:', value: 'Global, Emerging Markets' },
-          { label: 'Product Type:', value: 'Equities, Private Equity, Real Estate' },
-          { label: 'Time horizon:', value: '0 to +12 mo' },
-          { label: 'Min flow value:', value: '$500M to Max' },
-        ],
-        isActive: false,
-      },
-    ];
   }
 
   /** Fields for the unified hover tooltip on a saved-view row; null when there is nothing to show. */
