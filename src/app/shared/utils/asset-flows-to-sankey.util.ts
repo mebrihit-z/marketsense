@@ -1,4 +1,5 @@
-/* eslint-disable */
+/* eslint-disable max-lines -- Sankey pipeline kept in one module; split is a larger refactor */
+/* eslint-disable max-lines-per-function -- convertAssetFlowsToSankey is one sequential graph build */
 /**
  * Utility to convert asset-flows-data.json format to Sankey diagram data
  */
@@ -53,7 +54,7 @@ export interface SankeyDimensionConfig {
 }
 
 /** Raw record shape from asset-flows-data.json (snake_case, MongoDB-style $date/$numberLong) */
-interface RawAssetFlowRecord {
+export interface RawAssetFlowRecord {
   latest?: string;
   investor_region?: string;
   plan_type?: string;
@@ -65,6 +66,13 @@ interface RawAssetFlowRecord {
   [key: string]: unknown;
 }
 
+/**
+ * Unwraps a numeric value that may be a plain `number` or a MongoDB-style
+ * `{ $numberLong: string }` envelope. Returns 0 for nullish or invalid input.
+ *
+ * @param {number | { $numberLong: string } | undefined | null} v Raw value from JSON.
+ * @returns {number} A finite number, or 0 when the input is missing or unparseable.
+ */
 function unwrapValue(v: number | { $numberLong: string } | undefined | null): number {
   if (v === undefined || v === null) return 0;
   if (typeof v === 'number' && !Number.isNaN(v)) return v;
@@ -76,6 +84,13 @@ function unwrapValue(v: number | { $numberLong: string } | undefined | null): nu
   return 0;
 }
 
+/**
+ * Unwraps a date that may be a plain ISO string or a MongoDB-style
+ * `{ $date: string }` envelope.
+ *
+ * @param {string | { $date: string } | undefined | null} d Raw date value from JSON.
+ * @returns {string | undefined} ISO date string, or `undefined` when missing/invalid.
+ */
 function unwrapDate(d: string | { $date: string } | undefined | null): string | undefined {
   if (d === undefined || d === null) return undefined;
   if (typeof d === 'string') return d;
@@ -86,58 +101,136 @@ function unwrapDate(d: string | { $date: string } | undefined | null): string | 
   return undefined;
 }
 
+/**
+ * Reads a required string field from a record, accepting either `snake_case` or
+ * `PascalCase` keys (snake_case takes precedence).
+ *
+ * @param {Object} r Source record (raw or normalized).
+ * @param {string} snake snake_case key (preferred lookup).
+ * @param {string} pascal PascalCase key (fallback lookup).
+ * @returns {string} The matched string value, or an empty string when absent/non-string.
+ */
 function getStr(r: Record<string, unknown>, snake: string, pascal: string): string {
   const v = r[snake] ?? r[pascal];
   return typeof v === 'string' ? v : '';
 }
 
+/**
+ * Reads an optional string field from a record, accepting either `snake_case` or
+ * `PascalCase` keys (snake_case takes precedence).
+ *
+ * @param {Object} r Source record (raw or normalized).
+ * @param {string} snake snake_case key (preferred lookup).
+ * @param {string} pascal PascalCase key (fallback lookup).
+ * @returns {string | undefined} The matched string value, or `undefined` when absent/non-string.
+ */
 function getStrOpt(r: Record<string, unknown>, snake: string, pascal: string): string | undefined {
   const v = r[snake] ?? r[pascal];
   return typeof v === 'string' ? v : undefined;
 }
 
 /**
- * Normalizes a raw asset flow record from JSON (snake_case, $date/$numberLong) to AssetFlowRecord.
- * Handles both MongoDB-style (snake_case + $date/$numberLong) and already-normalized records.
+ * Resolves `Asset_Flow_Date` and `Asset_Flow_Value` from a raw record, unwrapping
+ * MongoDB-style `{ $date }` / `{ $numberLong }` envelopes and falling back to
+ * already-primitive values when the envelope is absent.
+ *
+ * @param {Object} r Source record (PascalCase or snake_case keys accepted).
+ * @returns {{ dateFinal: (string | undefined), valueFinal: number }} Resolved values.
+ */
+function extractAssetFlowDateAndValue(
+  r: Record<string, unknown>
+): { dateFinal: string | undefined; valueFinal: number } {
+  const dateRaw = r['asset_flow_date'] ?? r['Asset_Flow_Date'];
+  const valueRaw = r['asset_flow_value'] ?? r['Asset_Flow_Value'];
+
+  let dateFinal = unwrapDate(dateRaw as string | { $date: string } | undefined);
+  if (dateFinal === undefined && typeof dateRaw === 'string') {
+    dateFinal = dateRaw;
+  }
+
+  let valueFinal = unwrapValue(valueRaw as number | { $numberLong: string } | undefined);
+  if (valueFinal === 0 && typeof valueRaw === 'number') {
+    valueFinal = valueRaw;
+  }
+
+  return { dateFinal, valueFinal };
+}
+
+/**
+ * Resolves `Load_Date` from a raw record, unwrapping MongoDB-style `{ $date }`
+ * envelopes and falling back to already-primitive strings.
+ *
+ * @param {Object} r Source record.
+ * @returns {string | undefined} Load date string, or `undefined` when missing.
+ */
+function extractLoadDate(r: Record<string, unknown>): string | undefined {
+  const raw = r['load_date'] ?? r['Load_Date'];
+  const unwrapped = unwrapDate(raw as string | { $date: string } | undefined);
+  if (unwrapped !== undefined) return unwrapped;
+  return typeof raw === 'string' ? raw : undefined;
+}
+
+/**
+ * Resolves the per-row client count from a raw record. Accepts plain numbers and
+ * MongoDB-style `{ $numberLong }` envelopes; clamps to a non-negative integer.
+ *
+ * @param {Object} r Source record.
+ * @returns {number | undefined} Client count, or `undefined` when unknown.
+ */
+function extractNClients(r: Record<string, unknown>): number | undefined {
+  const raw = r['n_clients'] ?? r['N_Clients'];
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return Math.max(0, Math.round(raw));
+  }
+  if (raw === undefined || raw === null) return undefined;
+  const u = unwrapValue(raw as number | { $numberLong: string });
+  return Number.isFinite(u) && u >= 0 ? Math.round(u) : undefined;
+}
+
+/**
+ * Resolves the forecast prediction interval (upper/lower) from a raw record. Returns
+ * `null` when either bound is missing so callers can omit the fields entirely.
+ *
+ * @param {Object} r Source record.
+ * @returns {{ fcstUpper: number, fcstLower: number } | null} Interval, or `null`.
+ */
+function extractFcstInterval(
+  r: Record<string, unknown>
+): { fcstUpper: number; fcstLower: number } | null {
+  const u = r['fcst_flow_upper'] ?? r['Fcst_Flow_Upper'];
+  const l = r['fcst_flow_lower'] ?? r['Fcst_Flow_Lower'];
+  if (u === undefined || u === null || l === undefined || l === null) return null;
+  return {
+    fcstUpper: unwrapValue(u as number | { $numberLong: string }),
+    fcstLower: unwrapValue(l as number | { $numberLong: string }),
+  };
+}
+
+/**
+ * Normalizes a raw asset flow record from JSON (snake_case, `$date`/`$numberLong`) to
+ * an `AssetFlowRecord`. Handles both MongoDB-style payloads and already-normalized
+ * records (so calling this twice is idempotent).
+ *
+ * @param {import('./asset-flows-to-sankey.util').RawAssetFlowRecord | import('./asset-flows-to-sankey.util').AssetFlowRecord} raw Raw or already-normalized record.
+ * @returns {import('./asset-flows-to-sankey.util').AssetFlowRecord} Canonical record with PascalCase keys and unwrapped values.
  */
 export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowRecord): AssetFlowRecord {
   const r = raw as Record<string, unknown>;
-  const assetFlowDateRaw = r['asset_flow_date'] ?? r['Asset_Flow_Date'];
-  const assetFlowValueRaw = r['asset_flow_value'] ?? r['Asset_Flow_Value'];
-  const dateUnwrapped = unwrapDate(assetFlowDateRaw as string | { $date: string } | undefined);
-  const dateFinal = dateUnwrapped ?? (typeof assetFlowDateRaw === 'string' ? assetFlowDateRaw : undefined);
-  const valueUnwrapped = unwrapValue(assetFlowValueRaw as number | { $numberLong: string } | undefined);
-  const valueFinal = valueUnwrapped !== 0 ? valueUnwrapped : (typeof assetFlowValueRaw === 'number' ? assetFlowValueRaw : 0);
-
-  const nClientsRaw = r['n_clients'] ?? r['N_Clients'];
-  let nClients: number | undefined;
-  if (typeof nClientsRaw === 'number' && Number.isFinite(nClientsRaw)) {
-    nClients = Math.max(0, Math.round(nClientsRaw));
-  } else if (nClientsRaw !== undefined && nClientsRaw !== null) {
-    const u = unwrapValue(nClientsRaw as number | { $numberLong: string });
-    if (Number.isFinite(u) && u >= 0) nClients = Math.round(u);
-  }
-
-  const uFcst = r['fcst_flow_upper'] ?? r['Fcst_Flow_Upper'];
-  const lFcst = r['fcst_flow_lower'] ?? r['Fcst_Flow_Lower'];
-  let fcstUpper: number | undefined;
-  let fcstLower: number | undefined;
-  if (uFcst !== undefined && uFcst !== null && lFcst !== undefined && lFcst !== null) {
-    fcstUpper = unwrapValue(uFcst as number | { $numberLong: string });
-    fcstLower = unwrapValue(lFcst as number | { $numberLong: string });
-  }
+  const { dateFinal, valueFinal } = extractAssetFlowDateAndValue(r);
+  const nClients = extractNClients(r);
+  const fcst = extractFcstInterval(r);
+  const planType =
+    getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types');
 
   return {
     Model_Run_Date: (r['model_run_date'] ?? r['Model_Run_Date']) as string | undefined,
     Model_Version: (r['model_version'] ?? r['Model_Version']) as string | undefined,
     Model_Type: getStrOpt(r, 'model_type', 'Model_Type'),
-    Load_Date:
-      unwrapDate((r['load_date'] ?? r['Load_Date']) as string | { $date: string } | undefined) ??
-      (r['load_date'] ?? r['Load_Date']) as string | undefined,
+    Load_Date: extractLoadDate(r),
     Latest: getStrOpt(r, 'latest', 'Latest'),
     Investor_Region: getStr(r, 'investor_region', 'Investor_Region'),
-    Plan_Type: getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types'),
-    Investor_Types: getStrOpt(r, 'plan_type', 'Plan_Type') ?? getStrOpt(r, 'Investor_Types', 'Investor_Types'),
+    Plan_Type: planType,
+    Investor_Types: planType,
     Sec_Type: (r['sec_type'] ?? r['Sec_Type']) as string | undefined,
     Product_Region: getStrOpt(r, 'product_region', 'Product_Region'),
     Product_Type: getStr(r, 'product_type', 'Product_Type'),
@@ -145,14 +238,16 @@ export function normalizeAssetFlowRecord(raw: RawAssetFlowRecord | AssetFlowReco
     Asset_Flow_Date: dateFinal,
     Asset_Flow_Value: valueFinal,
     ...(nClients !== undefined ? { N_Clients: nClients } : {}),
-    ...(fcstUpper !== undefined && fcstLower !== undefined
-      ? { Fcst_Flow_Upper: fcstUpper, Fcst_Flow_Lower: fcstLower }
-      : {}),
+    ...(fcst ? { Fcst_Flow_Upper: fcst.fcstUpper, Fcst_Flow_Lower: fcst.fcstLower } : {}),
   };
 }
 
 /**
- * Normalizes an array of raw asset flow records (e.g. from asset-flows-data.json).
+ * Normalizes an array of raw asset flow records (e.g. from `asset-flows-data.json`)
+ * and keeps only the rows flagged as the latest snapshot (`Latest === 'Y'`).
+ *
+ * @param {(import('./asset-flows-to-sankey.util').RawAssetFlowRecord | import('./asset-flows-to-sankey.util').AssetFlowRecord)[]} raw Source rows to normalize.
+ * @returns {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} Normalized rows, filtered to the latest snapshot.
  */
 export function normalizeAssetFlowsData(raw: (RawAssetFlowRecord | AssetFlowRecord)[]): AssetFlowRecord[] {
   if (!raw || !Array.isArray(raw)) return [];
@@ -161,6 +256,12 @@ export function normalizeAssetFlowsData(raw: (RawAssetFlowRecord | AssetFlowReco
     .filter((row) => (row.Latest ?? '').trim().toUpperCase() === 'Y');
 }
 
+/**
+ * Parses an ISO date string to a millisecond timestamp.
+ *
+ * @param {string | undefined} iso ISO date string.
+ * @returns {number} Millisecond timestamp, or 0 when the input is missing/invalid.
+ */
 function parseAssetFlowTimestamp(iso?: string): number {
   if (!iso || typeof iso !== 'string') return 0;
   const t = Date.parse(iso);
@@ -173,34 +274,53 @@ export interface AssetFlowDisclosureMeta {
   modelVersion: string | null;
 }
 
-/** Alias for UI components (same shape as {@link AssetFlowDisclosureMeta}). */
+/** Alias for UI components (same shape as `AssetFlowDisclosureMeta`). */
 export type DisclosureFooterData = AssetFlowDisclosureMeta;
 
+/**
+ * Computes the disclosure-ranking score for a row (the greatest known timestamp
+ * across `Load_Date`, `Model_Run_Date`, and `Asset_Flow_Date`).
+ *
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord} r Row to score.
+ * @returns {number} Score in milliseconds; 0 when no timestamp is parseable.
+ */
+function disclosureRowScore(r: AssetFlowRecord): number {
+  return Math.max(
+    parseAssetFlowTimestamp(r.Load_Date),
+    parseAssetFlowTimestamp(r.Model_Run_Date),
+    parseAssetFlowTimestamp(r.Asset_Flow_Date)
+  );
+}
+
+/**
+ * Picks the most representative row for disclosure copy. Prefers rows marked
+ * `Latest === 'Y'`, then chooses the one with the greatest `Load_Date`,
+ * `Model_Run_Date`, or `Asset_Flow_Date` timestamp.
+ *
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} records Normalized rows to consider.
+ * @returns {import('./asset-flows-to-sankey.util').AssetFlowRecord | null} The best row, or `null` when `records` is empty.
+ */
 function pickBestAssetFlowRowForDisclosure(records: AssetFlowRecord[]): AssetFlowRecord | null {
   if (!Array.isArray(records) || records.length === 0) return null;
 
   const latestRows = records.filter((r) => (r.Latest ?? '').trim().toUpperCase() === 'Y');
   const pool = latestRows.length > 0 ? latestRows : records;
+  if (pool.length === 0) return null;
 
-  let best = pool[0]!;
-  let bestScore = -1;
-  for (const r of pool) {
-    const load = parseAssetFlowTimestamp(r.Load_Date);
-    const run = parseAssetFlowTimestamp(r.Model_Run_Date);
-    const flow = parseAssetFlowTimestamp(r.Asset_Flow_Date);
-    const score = Math.max(load, run, flow);
-    if (score > bestScore) {
-      bestScore = score;
-      best = r;
-    }
-  }
-  return best ?? null;
+  return pool.reduce<AssetFlowRecord>(
+    (best, cur) => (disclosureRowScore(cur) > disclosureRowScore(best) ? cur : best),
+    pool[0] as AssetFlowRecord
+  );
 }
 
 /**
- * `Load_Date` and `Model_Version` from normalized asset flow rows for disclosure/footer copy.
- * Prefers rows marked `Latest === 'Y'`, then the row with the greatest `Load_Date`,
- * `Model_Run_Date`, or `Asset_Flow_Date`.
+ * Extracts `Load_Date` and `Model_Version` from normalized asset flow rows for
+ * disclosure/footer copy. Prefers rows marked `Latest === 'Y'`, then the row with
+ * the greatest `Load_Date`, `Model_Run_Date`, or `Asset_Flow_Date`.
+ *
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} records Normalized rows to inspect.
+ * @returns {import('./asset-flows-to-sankey.util').AssetFlowDisclosureMeta} Disclosure meta with `loadDate` and `modelVersion`
+ *   (each `null` when unknown).
  */
 export function pickAssetFlowDisclosureMeta(records: AssetFlowRecord[]): AssetFlowDisclosureMeta {
   const row = pickBestAssetFlowRowForDisclosure(records);
@@ -214,11 +334,17 @@ export function pickAssetFlowDisclosureMeta(records: AssetFlowRecord[]): AssetFl
 export type AssetFlowDataTypeFilter = 'historical' | 'forecasted';
 
 /**
- * Returns `data` unchanged. `Model_Type` is ignored so historic and forecast quarters contribute alike
- * to aggregations; the time window and dimension filters define which rows are used.
+ * Returns `data` unchanged. `Model_Type` is ignored so historic and forecast quarters
+ * contribute alike to aggregations; the time window and dimension filters decide which
+ * rows are used.
+ *
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} data - Rows to return unchanged.
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowDataTypeFilter} _dataType - Saved-view data mode (unused; kept for API stability).
+ * @returns {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} The input array, unchanged.
  */
 export function filterAssetFlowsByDataType(
   data: AssetFlowRecord[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stability
   _dataType: AssetFlowDataTypeFilter
 ): AssetFlowRecord[] {
   if (!data?.length) return data;
@@ -227,12 +353,23 @@ export function filterAssetFlowsByDataType(
 
 /**
  * Returns `data` unchanged. Does not split rows by anchor month vs `Model_Type`.
+ *
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} data - Rows to return unchanged.
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowDataTypeFilter} _dataType - Saved-view data mode (unused; kept for API stability).
+ * @param {string | null | undefined} _timeHorizonStart - Start of the active time window (unused).
+ * @param {string | null | undefined} _timeHorizonEnd - End of the active time window (unused).
+ * @param {string | null | undefined} _anchorYearMonth - Anchor year-month, `YYYY-MM` (unused).
+ * @returns {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} The input array, unchanged.
  */
 export function filterAssetFlowsByDataTypeResolvingSpan(
   data: AssetFlowRecord[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stability
   _dataType: AssetFlowDataTypeFilter,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stability
   _timeHorizonStart: string | null | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stability
   _timeHorizonEnd: string | null | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stability
   _anchorYearMonth: string | null | undefined
 ): AssetFlowRecord[] {
   if (!data?.length) return data;
@@ -248,7 +385,7 @@ export interface SankeyLink {
   target: string;
   value: number;
   date?: string;
-  /** Sum of {@link AssetFlowRecord.N_Clients} for rows represented by this link (when known). */
+  /** Sum of `N_Clients` on contributing rows for this link (when known). */
   nClientsTotal?: number;
 }
 
@@ -289,12 +426,18 @@ export interface SankeyData {
 }
 
 /**
- * Convert asset flows data to Sankey diagram format
+ * Converts asset-flow rows into Sankey diagram data (nodes, links, summary).
+ *
  * Default mapping:
- * - Investor_Region -> superparent
- * - Product_Type -> parent
- * - Product_Sub_Type -> subasset
- * - Asset_Flow_Value -> link value in USD (negative = outflow, positive = inflow)
+ * - `Investor_Region` -> superparent
+ * - `Product_Type` -> parent
+ * - `Product_Sub_Type` -> sub-asset
+ * - `Asset_Flow_Value` -> link value in USD (negative = outflow, positive = inflow)
+ *
+ * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord[]} assetFlows Normalized rows to aggregate into Sankey nodes/links.
+ * @param {import('./asset-flows-to-sankey.util').SankeyDimensionConfig} [dimensionConfig] Optional override for the super/parent/sub fields.
+ *   When omitted the default mapping above is used. Set `subField: 'none'` to skip leaf nodes.
+ * @returns {import('./asset-flows-to-sankey.util').SankeyData} `{ nodes, links, summary }` ready for a d3-sankey diagram.
  */
 export function convertAssetFlowsToSankey(
   assetFlows: AssetFlowRecord[],
@@ -345,9 +488,16 @@ export function convertAssetFlowsToSankey(
     };
   }
 
-  // Helper to safely read configured fields, falling back to "Unknown" when missing
+  /**
+   * Safely reads a configured dimension field from a row, falling back to
+   * `'Unknown'` when the value is missing or blank.
+   *
+   * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord} r Row to read.
+   * @param {import('./asset-flows-to-sankey.util').AssetFlowDimensionField} field Field name to extract.
+   * @returns {string} Trimmed field value, or `'Unknown'`.
+   */
   const getField = (r: AssetFlowRecord, field: AssetFlowDimensionField): string => {
-    const value = (r as any)[field];
+    const value = r[field];
     if (typeof value === 'string' && value.trim().length > 0) {
       return value.trim();
     }
@@ -355,18 +505,18 @@ export function convertAssetFlowsToSankey(
   };
 
   type ExtendedRow = AssetFlowRecord & {
-    __super: string;
-    __parent: string;
-    __sub: string;
+    sankeySuper: string;
+    sankeyParent: string;
+    sankeySub: string;
   };
 
   const skipSubLevel = config.subField === 'none';
 
   const extendedRows: ExtendedRow[] = rowsNz.map((r) => {
     const er = r as ExtendedRow;
-    er.__super = getField(r, config.superField);
-    er.__parent = getField(r, config.parentField);
-    er.__sub = skipSubLevel ? '' : getField(r, config.subField as AssetFlowDimensionField);
+    er.sankeySuper = getField(r, config.superField);
+    er.sankeyParent = getField(r, config.parentField);
+    er.sankeySub = skipSubLevel ? '' : getField(r, config.subField as AssetFlowDimensionField);
     return er;
   });
 
@@ -383,6 +533,12 @@ export function convertAssetFlowsToSankey(
   const nodes: SankeyNode[] = [];
   const names = new Set<string>();
 
+  /**
+   * Adds a node to the Sankey graph if it isn't already present.
+   *
+   * @param {string} name Node identifier (also the display label).
+   * @returns {void}
+   */
   function add(name: string): void {
     if (!names.has(name)) {
       names.add(name);
@@ -390,40 +546,87 @@ export function convertAssetFlowsToSankey(
     }
   }
 
-  // Reallocation Pool is per SuperParent (no shared pool)
+  /**
+   * Builds the per-SuperParent reallocation-pool node name. Each superparent has its
+   * own pool so regions don't merge.
+   *
+   * @param {string} sp SuperParent value.
+   * @returns {string} Pool node name for `sp`.
+   */
   function poolName(sp: string): string {
     return `${sp}: Reallocation Pool`;
   }
 
-  // Dedicated capital super terminals so Capital In/Out can render
-  // on their own structural branch, separate from regular super start/end flow trunks.
+  /**
+   * Builds the dedicated "Capital In (Super)" terminal so Capital In can render on
+   * its own structural branch, separate from regular super start/end flow trunks.
+   *
+   * @param {string} sp SuperParent value.
+   * @returns {string} Capital-In super terminal node name.
+   */
   function capitalInSuperName(sp: string): string {
     return `${sp}: Capital In (Super)`;
   }
 
+  /**
+   * Builds the dedicated "Capital Out (Super)" terminal so Capital Out can render on
+   * its own structural branch, separate from regular super start/end flow trunks.
+   *
+   * @param {string} sp SuperParent value.
+   * @returns {string} Capital-Out super terminal node name.
+   */
   function capitalOutSuperName(sp: string): string {
     return `${sp}: Capital Out (Super)`;
   }
 
-  // Helpers to scope nodes by SuperParent so regions don't merge
+  /**
+   * Builds a parent-start node name scoped by SuperParent so identical parent
+   * categories across regions do not merge.
+   *
+   * @param {string} sp SuperParent value.
+   * @param {string} p Parent value.
+   * @returns {string} Parent-start node name.
+   */
   function parentStartName(sp: string, p: string): string {
     return `${sp}: ${p} (Start)`;
   }
 
+  /**
+   * Builds a parent-end node name scoped by SuperParent so identical parent
+   * categories across regions do not merge.
+   *
+   * @param {string} sp SuperParent value.
+   * @param {string} p Parent value.
+   * @returns {string} Parent-end node name.
+   */
   function parentEndName(sp: string, p: string): string {
     return `${sp}: ${p} (End)`;
   }
 
+  /**
+   * Builds a sub-asset "source" node name scoped by SuperParent (outflow side).
+   *
+   * @param {string} sp SuperParent value.
+   * @param {string} sub Sub-asset value.
+   * @returns {string} Sub-asset source node name.
+   */
   function subSourceName(sp: string, sub: string): string {
     return `${sp}: ${sub} (Source)`;
   }
 
+  /**
+   * Builds a sub-asset "destination" node name scoped by SuperParent (inflow side).
+   *
+   * @param {string} sp SuperParent value.
+   * @param {string} sub Sub-asset value.
+   * @returns {string} Sub-asset destination node name.
+   */
   function subDestName(sp: string, sub: string): string {
     return `${sp}: ${sub} (Destination)`;
   }
 
   const parentsNeg = Array.from(
-    new Set(neg.map(r => `${r.__super}|${r.__parent}`))
+    new Set(neg.map(r => `${r.sankeySuper}|${r.sankeyParent}`))
   )
     .map(key => {
       const [sp, p] = key.split('|');
@@ -435,7 +638,7 @@ export function convertAssetFlowsToSankey(
     });
 
   const parentsPos = Array.from(
-    new Set(pos.map(r => `${r.__super}|${r.__parent}`))
+    new Set(pos.map(r => `${r.sankeySuper}|${r.sankeyParent}`))
   )
     .map(key => {
       const [sp, p] = key.split('|');
@@ -446,56 +649,62 @@ export function convertAssetFlowsToSankey(
       return a.p.localeCompare(b.p);
     });
 
-  const superNeg = Array.from(new Set(neg.map(r => r.__super))).sort();
-  const superPos = Array.from(new Set(pos.map(r => r.__super))).sort();
+  const superNeg = Array.from(new Set(neg.map(r => r.sankeySuper))).sort();
+  const superPos = Array.from(new Set(pos.map(r => r.sankeySuper))).sort();
   const superAll = Array.from(
     new Set([...superNeg, ...superPos])
   ).sort();
 
   // Create a pool node for each superparent
-  for (const sp of superAll) {
+  superAll.forEach((sp) => {
     add(poolName(sp));
-  }
+  });
 
   // SuperParent (Start) / SuperParent (End)
   // Create Super Start for all regions that have any activity (both inflows and outflows)
   // Create Super End for all regions that have any activity (both inflows and outflows)
-  for (const sp of superAll) {
+  superAll.forEach((sp) => {
     add(`${sp} (Super Start)`);
     add(`${sp} (Super End)`);
-  }
+  });
 
   // Parent (Start) / Parent (End) (scoped by SuperParent)
-  for (const { sp, p } of parentsNeg) {
+  parentsNeg.forEach(({ sp, p }) => {
     add(parentStartName(sp, p));
-  }
-  for (const { sp, p } of parentsPos) {
+  });
+  parentsPos.forEach(({ sp, p }) => {
     add(parentEndName(sp, p));
-  }
+  });
 
   // Sub-asset Source/Destination nodes (scoped by SuperParent) — only when not skipSubLevel
   if (!skipSubLevel) {
-    for (const r of neg) {
-      add(subSourceName(r.__super, r.__sub));
-    }
-    for (const r of pos) {
-      add(subDestName(r.__super, r.__sub));
-    }
+    neg.forEach((r) => {
+      add(subSourceName(r.sankeySuper, r.sankeySub));
+    });
+    pos.forEach((r) => {
+      add(subDestName(r.sankeySuper, r.sankeySub));
+    });
   }
 
   // Build links
   const links: SankeyLink[] = [];
+  /**
+   * Safely reads `N_Clients` from a row, clamped to non-negative.
+   *
+   * @param {import('./asset-flows-to-sankey.util').AssetFlowRecord} r Row to read.
+   * @returns {number} Non-negative client count (0 when missing).
+   */
   const rowNc = (r: AssetFlowRecord): number => Math.max(0, r.N_Clients ?? 0);
 
   // 0) SuperParent(Start) -> Parent(Start)
   const superParentOut: { [key: string]: number } = {};
   const superParentOutNc: { [key: string]: number } = {};
-  for (const r of neg) {
-    const key = `${r.__super}|${r.__parent}`;
+  neg.forEach((r) => {
+    const key = `${r.sankeySuper}|${r.sankeyParent}`;
     superParentOut[key] = (superParentOut[key] || 0) + Math.abs(r.Asset_Flow_Value);
     superParentOutNc[key] = (superParentOutNc[key] || 0) + rowNc(r);
-  }
-  for (const [key, total] of Object.entries(superParentOut)) {
+  });
+  Object.entries(superParentOut).forEach(([key, total]) => {
     if (total > 0) {
       const [sp, p] = key.split('|');
       const nc = superParentOutNc[key] || 0;
@@ -506,11 +715,11 @@ export function convertAssetFlowsToSankey(
         ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
-  }
+  });
 
   if (skipSubLevel) {
     // Parent(Start) -> Pool (aggregated by sp, parent)
-    for (const [key, total] of Object.entries(superParentOut)) {
+    Object.entries(superParentOut).forEach(([key, total]) => {
       if (total > 0) {
         const [sp, p] = key.split('|');
         const nc = superParentOutNc[key] || 0;
@@ -521,7 +730,7 @@ export function convertAssetFlowsToSankey(
           ...(nc > 0 ? { nClientsTotal: nc } : {}),
         });
       }
-    }
+    });
   } else {
     // Aggregate parallel leaf edges by (source, target). One link per raw row made link counts
     // equal to row count (×2 per side), which froze the browser with d3-sankey + cascade prune.
@@ -531,7 +740,28 @@ export function convertAssetFlowsToSankey(
       date?: string;
       hasDateConflict: boolean;
     };
+    /**
+     * Composes a stable map key from `source` and `target` node names. A NUL byte
+     * separator avoids collisions with any character that may appear in node names.
+     *
+     * @param {string} source Source node name.
+     * @param {string} target Target node name.
+     * @returns {string} Composite key suitable for use in a Map.
+     */
     const leafEdgeKey = (source: string, target: string) => `${source}\0${target}`;
+    /**
+     * Adds a row's contribution to an aggregated leaf edge. Sums `value` and
+     * `nClientsTotal` and tracks `date` only while it is unambiguous (clears it
+     * on conflict so it doesn't lie about a single-date provenance).
+     *
+     * @param {Object} map Aggregator keyed by `leafEdgeKey`.
+     * @param {string} source Source node name.
+     * @param {string} target Target node name.
+     * @param {number} value Magnitude to add (already positive).
+     * @param {number} nc Client count to add (0 to ignore).
+     * @param {string | undefined} [date] Row's `Asset_Flow_Date`, when available.
+     * @returns {void}
+     */
     const bumpLeafEdge = (
       map: Map<string, LeafEdgeAgg>,
       source: string,
@@ -560,8 +790,15 @@ export function convertAssetFlowsToSankey(
       }
       map.set(k, cur);
     };
+    /**
+     * Emits aggregated leaf edges into the outer `links` array.
+     *
+     * @param {Object} map Aggregator produced by `bumpLeafEdge`.
+     * @param {boolean} includeDate When true, copy the unambiguous `date` to the link.
+     * @returns {void}
+     */
     const flushLeafEdges = (map: Map<string, LeafEdgeAgg>, includeDate: boolean): void => {
-      for (const [k, a] of map) {
+      map.forEach((a, k) => {
         const sep = k.indexOf('\0');
         const source = k.slice(0, sep);
         const target = k.slice(sep + 1);
@@ -577,24 +814,24 @@ export function convertAssetFlowsToSankey(
           rec.date = a.date;
         }
         links.push(rec);
-      }
+      });
     };
 
     const negStartToSub = new Map<string, LeafEdgeAgg>();
     const negSubToPool = new Map<string, LeafEdgeAgg>();
-    for (const r of neg) {
+    neg.forEach((r) => {
       const nc = rowNc(r);
       const v = Math.abs(r.Asset_Flow_Value);
       bumpLeafEdge(
         negStartToSub,
-        parentStartName(r.__super, r.__parent),
-        subSourceName(r.__super, r.__sub),
+        parentStartName(r.sankeySuper, r.sankeyParent),
+        subSourceName(r.sankeySuper, r.sankeySub),
         v,
         nc,
         r.Asset_Flow_Date
       );
-      bumpLeafEdge(negSubToPool, subSourceName(r.__super, r.__sub), poolName(r.__super), v, nc);
-    }
+      bumpLeafEdge(negSubToPool, subSourceName(r.sankeySuper, r.sankeySub), poolName(r.sankeySuper), v, nc);
+    });
     flushLeafEdges(negStartToSub, true);
     flushLeafEdges(negSubToPool, false);
   }
@@ -602,14 +839,16 @@ export function convertAssetFlowsToSankey(
   // 3) Capital Out / Capital In (PER SUPERPARENT)
   const netBySp: { [key: string]: number } = {};
 
-  for (const r of pos) {
-    netBySp[r.__super] = (netBySp[r.__super] || 0) + r.Asset_Flow_Value;
-  }
-  for (const r of neg) {
-    netBySp[r.__super] = (netBySp[r.__super] || 0) - Math.abs(r.Asset_Flow_Value);
-  }
+  pos.forEach((r) => {
+    netBySp[r.sankeySuper] = (netBySp[r.sankeySuper] || 0) + r.Asset_Flow_Value;
+  });
+  neg.forEach((r) => {
+    netBySp[r.sankeySuper] = (netBySp[r.sankeySuper] || 0) - Math.abs(r.Asset_Flow_Value);
+  });
 
-  for (const [sp, net] of Object.entries(netBySp).sort()) {
+  Object.entries(netBySp)
+    .sort()
+    .forEach(([sp, net]) => {
     if (net > 1e-9) {
       const nnName = `Capital In (${sp})`;
       const capInSuper = capitalInSuperName(sp);
@@ -649,18 +888,18 @@ export function convertAssetFlowsToSankey(
         value: Math.abs(net),
       });
     }
-  }
+  });
 
   if (skipSubLevel) {
     // Pool -> Parent(End) (aggregated by sp, parent)
     const superParentInAgg: { [key: string]: number } = {};
     const superParentInAggNc: { [key: string]: number } = {};
-    for (const r of pos) {
-      const key = `${r.__super}|${r.__parent}`;
+    pos.forEach((r) => {
+      const key = `${r.sankeySuper}|${r.sankeyParent}`;
       superParentInAgg[key] = (superParentInAgg[key] || 0) + r.Asset_Flow_Value;
       superParentInAggNc[key] = (superParentInAggNc[key] || 0) + rowNc(r);
-    }
-    for (const [key, total] of Object.entries(superParentInAgg)) {
+    });
+    Object.entries(superParentInAgg).forEach(([key, total]) => {
       if (total > 0) {
         const [sp, p] = key.split('|');
         const nc = superParentInAggNc[key] || 0;
@@ -671,7 +910,7 @@ export function convertAssetFlowsToSankey(
           ...(nc > 0 ? { nClientsTotal: nc } : {}),
         });
       }
-    }
+    });
   } else {
     type LeafEdgeAgg = {
       value: number;
@@ -679,7 +918,27 @@ export function convertAssetFlowsToSankey(
       date?: string;
       hasDateConflict: boolean;
     };
+    /**
+     * Composes a stable map key from `source` and `target` node names. A NUL byte
+     * separator avoids collisions with any character that may appear in node names.
+     *
+     * @param {string} source Source node name.
+     * @param {string} target Target node name.
+     * @returns {string} Composite key suitable for use in a Map.
+     */
     const leafEdgeKey = (source: string, target: string) => `${source}\0${target}`;
+    /**
+     * Adds a row's contribution to an aggregated leaf edge (inflow side). Sums
+     * `value` and `nClientsTotal` and tracks `date` only while it is unambiguous.
+     *
+     * @param {Object} map Aggregator keyed by `leafEdgeKey`.
+     * @param {string} source Source node name.
+     * @param {string} target Target node name.
+     * @param {number} value Magnitude to add (already positive).
+     * @param {number} nc Client count to add (0 to ignore).
+     * @param {string | undefined} [date] Row's `Asset_Flow_Date`, when available.
+     * @returns {void}
+     */
     const bumpLeafEdge = (
       map: Map<string, LeafEdgeAgg>,
       source: string,
@@ -708,8 +967,15 @@ export function convertAssetFlowsToSankey(
       }
       map.set(k, cur);
     };
+    /**
+     * Emits aggregated leaf edges into the outer `links` array.
+     *
+     * @param {Object} map Aggregator produced by `bumpLeafEdge`.
+     * @param {boolean} includeDate When true, copy the unambiguous `date` to the link.
+     * @returns {void}
+     */
     const flushLeafEdges = (map: Map<string, LeafEdgeAgg>, includeDate: boolean): void => {
-      for (const [k, a] of map) {
+      map.forEach((a, k) => {
         const sep = k.indexOf('\0');
         const source = k.slice(0, sep);
         const target = k.slice(sep + 1);
@@ -725,24 +991,24 @@ export function convertAssetFlowsToSankey(
           rec.date = a.date;
         }
         links.push(rec);
-      }
+      });
     };
 
     const posPoolToSub = new Map<string, LeafEdgeAgg>();
     const posSubToEnd = new Map<string, LeafEdgeAgg>();
-    for (const r of pos) {
+    pos.forEach((r) => {
       const nc = rowNc(r);
       const v = r.Asset_Flow_Value;
-      bumpLeafEdge(posPoolToSub, poolName(r.__super), subDestName(r.__super, r.__sub), v, nc);
+      bumpLeafEdge(posPoolToSub, poolName(r.sankeySuper), subDestName(r.sankeySuper, r.sankeySub), v, nc);
       bumpLeafEdge(
         posSubToEnd,
-        subDestName(r.__super, r.__sub),
-        parentEndName(r.__super, r.__parent),
+        subDestName(r.sankeySuper, r.sankeySub),
+        parentEndName(r.sankeySuper, r.sankeyParent),
         v,
         nc,
         r.Asset_Flow_Date
       );
-    }
+    });
     flushLeafEdges(posPoolToSub, false);
     flushLeafEdges(posSubToEnd, true);
   }
@@ -750,12 +1016,12 @@ export function convertAssetFlowsToSankey(
   // 6) Parent(End) -> SuperParent(End)
   const superParentIn: { [key: string]: number } = {};
   const superParentInNc: { [key: string]: number } = {};
-  for (const r of pos) {
-    const key = `${r.__super}|${r.__parent}`;
+  pos.forEach((r) => {
+    const key = `${r.sankeySuper}|${r.sankeyParent}`;
     superParentIn[key] = (superParentIn[key] || 0) + r.Asset_Flow_Value;
     superParentInNc[key] = (superParentInNc[key] || 0) + rowNc(r);
-  }
-  for (const [key, total] of Object.entries(superParentIn)) {
+  });
+  Object.entries(superParentIn).forEach(([key, total]) => {
     if (total > 0) {
       const [sp, p] = key.split('|');
       const nc = superParentInNc[key] || 0;
@@ -766,30 +1032,32 @@ export function convertAssetFlowsToSankey(
         ...(nc > 0 ? { nClientsTotal: nc } : {}),
       });
     }
-  }
+  });
 
   // ------- Summary statistics -------
   const totalNeg = neg.reduce((sum, r) => sum + r.Asset_Flow_Value, 0); // negative number
 
   const parentFlows: { [key: string]: { outflow: number; inflow: number } } = {};
 
-  for (const r of neg) {
-    const key = `${r.__super}|${r.__parent}`;
+  neg.forEach((r) => {
+    const key = `${r.sankeySuper}|${r.sankeyParent}`;
     if (!parentFlows[key]) {
       parentFlows[key] = { outflow: 0, inflow: 0 };
     }
     parentFlows[key].outflow += Math.abs(r.Asset_Flow_Value);
-  }
-  for (const r of pos) {
-    const key = `${r.__super}|${r.__parent}`;
+  });
+  pos.forEach((r) => {
+    const key = `${r.sankeySuper}|${r.sankeyParent}`;
     if (!parentFlows[key]) {
       parentFlows[key] = { outflow: 0, inflow: 0 };
     }
     parentFlows[key].inflow += r.Asset_Flow_Value;
-  }
+  });
 
   const parentsSummary: ParentSummary[] = [];
-  for (const [key, stats] of Object.entries(parentFlows).sort()) {
+  Object.entries(parentFlows)
+    .sort()
+    .forEach(([key, stats]) => {
     const [sp, p] = key.split('|');
     parentsSummary.push({
       superparent: sp,
@@ -798,40 +1066,44 @@ export function convertAssetFlowsToSankey(
       inflow: stats.inflow,
       net: stats.inflow - stats.outflow,
     });
-  }
+  });
 
   const superparentFlows: { [key: string]: { outflow: number; inflow: number } } = {};
 
-  for (const r of neg) {
-    if (!superparentFlows[r.__super]) {
-      superparentFlows[r.__super] = { outflow: 0, inflow: 0 };
+  neg.forEach((r) => {
+    if (!superparentFlows[r.sankeySuper]) {
+      superparentFlows[r.sankeySuper] = { outflow: 0, inflow: 0 };
     }
-    superparentFlows[r.__super].outflow += Math.abs(r.Asset_Flow_Value);
-  }
-  for (const r of pos) {
-    if (!superparentFlows[r.__super]) {
-      superparentFlows[r.__super] = { outflow: 0, inflow: 0 };
+    superparentFlows[r.sankeySuper].outflow += Math.abs(r.Asset_Flow_Value);
+  });
+  pos.forEach((r) => {
+    if (!superparentFlows[r.sankeySuper]) {
+      superparentFlows[r.sankeySuper] = { outflow: 0, inflow: 0 };
     }
-    superparentFlows[r.__super].inflow += r.Asset_Flow_Value;
-  }
+    superparentFlows[r.sankeySuper].inflow += r.Asset_Flow_Value;
+  });
 
   const superparentsSummary: SuperParentSummary[] = [];
-  for (const [sp, stats] of Object.entries(superparentFlows).sort()) {
+  Object.entries(superparentFlows)
+    .sort()
+    .forEach(([sp, stats]) => {
     superparentsSummary.push({
       superparent: sp,
       outflow: stats.outflow,
       inflow: stats.inflow,
       net: stats.inflow - stats.outflow,
     });
-  }
+  });
 
   const superparentNetNew: SuperParentNetNew[] = [];
-  for (const [sp, net] of Object.entries(netBySp).sort()) {
+  Object.entries(netBySp)
+    .sort()
+    .forEach(([sp, net]) => {
     superparentNetNew.push({
       superparent: sp,
       net_new_capital: net,
     });
-  }
+  });
 
   const summary: SankeySummary = {
     total_positive: totalPos,
