@@ -1,4 +1,3 @@
-/* eslint-disable */
 import type { HistoricDataAnchor } from './historic-time-horizon-anchor.util';
 import { formatTimeHorizonSliderHandleDate } from './time-horizon-slider-tooltip-date.util';
 

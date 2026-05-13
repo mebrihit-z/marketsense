@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 /** One fraction digit, stable (avoids 184.80000000003-style float rendering). */
 function formatOneDecimalString(n: number): string {
   return n.toFixed(1);

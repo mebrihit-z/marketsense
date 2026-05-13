@@ -1,4 +1,3 @@
-/* eslint-disable */
 /** Preset stops for global min/max flow filter (values in billions). Shared by filters bar, Sankey, and Treemap. */
 export const MIN_FLOW_VALUE_OPTIONS: { value: number; label: string }[] = [
   { value: 0, label: 'All flows' },
@@ -21,17 +20,23 @@ export interface MinFlowRangeSelection {
   endIndex: number;
 }
 
+/**
+ * Default range covering every min-flow option (full slider span).
+ * @returns {{ startIndex: number, endIndex: number }} Full-span selection from the first through last option index.
+ */
 export function createDefaultMinFlowRange(): MinFlowRangeSelection {
   const n = MIN_FLOW_VALUE_OPTIONS.length;
   return { startIndex: 0, endIndex: Math.max(0, n - 1) };
 }
 
-/** Bump when {@link MIN_FLOW_VALUE_OPTIONS} indices change for persisted {@link MinFlowRangeSelection}. */
+/** Bump when `MIN_FLOW_VALUE_OPTIONS` indices change for persisted `MinFlowRangeSelection`. */
 export const MIN_FLOW_VALUE_OPTIONS_VERSION = 2;
 
 /**
  * Legacy saved views used indices into the list before the ≥ $10M stop was inserted at index 1.
  * Indices ≥ 1 referred to dollar thresholds and must shift by +1.
+ * @param {{ startIndex: number, endIndex: number }} range Persisted selection using v1 indexing.
+ * @returns {{ startIndex: number, endIndex: number }} Range with indices aligned to the current option list.
  */
 export function migrateMinFlowRangeIndicesV1ToV2(range: MinFlowRangeSelection): MinFlowRangeSelection {
   const bump = (i: number) => (i >= 1 ? i + 1 : i);
@@ -41,6 +46,12 @@ export function migrateMinFlowRangeIndicesV1ToV2(range: MinFlowRangeSelection): 
   };
 }
 
+/**
+ * Lower bound (billions) at the range start index.
+ * @param {{ startIndex: number, endIndex: number }} range Selected slider span.
+ * @param {ReadonlyArray<{ value: number, label: string }>} [options] Threshold stops; defaults to `MIN_FLOW_VALUE_OPTIONS`.
+ * @returns {number} Lower bound in billions at `range.startIndex`, or 0 if missing.
+ */
 export function getMinFlowLowerBound(
   range: MinFlowRangeSelection,
   options: readonly { value: number; label: string }[] = MIN_FLOW_VALUE_OPTIONS
@@ -48,6 +59,12 @@ export function getMinFlowLowerBound(
   return options[range.startIndex]?.value ?? 0;
 }
 
+/**
+ * Exclusive upper cap in billions, or null when the end handle is at the last option (unbounded / Max).
+ * @param {{ startIndex: number, endIndex: number }} range Selected slider span.
+ * @param {ReadonlyArray<{ value: number, label: string }>} [options] Threshold stops; defaults to `MIN_FLOW_VALUE_OPTIONS`.
+ * @returns {number|null} Exclusive upper cap in billions, or null when the end handle is at the last stop.
+ */
 export function getMaxFlowUpperBound(
   range: MinFlowRangeSelection,
   options: readonly { value: number; label: string }[] = MIN_FLOW_VALUE_OPTIONS
@@ -59,8 +76,10 @@ export function getMaxFlowUpperBound(
 }
 
 /**
- * Lower-handle summary text (matches {@link MinFlowRangeSliderComponent} start label).
+ * Lower-handle summary text (matches `MinFlowRangeSliderComponent` start label).
  * Strips a leading "≥" from option copy; maps "All flows" to "$0".
+ * @param {string} rawLabel Option label from the min-flow options list.
+ * @returns {string} Display string for the lower handle (e.g. "$0" for All flows).
  */
 export function displayMinFlowStartLabel(rawLabel: string): string {
   const cleaned = (rawLabel ?? '').replace(/^\s*≥\s*/u, '').trim();
@@ -69,11 +88,11 @@ export function displayMinFlowStartLabel(rawLabel: string): string {
 }
 
 /**
- * Upper-handle summary: inclusive max in $M / $B, or "Max" when the end handle is at the last stop.
- */
-/**
  * Milestone stops shown on the Value Range rail in the filters bar (compact slider).
  * Labels match design: 0, 10M, 100M, 500M, 5B, 50B, Max — positioned at matching option indices.
+ * @param {ReadonlyArray<{ value: number, label: string }>} options Flow threshold stops.
+ * @param {number} numSteps Number of slider steps (for percent positions along the rail).
+ * @returns {Array<{ index: number, label: string, leftPercent: number }>} Milestone markers sorted by option index.
  */
 export function getMinFlowRailLabelStops(
   options: readonly { value: number; label: string }[],
@@ -94,7 +113,7 @@ export function getMinFlowRailLabelStops(
   const out: Array<{ index: number; label: string; leftPercent: number }> = [];
   const seen = new Set<number>();
 
-  for (const m of milestones) {
+  milestones.forEach((m) => {
     const idx = options.findIndex((o) => o.value === m.value);
     if (idx >= 0 && !seen.has(idx)) {
       seen.add(idx);
@@ -104,7 +123,7 @@ export function getMinFlowRailLabelStops(
         leftPercent: numSteps > 0 ? (idx / numSteps) * 100 : 0,
       });
     }
-  }
+  });
 
   if (!seen.has(last)) {
     out.push({
@@ -117,6 +136,12 @@ export function getMinFlowRailLabelStops(
   return out.sort((a, b) => a.index - b.index);
 }
 
+/**
+ * Upper-handle summary: inclusive max in $M / $B, or "Max" when the end handle is at the last stop.
+ * @param {ReadonlyArray<{ value: number, label: string }>} options Flow threshold stops.
+ * @param {number} endIndex Selected end stop index.
+ * @returns {string} Display string for the upper handle ("Max", $M, or $B).
+ */
 export function displayMinFlowEndLabel(
   options: readonly { value: number; label: string }[],
   endIndex: number

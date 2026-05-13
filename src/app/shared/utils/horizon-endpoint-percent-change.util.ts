@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * Net flow at horizon start vs end: ((New − Old) / Old) × 100.
  * When the start baseline is exactly 0 and the delta is non-zero, returns ±Infinity (no finite ratio).
