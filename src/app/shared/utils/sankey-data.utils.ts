@@ -1,14 +1,20 @@
-/* eslint-disable */
+/* eslint-disable max-lines */
 /**
  * Utility functions for extracting data from Sankey diagram data structures
  */
 
-import type { SankeyData, SankeyLink, SankeyNode } from './asset-flows-to-sankey.util';
+import type { SankeyData, SankeyLink, SankeyNode, SankeySummary } from './asset-flows-to-sankey.util';
 
 // Re-export for backward compatibility
 export type { SankeyData, SankeyLink };
 export type SankeyDataNode = SankeyNode;
 
+/**
+ * One product type bucket with its component sub-types (filters / UI).
+ *
+ * @property {string} productType - Product type label
+ * @property {string[]} subTypes - Sorted unique sub-type labels under this type
+ */
 export interface ProductTypeGroup {
   productType: string;
   subTypes: string[];
@@ -18,9 +24,9 @@ export interface ProductTypeGroup {
  * Extracts unique product sub-types from Sankey data nodes.
  * Product sub-types are identified by nodes that contain "(Source)" or "(Destination)" in their names.
  * The function extracts the product sub-type name by removing the region prefix and the "(Source)" or "(Destination)" suffix.
- * 
- * @param data - The Sankey data object containing nodes array
- * @returns Array of unique product sub-type names, sorted alphabetically
+ *
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - The Sankey data object containing nodes array
+ * @returns {string[]} Array of unique product sub-type names, sorted alphabetically
  * 
  * @example
  * const subTypes = extractProductSubTypes(sankeyData);
@@ -55,9 +61,9 @@ export function extractProductSubTypes(data: SankeyData): string[] {
 /**
  * Extracts product types from Sankey data nodes.
  * Product types are identified by nodes that contain "(End)" in their names.
- * 
- * @param data - The Sankey data object containing nodes array
- * @returns Array of unique product type names, sorted alphabetically
+ *
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - The Sankey data object containing nodes array
+ * @returns {string[]} Array of unique product type names, sorted alphabetically
  * 
  * @example
  * const productTypes = extractProductTypes(sankeyData);
@@ -90,14 +96,127 @@ export function extractProductTypes(data: SankeyData): string[] {
 }
 
 /**
+ * Builds maps from Start/End node display names to their product type labels.
+ *
+ * @param {Array<import('./asset-flows-to-sankey.util').SankeyNode>} nodes - All Sankey nodes from diagram data
+ * @returns {{ startNodeToProductType: Map<string, string>; endNodeToProductType: Map<string, string> }}
+ *   Maps keyed by full node name (`Region: Type (Start|End)`)
+ */
+function collectStartAndEndNodeProductTypes(nodes: SankeyNode[]): {
+  startNodeToProductType: Map<string, string>;
+  endNodeToProductType: Map<string, string>;
+} {
+  const startNodeToProductType = new Map<string, string>();
+  const endNodeToProductType = new Map<string, string>();
+  nodes.forEach(node => {
+    const name = node.name;
+    if (name.includes('(Start)')) {
+      const match = name.match(/:\s*(.+?)\s*\(Start\)/);
+      if (match?.[1]) {
+        startNodeToProductType.set(name, match[1].trim());
+      }
+    } else if (name.includes('(End)')) {
+      const match = name.match(/:\s*(.+?)\s*\(End\)/);
+      if (match?.[1]) {
+        endNodeToProductType.set(name, match[1].trim());
+      }
+    }
+  });
+  return { startNodeToProductType, endNodeToProductType };
+}
+
+/**
+ * Maps product sub-types (Destination nodes) to product types via links to End nodes.
+ *
+ * @param {ReadonlyArray<import('./asset-flows-to-sankey.util').SankeyLink>} links - Sankey links
+ * @param {Map<string, string>} endNodeToProductType - End node name → product type
+ * @param {Map<string, string>} subTypeToProductType - Map to mutate (sub-type → product type)
+ * @returns {void}
+ */
+function mergeDestinationSubTypeMappings(
+  links: readonly SankeyLink[],
+  endNodeToProductType: Map<string, string>,
+  subTypeToProductType: Map<string, string>
+): void {
+  links.forEach(link => {
+    const source = typeof link.source === 'string' ? link.source : '';
+    const target = typeof link.target === 'string' ? link.target : '';
+    if (source.includes('(Destination)') && endNodeToProductType.has(target)) {
+      const match = source.match(/:\s*(.+?)\s*\(Destination\)/);
+      if (match?.[1]) {
+        const subType = match[1].trim();
+        const productType = endNodeToProductType.get(target);
+        if (productType !== undefined) {
+          subTypeToProductType.set(subType, productType);
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Maps product sub-types (Source nodes) to product types via links from Start nodes.
+ * Does not overwrite entries already set from destination-side mapping.
+ *
+ * @param {ReadonlyArray<import('./asset-flows-to-sankey.util').SankeyLink>} links - Sankey links
+ * @param {Map<string, string>} startNodeToProductType - Start node name → product type
+ * @param {Map<string, string>} subTypeToProductType - Map to mutate (sub-type → product type)
+ * @returns {void}
+ */
+function mergeSourceSubTypeMappings(
+  links: readonly SankeyLink[],
+  startNodeToProductType: Map<string, string>,
+  subTypeToProductType: Map<string, string>
+): void {
+  links.forEach(link => {
+    const source = typeof link.source === 'string' ? link.source : '';
+    const target = typeof link.target === 'string' ? link.target : '';
+    if (target.includes('(Source)') && startNodeToProductType.has(source)) {
+      const match = target.match(/:\s*(.+?)\s*\(Source\)/);
+      if (match?.[1]) {
+        const subType = match[1].trim();
+        const productType = startNodeToProductType.get(source);
+        if (productType !== undefined && !subTypeToProductType.has(subType)) {
+          subTypeToProductType.set(subType, productType);
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Groups sub-type labels under product types and sorts for stable UI ordering.
+ *
+ * @param {Map<string, string>} subTypeToProductType - Product sub-type → product type
+ * @returns {Array<{productType: string, subTypes: string[]}>} Sorted groups with sorted `subTypes` arrays
+ */
+function productTypeGroupsFromSubTypeMap(subTypeToProductType: Map<string, string>): ProductTypeGroup[] {
+  const groupedMap = new Map<string, Set<string>>();
+  Array.from(subTypeToProductType.entries()).forEach(([subType, productType]) => {
+    let subTypesSet = groupedMap.get(productType);
+    if (!subTypesSet) {
+      subTypesSet = new Set();
+      groupedMap.set(productType, subTypesSet);
+    }
+    subTypesSet.add(subType);
+  });
+  return Array.from(groupedMap.entries())
+    .map(([productType, subTypesSet]) => ({
+      productType,
+      subTypes: Array.from(subTypesSet).sort()
+    }))
+    .sort((a, b) => a.productType.localeCompare(b.productType));
+}
+
+/**
  * Groups product sub-types by their product types using the links in the Sankey data.
  * This function traces the relationships:
  * - Destination nodes -> End nodes (direct mapping)
  * - Source nodes -> Start nodes (which have the same product type as End nodes)
- * 
- * @param data - The Sankey data object containing nodes and links
- * @returns Array of ProductTypeGroup objects, each containing a product type and its sub-types
- * 
+ *
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - The Sankey data object containing nodes and links
+ * @returns {Array<{productType: string, subTypes: string[]}>} Array of product-type groups, each with a type and its sub-types
+ *
  * @example
  * const groups = extractProductSubTypesByType(sankeyData);
  * // Returns: [
@@ -107,95 +226,23 @@ export function extractProductTypes(data: SankeyData): string[] {
  * // ]
  */
 export function extractProductSubTypesByType(data: SankeyData): ProductTypeGroup[] {
-  if (!data || !data.nodes || !Array.isArray(data.nodes) || !data.links || !Array.isArray(data.links)) {
+  if (!data?.nodes || !Array.isArray(data.nodes) || !data.links || !Array.isArray(data.links)) {
     return [];
   }
-
-  // Step 1: Extract product types from Start and End nodes
-  // Start and End nodes have the format: "Region: ProductType (Start/End)"
-  const startNodeToProductType = new Map<string, string>();
-  const endNodeToProductType = new Map<string, string>();
-  
-  data.nodes.forEach(node => {
-    const name = node.name;
-    
-    if (name.includes('(Start)')) {
-      const match = name.match(/:\s*(.+?)\s*\(Start\)/);
-      if (match && match[1]) {
-        startNodeToProductType.set(name, match[1].trim());
-      }
-    } else if (name.includes('(End)')) {
-      const match = name.match(/:\s*(.+?)\s*\(End\)/);
-      if (match && match[1]) {
-        endNodeToProductType.set(name, match[1].trim());
-      }
-    }
-  });
-
-  // Step 2: Map sub-types to product types
+  const { startNodeToProductType, endNodeToProductType } = collectStartAndEndNodeProductTypes(data.nodes);
   const subTypeToProductType = new Map<string, string>();
-  
-  // Process Destination nodes: they link directly to End nodes
-  data.links.forEach(link => {
-    const source = typeof link.source === 'string' ? link.source : '';
-    const target = typeof link.target === 'string' ? link.target : '';
-    
-    if (source.includes('(Destination)') && endNodeToProductType.has(target)) {
-      const match = source.match(/:\s*(.+?)\s*\(Destination\)/);
-      if (match && match[1]) {
-        const subType = match[1].trim();
-        const productType = endNodeToProductType.get(target)!;
-        subTypeToProductType.set(subType, productType);
-      }
-    }
-  });
-  
-  // Process Source nodes: they link from Start nodes
-  data.links.forEach(link => {
-    const source = typeof link.source === 'string' ? link.source : '';
-    const target = typeof link.target === 'string' ? link.target : '';
-    
-    if (target.includes('(Source)') && startNodeToProductType.has(source)) {
-      const match = target.match(/:\s*(.+?)\s*\(Source\)/);
-      if (match && match[1]) {
-        const subType = match[1].trim();
-        const productType = startNodeToProductType.get(source)!;
-        // Only add if not already mapped (Destination nodes take precedence for duplicates)
-        if (!subTypeToProductType.has(subType)) {
-          subTypeToProductType.set(subType, productType);
-        }
-      }
-    }
-  });
-
-  // Step 3: Group sub-types by product type
-  const groupedMap = new Map<string, Set<string>>();
-  
-  subTypeToProductType.forEach((productType, subType) => {
-    if (!groupedMap.has(productType)) {
-      groupedMap.set(productType, new Set());
-    }
-    groupedMap.get(productType)!.add(subType);
-  });
-
-  // Step 4: Convert to array format and sort
-  const result: ProductTypeGroup[] = Array.from(groupedMap.entries())
-    .map(([productType, subTypesSet]) => ({
-      productType,
-      subTypes: Array.from(subTypesSet).sort()
-    }))
-    .sort((a, b) => a.productType.localeCompare(b.productType));
-
-  return result;
+  mergeDestinationSubTypeMappings(data.links, endNodeToProductType, subTypeToProductType);
+  mergeSourceSubTypeMappings(data.links, startNodeToProductType, subTypeToProductType);
+  return productTypeGroupsFromSubTypeMap(subTypeToProductType);
 }
 
 /**
  * Extracts unique investor regions from Sankey data summary.
  * Investor regions are identified from the summary.superparents array.
- * 
- * @param data - The Sankey data object containing summary with superparents array
- * @returns Array of unique investor region names, sorted alphabetically
- * 
+ *
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - The Sankey data object containing summary with superparents array
+ * @returns {string[]} Array of unique investor region names, sorted alphabetically
+ *
  * @example
  * const investorRegions = extractInvestorRegions(sankeyData);
  * // Returns: ["United Kingdom", "United States"]
@@ -207,7 +254,7 @@ export function extractInvestorRegions(data: SankeyData): string[] {
 
   const regions = new Set<string>();
 
-  data.summary.superparents.forEach((item: any) => {
+  data.summary.superparents.forEach((item: SankeySummary['superparents'][number]) => {
     if (item && item.superparent && typeof item.superparent === 'string') {
       regions.add(item.superparent.trim());
     }
@@ -220,9 +267,9 @@ export function extractInvestorRegions(data: SankeyData): string[] {
 /**
  * Extracts the investor region from a node name.
  * Node names have the format: "Region: ..." or "Capital In (Region)"
- * 
- * @param nodeName - The node name to extract the region from
- * @returns The investor region name, or null if not found
+ *
+ * @param {string} nodeName - The node name to extract the region from
+ * @returns {string | null} The investor region name, or null if not found
  */
 export function extractRegionFromNodeName(nodeName: string): string | null {
   // Check for "Capital In (Region)" format
@@ -255,9 +302,9 @@ export function extractRegionFromNodeName(nodeName: string): string | null {
 /**
  * Extracts the product type from a node name.
  * Product types are found in nodes with "(End)" or "(Start)" suffixes.
- * 
- * @param nodeName - The node name to extract the product type from
- * @returns The product type name, or null if not found
+ *
+ * @param {string} nodeName - The node name to extract the product type from
+ * @returns {string | null} The product type name, or null if not found
  */
 export function extractProductTypeFromNodeName(nodeName: string): string | null {
   // Check for "Region: ProductType (End)" or "Region: ProductType (Start)" format
@@ -272,9 +319,9 @@ export function extractProductTypeFromNodeName(nodeName: string): string | null 
 /**
  * Extracts the product sub-type from a node name.
  * Product sub-types are found in nodes with "(Source)" or "(Destination)" suffixes.
- * 
- * @param nodeName - The node name to extract the product sub-type from
- * @returns The product sub-type name, or null if not found
+ *
+ * @param {string} nodeName - The node name to extract the product sub-type from
+ * @returns {string | null} The product sub-type name, or null if not found
  */
 export function extractProductSubTypeFromNodeName(nodeName: string): string | null {
   // Check for "Region: ProductSubType (Source)" or "Region: ProductSubType (Destination)" format
@@ -286,15 +333,213 @@ export function extractProductSubTypeFromNodeName(nodeName: string): string | nu
   return null;
 }
 
+type SankeyNodeFilterContext = {
+  hasInvestorRegionFilter: boolean;
+  regionsToFilter: string[];
+  hasProductTypeFilter: boolean;
+  selectedProductTypes: string[];
+  hasProductSubTypeFilter: boolean;
+  selectedProductSubTypes: string[];
+};
+
+function sankeyNodePassesRegionAndProductFilters(
+  ctx: SankeyNodeFilterContext,
+  nodeName: string,
+  checkProductType: boolean,
+  checkProductSubType: boolean
+): boolean {
+  if (ctx.hasInvestorRegionFilter) {
+    const region = extractRegionFromNodeName(nodeName);
+    if (!region || !ctx.regionsToFilter.includes(region)) {
+      return false;
+    }
+  }
+  if (
+    checkProductType &&
+    ctx.hasProductTypeFilter &&
+    (nodeName.includes('(Start)') || nodeName.includes('(End)'))
+  ) {
+    const productType = extractProductTypeFromNodeName(nodeName);
+    if (!productType || !ctx.selectedProductTypes.includes(productType)) {
+      return false;
+    }
+  }
+  if (
+    checkProductSubType &&
+    ctx.hasProductSubTypeFilter &&
+    (nodeName.includes('(Source)') || nodeName.includes('(Destination)'))
+  ) {
+    const productSubType = extractProductSubTypeFromNodeName(nodeName);
+    if (!productSubType || !ctx.selectedProductSubTypes.includes(productSubType)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function addSankeyNodesFromDirectFilterPass(
+  nodes: SankeyNode[],
+  ctx: SankeyNodeFilterContext,
+  out: Set<string>
+): void {
+  nodes.forEach(node => {
+    const nodeName = node.name;
+    let matches = true;
+    if (ctx.hasInvestorRegionFilter) {
+      const region = extractRegionFromNodeName(nodeName);
+      if (!region || !ctx.regionsToFilter.includes(region)) {
+        matches = false;
+      }
+    }
+    if (
+      matches &&
+      ctx.hasProductTypeFilter &&
+      (nodeName.includes('(Start)') || nodeName.includes('(End)'))
+    ) {
+      const productType = extractProductTypeFromNodeName(nodeName);
+      if (!productType || !ctx.selectedProductTypes.includes(productType)) {
+        matches = false;
+      }
+    }
+    if (
+      matches &&
+      ctx.hasProductSubTypeFilter &&
+      (nodeName.includes('(Source)') || nodeName.includes('(Destination)'))
+    ) {
+      const productSubType = extractProductSubTypeFromNodeName(nodeName);
+      if (!productSubType || !ctx.selectedProductSubTypes.includes(productSubType)) {
+        matches = false;
+      }
+    }
+    if (matches) {
+      out.add(nodeName);
+    }
+  });
+}
+
+function addSankeyStructuralNodesForFilteredRegions(
+  nodes: SankeyNode[],
+  ctx: SankeyNodeFilterContext,
+  out: Set<string>
+): void {
+  nodes.forEach(node => {
+    const nodeName = node.name;
+    const region = extractRegionFromNodeName(nodeName);
+    if (!region || !ctx.regionsToFilter.includes(region)) {
+      return;
+    }
+    if (
+      nodeName.includes('Super Start') ||
+      nodeName.includes('Super End') ||
+      nodeName.includes('Reallocation Pool') ||
+      nodeName.includes('Capital In') ||
+      nodeName.includes('Capital Out')
+    ) {
+      out.add(nodeName);
+    }
+    if (!ctx.hasProductTypeFilter && !ctx.hasProductSubTypeFilter) {
+      if (nodeName.includes('(Start)') || nodeName.includes('(End)')) {
+        out.add(nodeName);
+      }
+      if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) {
+        out.add(nodeName);
+      }
+    }
+  });
+}
+
+function collectSankeyDirectlyMatchingNodeNames(
+  data: SankeyData,
+  ctx: SankeyNodeFilterContext
+): Set<string> {
+  const directlyMatchingNodes = new Set<string>();
+  addSankeyNodesFromDirectFilterPass(data.nodes, ctx, directlyMatchingNodes);
+  if (ctx.hasInvestorRegionFilter) {
+    addSankeyStructuralNodesForFilteredRegions(data.nodes, ctx, directlyMatchingNodes);
+  }
+  return directlyMatchingNodes;
+}
+
+function sankeyExpansionTargetAllowed(ctx: SankeyNodeFilterContext, target: string): boolean {
+  if (
+    target.includes('Reallocation Pool') ||
+    target.includes('Capital In') ||
+    target.includes('Capital Out') ||
+    target.includes('Super Start') ||
+    target.includes('Super End')
+  ) {
+    return sankeyNodePassesRegionAndProductFilters(ctx, target, false, false);
+  }
+  if (target.includes('(Start)') || target.includes('(End)')) {
+    return sankeyNodePassesRegionAndProductFilters(ctx, target, true, false);
+  }
+  if (target.includes('(Source)') || target.includes('(Destination)')) {
+    return sankeyNodePassesRegionAndProductFilters(ctx, target, false, true);
+  }
+  return false;
+}
+
+function sankeyExpansionSourceAllowed(ctx: SankeyNodeFilterContext, source: string): boolean {
+  if (
+    source.includes('Reallocation Pool') ||
+    source.includes('Capital In') ||
+    source.includes('Capital Out') ||
+    source.includes('Super Start') ||
+    source.includes('Super End')
+  ) {
+    return sankeyNodePassesRegionAndProductFilters(ctx, source, false, false);
+  }
+  if (source.includes('(Start)') || source.includes('(End)')) {
+    return sankeyNodePassesRegionAndProductFilters(ctx, source, true, false);
+  }
+  if (source.includes('(Source)') || source.includes('(Destination)')) {
+    return sankeyNodePassesRegionAndProductFilters(ctx, source, false, true);
+  }
+  return false;
+}
+
+function expandSankeyFilterNodesFromLinks(
+  seedNames: Set<string>,
+  links: SankeyLink[],
+  ctx: SankeyNodeFilterContext,
+  maxIterations: number
+): Set<string> {
+  const nodesToInclude = new Set<string>(seedNames);
+  let changed = true;
+  let iterations = 0;
+  while (changed && iterations < maxIterations) {
+    changed = false;
+    iterations += 1;
+    for (let li = 0; li < links.length; li += 1) {
+      const link = links[li];
+      const source = typeof link.source === 'string' ? link.source : '';
+      const target = typeof link.target === 'string' ? link.target : '';
+      if (nodesToInclude.has(source) && !nodesToInclude.has(target)) {
+        if (sankeyExpansionTargetAllowed(ctx, target)) {
+          nodesToInclude.add(target);
+          changed = true;
+        }
+      }
+      if (nodesToInclude.has(target) && !nodesToInclude.has(source)) {
+        if (sankeyExpansionSourceAllowed(ctx, source)) {
+          nodesToInclude.add(source);
+          changed = true;
+        }
+      }
+    }
+  }
+  return nodesToInclude;
+}
+
 /**
  * Filters Sankey data based on selected investor regions, product types, and product sub-types.
  * Only nodes and links that match the selected filters are included in the result.
- * 
- * @param data - The Sankey data object to filter
- * @param selectedInvestorRegions - Array of selected investor region names (empty array means all regions)
- * @param selectedProductTypes - Array of selected product type names (empty array means all types)
- * @param selectedProductSubTypes - Array of selected product sub-type names (empty array means all sub-types)
- * @returns Filtered Sankey data object
+ *
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - The Sankey data object to filter
+ * @param {string[]} [selectedInvestorRegions] - Selected investor region names (empty means all regions)
+ * @param {string[]} [selectedProductTypes] - Selected product type names (empty means all types)
+ * @param {string[]} [selectedProductSubTypes] - Selected product sub-type names (empty means all sub-types)
+ * @returns {import('./asset-flows-to-sankey.util').SankeyData} Filtered Sankey data object
  */
 export function filterSankeyData(
   data: SankeyData,
@@ -305,206 +550,27 @@ export function filterSankeyData(
   if (!data || !data.nodes || !Array.isArray(data.nodes)) {
     return data;
   }
-
   const regionsToFilter = selectedInvestorRegions || [];
-
-  // If no filters are selected, return original data
-  const hasInvestorRegionFilter = regionsToFilter.length > 0;
-  const hasProductTypeFilter = selectedProductTypes.length > 0;
-  const hasProductSubTypeFilter = selectedProductSubTypes.length > 0;
-  
-  if (!hasInvestorRegionFilter && !hasProductTypeFilter && !hasProductSubTypeFilter) {
+  const ctx: SankeyNodeFilterContext = {
+    hasInvestorRegionFilter: regionsToFilter.length > 0,
+    regionsToFilter,
+    hasProductTypeFilter: selectedProductTypes.length > 0,
+    selectedProductTypes,
+    hasProductSubTypeFilter: selectedProductSubTypes.length > 0,
+    selectedProductSubTypes
+  };
+  if (!ctx.hasInvestorRegionFilter && !ctx.hasProductTypeFilter && !ctx.hasProductSubTypeFilter) {
     return data;
   }
-
-  // First pass: identify nodes that directly match filters
-  const directlyMatchingNodes = new Set<string>();
-  
-  data.nodes.forEach(node => {
-    const nodeName = node.name;
-    let matches = true;
-
-    // Check investor region filter
-    if (hasInvestorRegionFilter) {
-      const region = extractRegionFromNodeName(nodeName);
-      if (!region || !regionsToFilter.includes(region)) {
-        matches = false;
-      }
-    }
-
-    // Check product type filter (for Start/End nodes)
-    if (matches && hasProductTypeFilter && (nodeName.includes('(Start)') || nodeName.includes('(End)'))) {
-      const productType = extractProductTypeFromNodeName(nodeName);
-      if (!productType || !selectedProductTypes.includes(productType)) {
-        matches = false;
-      }
-    }
-
-    // Check product sub-type filter (for Source/Destination nodes)
-    if (matches && hasProductSubTypeFilter && (nodeName.includes('(Source)') || nodeName.includes('(Destination)'))) {
-      const productSubType = extractProductSubTypeFromNodeName(nodeName);
-      if (!productSubType || !selectedProductSubTypes.includes(productSubType)) {
-        matches = false;
-      }
-    }
-
-    if (matches) {
-      directlyMatchingNodes.add(nodeName);
-    }
-  });
-
-  // When filtering by investor region, always include Super Start/End nodes and Reallocation Pools for those regions
-  // This ensures the diagram structure is maintained
-  if (hasInvestorRegionFilter) {
-    data.nodes.forEach(node => {
-      const nodeName = node.name;
-      const region = extractRegionFromNodeName(nodeName);
-      
-      if (region && regionsToFilter.includes(region)) {
-        // Always include Super Start, Super End, Reallocation Pool, and Capital In/Out for selected regions
-        // These are structural nodes that maintain the diagram's visual structure
-        if (nodeName.includes('Super Start') || 
-            nodeName.includes('Super End') || 
-            nodeName.includes('Reallocation Pool') ||
-            nodeName.includes('Capital In') ||
-            nodeName.includes('Capital Out')) {
-          directlyMatchingNodes.add(nodeName);
-        }
-        
-        // If only region filter is applied (no product type or sub-type filters), include all nodes for that region
-        // This preserves the full structure when filtering by region only
-        if (!hasProductTypeFilter && !hasProductSubTypeFilter) {
-          // Include all Start/End nodes
-          if (nodeName.includes('(Start)') || nodeName.includes('(End)')) {
-            directlyMatchingNodes.add(nodeName);
-          }
-          // Include all Source/Destination nodes
-          if (nodeName.includes('(Source)') || nodeName.includes('(Destination)')) {
-            directlyMatchingNodes.add(nodeName);
-          }
-        }
-      }
-    });
-  }
-
-  // Helper function to check if a node passes all applicable filters
-  const nodePassesFilters = (nodeName: string, checkProductType: boolean, checkProductSubType: boolean): boolean => {
-    // Check investor region filter (applies to all nodes)
-    if (hasInvestorRegionFilter) {
-      const region = extractRegionFromNodeName(nodeName);
-      if (!region || !regionsToFilter.includes(region)) {
-        return false;
-      }
-    }
-    
-    // Check product type filter (only for Start/End nodes when checkProductType is true)
-    if (checkProductType && hasProductTypeFilter && (nodeName.includes('(Start)') || nodeName.includes('(End)'))) {
-      const productType = extractProductTypeFromNodeName(nodeName);
-      if (!productType || !selectedProductTypes.includes(productType)) {
-        return false;
-      }
-    }
-    
-    // Check product sub-type filter (only for Source/Destination nodes when checkProductSubType is true)
-    if (checkProductSubType && hasProductSubTypeFilter && (nodeName.includes('(Source)') || nodeName.includes('(Destination)'))) {
-      const productSubType = extractProductSubTypeFromNodeName(nodeName);
-      if (!productSubType || !selectedProductSubTypes.includes(productSubType)) {
-        return false;
-      }
-    }
-    
-    return true;
-  };
-
-  // Multiple passes to include all connected structural nodes
-  const nodesToInclude = new Set<string>(directlyMatchingNodes);
-  const links = data.links || [];
-  let changed = true;
-  let iterations = 0;
-  const maxIterations = 10; // Safety limit to prevent infinite loops
-  
-  // Keep iterating until no new nodes are added (to handle multi-level connections)
-  while (changed && iterations < maxIterations) {
-    changed = false;
-    iterations++;
-    
-    links.forEach(link => {
-      const source = typeof link.source === 'string' ? link.source : '';
-      const target = typeof link.target === 'string' ? link.target : '';
-      
-      // If source is included, check if we should include target
-      if (nodesToInclude.has(source) && !nodesToInclude.has(target)) {
-        let shouldInclude = false;
-        
-        // Structural nodes (don't have product types/sub-types, only check region filter)
-        if (target.includes('Reallocation Pool') || 
-            target.includes('Capital In') ||
-            target.includes('Capital Out') || 
-            target.includes('Super Start') || 
-            target.includes('Super End')) {
-          shouldInclude = nodePassesFilters(target, false, false);
-        }
-        // Start/End nodes (have product types, check product type filter)
-        else if (target.includes('(Start)') || target.includes('(End)')) {
-          shouldInclude = nodePassesFilters(target, true, false);
-        }
-        // Source/Destination nodes (have product sub-types, check product sub-type filter)
-        else if (target.includes('(Source)') || target.includes('(Destination)')) {
-          shouldInclude = nodePassesFilters(target, false, true);
-        }
-        
-        if (shouldInclude) {
-          nodesToInclude.add(target);
-          changed = true;
-        }
-      }
-      
-      // If target is included, check if we should include source
-      if (nodesToInclude.has(target) && !nodesToInclude.has(source)) {
-        let shouldInclude = false;
-        
-        // Structural nodes (don't have product types/sub-types, only check region filter)
-        if (source.includes('Reallocation Pool') || 
-            source.includes('Capital In') ||
-            source.includes('Capital Out') || 
-            source.includes('Super Start') || 
-            source.includes('Super End')) {
-          shouldInclude = nodePassesFilters(source, false, false);
-        }
-        // Start/End nodes (have product types, check product type filter)
-        else if (source.includes('(Start)') || source.includes('(End)')) {
-          shouldInclude = nodePassesFilters(source, true, false);
-        }
-        // Source/Destination nodes (have product sub-types, check product sub-type filter)
-        else if (source.includes('(Source)') || source.includes('(Destination)')) {
-          shouldInclude = nodePassesFilters(source, false, true);
-        }
-        
-        if (shouldInclude) {
-          nodesToInclude.add(source);
-          changed = true;
-        }
-      }
-    });
-  }
-
-  // Helper function to check if a node should be included
-  const shouldIncludeNode = (nodeName: string): boolean => {
-    return nodesToInclude.has(nodeName);
-  };
-
-  // Filter nodes
-  const filteredNodes = data.nodes.filter(node => shouldIncludeNode(node.name));
+  const direct = collectSankeyDirectlyMatchingNodeNames(data, ctx);
+  const nodesToInclude = expandSankeyFilterNodesFromLinks(direct, data.links || [], ctx, 10);
+  const filteredNodes = data.nodes.filter(node => nodesToInclude.has(node.name));
   const filteredNodeNames = new Set(filteredNodes.map(node => node.name));
-
-  // Filter links to only include links between filtered nodes
   const filteredLinks = (data.links || []).filter(link => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
     return filteredNodeNames.has(source) && filteredNodeNames.has(target);
   });
-
-  // Return filtered data
   return {
     ...data,
     nodes: filteredNodes,
@@ -512,33 +578,30 @@ export function filterSankeyData(
   };
 }
 
-/** True if either endpoint is a Capital In or Capital Out structural node. */
+/**
+ * True if either endpoint is a Capital In or Capital Out structural node.
+ *
+ * @param {string} source - Link source node name
+ * @param {string} target - Link target node name
+ * @returns {boolean} Whether the link touches net-new or withdrawal structural nodes
+ */
 function linkTouchesNetNewOrWithdrawn(source: string, target: string): boolean {
   const touches = (name: string) =>
     name.includes('Capital In') || name.includes('Capital Out');
   return touches(source) || touches(target);
 }
 
-/**
- * Nodes with no incoming edges in the **full** Sankey topology are the only true flow sources
- * (e.g. `… (Super Start)`). After per-link value-range filtering, interior nodes can incorrectly
- * remain if they still have an unmuted **outgoing** link (e.g. sub-asset → pool) while every
- * **incoming** link was pruned — which looks like flows from nowhere. This pass drops any kept
- * link whose source is not reachable from those fixed sources along **kept** links, and repeats
- * until stable, so downstream rows under a pruned parent chain are removed together.
- */
-export function cascadePruneSankeyLinkRows<T extends { source: string; target: string }>(
-  fullTopologyLinks: readonly { source: string; target: string }[],
-  rows: readonly T[]
-): T[] {
-  if (!rows?.length || !fullTopologyLinks?.length) {
-    return rows?.length ? [...rows] : [];
-  }
-
+function buildSankeyTopologyDegreeMaps(
+  fullTopologyLinks: readonly { source: string; target: string }[]
+): {
+  inDegree: Map<string, number>;
+  outDegree: Map<string, number>;
+  allNames: Set<string>;
+} {
   const inDegree = new Map<string, number>();
   const outDegree = new Map<string, number>();
   const allNames = new Set<string>();
-  for (const l of fullTopologyLinks) {
+  fullTopologyLinks.forEach(l => {
     const s = typeof l.source === 'string' ? l.source : '';
     const t = typeof l.target === 'string' ? l.target : '';
     if (s) {
@@ -549,103 +612,187 @@ export function cascadePruneSankeyLinkRows<T extends { source: string; target: s
       allNames.add(t);
       inDegree.set(t, (inDegree.get(t) ?? 0) + 1);
     }
-  }
+  });
+  return { inDegree, outDegree, allNames };
+}
+
+function collectZeroInDegreeNodeNames(
+  allNames: Set<string>,
+  inDegree: Map<string, number>
+): Set<string> {
   const seeds = new Set<string>();
-  for (const n of allNames) {
+  allNames.forEach(n => {
     if ((inDegree.get(n) ?? 0) === 0) {
       seeds.add(n);
     }
-  }
+  });
+  return seeds;
+}
+
+function collectZeroOutDegreeNodeNames(
+  allNames: Set<string>,
+  outDegree: Map<string, number>
+): Set<string> {
   const sinks = new Set<string>();
-  for (const n of allNames) {
+  allNames.forEach(n => {
     if ((outDegree.get(n) ?? 0) === 0) {
       sinks.add(n);
     }
+  });
+  return sinks;
+}
+
+function forwardReachableAlongSankeyRows(
+  rows: readonly { source: string; target: string }[],
+  seeds: Set<string>
+): Set<string> {
+  const reachable = new Set<string>(seeds);
+  let growing = true;
+  while (growing) {
+    growing = false;
+    for (let ri = 0; ri < rows.length; ri += 1) {
+      const r = rows[ri];
+      const s = typeof r.source === 'string' ? r.source : '';
+      const t = typeof r.target === 'string' ? r.target : '';
+      if (s && t && reachable.has(s) && !reachable.has(t)) {
+        reachable.add(t);
+        growing = true;
+      }
+    }
   }
+  return reachable;
+}
+
+function backwardReachableToSinksAlongSankeyRows(
+  rows: readonly { source: string; target: string }[],
+  sinks: Set<string>
+): Set<string> {
+  const canReachSink = new Set<string>(sinks);
+  let reverseGrowing = true;
+  while (reverseGrowing) {
+    reverseGrowing = false;
+    for (let ri = 0; ri < rows.length; ri += 1) {
+      const r = rows[ri];
+      const s = typeof r.source === 'string' ? r.source : '';
+      const t = typeof r.target === 'string' ? r.target : '';
+      if (s && t && canReachSink.has(t) && !canReachSink.has(s)) {
+        canReachSink.add(s);
+        reverseGrowing = true;
+      }
+    }
+  }
+  return canReachSink;
+}
+
+function partitionSankeyRowsByReachability<T extends { source: string; target: string }>(
+  rows: readonly T[],
+  reachable: Set<string>,
+  canReachSink: Set<string>
+): { next: T[]; anyRemoved: boolean } {
+  const next: T[] = [];
+  let anyRemoved = false;
+  for (let ri = 0; ri < rows.length; ri += 1) {
+    const r = rows[ri];
+    const s = typeof r.source === 'string' ? r.source : '';
+    const t = typeof r.target === 'string' ? r.target : '';
+    if (s && t && reachable.has(s) && canReachSink.has(t)) {
+      next.push(r);
+    } else {
+      anyRemoved = true;
+    }
+  }
+  return { next, anyRemoved };
+}
+
+/**
+ * Nodes with no incoming edges in the **full** Sankey topology are the only true flow sources
+ * (e.g. `… (Super Start)`). After per-link value-range filtering, interior nodes can incorrectly
+ * remain if they still have an unmuted **outgoing** link (e.g. sub-asset → pool) while every
+ * **incoming** link was pruned — which looks like flows from nowhere. This pass drops any kept
+ * link whose source is not reachable from those fixed sources along **kept** links, and repeats
+ * until stable, so downstream rows under a pruned parent chain are removed together.
+ *
+ * @template T - Row type extending `{ source: string; target: string }`
+ * @param {Array<{source: string, target: string}>} fullTopologyLinks - Full graph edges for seed/sink detection
+ * @param {Array<T>} rows - Link rows to prune (subset topology)
+ * @returns {T[]} Rows that lie on some path from a zero-in-degree seed to a zero-out-degree sink in the kept subgraph
+ */
+export function cascadePruneSankeyLinkRows<T extends { source: string; target: string }>(
+  fullTopologyLinks: readonly { source: string; target: string }[],
+  rows: readonly T[]
+): T[] {
+  if (!rows?.length || !fullTopologyLinks?.length) {
+    return rows?.length ? [...rows] : [];
+  }
+  const { inDegree, outDegree, allNames } = buildSankeyTopologyDegreeMaps(fullTopologyLinks);
+  const seeds = collectZeroInDegreeNodeNames(allNames, inDegree);
+  const sinks = collectZeroOutDegreeNodeNames(allNames, outDegree);
   if (seeds.size === 0 || sinks.size === 0) {
     return [...rows];
   }
-
   let current = [...rows];
   let changed = true;
   while (changed) {
     changed = false;
-    const reachable = new Set<string>(seeds);
-    let growing = true;
-    while (growing) {
-      growing = false;
-      for (const r of current) {
-        const s = typeof r.source === 'string' ? r.source : '';
-        const t = typeof r.target === 'string' ? r.target : '';
-        if (!s || !t) continue;
-        if (reachable.has(s) && !reachable.has(t)) {
-          reachable.add(t);
-          growing = true;
-        }
-      }
-    }
-
-    const canReachSink = new Set<string>(sinks);
-    let reverseGrowing = true;
-    while (reverseGrowing) {
-      reverseGrowing = false;
-      for (const r of current) {
-        const s = typeof r.source === 'string' ? r.source : '';
-        const t = typeof r.target === 'string' ? r.target : '';
-        if (!s || !t) continue;
-        if (canReachSink.has(t) && !canReachSink.has(s)) {
-          canReachSink.add(s);
-          reverseGrowing = true;
-        }
-      }
-    }
-
-    const next: T[] = [];
-    for (const r of current) {
-      const s = typeof r.source === 'string' ? r.source : '';
-      const t = typeof r.target === 'string' ? r.target : '';
-      if (!s || !t || !reachable.has(s) || !canReachSink.has(t)) {
-        changed = true;
-        continue;
-      }
-      next.push(r);
+    const reachable = forwardReachableAlongSankeyRows(current, seeds);
+    const canReachSink = backwardReachableToSinksAlongSankeyRows(current, sinks);
+    const { next, anyRemoved } = partitionSankeyRowsByReachability(current, reachable, canReachSink);
+    if (anyRemoved) {
+      changed = true;
     }
     current = next;
   }
   return current;
 }
 
-/** Key for parallel Sankey links that share the same source and target node names. */
+/**
+ * Key for parallel Sankey links that share the same source and target node names.
+ *
+ * @param {string} source - Source node name
+ * @param {string} target - Target node name
+ * @returns {string} Delimiter-separated pair key safe for `Map`
+ */
 export function sankeyLinkPairKey(source: string, target: string): string {
   return `${source}\0${target}`;
 }
 
 /**
- * Sum of {@link SankeyLink.value} (USD) for each distinct (source, target) pair.
+ * Sum of each link's numeric `value` (USD) for each distinct (source, target) pair.
  * Asset-flow data often emits multiple rows per edge; the value-range filter should use this total
  * so a band like ≥ $10M keeps the edge when the combined flow qualifies, not only when each row does.
+ *
+ * @param {(ReadonlyArray<import('./asset-flows-to-sankey.util').SankeyLink>|undefined)} links - Sankey links (parallel rows per edge allowed)
+ * @returns {Map<string, number>} Map from delimiter-separated (source, target) keys to summed USD value
  */
 export function buildSankeySourceTargetPairSumDollars(
   links: readonly SankeyLink[] | undefined
 ): Map<string, number> {
   const m = new Map<string, number>();
   if (!links?.length) return m;
-  for (const link of links) {
+  links.forEach(link => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
     const k = sankeyLinkPairKey(source, target);
     const v = link.value;
     const add = v != null && Number.isFinite(v) ? v : 0;
     m.set(k, (m.get(k) ?? 0) + add);
-  }
+  });
   return m;
 }
 
 /**
- * Whether a link's {@link valueDollars} lies within the value-range rail (bounds in **billions USD**).
- * {@link valueDollars} should be the **total USD across all parallel links** with the same source/target
- * (see {@link buildSankeySourceTargetPairSumDollars}), not a single row's value, when those parallels exist.
- * Same rules as {@link filterSankeyDataByFlowValueRange}; use for Sankey visual/prune logic.
+ * Whether a link's `valueDollars` lies within the value-range rail (bounds in **billions USD**).
+ * `valueDollars` should be the **total USD across all parallel links** with the same source/target
+ * (see `buildSankeySourceTargetPairSumDollars`), not a single row's value, when those parallels exist.
+ * Same rules as `filterSankeyDataByFlowValueRange`; use for Sankey visual/prune logic.
+ *
+ * @param {string} source - Link source node name
+ * @param {string} target - Link target node name
+ * @param {number | undefined} valueDollars - Flow magnitude in USD (often pair total across parallel links)
+ * @param {number} minValueBillions - Lower bound in billions USD (0 means no minimum)
+ * @param {number | null | undefined} maxValueBillions - Upper bound in billions USD (`null`/`undefined` means no maximum)
+ * @param {boolean} exemptNetNewAndWithdrawnFromFlowValueFilter - When true, links touching Capital In/Out always pass
+ * @returns {boolean} Whether the link passes the configured value band
  */
 export function linkPassesFlowValueRangeFilter(
   source: string,
@@ -675,31 +822,14 @@ export function linkPassesFlowValueRangeFilter(
   return true;
 }
 
-/**
- * Filters Sankey links by optional lower and upper bounds.
- * {@link minValue} / {@link maxValue} are expressed in **billions USD** (filter rail);
- * each (source, target) pair is tested using the **sum** of {@link SankeyLink.value} in dollars
- * across all parallel links (same as the Sankey chart prune step).
- */
-export function filterSankeyDataByFlowValueRange(
-  data: SankeyData,
+function filterSankeyLinksByValueRangeRail(
+  links: SankeyLink[],
   minValue: number,
   maxValue: number | null | undefined,
-  exemptNetNewAndWithdrawnFromFlowValueFilter = false
-): SankeyData {
-  if (!data || !data.links || !Array.isArray(data.links)) {
-    return data;
-  }
-
-  const hasMin = minValue > 0;
-  const hasMax = maxValue != null && Number.isFinite(maxValue as number);
-  if (!hasMin && !hasMax) {
-    return data;
-  }
-
-  const pairTotals = buildSankeySourceTargetPairSumDollars(data.links);
-
-  const valueRangeLinks = data.links.filter((link) => {
+  exemptNetNewAndWithdrawnFromFlowValueFilter: boolean
+): SankeyLink[] {
+  const pairTotals = buildSankeySourceTargetPairSumDollars(links);
+  return links.filter(link => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
     const pairTotal = pairTotals.get(sankeyLinkPairKey(source, target)) ?? link.value ?? 0;
@@ -712,35 +842,35 @@ export function filterSankeyDataByFlowValueRange(
       exemptNetNewAndWithdrawnFromFlowValueFilter
     );
   });
+}
 
-  const filteredLinks = cascadePruneSankeyLinkRows(data.links, valueRangeLinks);
-
-  if (filteredLinks.length === 0) {
-    return {
-      ...data,
-      nodes: [],
-      links: [],
-      summary: data.summary
-        ? {
+function sankeyDataEmptyAfterFlowFilter(data: SankeyData): SankeyData {
+  return {
+    ...data,
+    nodes: [],
+    links: [],
+    ...(data.summary
+      ? {
+          summary: {
             ...data.summary,
             superparents: [],
             parents: [],
             superparent_net_new: []
           }
-        : (data as any).summary
-    };
-  }
+        }
+      : {})
+  };
+}
 
+function sankeyDataWithPrunedLinks(data: SankeyData, filteredLinks: SankeyLink[]): SankeyData {
   const nodeNames = new Set<string>();
-  filteredLinks.forEach((link) => {
+  filteredLinks.forEach(link => {
     const source = typeof link.source === 'string' ? link.source : '';
     const target = typeof link.target === 'string' ? link.target : '';
     if (source) nodeNames.add(source);
     if (target) nodeNames.add(target);
   });
-
-  const filteredNodes = (data.nodes || []).filter((node) => nodeNames.has(node.name));
-
+  const filteredNodes = (data.nodes || []).filter(node => nodeNames.has(node.name));
   return {
     ...data,
     nodes: filteredNodes,
@@ -749,12 +879,51 @@ export function filterSankeyDataByFlowValueRange(
 }
 
 /**
+ * Filters Sankey links by optional lower and upper bounds.
+ * `minValue` / `maxValue` are expressed in **billions USD** (filter rail);
+ * each (source, target) pair is tested using the **sum** of link `value` in dollars
+ * across all parallel links (same as the Sankey chart prune step).
+ *
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - Sankey diagram payload (`nodes`, `links`, `summary`)
+ * @param {number} minValue - Minimum total flow per (source, target) in billions USD (0 skips minimum)
+ * @param {number | null | undefined} maxValue - Maximum in billions USD (`null`/`undefined` skips maximum)
+ * @param {boolean} [exemptNetNewAndWithdrawnFromFlowValueFilter=false] - Exempt Capital In/Out edges from the band
+ * @returns {import('./asset-flows-to-sankey.util').SankeyData} Copy with `links` (and `nodes`) reduced to the surviving subgraph; empty links returns cleared structure
+ */
+export function filterSankeyDataByFlowValueRange(
+  data: SankeyData,
+  minValue: number,
+  maxValue: number | null | undefined,
+  exemptNetNewAndWithdrawnFromFlowValueFilter = false
+): SankeyData {
+  if (!data || !data.links || !Array.isArray(data.links)) {
+    return data;
+  }
+  const hasMin = minValue > 0;
+  const hasMax = maxValue != null && Number.isFinite(maxValue as number);
+  if (!hasMin && !hasMax) {
+    return data;
+  }
+  const valueRangeLinks = filterSankeyLinksByValueRangeRail(
+    data.links,
+    minValue,
+    maxValue,
+    exemptNetNewAndWithdrawnFromFlowValueFilter
+  );
+  const filteredLinks = cascadePruneSankeyLinkRows(data.links, valueRangeLinks);
+  if (filteredLinks.length === 0) {
+    return sankeyDataEmptyAfterFlowFilter(data);
+  }
+  return sankeyDataWithPrunedLinks(data, filteredLinks);
+}
+
+/**
  * Filters Sankey data by a minimum flow value (e.g. only show links with value >= minValue in billions).
  * Removes links below the threshold and any nodes that are no longer connected.
  *
- * @param data - The Sankey data object to filter
- * @param minValue - Minimum link value in billions USD on the rail (e.g. 0.5 for $0.5B). Use 0 or undefined to skip filtering.
- * @returns Filtered Sankey data with only links >= minValue and their connected nodes
+ * @param {import('./asset-flows-to-sankey.util').SankeyData} data - The Sankey data object to filter
+ * @param {number} minValue - Minimum link value in billions USD on the rail (e.g. 0.5 for $0.5B). Use 0 or less to skip filtering.
+ * @returns {import('./asset-flows-to-sankey.util').SankeyData} Filtered Sankey data with only links >= minValue and their connected nodes
  */
 export function filterSankeyDataByMinValue(
   data: SankeyData,
