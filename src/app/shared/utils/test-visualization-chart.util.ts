@@ -1,9 +1,14 @@
-/* eslint-disable */
+/** 1×1 PNG fallback if canvas is unavailable */
+const MIN_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
 /**
  * Builds a PNG (raw base64, no data: prefix) for local export testing.
  * On VDI, real charts come from the backend as `visualization_image_base64`.
+ *
+ * @returns Raw PNG payload as base64 (no `data:` URL prefix).
  */
-export function buildTestVisualizationImageBase64(): string {
+export default function buildTestVisualizationImageBase64(): string {
   if (typeof document === 'undefined') {
     return MIN_PNG_BASE64;
   }
@@ -48,7 +53,3 @@ export function buildTestVisualizationImageBase64(): string {
   const idx = dataUrl.indexOf('base64,');
   return idx >= 0 ? dataUrl.slice(idx + 'base64,'.length) : MIN_PNG_BASE64;
 }
-
-/** 1×1 PNG fallback if canvas is unavailable */
-const MIN_PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
