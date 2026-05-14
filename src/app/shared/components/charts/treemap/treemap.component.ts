@@ -12,7 +12,7 @@ import { convertAssetFlowsToSankey, type AssetFlowRecord } from '../../../utils/
 import { AssetFlowsDataService } from '../../../../core/services/asset-flows-data.service';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
-import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
+import formatTimeHorizonSliderHandleDate from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { assetFlowQuarterInTimeWindow } from '../../../utils/asset-flow-time-window.util';
 import {
   FLOW_CHART_LARGE_VIEWPORT_MIN_WIDTH_PX,

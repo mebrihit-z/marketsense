@@ -20,7 +20,7 @@ import {
   UNIFIED_TIME_HORIZONS,
   TIME_HORIZONS_SHORT_LABELS,
 } from '../../constants/time-horizons.constants';
-import { formatTimeHorizonSliderHandleDate } from '../../utils/time-horizon-slider-tooltip-date.util';
+import formatTimeHorizonSliderHandleDate from '../../utils/time-horizon-slider-tooltip-date.util';
 import { AssetFlowHistoricAnchorService } from '../../../core/services/asset-flow-historic-anchor.service';
 
 export interface TimeHorizonRangeIndices {

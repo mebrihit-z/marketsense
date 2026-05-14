@@ -18,7 +18,7 @@ import {
   type SankeyData,
 } from '../../../utils/sankey-data.utils';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
-import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
+import formatTimeHorizonSliderHandleDate from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import {
   FLOW_CHART_MIN_WIDTH_DIM3_LEAF_PX,

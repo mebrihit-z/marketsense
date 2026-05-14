@@ -28,7 +28,7 @@ import {
   horizonSlicePercentOfTotalStart,
 } from '../../../utils/horizon-endpoint-percent-change.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
-import { formatTimeHorizonSliderHandleDate } from '../../../utils/time-horizon-slider-tooltip-date.util';
+import formatTimeHorizonSliderHandleDate from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { buildMarketFlowPercentageHoverLabel } from '../../../utils/market-flow-percentage-hover-label.util';
 import {
   captureChartAreaToPng,
