@@ -1,4 +1,3 @@
-/* eslint-disable */
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -38,6 +37,11 @@ export interface TimeHorizonRangeIndices {
 export class TimeHorizonSliderComponent
   implements OnInit, AfterViewInit, OnDestroy, OnChanges
 {
+  /**
+   * @param {import('../../../core/services/asset-flow-historic-anchor.service').AssetFlowHistoricAnchorService} historicAnchor - Historic anchor used for handle tooltip dates
+   * @param {import('@angular/core').ChangeDetectorRef} cdr - Change detector for layout-driven slider updates
+   * @param {import('@angular/core').NgZone} ngZone - Zone used to run drag handlers outside full-app change detection
+   */
   constructor(
     private readonly historicAnchor: AssetFlowHistoricAnchorService,
     private readonly cdr: ChangeDetectorRef,
@@ -97,6 +101,9 @@ export class TimeHorizonSliderComponent
     this.refreshCompactAxis();
   }
 
+  /**
+   * @returns {void}
+   */
   ngAfterViewInit(): void {
     // Reading getBoundingClientRect in the same CD pass as the first paint can differ between
     // dev-mode’s double check; defer the first real measure until after the current turn.
@@ -106,6 +113,12 @@ export class TimeHorizonSliderComponent
     });
   }
 
+  /**
+   * Applies parent range input when it changes.
+   *
+   * @param {import('@angular/core').SimpleChanges} changes - Current and previous input property values
+   * @returns {void}
+   */
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['rangeInput']) {
       this.applyRangeInput();
@@ -126,6 +139,10 @@ export class TimeHorizonSliderComponent
     this.range = { startIndex: r.startIndex, endIndex: r.endIndex };
   }
 
+  /**
+   * @param {Event} ev - Click event from the info button
+   * @returns {void}
+   */
   onInfoButtonClick(ev: Event): void {
     ev.stopPropagation();
     this.infoToggle.emit(ev);
@@ -138,12 +155,19 @@ export class TimeHorizonSliderComponent
     this.cdr.markForCheck();
   }
 
+  /**
+   * @returns {void}
+   */
   private refreshCompactAxis(): void {
     if (typeof window === 'undefined') return;
     const next = window.innerWidth <= TimeHorizonSliderComponent.COMPACT_AXIS_MAX_INNER_WIDTH_PX;
     if (next !== this.compactAxis) this.compactAxis = next;
   }
 
+  /**
+   * @param {number} index - Horizon milestone index on the axis
+   * @returns {string} Full or short tick label for the milestone
+   */
   tickLabel(index: number): string {
     const full = this.horizons[index];
     if (full == null) return '';
@@ -156,6 +180,9 @@ export class TimeHorizonSliderComponent
   /**
    * CSS transform for axis tick labels. Last and second-to-last milestones are nudged right
    * so labels sit slightly inside the card; compact mode uses a right-anchored transform for the last tick.
+   *
+   * @param {number} index - Horizon milestone index on the axis
+   * @returns {string} CSS transform value for the tick label
    */
   axisLabelTransform(index: number): string {
     const last = this.horizons.length - 1;
@@ -172,15 +199,26 @@ export class TimeHorizonSliderComponent
     return 'translateX(-50%)';
   }
 
+  /**
+   * @param {number} index - Horizon milestone index on the axis
+   * @returns {boolean} Whether the tick label matches the start or end handle
+   */
   isLabelActive(index: number): boolean {
     return index === this.range.startIndex || index === this.range.endIndex;
   }
 
+  /**
+   * @param {number} index - Horizon milestone index on the axis
+   * @returns {boolean} Whether the tick lies between the selected start and end indices
+   */
   isTickInActiveRange(index: number): boolean {
     const { startIndex, endIndex } = this.range;
     return index >= startIndex && index <= endIndex;
   }
 
+  /**
+   * @returns {boolean} Whether start and end handle tooltips would overlap
+   */
   tooltipsTooClose(): boolean {
     const { startIndex, endIndex } = this.range;
     if (startIndex === endIndex) return false;
@@ -189,6 +227,10 @@ export class TimeHorizonSliderComponent
     return Math.abs(a - b) < 120;
   }
 
+  /**
+   * @param {number} index - Horizon milestone index on the axis
+   * @returns {number} Horizontal center position of the milestone in pixels
+   */
   milestoneCenterPx(index: number): number {
     const numSteps = this.horizons.length - 1;
     if (numSteps <= 0) return 0;
@@ -197,6 +239,9 @@ export class TimeHorizonSliderComponent
     return inset + (index / numSteps) * trackWidth;
   }
 
+  /**
+   * @returns {void}
+   */
   private syncSliderOuterWidthFromElement(): void {
     const el = this.sliderContainerRef?.nativeElement;
     if (!el) return;
@@ -204,10 +249,17 @@ export class TimeHorizonSliderComponent
     if (w > 0) this.sliderOuterWidthCache = w;
   }
 
+  /**
+   * @returns {number} Cached outer width of the slider container in pixels
+   */
   private getSliderOuterWidthPx(): number {
     return this.sliderOuterWidthCache;
   }
 
+  /**
+   * @param {number} containerWidth - Outer width of the slider container in pixels
+   * @returns {{ inset: number; trackWidth: number }} Axis inset and usable track width
+   */
   private getAxisMetrics(containerWidth: number): { inset: number; trackWidth: number } {
     // IMPORTANT: Inset breakpoint must match the CSS track inset breakpoint (768px),
     // not the compact-axis label breakpoint (1024px), otherwise labels drift vs tick marks.
@@ -221,27 +273,44 @@ export class TimeHorizonSliderComponent
     return { inset, trackWidth };
   }
 
+  /**
+   * @returns {number} Usable inner track width in pixels
+   */
   private getTrackInnerWidthPx(): number {
     return this.getAxisMetrics(this.getSliderOuterWidthPx()).trackWidth;
   }
 
+  /**
+   * @param {'start' | 'end'} type - Which range handle to format for the tooltip
+   * @returns {string} Formatted date label for the handle tooltip
+   */
   handleTooltipDate(type: 'start' | 'end'): string {
     const idx = type === 'start' ? this.range.startIndex : this.range.endIndex;
     const label = this.horizons[idx];
     return label ? formatTimeHorizonSliderHandleDate(label, this.historicAnchor.getAnchor()) : '';
   }
 
+  /**
+   * @param {'start' | 'end'} type - Which range handle to position
+   * @returns {number} Horizontal position of the handle in pixels
+   */
   getHandlePosition(type: 'start' | 'end'): number {
     const index = type === 'start' ? this.range.startIndex : this.range.endIndex;
     return this.milestoneCenterPx(index);
   }
 
+  /**
+   * @returns {number} Left offset of the active range segment in pixels
+   */
   getActiveTrackLeft(): number {
     const numSteps = this.horizons.length - 1;
     const inner = this.getTrackInnerWidthPx();
     return (this.range.startIndex / numSteps) * inner;
   }
 
+  /**
+   * @returns {number} Width of the active range segment in pixels
+   */
   getActiveTrackWidth(): number {
     const numSteps = this.horizons.length - 1;
     const span = this.range.endIndex - this.range.startIndex;
@@ -249,6 +318,11 @@ export class TimeHorizonSliderComponent
     return (span / numSteps) * inner;
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Pointer event that started the drag
+   * @param {'start' | 'end'} type - Which range handle is being dragged
+   * @returns {void}
+   */
   startDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end'): void {
     event.preventDefault();
     event.stopPropagation();
@@ -270,6 +344,10 @@ export class TimeHorizonSliderComponent
     this.handlePointerDrag(event);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Pointer event on the slider track
+   * @returns {void}
+   */
   onTrackClick(event: MouseEvent | TouchEvent): void {
     if (this.hasDragged || this.isDragging) return;
     const target = event.target as HTMLElement;
@@ -293,6 +371,11 @@ export class TimeHorizonSliderComponent
     this.applyTrackClick(event, container);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Pointer event on the slider track
+   * @param {HTMLElement} container - Slider container element used for position math
+   * @returns {void}
+   */
   private applyTrackClick(event: MouseEvent | TouchEvent, container: HTMLElement): void {
     const rect = container.getBoundingClientRect();
     let clientX: number;
@@ -328,6 +411,11 @@ export class TimeHorizonSliderComponent
     this.publishRange();
   }
 
+  /**
+   * @param {number} index - Horizon milestone index clicked on the axis
+   * @param {Event} [event] - Optional DOM event to stop propagation
+   * @returns {void}
+   */
   onLabelClick(index: number, event?: Event): void {
     if (event) {
       event.stopPropagation();
@@ -356,6 +444,10 @@ export class TimeHorizonSliderComponent
 
   @HostListener('document:mousemove', ['$event'])
   @HostListener('document:touchmove', ['$event'])
+  /**
+   * @param {MouseEvent | TouchEvent} event - Document-level pointer move while dragging
+   * @returns {void}
+   */
   onDocumentMove(event: MouseEvent | TouchEvent): void {
     if (!this.isDragging) return;
     if (event.cancelable) event.preventDefault();
@@ -368,6 +460,9 @@ export class TimeHorizonSliderComponent
 
   @HostListener('document:mouseup')
   @HostListener('document:touchend')
+  /**
+   * @returns {void}
+   */
   onDocumentUp(): void {
     if (!this.isDragging) return;
     const rangeAtEnd = { ...this.range };
@@ -386,6 +481,10 @@ export class TimeHorizonSliderComponent
     }, 100);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Pointer event during an active drag
+   * @returns {void}
+   */
   private handlePointerDrag(event: MouseEvent | TouchEvent): void {
     const container =
       this.dragContainer ??
@@ -424,6 +523,9 @@ export class TimeHorizonSliderComponent
     this.publishRange();
   }
 
+  /**
+   * @returns {void}
+   */
   private publishRange(): void {
     const next = { ...this.range };
     if (!this.isDragging) {
@@ -438,6 +540,9 @@ export class TimeHorizonSliderComponent
   /**
    * Emits dashboard / chart-driving outputs. Deferred during handle drag so asset flows
    * (Sankey rebuild) runs once per interaction instead of on every pointer move.
+   *
+   * @param {TimeHorizonRangeIndices} next - Selected start/end indices to emit
+   * @returns {void}
    */
   private emitHeavyTimeHorizonOutputs(next: TimeHorizonRangeIndices): void {
     const h = this.horizons;
@@ -456,40 +561,78 @@ export class TimeHorizonSliderComponent
     this.timeHorizonRangeChange.emit({ start: startHorizon, end: endHorizon });
   }
 
-  private onDocumentCapture(event: MouseEvent | TouchEvent): void {
-    const targetEl = event.target as HTMLElement;
-    if (
-      targetEl?.closest?.(
-        '.filters-sticky-minimize-btn, .filters-bar-sticky-expand-btn'
-      )
-    ) {
-      return;
-    }
-    const container = this.sliderContainerRef?.nativeElement;
-    if (!container) return;
+  private shouldIgnoreCaptureTarget(targetEl: HTMLElement): boolean {
+    return !!targetEl?.closest?.(
+      '.filters-sticky-minimize-btn, .filters-bar-sticky-expand-btn'
+    );
+  }
+
+  private getCaptureClientCoords(
+    event: MouseEvent | TouchEvent
+  ): { clientX: number; clientY: number } | null {
     const clientX =
       'touches' in event ? (event as TouchEvent).touches[0]?.clientX : (event as MouseEvent).clientX;
     const clientY =
       'touches' in event ? (event as TouchEvent).touches[0]?.clientY : (event as MouseEvent).clientY;
-    if (clientX == null || clientY == null) return;
-    const target = targetEl;
-    let handleEl = target?.closest?.('.time-horizon-handle') as HTMLElement | null;
-    if (!handleEl) {
-      const startHandle = container.querySelector('.time-horizon-handle-start') as HTMLElement;
-      const endHandle = container.querySelector('.time-horizon-handle-end') as HTMLElement;
-      if (startHandle) {
-        const r = startHandle.getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
-          handleEl = startHandle;
-        }
-      }
-      if (!handleEl && endHandle) {
-        const r = endHandle.getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
-          handleEl = endHandle;
-        }
-      }
+    if (clientX == null || clientY == null) return null;
+    return { clientX, clientY };
+  }
+
+  private isPointInRect(clientX: number, clientY: number, rect: DOMRect): boolean {
+    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+  }
+
+  private resolveCaptureHandle(
+    container: HTMLElement,
+    target: HTMLElement,
+    clientX: number,
+    clientY: number
+  ): HTMLElement | null {
+    const fromTarget = target?.closest?.('.time-horizon-handle') as HTMLElement | null;
+    if (fromTarget) return fromTarget;
+
+    const startHandle = container.querySelector('.time-horizon-handle-start') as HTMLElement;
+    const endHandle = container.querySelector('.time-horizon-handle-end') as HTMLElement;
+    if (startHandle && this.isPointInRect(clientX, clientY, startHandle.getBoundingClientRect())) {
+      return startHandle;
     }
+    if (endHandle && this.isPointInRect(clientX, clientY, endHandle.getBoundingClientRect())) {
+      return endHandle;
+    }
+    return null;
+  }
+
+  private isPointInsideContainer(
+    container: HTMLElement,
+    clientX: number,
+    clientY: number
+  ): boolean {
+    const rect = container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    return x >= 0 && x <= rect.width && y >= 0 && y <= rect.height;
+  }
+
+  /**
+   * @param {MouseEvent | TouchEvent} event - Document capture-phase pointer event
+   * @returns {void}
+   */
+  private onDocumentCapture(event: MouseEvent | TouchEvent): void {
+    const targetEl = event.target as HTMLElement;
+    if (this.shouldIgnoreCaptureTarget(targetEl)) return;
+
+    const container = this.sliderContainerRef?.nativeElement;
+    if (!container) return;
+
+    const coords = this.getCaptureClientCoords(event);
+    if (!coords) return;
+
+    const handleEl = this.resolveCaptureHandle(
+      container,
+      targetEl,
+      coords.clientX,
+      coords.clientY
+    );
     if (handleEl) {
       const isStart = handleEl.classList.contains('time-horizon-handle-start');
       this.startDrag(event, isStart ? 'start' : 'end');
@@ -497,12 +640,11 @@ export class TimeHorizonSliderComponent
       event.stopPropagation();
       return;
     }
-    if (target?.closest?.('.time-horizon-labels')) return;
+
+    if (targetEl?.closest?.('.time-horizon-labels')) return;
     if (this.hasDragged || this.isDragging) return;
-    const rect = container.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
+    if (!this.isPointInsideContainer(container, coords.clientX, coords.clientY)) return;
+
     this.lastTrackMousedownAt = Date.now();
     this.applyTrackClick(event, container);
     event.preventDefault();
