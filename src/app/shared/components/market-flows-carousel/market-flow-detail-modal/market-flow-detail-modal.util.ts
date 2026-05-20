@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { type AssetFlowRecord } from '../../../utils/asset-flows-to-sankey.util';
 import { parseFlowDisplayValueToBillions } from '../../../utils/flow-currency-format.util';
 import {
@@ -13,15 +12,19 @@ import {
 
 /**
  * Converts time horizon string to target date in YYYY-MM format.
- * @param anchorYearMonth - Latest Historic quarter month (YYYY-MM); omit for calendar "now".
+ * @param {string} horizon - Time horizon label (e.g. "Today", "+3 mo").
+ * @param {string | null | undefined} [anchorYearMonth] - Latest Historic quarter month (YYYY-MM); omit for calendar "now".
+ * @returns {string | null} Target calendar month (YYYY-MM), or `null` if the label cannot be resolved.
  */
 export function convertTimeHorizonToDate(horizon: string, anchorYearMonth?: string | null): string | null {
   return horizonLabelToYearMonth(horizon, anchorYearMonth ?? null);
 }
 
 /**
- * @param months - Months offset from anchor month (or calendar now if anchor omitted)
- * @param anchorYearMonth - Latest Historic quarter month (YYYY-MM)
+ * Returns a calendar month offset from the anchor (or calendar now).
+ * @param {number} months - Months offset from anchor month (or calendar now if anchor omitted).
+ * @param {string | null | undefined} [anchorYearMonth] - Latest Historic quarter month (YYYY-MM).
+ * @returns {string} Resulting YYYY-MM calendar month.
  */
 export function getDateFromMonthsOffset(months: number, anchorYearMonth?: string | null): string {
   const base = anchorYearMonth ?? getCalendarYearMonthNow();
@@ -45,8 +48,10 @@ export function aggregateByDate(records: AssetFlowRecord[]): { dateMap: Map<stri
 }
 
 /**
- * Sums `Fcst_Flow_Upper` / `Fcst_Flow_Lower` per {@link Asset_Flow_Date} (same keys as value aggregation).
+ * Sums `Fcst_Flow_Upper` / `Fcst_Flow_Lower` per {@link AssetFlowRecord#Asset_Flow_Date} (same keys as value aggregation).
  * Rows without both bounds are skipped.
+ * @param {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord[]} records - Asset flow records with forecast bounds.
+ * @returns {{ upperMap: Map<string, number>; lowerMap: Map<string, number> }} Per-date upper and lower bound totals (USD).
  */
 export function aggregateFcstBoundsByDate(records: AssetFlowRecord[]): {
   upperMap: Map<string, number>;
@@ -54,16 +59,16 @@ export function aggregateFcstBoundsByDate(records: AssetFlowRecord[]): {
 } {
   const upperMap = new Map<string, number>();
   const lowerMap = new Map<string, number>();
-  for (const record of records) {
-    if (!record.Asset_Flow_Date) continue;
+  records.forEach(record => {
+    if (!record.Asset_Flow_Date) return;
     const u = record.Fcst_Flow_Upper;
     const l = record.Fcst_Flow_Lower;
-    if (u === undefined || l === undefined) continue;
-    if (!Number.isFinite(u) || !Number.isFinite(l)) continue;
+    if (u === undefined || l === undefined) return;
+    if (!Number.isFinite(u) || !Number.isFinite(l)) return;
     const d = record.Asset_Flow_Date;
     upperMap.set(d, (upperMap.get(d) || 0) + u);
     lowerMap.set(d, (lowerMap.get(d) || 0) + l);
-  }
+  });
   return { upperMap, lowerMap };
 }
 
@@ -100,22 +105,29 @@ export function sampleOrPadToLength(rawData: number[], targetLength: number): nu
 
 /**
  * Sums {@link dateMap} entries whose ISO quarter-end keys map to the same UTC YYYY-MM as {@link targetYm}.
- * {@link sortedDates} must be the same keys as in the map (typically {@link Asset_Flow_Date} ISO strings).
+ * {@link sortedDates} must be the same keys as in the map (typically {@link AssetFlowRecord#Asset_Flow_Date} ISO strings).
+ * @param {string} targetYm - Target calendar month (YYYY-MM).
+ * @param {string[]} sortedDates - Sorted quarter-end ISO date keys present in the map.
+ * @param {Map<string, number>} dateMap - Per-ISO-date aggregated values (USD).
+ * @returns {number} Sum of values whose quarter-end month equals `targetYm`.
  */
 export function sumDateMapValuesForYearMonth(
   targetYm: string,
   sortedDates: string[],
   dateMap: Map<string, number>
 ): number {
-  let sum = 0;
-  for (const iso of sortedDates) {
+  return sortedDates.reduce((sum, iso) => {
     const qYm = assetFlowDateToYearMonthUtc(iso);
-    if (qYm === targetYm) sum += dateMap.get(iso) || 0;
-  }
-  return sum;
+    return qYm === targetYm ? sum + (dateMap.get(iso) || 0) : sum;
+  }, 0);
 }
 
-/** Inclusive calendar distance in months from `aYm` to `bYm` (both `YYYY-MM`). */
+/**
+ * Inclusive calendar distance in months from `aYm` to `bYm` (both `YYYY-MM`).
+ * @param {string} aYm - Start calendar month (YYYY-MM).
+ * @param {string} bYm - End calendar month (YYYY-MM).
+ * @returns {number | null} Month count from `aYm` to `bYm`, or `null` if either value is invalid.
+ */
 export function monthsBetweenYearMonths(aYm: string, bYm: string): number | null {
   const ma = aYm.trim().match(/^(\d{4})-(\d{2})$/);
   const mb = bYm.trim().match(/^(\d{4})-(\d{2})$/);
@@ -130,6 +142,8 @@ export function monthsBetweenYearMonths(aYm: string, bYm: string): number | null
 
 /**
  * Quarter-end calendar date for tooltips (e.g. {@code "2016-06"} → "June 30, 2016"), UTC.
+ * @param {string} ym - Calendar month (YYYY-MM).
+ * @returns {string} Long US locale date for that month's last day (UTC), or trimmed input if invalid.
  */
 export function formatYearMonthAsQuarterEndLongDate(ym: string): string {
   const m = ym.trim().match(/^(\d{4})-(\d{2})$/);
@@ -149,6 +163,8 @@ export function formatYearMonthAsQuarterEndLongDate(ym: string): string {
 
 /**
  * Calendar quarter label aligned with the Time Horizon slider (e.g. {@code "2025-06"} → "Q2, 2025").
+ * @param {string} ym - Calendar month (YYYY-MM).
+ * @returns {string} Quarter label (e.g. "Q2, 2025"), or trimmed input if invalid.
  */
 export function formatYearMonthAsQuarterLabel(ym: string): string {
   const m = ym.trim().match(/^(\d{4})-(\d{2})$/);
@@ -162,6 +178,11 @@ export function formatYearMonthAsQuarterLabel(ym: string): string {
 
 const QUARTER_END_MONTH = new Set([3, 6, 9, 12]);
 
+/**
+ * Parses a YYYY-MM string into numeric year and month parts.
+ * @param {string} ym - Calendar month (YYYY-MM).
+ * @returns {{ y: number; m: number } | null} Parsed parts, or `null` if invalid.
+ */
 function parseYearMonthParts(ym: string): { y: number; m: number } | null {
   const t = ym.trim();
   const ma = t.match(/^(\d{4})-(\d{2})$/);
@@ -172,11 +193,21 @@ function parseYearMonthParts(ym: string): { y: number; m: number } | null {
   return { y, m: mo };
 }
 
+/**
+ * Formats numeric year and month as YYYY-MM.
+ * @param {number} y - Four-digit calendar year.
+ * @param {number} m - Calendar month (1–12).
+ * @returns {string} Zero-padded YYYY-MM string.
+ */
 function formatYearMonthParts(y: number, m: number): string {
   return `${y}-${String(m).padStart(2, '0')}`;
 }
 
-/** Smallest Mar/Jun/Sep/Dec YYYY-MM that is still ≥ `loYm` (padded lexicographic order). */
+/**
+ * Smallest Mar/Jun/Sep/Dec YYYY-MM that is still ≥ `loYm` (padded lexicographic order).
+ * @param {string} loYm - Lower bound calendar month (YYYY-MM).
+ * @returns {string | null} First quarter-end month on or after `loYm`, or `null` if invalid.
+ */
 function firstQuarterEndOnOrAfter(loYm: string): string | null {
   const p = parseYearMonthParts(loYm);
   if (!p) return null;
@@ -191,7 +222,11 @@ function firstQuarterEndOnOrAfter(loYm: string): string | null {
   return QUARTER_END_MONTH.has(m) ? formatYearMonthParts(y, m) : null;
 }
 
-/** Largest Mar/Jun/Sep/Dec YYYY-MM that is still ≤ `hiYm`. */
+/**
+ * Largest Mar/Jun/Sep/Dec YYYY-MM that is still ≤ `hiYm`.
+ * @param {string} hiYm - Upper bound calendar month (YYYY-MM).
+ * @returns {string | null} Last quarter-end month on or before `hiYm`, or `null` if invalid.
+ */
 function lastQuarterEndOnOrBefore(hiYm: string): string | null {
   const p = parseYearMonthParts(hiYm);
   if (!p) return null;
@@ -209,7 +244,10 @@ function lastQuarterEndOnOrBefore(hiYm: string): string | null {
 /**
  * Every flow quarter-end calendar month (Mar/Jun/Sep/Dec) whose YYYY-MM lies in the closed window
  * {@code [loYm, hiYm]}, in chronological order. Quarters with no rows sum to 0 for that point.
- * Aligns with {@link assetFlowQuarterInTimeWindow} for multi-month YYYY-MM ranges.
+ * Aligns with {@link import("../../../utils/asset-flow-time-window.util").assetFlowQuarterInTimeWindow} for multi-month YYYY-MM ranges.
+ * @param {string} loYm - Window start calendar month (YYYY-MM).
+ * @param {string} hiYm - Window end calendar month (YYYY-MM).
+ * @returns {string[]} Quarter-end months in [loYm, hiYm], sorted chronologically.
  */
 export function everyQuarterEndYearMonthBetweenInclusive(loYm: string, hiYm: string): string[] {
   const lo = loYm <= hiYm ? loYm.trim() : hiYm.trim();
@@ -228,6 +266,11 @@ export function everyQuarterEndYearMonthBetweenInclusive(loYm: string, hiYm: str
 
 /**
  * Union of slider grid months and actual quarter-end months present in data, restricted to [loYm, hiYm], sorted.
+ * @param {string[]} gridYms - Slider grid calendar months (YYYY-MM).
+ * @param {string[]} sortedIsoDates - Sorted {@link AssetFlowRecord#Asset_Flow_Date} ISO strings from data.
+ * @param {string} windowLoYm - Window start calendar month (YYYY-MM).
+ * @param {string} windowHiYm - Window end calendar month (YYYY-MM).
+ * @returns {string[]} Merged, sorted YYYY-MM months within the window.
  */
 export function mergeYearMonthsInWindow(
   gridYms: string[],
@@ -238,21 +281,21 @@ export function mergeYearMonthsInWindow(
   const lo = windowLoYm <= windowHiYm ? windowLoYm : windowHiYm;
   const hi = windowLoYm <= windowHiYm ? windowHiYm : windowLoYm;
   const set = new Set<string>();
-  for (const ym of gridYms) {
+  gridYms.forEach(ym => {
     if (ym >= lo && ym <= hi) set.add(ym);
-  }
-  for (const iso of sortedIsoDates) {
+  });
+  sortedIsoDates.forEach(iso => {
     const qYm = assetFlowDateToYearMonthUtc(iso);
     if (qYm && qYm >= lo && qYm <= hi) set.add(qYm);
-  }
+  });
   return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 /**
- * @param {string} targetDate - Target calendar month (YYYY-MM), same basis as {@link horizonLabelToYearMonth}
- * @param {string[]} sortedDates - Sorted {@link Asset_Flow_Date} ISO strings
+ * @param {string} targetDate - Target calendar month (YYYY-MM), same basis as {@link import("../../../utils/historic-time-horizon-anchor.util").horizonLabelToYearMonth}
+ * @param {string[]} sortedDates - Sorted {@link AssetFlowRecord#Asset_Flow_Date} ISO strings
  * @returns {string | null} Closest ISO key by quarter-end calendar time, or null
- * @deprecated Prefer {@link sumDateMapValuesForYearMonth}; kept for any external callers expecting YYYY-MM targets.
+ * @deprecated Prefer sumDateMapValuesForYearMonth; kept for any external callers expecting YYYY-MM targets.
  */
 export function findClosestDate(targetDate: string, sortedDates: string[]): string | null {
   if (sortedDates.length === 0) return null;
@@ -262,18 +305,18 @@ export function findClosestDate(targetDate: string, sortedDates: string[]): stri
   const mo = Number(ym[2]);
   if (!Number.isFinite(y) || !Number.isFinite(mo)) return null;
   const targetMs = Date.UTC(y, mo - 1, 15);
-  let best: string | null = null;
-  let bestDiff = Infinity;
-  for (const iso of sortedDates) {
-    const t = new Date(iso).getTime();
-    if (Number.isNaN(t)) continue;
-    const diff = Math.abs(t - targetMs);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = iso;
-    }
-  }
-  return best;
+  return sortedDates.reduce<{ best: string | null; bestDiff: number }>(
+    (acc, iso) => {
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return acc;
+      const diff = Math.abs(t - targetMs);
+      if (diff < acc.bestDiff) {
+        return { best: iso, bestDiff: diff };
+      }
+      return acc;
+    },
+    { best: null, bestDiff: Infinity }
+  ).best;
 }
 
 /**
