@@ -1,4 +1,3 @@
-/* eslint-disable */
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -34,7 +33,7 @@ export interface MinFlowRange {
   templateUrl: './min-flow-range-slider.component.html',
   styleUrl: './min-flow-range-slider.component.scss',
 })
-export class MinFlowRangeSliderComponent implements OnChanges {
+export class MinFlowRangeSliderComponent implements OnChanges, AfterViewInit, OnDestroy {
   private static readonly DEFAULT_TRACK_WIDTH = 320;
 
   @Input({ required: true }) options!: { value: number; label: string }[];
@@ -43,6 +42,9 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   @Input() showFlowSummary = true;
   @Output() rangeChange = new EventEmitter<MinFlowRange>();
 
+  /**
+   * @returns {boolean} Whether compact filters-bar styling applies (summary row hidden)
+   */
   @HostBinding('class.min-flow-range--filters-compact')
   get filtersCompactClass(): boolean {
     return !this.showFlowSummary;
@@ -66,11 +68,19 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   /** Snapshot while dragging so handle positions stay in sync before parent CD runs. */
   private dragSnapshot: MinFlowRange | null = null;
 
+  /**
+   * @param {import('@angular/core').NgZone} ngZone - Zone used to run drag handlers outside full-app change detection
+   * @param {import('@angular/core').ChangeDetectorRef} cdr - Change detector for layout-driven slider updates
+   */
   constructor(
     private readonly ngZone: NgZone,
     private readonly cdr: ChangeDetectorRef
   ) {}
 
+  /**
+   * @param {import('@angular/core').SimpleChanges} changes - Current and previous input property values
+   * @returns {void}
+   */
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['options']) return;
 
@@ -88,6 +98,9 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     });
   }
 
+  /**
+   * @returns {void}
+   */
   ngAfterViewInit(): void {
     queueMicrotask(() => {
       this.ensureResizeObserver();
@@ -95,12 +108,18 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     });
   }
 
+  /**
+   * @returns {void}
+   */
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
     this.observedElement = null;
   }
 
+  /**
+   * @returns {number} Number of steps between min-flow option indices
+   */
   get numSteps(): number {
     const n = this.options.length;
     return Math.max(1, n - 1);
@@ -110,15 +129,25 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     return this.dragSnapshot ?? this.range;
   }
 
-  /** For template / ARIA while dragging before parent input updates. */
+  /**
+   * For template / ARIA while dragging before parent input updates.
+   *
+   * @returns {number} Start option index shown on the rail
+   */
   get displayStartIndex(): number {
     return this.activeRange.startIndex;
   }
 
+  /**
+   * @returns {number} End option index shown on the rail
+   */
   get displayEndIndex(): number {
     return this.activeRange.endIndex;
   }
 
+  /**
+   * @returns {string} Display label for the start handle
+   */
   get startLabel(): string {
     const raw = this.options[this.activeRange.startIndex]?.label ?? '';
     return displayMinFlowStartLabel(raw);
@@ -127,36 +156,61 @@ export class MinFlowRangeSliderComponent implements OnChanges {
   /**
    * Upper-bound copy for the end handle: chart filtering uses this as max ($B inclusive),
    * so we show ≤… / “No max”, not the option’s “≥ …” minimum-threshold wording.
+   *
+   * @returns {string} Display label for the end handle
    */
   get endLabel(): string {
     return displayMinFlowEndLabel(this.options, this.activeRange.endIndex);
   }
 
+  /**
+   * @param {'start' | 'end'} type - Which handle to position
+   * @returns {number} Handle offset in pixels along the track
+   */
   getHandlePosition(type: 'start' | 'end'): number {
     const idx = type === 'start' ? this.activeRange.startIndex : this.activeRange.endIndex;
     const w = this.getTrackWidth();
     return (idx / this.numSteps) * w;
   }
 
+  /**
+   * @returns {number} Left edge of the active range segment in pixels
+   */
   getActiveTrackLeft(): number {
     return this.getHandlePosition('start');
   }
 
+  /**
+   * @returns {number} Width of the active range segment in pixels
+   */
   getActiveTrackWidth(): number {
     return Math.max(0, this.getHandlePosition('end') - this.getHandlePosition('start'));
   }
 
+  /**
+   * @param {number} i - Option index on the rail
+   * @returns {number} Horizontal position of the tick as a percentage of track width
+   */
   dotLeftPercent(i: number): number {
     return (i / this.numSteps) * 100;
   }
 
-  /** Ticks between the handles use the muted rail color (same idea as Time Horizon). */
+  /**
+   * Ticks between the handles use the muted rail color (same idea as Time Horizon).
+   *
+   * @param {number} index - Option index on the rail
+   * @returns {boolean} Whether the tick lies between the selected start and end indices
+   */
   isTickInActiveRange(index: number): boolean {
     const { startIndex, endIndex } = this.activeRange;
     return index >= startIndex && index <= endIndex;
   }
 
-  /** Nudge value chips apart when both handles are close on the rail. */
+  /**
+   * Nudge value chips apart when both handles are close on the rail.
+   *
+   * @returns {boolean} Whether start and end handle tooltips would overlap
+   */
   minFlowTooltipsTooClose(): boolean {
     const { startIndex, endIndex } = this.activeRange;
     if (startIndex === endIndex) return false;
@@ -165,6 +219,9 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     return Math.abs(a - b) < 120;
   }
 
+  /**
+   * @returns {Array<{ index: number; label: string; leftPercent: number }>} Axis label stops for the rail
+   */
   get labelStops(): Array<{ index: number; label: string; leftPercent: number }> {
     const opts = this.options;
     if (!opts.length) return [];
@@ -205,6 +262,11 @@ export class MinFlowRangeSliderComponent implements OnChanges {
       }));
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Pointer event on a handle
+   * @param {'start' | 'end'} type - Which handle is being dragged
+   * @returns {void}
+   */
   startDrag(event: MouseEvent | TouchEvent, type: 'start' | 'end'): void {
     event.preventDefault();
     event.stopPropagation();
@@ -226,6 +288,10 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     this.handleDrag(event);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Pointer event on the track
+   * @returns {void}
+   */
   onTrackClick(event: MouseEvent | TouchEvent): void {
     if (this.hasDragged || this.isDragging) return;
     const target = event.target as HTMLElement;
@@ -280,6 +346,10 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     }
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Document-level move while dragging
+   * @returns {void}
+   */
   @HostListener('document:mousemove', ['$event'])
   @HostListener('document:touchmove', ['$event'])
   onDocumentMove(event: MouseEvent | TouchEvent): void {
@@ -293,6 +363,9 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     });
   }
 
+  /**
+   * @returns {void}
+   */
   @HostListener('document:mouseup')
   @HostListener('document:touchend')
   onDocumentUp(): void {
@@ -315,6 +388,10 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     }, 100);
   }
 
+  /**
+   * @param {MouseEvent | TouchEvent} event - Document-level pointer position while dragging
+   * @returns {void}
+   */
   private handleDrag(event: MouseEvent | TouchEvent): void {
     const container = this.dragContainer ?? this.sliderContainer?.nativeElement;
     if (!this.dragType || !container) return;
@@ -363,7 +440,11 @@ export class MinFlowRangeSliderComponent implements OnChanges {
     this.resizeObserver.observe(el);
   }
 
-  /** Defer DOM read/write past the current CD cycle to prevent ExpressionChangedAfterItHasBeenCheckedError. */
+  /**
+   * Defer DOM read/write past the current CD cycle to prevent ExpressionChangedAfterItHasBeenCheckedError.
+   *
+   * @returns {void}
+   */
   private scheduleTrackWidthMeasure(): void {
     this.ngZone.runOutsideAngular(() => {
       requestAnimationFrame(() => {
