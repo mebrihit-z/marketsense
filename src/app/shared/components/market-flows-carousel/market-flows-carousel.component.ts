@@ -541,8 +541,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
    * @param {string} message - User message to send to the AI service
    * @returns {void}
    */
-  onSendMessage(message: string): void {
-    void message;
+  onSendMessage(message: string): void { // eslint-disable-line @typescript-eslint/no-unused-vars -- stub until AI integration
     // Handle sending message to AI
     // Here you would typically send the message to an AI service
   }
@@ -611,8 +610,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
    * @param {string} cardId - Id of the card whose overflow menu was activated
    * @returns {void}
    */
-  onMoreOptions(cardId: string): void {
-    void cardId;
+  onMoreOptions(cardId: string): void { // eslint-disable-line @typescript-eslint/no-unused-vars -- stub until overflow menu wired
     // Handle more options action
   }
 
