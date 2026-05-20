@@ -46,6 +46,25 @@ export interface FlowBreakdownRow {
 
 export type FlowBreakdownTab = 'investor' | 'product';
 
+/**
+ * @typedef {object} FlowBreakdownRow
+ * @property {string} label - Investor type or product region label
+ * @property {number} valueUsd - Net flow in USD
+ * @property {number | null} pctChange - Percent change vs horizon start, or null when unavailable
+ */
+
+/**
+ * @typedef {'investor' | 'product'} FlowBreakdownTab
+ */
+
+/**
+ * @typedef {import('../../../../core/services/asset-flow-historic-anchor.service').AssetFlowHistoricAnchorService} AssetFlowHistoricAnchorService
+ */
+
+/**
+ * @typedef {import('../market-flow-card/market-flow-card.component').MarketFlowCard} MarketFlowCard
+ */
+
 @Component({
   selector: 'app-market-flow-detail-modal',
   standalone: true,
@@ -56,6 +75,9 @@ export type FlowBreakdownTab = 'investor' | 'product';
 export default class MarketFlowDetailModalComponent implements OnChanges {
   @ViewChild('cardExportRoot') private cardExportRoot?: ElementRef<HTMLElement>;
 
+  /**
+   * @param {AssetFlowHistoricAnchorService} historicAnchor - Historic quarter anchor for horizon and chart labels
+   */
   constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
 
   @Input() isVisible: boolean = false;
@@ -77,7 +99,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   showExportModal: boolean = false;
   xAxisLabelText: string = 'Time Horizon (Month)';
 
-  /** Y-axis title: quarterly net per point when a range is set, else running cumulative without a range. */
+  /**
+   * Y-axis title: quarterly net per point when a range is set, else running cumulative without a range.
+   * @returns {string} Chart y-axis label text
+   */
   get chartYAxisLabel(): string {
     if (this.timeHorizonRange?.start && this.timeHorizonRange?.end) {
       return 'Quarterly Net Flow (USD)';
@@ -106,7 +131,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     labels: [],
   };
 
-  /** Forecast segment stroke in the trajectory chart (historic uses {@link getChartColor}). */
+  /** Forecast segment stroke in the trajectory chart (historic uses {@link MarketFlowDetailModalComponent#getChartColor}). */
   readonly forecastLineColor = '#0C42FE';
 
   private headlineHorizonPctFp = '';
@@ -118,6 +143,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /**
    * @param {import("@angular/core").SimpleChanges} changes - Current and previous property values
+   * @returns {void}
    */
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible'] && !this.inline) {
@@ -142,12 +168,16 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     }
   }
 
+  /** @returns {void} */
   onClose(): void {
     document.body.style.overflow = '';
     this.close.emit();
   }
 
-  /** Sentiment label for the header (matches flow card logic). */
+  /**
+   * Sentiment label for the header (matches flow card logic).
+   * @returns {string} Bullish, Bearish, or empty when no card
+   */
   getCardSentimentLabel(): string {
     if (!this.card) return '';
     if (this.card.sentiment && !this.headlineHorizonPctActive()) return this.card.sentiment;
@@ -159,7 +189,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /**
    * When a slider window is set and raw rows exist, headline % follows the horizon (same formula as
-   * dashboard cards); otherwise the static {@link MarketFlowCard} fields.
+   * dashboard cards); otherwise the static card percentage fields.
+   * @returns {string} Formatted percentage string for the header pill
    */
   getHeadlinePercentageChange(): string {
     if (!this.card) return '';
@@ -167,7 +198,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       const pct = this.getHeadlineHorizonEndpointPct();
       if (pct == null) return '—';
       if (!Number.isFinite(pct)) {
-        return pct > 0 ? '+∞%' : pct < 0 ? '-∞%' : '—';
+        if (pct > 0) return '+∞%';
+        if (pct < 0) return '-∞%';
+        return '—';
       }
       const formatted = MarketFlowDetailModalComponent.formatHeadlinePctAbs(Math.abs(pct));
       return pct >= 0 ? `+${formatted}%` : `-${formatted}%`;
@@ -175,6 +208,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.card.percentageChange;
   }
 
+  /**
+   * @returns {'red' | 'green' | 'neutral'} Color token for the headline percentage pill
+   */
   getHeadlinePercentageColor(): 'red' | 'green' | 'neutral' {
     if (!this.card) return 'neutral';
     if (this.headlineHorizonPctActive()) {
@@ -185,7 +221,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.card.percentageColor;
   }
 
-  /** Same % tooltip as market-flow cards; when headline % follows the slider, dates must too (not card defaults). */
+  /**
+   * Same % tooltip as market-flow cards; when headline % follows the slider, dates must too (not card defaults).
+   * @returns {string} Hover label describing the percentage comparison window
+   */
   getHeadlinePercentageHoverLabel(): string {
     if (!this.card) return '';
     if (this.headlineHorizonPctActive()) {
@@ -206,6 +245,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     );
   }
 
+  /**
+   * @returns {boolean} Whether headline % is derived from the slider horizon instead of card fields
+   */
   private headlineHorizonPctActive(): boolean {
     return (
       this.getDetailHorizonYearMonthWindow() != null &&
@@ -214,6 +256,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     );
   }
 
+  /**
+   * @returns {string} JSON fingerprint for memoizing headline horizon endpoint %
+   */
   private getHeadlineHorizonPctFingerprint(): string {
     return JSON.stringify({
       id: this.card?.id,
@@ -229,6 +274,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     });
   }
 
+  /**
+   * @returns {number | null} Memoized horizon endpoint % for the card sub-type
+   */
   private getHeadlineHorizonEndpointPct(): number | null {
     const fp = this.getHeadlineHorizonPctFingerprint();
     if (fp !== this.headlineHorizonPctFp) {
@@ -239,8 +287,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Per-sub-type net at horizon start vs end on {@link applyChartDataFilters} rows — aligns with
-   * {@link horizonEndpointPercentChangeUsd} on dashboard market-flow cards.
+   * Per-sub-type net at horizon start vs end on {@link MarketFlowDetailModalComponent#applyChartDataFilters} rows — aligns with
+   * {@link import('../../../utils/horizon-endpoint-percent-change.util').horizonEndpointPercentChangeUsd} on dashboard market-flow cards.
+   * @returns {number | null} Endpoint % change, or null when window or data is missing
    */
   private computeHeadlineHorizonEndpointPct(): number | null {
     const win = this.getDetailHorizonYearMonthWindow();
@@ -257,7 +306,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return horizonEndpointPercentChangeUsd(oldUsd, newUsd);
   }
 
-  /** Same rounding as dashboard `formatPercentage` for carousel pills. */
+  /**
+   * Same rounding as dashboard `formatPercentage` for carousel pills.
+   * @param {number} value - Absolute percentage magnitude
+   * @returns {string} Rounded numeric body without a % suffix
+   */
   private static formatHeadlinePctAbs(value: number): string {
     if (!Number.isFinite(value)) return '∞';
     if (value === 0) return '0.0';
@@ -300,6 +353,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /**
    * Returns fallback chart data with length equal to {@link labelCount} so x-axis never shows raw indices (e.g. "4").
+   * @param {number} labelCount - Number of x-axis labels / chart points
+   * @returns {number[]} Padded or truncated fallback series
    */
   private getFallbackChartDataForLength(labelCount: number): number[] {
     const template = MarketFlowDetailModalComponent.FALLBACK_CHART_DATA_TEMPLATE;
@@ -310,6 +365,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return [...template, ...Array(labelCount - template.length).fill(last)];
   }
 
+  /**
+   * @returns {string} JSON fingerprint for memoizing the line chart bundle
+   */
   private getLineChartFingerprint(): string {
     return JSON.stringify({
       id: this.card?.id,
@@ -327,6 +385,15 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /**
    * Memoized chart series + x-axis labels aligned with each chart point (single change-detection pass).
+   * @returns {{
+   *   data: number[];
+   *   labels: string[];
+   *   pointTooltipDateLabels?: string[];
+   *   forecastStartIndex?: number;
+   *   anchorXAxisTickIndex?: number | null;
+   *   predictionIntervalUpper?: (number | null)[];
+   *   predictionIntervalLower?: (number | null)[];
+   * }} Chart series, labels, tooltips, forecast index, and optional prediction intervals
    */
   getLineChartBundle(): {
     data: number[];
@@ -345,11 +412,26 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.lineChartMemo;
   }
 
+  /**
+   * @param {string[]} labels - X-axis label strings
+   * @returns {number | undefined} Index of the first forecast label (e.g. "+3"), or undefined
+   */
   private inferForecastStartIndexFromLabels(labels: string[]): number | undefined {
     const idx = labels.findIndex(l => /^\+\d/.test(String(l).trim()));
     return idx >= 0 ? idx : undefined;
   }
 
+  /**
+   * @returns {{
+   *   data: number[];
+   *   labels: string[];
+   *   pointTooltipDateLabels?: string[];
+   *   forecastStartIndex?: number;
+   *   anchorXAxisTickIndex?: number | null;
+   *   predictionIntervalUpper?: (number | null)[];
+   *   predictionIntervalLower?: (number | null)[];
+   * }} Fresh line chart bundle (not memoized)
+   */
   private computeLineChartBundle(): {
     data: number[];
     labels: string[];
@@ -411,6 +493,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     };
   }
 
+  /**
+   * @returns {string[]} Default x-axis labels when no time-horizon range is set
+   */
   private getDefaultXAxisLabelsNoRange(): string[] {
     if (!this.card) {
       return [this.getZeroTimeHorizonDateLabel(), '+3', '+6', '+9', '+12'];
@@ -429,6 +514,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return data;
   }
 
+  /**
+   * @returns {string} JSON fingerprint for memoizing breakdown rows
+   */
   private getBreakdownFingerprint(): string {
     return JSON.stringify({
       id: this.card?.id,
@@ -442,6 +530,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     });
   }
 
+  /** @returns {void} */
   private ensureBreakdownCache(): void {
     const fp = this.getBreakdownFingerprint();
     if (this.breakdownFingerprint === fp) return;
@@ -450,6 +539,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     this.cachedProductBreakdown = this.buildBreakdownRows('product');
   }
 
+  /**
+   * @param {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord} r - Asset flow row
+   * @param {FlowBreakdownTab} kind - Breakdown dimension (investor type or product region)
+   * @returns {string} Grouping label for the row
+   */
   private dimensionKeyFromRow(r: AssetFlowRecord, kind: FlowBreakdownTab): string {
     if (kind === 'investor') {
       return (r.Plan_Type || r.Investor_Types || '').trim() || 'Other';
@@ -462,16 +556,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * dashboard filter bypassed so we see the full set for the sub-type). When the user has selected
    * investor types or product regions, only labels that both appear in that set and in this sub-type's
    * data are listed — never every global filter value that is irrelevant to this card.
+   * @param {string} productSubType - Product sub-type for the active card
+   * @param {FlowBreakdownTab} kind - Breakdown dimension (investor type or product region)
+   * @returns {string[]} Sorted breakdown row labels
    */
   private getOrderedBreakdownLabels(productSubType: string, kind: FlowBreakdownTab): string[] {
     const base = this.applyChartDataFiltersWithBypasses(productSubType, {
       bypassInvestorTypes: kind === 'investor',
       bypassProductRegions: kind === 'product',
     });
-    const set = new Set<string>();
-    for (const r of base) {
-      set.add(this.dimensionKeyFromRow(r, kind));
-    }
+    const set = base.reduce((acc, r) => {
+      acc.add(this.dimensionKeyFromRow(r, kind));
+      return acc;
+    }, new Set<string>());
     const fromSubType = [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     if (kind === 'investor' && this.selectedInvestorTypes?.length) {
       const selected = new Set(this.selectedInvestorTypes);
@@ -484,73 +581,96 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return fromSubType;
   }
 
+  /**
+   * @param {FlowBreakdownTab} kind - Breakdown dimension (investor type or product region)
+   * @returns {FlowBreakdownRow[]} Breakdown table rows with non-zero net flow
+   */
   private buildBreakdownRows(kind: FlowBreakdownTab): FlowBreakdownRow[] {
     if (!this.card?.productSubType) return [];
     const productSubType = this.card.productSubType;
     const filtered = this.applyChartDataFilters(productSubType);
-    const groups = new Map<string, AssetFlowRecord[]>();
-    for (const r of filtered) {
+    const groups = filtered.reduce((map, r) => {
       const key = this.dimensionKeyFromRow(r, kind);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(r);
-    }
+      const bucket = map.get(key) ?? [];
+      bucket.push(r);
+      map.set(key, bucket);
+      return map;
+    }, new Map<string, AssetFlowRecord[]>());
     const labels = this.getOrderedBreakdownLabels(productSubType, kind);
     const horizonWin = this.getDetailHorizonYearMonthWindow();
-    let totalOldAll = 0;
-    if (horizonWin) {
-      totalOldAll = filtered
-        .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, horizonWin.start, horizonWin.start))
-        .reduce((s, x) => s + x.Asset_Flow_Value, 0);
-    }
-    const rows: FlowBreakdownRow[] = [];
-    for (const label of labels) {
-      const recs = groups.get(label) ?? [];
-      const valueUsd = recs.reduce((sum, x) => sum + x.Asset_Flow_Value, 0);
-      let pctChange: number | null = null;
-      if (recs.length === 0) {
-        pctChange = 0;
-      } else if (horizonWin) {
-        const oldUsd = recs
+    const totalOldAll = horizonWin
+      ? filtered
           .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, horizonWin.start, horizonWin.start))
-          .reduce((s, x) => s + x.Asset_Flow_Value, 0);
-        const newUsd = recs
-          .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, horizonWin.end, horizonWin.end))
-          .reduce((s, x) => s + x.Asset_Flow_Value, 0);
-        pctChange = horizonSlicePercentOfTotalStart(newUsd - oldUsd, totalOldAll);
-      } else {
-        pctChange = 0;
-      }
-      rows.push({ label, valueUsd, pctChange });
-    }
-    return rows.filter(r => r.valueUsd !== 0);
+          .reduce((s, x) => s + x.Asset_Flow_Value, 0)
+      : 0;
+    return labels
+      .map(label => {
+        const recs = groups.get(label) ?? [];
+        const valueUsd = recs.reduce((sum, x) => sum + x.Asset_Flow_Value, 0);
+        let pctChange: number | null = null;
+        if (recs.length === 0) {
+          pctChange = 0;
+        } else if (horizonWin) {
+          const oldUsd = recs
+            .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, horizonWin.start, horizonWin.start))
+            .reduce((s, x) => s + x.Asset_Flow_Value, 0);
+          const newUsd = recs
+            .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, horizonWin.end, horizonWin.end))
+            .reduce((s, x) => s + x.Asset_Flow_Value, 0);
+          pctChange = horizonSlicePercentOfTotalStart(newUsd - oldUsd, totalOldAll);
+        } else {
+          pctChange = 0;
+        }
+        return { label, valueUsd, pctChange };
+      })
+      .filter(r => r.valueUsd !== 0);
   }
 
+  /**
+   * @param {FlowBreakdownTab} tab - Active breakdown tab
+   * @returns {void}
+   */
   setBreakdownTab(tab: FlowBreakdownTab): void {
     this.detailBreakdownTab = tab;
   }
 
+  /**
+   * @returns {FlowBreakdownRow[]} Cached investor-type breakdown rows
+   */
   getInvestorBreakdown(): FlowBreakdownRow[] {
     this.ensureBreakdownCache();
     return this.cachedInvestorBreakdown;
   }
 
+  /**
+   * @returns {FlowBreakdownRow[]} Cached product-region breakdown rows
+   */
   getProductRegionBreakdown(): FlowBreakdownRow[] {
     this.ensureBreakdownCache();
     return this.cachedProductBreakdown;
   }
 
+  /**
+   * @returns {FlowBreakdownRow[]} Rows for the currently selected breakdown tab
+   */
   getActiveBreakdownRows(): FlowBreakdownRow[] {
     return this.detailBreakdownTab === 'investor'
       ? this.getInvestorBreakdown()
       : this.getProductRegionBreakdown();
   }
 
+  /**
+   * @param {number} valueUsd - Net flow in USD
+   * @returns {string} Formatted currency string for a breakdown cell
+   */
   formatBreakdownValueUsd(valueUsd: number): string {
     return formatFlowCurrencyUsd(valueUsd);
   }
 
   /**
    * Renders like "+12.5 %" / "-22.3 %" to match dashboard breakdown styling.
+   * @param {number | null} pct - Percent change, or null when unavailable
+   * @returns {string} Formatted percentage for a breakdown cell
    */
   formatBreakdownPct(pct: number | null): string {
     if (pct == null) return '—';
@@ -576,28 +696,37 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * Same as {@link applyChartDataFilters} but can omit investor-type or product-region filter so we can
+   * Same as {@link MarketFlowDetailModalComponent#applyChartDataFilters} but can omit investor-type or product-region filter so we can
    * list every distinct label while other dimensions stay applied.
+   * @param {string} productSubType - Product sub-type to filter by
+   * @param {{ bypassInvestorTypes?: boolean; bypassProductRegions?: boolean }} bypasses - Dimensions to skip filtering
+   * @param {boolean} [bypasses.bypassInvestorTypes] - When true, skip investor-type filtering
+   * @param {boolean} [bypasses.bypassProductRegions] - When true, skip product-region filtering
+   * @returns {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord[]} Filtered asset flow records
    */
   private applyChartDataFiltersWithBypasses(
     productSubType: string,
     bypasses: { bypassInvestorTypes?: boolean; bypassProductRegions?: boolean }
   ): AssetFlowRecord[] {
     let data = this.rawAssetFlowsData.filter(r => r.Product_Sub_Type === productSubType);
-    if (this.selectedInvestorRegions?.length) {
-      data = data.filter(r => this.selectedInvestorRegions!.includes(r.Investor_Region));
+    const investorRegions = this.selectedInvestorRegions;
+    if (investorRegions?.length) {
+      data = data.filter(r => investorRegions.includes(r.Investor_Region));
     }
-    if (!bypasses.bypassInvestorTypes && this.selectedInvestorTypes?.length) {
+    const investorTypes = this.selectedInvestorTypes;
+    if (!bypasses.bypassInvestorTypes && investorTypes?.length) {
       data = data.filter(r => {
         const investorType = r.Plan_Type ?? r.Investor_Types;
-        return investorType && this.selectedInvestorTypes!.includes(investorType);
+        return investorType != null && investorTypes.includes(investorType);
       });
     }
-    if (!bypasses.bypassProductRegions && this.selectedProductRegions?.length) {
-      data = data.filter(r => r.Product_Region != null && this.selectedProductRegions!.includes(r.Product_Region));
+    const productRegions = this.selectedProductRegions;
+    if (!bypasses.bypassProductRegions && productRegions?.length) {
+      data = data.filter(r => r.Product_Region != null && productRegions.includes(r.Product_Region));
     }
-    if (this.selectedProductTypes?.length) {
-      data = data.filter(r => this.selectedProductTypes!.includes(r.Product_Type));
+    const productTypes = this.selectedProductTypes;
+    if (productTypes?.length) {
+      data = data.filter(r => productTypes.includes(r.Product_Type));
     }
     const dataType = this.card?.dataType ?? 'forecasted';
     data = filterAssetFlowsByDataTypeResolvingSpan(
@@ -617,7 +746,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return data;
   }
 
-  /** Ordered YYYY-MM endpoints for the open time range (matches {@link applyChartDataFilters} window). */
+  /**
+   * Ordered YYYY-MM endpoints for the open time range (matches {@link MarketFlowDetailModalComponent#applyChartDataFilters} window).
+   * @returns {{ start: string; end: string } | null} Normalized horizon window, or null when unset
+   */
   private getDetailHorizonYearMonthWindow(): { start: string; end: string } | null {
     if (!this.timeHorizonRange?.start || !this.timeHorizonRange?.end) return null;
     const s = this.historicAnchor.horizonToYearMonth(this.timeHorizonRange.start.trim());
@@ -629,7 +761,17 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * @param {Map<string, number>} dateMap - Date to aggregated value (USD)
    * @param {string[]} sortedDates - Sorted date strings
-   * @returns Per-quarter net flow, x-axis labels, and calendar quarter labels (e.g. Q2, 2025) for point tooltips, or null
+   * @param {Map<string, number>} upperMap - Per-date forecast upper bound totals (USD)
+   * @param {Map<string, number>} lowerMap - Per-date forecast lower bound totals (USD)
+   * @returns {{
+   *   series: number[];
+   *   xAxisLabels: string[];
+   *   tooltipDateLabels: string[];
+   *   forecastStartIndex: number;
+   *   anchorXAxisTickIndex: number | null;
+   *   predictionIntervalUpper: (number | null)[];
+   *   predictionIntervalLower: (number | null)[];
+   * } | null} Per-quarter series bundle for the open time range, or null when the range cannot be built
    */
   private buildPerQuarterSeriesForTimeHorizonLabels(
     dateMap: Map<string, number>,
@@ -672,23 +814,21 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const anchorYm = this.historicAnchor.getAnchorYearMonth();
     let anchorXAxisTickIndex: number | null = null;
     if (anchorYm) {
-      for (let i = 0; i < orderedYms.length; i++) {
-        if (detailModalUtil.monthsBetweenYearMonths(anchorYm, orderedYms[i]) === 0) {
-          anchorXAxisTickIndex = i;
-          break;
-        }
-      }
+      const anchorIdx = orderedYms.findIndex(
+        ym => detailModalUtil.monthsBetweenYearMonths(anchorYm, ym) === 0
+      );
+      anchorXAxisTickIndex = anchorIdx >= 0 ? anchorIdx : null;
     }
     const xAxisLabels = orderedYms.map(ym => this.formatYearMonthAsHorizonAxisTick(ym, nPoints));
     const tooltipDateLabels = orderedYms.map(ym => detailModalUtil.formatYearMonthAsQuarterLabel(ym));
     let forecastStartIndex = orderedYms.length;
     if (anchorYm) {
-      for (let i = 0; i < orderedYms.length; i++) {
-        const delta = detailModalUtil.monthsBetweenYearMonths(anchorYm, orderedYms[i]);
-        if (delta != null && delta > 0) {
-          forecastStartIndex = i;
-          break;
-        }
+      const fcstIdx = orderedYms.findIndex(ym => {
+        const delta = detailModalUtil.monthsBetweenYearMonths(anchorYm, ym);
+        return delta != null && delta > 0;
+      });
+      if (fcstIdx >= 0) {
+        forecastStartIndex = fcstIdx;
       }
     }
     const hasFcstBounds = upperMap.size > 0;
@@ -719,7 +859,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * @param pointCount - When there are more than 5 points, the anchor (delta 0) uses "0" instead of a long date to avoid x-axis crowding.
+   * @param {string} ym - Calendar month (YYYY-MM)
+   * @param {number} [pointCount] - When there are more than 5 points, the anchor (delta 0) uses "0" instead of a long date to avoid x-axis crowding
+   * @returns {string} X-axis tick label (horizon offset or formatted date)
    */
   private formatYearMonthAsHorizonAxisTick(ym: string, pointCount?: number): string {
     const anchorYm = this.historicAnchor.getAnchorYearMonth();
@@ -738,25 +880,29 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /**
    * Splits filtered rows into gross inflow (sum of positive flows) and gross outflow (sum of negatives).
-   * @returns Totals in USD, or null when raw data cannot produce a breakdown for this card.
+   * @returns {{ netUsd: number; inflowUsd: number; outflowUsd: number } | null} Totals in USD, or null when raw data cannot produce a breakdown for this card
    */
   private computeInflowOutflowNetFromRaw(): { netUsd: number; inflowUsd: number; outflowUsd: number } | null {
     if (!this.card || !this.rawAssetFlowsData?.length || !this.card.productSubType) return null;
     const filtered = this.applyChartDataFilters(this.card.productSubType);
     if (!filtered.length) return null;
-    let inflowUsd = 0;
-    let outflowUsd = 0;
-    for (const r of filtered) {
-      const v = r.Asset_Flow_Value;
-      if (!Number.isFinite(v)) continue;
-      if (v > 0) inflowUsd += v;
-      else outflowUsd += v;
-    }
-    return { netUsd: inflowUsd + outflowUsd, inflowUsd, outflowUsd };
+    const totals = filtered.reduce(
+      (acc, r) => {
+        const v = r.Asset_Flow_Value;
+        if (!Number.isFinite(v)) return acc;
+        if (v > 0) {
+          return { inflowUsd: acc.inflowUsd + v, outflowUsd: acc.outflowUsd, netUsd: acc.netUsd + v };
+        }
+        return { inflowUsd: acc.inflowUsd, outflowUsd: acc.outflowUsd + v, netUsd: acc.netUsd + v };
+      },
+      { netUsd: 0, inflowUsd: 0, outflowUsd: 0 }
+    );
+    return totals;
   }
 
   /**
    * Net / inflow / outflow in USD: from filtered raw rows when available, else derived from the card net only.
+   * @returns {{ netUsd: number; inflowUsd: number; outflowUsd: number }} Net, inflow, and outflow totals in USD
    */
   getFlowUsdTotals(): { netUsd: number; inflowUsd: number; outflowUsd: number } {
     const fromRaw = this.computeInflowOutflowNetFromRaw();
@@ -771,34 +917,48 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     };
   }
 
+  /**
+   * @returns {string} Formatted net flow for the summary row
+   */
   getNetFlowDisplay(): string {
     return formatFlowCurrencyUsd(this.getFlowUsdTotals().netUsd);
   }
 
-  /** Inflow with a leading "+" (e.g. "+$184.8B"). */
+  /**
+   * Inflow with a leading "+" (e.g. "+$184.8B").
+   * @returns {string} Formatted inflow display string
+   */
   getInflowDisplay(): string {
     const v = this.getFlowUsdTotals().inflowUsd;
     return `+${formatFlowCurrencyUsd(v)}`;
   }
 
+  /**
+   * @returns {string} Formatted outflow display string
+   */
   getOutflowDisplay(): string {
     return formatFlowCurrencyUsd(this.getFlowUsdTotals().outflowUsd);
   }
 
-  /** Sum of client counts on rows that match the current detail filters/time window. */
+  /**
+   * Sum of client counts on rows that match the current detail filters/time window.
+   * @returns {number | null} Aggregated N_Clients, or null when unavailable
+   */
   private computeFilteredSampleSize(): number | null {
     if (!this.card?.productSubType || !this.rawAssetFlowsData?.length) return null;
     const filtered = this.applyChartDataFilters(this.card.productSubType);
     if (!filtered.length) return null;
-    let total = 0;
-    for (const row of filtered) {
+    const total = filtered.reduce((sum, row) => {
       const n = row.N_Clients ?? 0;
-      if (Number.isFinite(n) && n > 0) total += n;
-    }
+      return Number.isFinite(n) && n > 0 ? sum + n : sum;
+    }, 0);
     return total > 0 ? total : null;
   }
 
-  /** Sample size for footer (dynamic with current filters/time range). */
+  /**
+   * Sample size for footer (dynamic with current filters/time range).
+   * @returns {string} Locale-formatted client count, or em dash when unknown
+   */
   getDataSampleSizeDisplay(): string {
     const filtered = this.computeFilteredSampleSize();
     if (filtered != null) return filtered.toLocaleString('en-US');
@@ -809,7 +969,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return '—';
   }
 
-  /** Same meaning as the market flow card’s sample-size hover. */
+  /**
+   * Same meaning as the market flow card’s sample-size hover.
+   * @returns {string} Tooltip explaining how sample size is computed
+   */
   getSampleSizeHoverLabel(): string {
     if (!this.card) return '';
     const n = this.computeFilteredSampleSize() ?? this.card.nClientsTotal;
@@ -834,7 +997,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return this.getLineChartBundle().labels;
   }
 
-  /** Date label for the "0" (today/anchor) point, aligned with Time Horizon date formatting. */
+  /**
+   * Date label for the "0" (today/anchor) point, aligned with Time Horizon date formatting.
+   * @returns {string} Formatted anchor date label for x-axis "0"
+   */
   private getZeroTimeHorizonDateLabel(): string {
     return formatTimeHorizonSliderHandleDate('0', this.historicAnchor.getAnchor());
   }
@@ -851,14 +1017,13 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const up = bundle.predictionIntervalUpper;
     const lo = bundle.predictionIntervalLower;
     if (up?.length && lo?.length) {
-      for (let i = 0; i < up.length; i++) {
-        const u = up[i];
+      up.forEach((u, i) => {
         const l = lo[i];
         if (u != null && l != null) {
           min = Math.min(min, u, l);
           max = Math.max(max, u, l);
         }
-      }
+      });
     }
     const span = max - min;
     const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(min), Math.abs(max), 1) * 0.08;
@@ -877,14 +1042,13 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const up = bundle.predictionIntervalUpper;
     const lo = bundle.predictionIntervalLower;
     if (up?.length && lo?.length) {
-      for (let i = 0; i < up.length; i++) {
-        const u = up[i];
+      up.forEach((u, i) => {
         const l = lo[i];
         if (u != null && l != null) {
           min = Math.min(min, u, l);
           max = Math.max(max, u, l);
         }
-      }
+      });
     }
     const span = max - min;
     const pad = span > 0 ? span * 0.08 : Math.max(Math.abs(min), Math.abs(max), 1) * 0.08;
@@ -928,12 +1092,14 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
 
+  /** @returns {void} */
   onAskMarketSenseClick(): void {
     if (this.card?.id) {
       this.askMarketSense.emit(this.card.id);
     }
   }
 
+  /** @returns {void} */
   onDownload(): void {
     if (this.inline) {
       this.openExport.emit();
@@ -942,6 +1108,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     this.showExportModal = true;
   }
 
+  /** @returns {void} */
   onCloseExportModal(): void {
     this.showExportModal = false;
   }
@@ -952,10 +1119,12 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     }
   }
 
+  /** @returns {void} */
   onExportCSV(): void {
     this.exportExpandedCardAsCsv();
   }
 
+  /** @returns {Promise<void>} */
   async onExportPNG(): Promise<void> {
     await this.exportExpandedCardAsPng();
   }
@@ -963,6 +1132,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * Rasterizes the expanded detail panel (header, flows, trajectory chart) to PNG.
    * Invoked from this component's export modal (overlay mode) or from the parent carousel when inline.
+   * @returns {Promise<void>}
    */
   async exportExpandedCardAsPng(): Promise<void> {
     if (!this.card) return;
@@ -974,17 +1144,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       if (dataUrl) {
         downloadDataUrlAsPng(dataUrl, this.getPngExportFilename());
       }
-    } catch (e) {
-      console.warn('Market flow detail PNG export failed', e);
+    } catch {
+      // Export failure is non-fatal; user sees no file download
     }
   }
 
+  /** @returns {Promise<void>} */
   async onExportPDF(): Promise<void> {
     await this.exportExpandedCardAsPdf();
   }
 
   /**
    * Same visual as PNG: full framed card without header action buttons, one landscape page.
+   * @returns {Promise<void>}
    */
   async exportExpandedCardAsPdf(): Promise<void> {
     if (!this.card) return;
@@ -1002,21 +1174,30 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         orientation: 'landscape',
         fitSinglePage: true,
       });
-    } catch (e) {
-      console.warn('Market flow detail PDF export failed', e);
+    } catch {
+      // Export failure is non-fatal; user sees no file download
     }
   }
 
+  /**
+   * @returns {string} Sanitized PNG download filename for the active card
+   */
   private getPngExportFilename(): string {
     const id = this.card?.id?.replace(/[^\w-]/g, '_') || 'market-flow';
     return `market-flow-${id}.png`;
   }
 
+  /**
+   * @returns {string} Sanitized CSV download filename for the active card
+   */
   private getCsvExportFilename(): string {
     const id = this.card?.id?.replace(/[^\w-]/g, '_') || 'market-flow';
     return `market-flow-${id}.csv`;
   }
 
+  /**
+   * @returns {string} Sanitized PDF download filename for the active card
+   */
   private getPdfExportFilename(): string {
     const id = this.card?.id?.replace(/[^\w-]/g, '_') || 'market-flow';
     return `market-flow-${id}.pdf`;
@@ -1024,6 +1205,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
 
   /**
    * PDF header line below title: prefer slider range (-9 mo to +9 mo) over a single-point card label.
+   * @returns {string} Time-horizon subtitle for PDF export, or empty when unavailable
    */
   private getPdfTimeHorizonSubtitle(): string {
     const r = this.timeHorizonRange;
@@ -1049,6 +1231,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   /**
    * Exports the underlying filtered rows that compose this card in the expanded view.
    * These are the same asset-flow records used to compute metrics, breakdown, and chart.
+   * @returns {void}
    */
   exportExpandedCardAsCsv(): void {
     if (!this.card?.productSubType) return;
@@ -1085,6 +1268,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * @returns {string[]} Ordered CSV column headers for asset-flow export
+   */
   private csvAssetFlowFieldOrder(): string[] {
     return [
       'Investor_Region',
@@ -1105,6 +1291,11 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     ];
   }
 
+  /**
+   * @param {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord} record - Asset flow row
+   * @param {string} key - Field name on the record
+   * @returns {string} String value for a CSV cell
+   */
   private csvCellForAssetFlowField(record: AssetFlowRecord, key: string): string {
     const raw = record[key as keyof AssetFlowRecord];
     if (raw === undefined || raw === null) {
@@ -1116,11 +1307,18 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return String(raw);
   }
 
+  /**
+   * @returns {Promise<void>} Resolves after layout/paint settles before raster export
+   */
   private async waitForExportPaint(): Promise<void> {
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 100);
+    });
   }
 
 }
