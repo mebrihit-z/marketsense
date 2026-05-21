@@ -103,6 +103,12 @@
         min-height: 0;
     }
 
+    .panel-header,
+    .horizontal-divider,
+    .panel-footer {
+        flex-shrink: 0;
+    }
+
     /* On smaller laptops/tablets, make the dropdown a bit shorter */
     @media (max-width: 1024px) {
         max-height: 260px;
