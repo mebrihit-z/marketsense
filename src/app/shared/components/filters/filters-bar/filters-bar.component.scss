@@ -88,7 +88,7 @@
     &.with-minimize {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
-        column-gap: 16px;
+        column-gap: 8px;
         align-items: center;
 
         .filters-bar-footer-left {
@@ -454,17 +454,18 @@
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 8px;
     min-width: 0;
 
     @media (max-width: 1440px) {
         width: 100%;
         justify-content: flex-start;
-        gap: 10px;
     }
-
     @media (max-width: 768px) {
         gap: 8px;
+    }
+    @media (min-width: 1921px) {
+        gap: 16px;
     }
 }
 
@@ -478,7 +479,7 @@
     background: rgba(0, 17, 63, 0.04);
     color: $primary-colors-midnight-blue;
     cursor: pointer;
-    max-width: min(280px, 100%);
+    max-width: min(230px, 100%);
     min-width: 0;
     position: relative;
     overflow: visible;

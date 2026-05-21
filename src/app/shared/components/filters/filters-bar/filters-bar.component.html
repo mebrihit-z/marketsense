@@ -290,6 +290,17 @@
               </ul>
             </div>
           </button>
+
+          <button type="button" class="pinned-chip" (click)="openFromPinned('productSubType')" aria-label="Open Product Sub-Type filter">
+            <span class="pinned-chip-title">Product Sub-Type</span>
+            <span class="pinned-chip-value">{{ getPinnedSummary('productSubType') }}</span>
+            <div class="pinned-chip-tooltip" role="tooltip">
+              <div class="pinned-chip-tooltip-title">Product Sub-Type</div>
+              <ul class="pinned-chip-tooltip-list">
+                <li *ngFor="let item of getPinnedHoverValues('productSubType')">{{ item }}</li>
+              </ul>
+            </div>
+          </button>
           </ng-container>
 
           <button type="button" class="pinned-chip" (click)="openFromPinned('timeHorizon')" aria-label="Scroll to Time Horizon">

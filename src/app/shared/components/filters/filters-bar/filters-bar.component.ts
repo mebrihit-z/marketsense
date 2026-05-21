@@ -1272,13 +1272,14 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  /** Whether any of the four multi-select filters has at least one value (drives filter chips in the pinned row). */
+  /** Whether any of the five multi-select filters has at least one value (drives filter chips in the pinned row). */
   hasPinnedSelectedFilters(): boolean {
     return (
       (this.state.investorRegion?.length ?? 0) > 0 ||
       (this.state.investorType?.length ?? 0) > 0 ||
       (this.state.productRegion?.length ?? 0) > 0 ||
-      (this.state.productType?.length ?? 0) > 0
+      (this.state.productType?.length ?? 0) > 0 ||
+      (this.state.productSubType?.length ?? 0) > 0
     );
   }
 
@@ -1333,6 +1334,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       | 'investorType'
       | 'productRegion'
       | 'productType'
+      | 'productSubType'
       | 'timeHorizon'
       | 'valueRange'
   ): void {
@@ -1373,10 +1375,12 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /** Compact human-readable summary for a pinned chip. */
-  getPinnedSummary(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): string {
+  getPinnedSummary(
+    key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType' | 'productSubType'
+  ): string {
     const selected = this.state[key] ?? [];
     const options = this.getPinnedOptions(key);
-    const total = options.length;
+    const total = this.getPinnedOptionCount(key, options);
 
     if (selected.length === 0) return 'None';
     if (total > 0 && selected.length >= total) return 'All';
@@ -1395,10 +1399,12 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /** Full hover text for pinned chips (shows complete selected list). */
-  getPinnedHoverText(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): string {
+  getPinnedHoverText(
+    key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType' | 'productSubType'
+  ): string {
     const selected = this.state[key] ?? [];
     const options = this.getPinnedOptions(key);
-    const total = options.length;
+    const total = this.getPinnedOptionCount(key, options);
 
     if (selected.length === 0) return 'None selected';
     if (total > 0 && selected.length >= total) return 'All selected';
@@ -1411,16 +1417,16 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /** Full selected values for the custom hover list (column layout). */
-  getPinnedHoverValues(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): string[] {
+  getPinnedHoverValues(
+    key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType' | 'productSubType'
+  ): string[] {
     const selected = this.state[key] ?? [];
     const options = this.getPinnedOptions(key);
-    const total = options.length;
+    const total = this.getPinnedOptionCount(key, options);
 
     if (selected.length === 0) return ['None selected'];
     if (total > 0 && selected.length >= total) {
-      const allLabels = options
-        .map((option) => this.getOptionLabel(options, option.value))
-        .filter((label) => label.trim().length > 0);
+      const allLabels = this.getDistinctOptionLabels(options);
       return allLabels.length > 0 ? allLabels : ['All selected'];
     }
 
@@ -1431,7 +1437,9 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     return labels.length > 0 ? labels : [`${selected.length} selected`];
   }
 
-  private getPinnedOptions(key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType'): FilterOption[] {
+  private getPinnedOptions(
+    key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType' | 'productSubType'
+  ): FilterOption[] {
     switch (key) {
       case 'investorRegion':
         return this.investorRegionOptions ?? [];
@@ -1441,9 +1449,34 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         return this.productRegionOptions ?? [];
       case 'productType':
         return this.productTypeOptions ?? [];
+      case 'productSubType':
+        return this.filteredProductSubTypeOptions.flatMap((group) => group.options);
       default:
         return [];
     }
+  }
+
+  /** Unique option count for pinned "All" detection (product sub-types may repeat across groups). */
+  private getPinnedOptionCount(
+    key: 'investorRegion' | 'investorType' | 'productRegion' | 'productType' | 'productSubType',
+    options: FilterOption[]
+  ): number {
+    if (key === 'productSubType') {
+      return new Set(options.map((option) => option.value)).size;
+    }
+    return options.length;
+  }
+
+  private getDistinctOptionLabels(options: FilterOption[]): string[] {
+    const seen = new Set<string>();
+    const labels: string[] = [];
+    for (const option of options) {
+      if (seen.has(option.value)) continue;
+      seen.add(option.value);
+      const label = this.getOptionLabel(options, option.value);
+      if (label.trim().length > 0) labels.push(label);
+    }
+    return labels;
   }
 
   private getOptionLabel(options: FilterOption[], value: string): string {
