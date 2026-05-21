@@ -563,16 +563,22 @@
     margin-bottom: 6px;
 }
 
-.pinned-chip-panel-list {
-    margin: 0;
-    padding-left: 16px;
-    list-style: disc;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.pinned-chip-panel-list-scroll {
     max-height: 180px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    margin: 0;
+    padding-right: 4px;
+}
+
+.pinned-chip-panel-list {
+    margin: 0;
+    padding: 0 0 0 20px;
+    list-style: disc;
+    list-style-position: outside;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .ai-confidence-container {

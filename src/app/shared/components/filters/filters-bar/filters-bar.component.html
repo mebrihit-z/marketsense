@@ -260,9 +260,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('investorRegion')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Investor Region</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('investorRegion')">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
 
@@ -279,9 +281,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('investorType')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Investor Type</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('investorType')">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
 
@@ -298,9 +302,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('productRegion')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Product Region</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('productRegion')">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
 
@@ -317,9 +323,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('productType')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Product Type</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('productType')">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
 
@@ -336,9 +344,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('productSubType')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Product Sub-Type</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('productSubType')">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
           </ng-container>
@@ -356,9 +366,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('timeHorizon')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Time Horizon</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedTimeHorizonHoverValues()">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
 
@@ -378,9 +390,11 @@
             </button>
             <div *ngIf="isPinnedChipListOpen('valueRange')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
               <div class="pinned-chip-panel-title">Value Range</div>
+              <div class="pinned-chip-panel-list-scroll">
               <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedValueRangeHoverValues()">{{ item }}</li>
               </ul>
+              </div>
             </div>
           </div>
         </div>
