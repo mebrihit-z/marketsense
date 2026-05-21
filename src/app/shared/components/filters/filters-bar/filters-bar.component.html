@@ -247,88 +247,142 @@
         </div>
         <div class="pinned-selected-filters">
           <ng-container *ngIf="hasPinnedSelectedFilters()">
-          <button type="button" class="pinned-chip" (click)="openFromPinned('investorRegion')" aria-label="Open Investor Region filter">
-            <span class="pinned-chip-title">Investor Region</span>
-            <span class="pinned-chip-value">{{ getPinnedSummary('investorRegion') }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Investor Region</div>
-              <ul class="pinned-chip-tooltip-list">
+          <div class="pinned-chip" [class.pinned-chip--open]="isPinnedChipListOpen('investorRegion')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('investorRegion', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('investorRegion')"
+              aria-haspopup="dialog"
+              aria-label="Show Investor Region selections">
+              <span class="pinned-chip-title">Investor Region</span>
+              <span class="pinned-chip-value">{{ getPinnedSummary('investorRegion') }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('investorRegion')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Investor Region</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('investorRegion')">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
 
-          <button type="button" class="pinned-chip" (click)="openFromPinned('investorType')" aria-label="Open Investor Type filter">
-            <span class="pinned-chip-title">Investor Type</span>
-            <span class="pinned-chip-value">{{ getPinnedSummary('investorType') }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Investor Type</div>
-              <ul class="pinned-chip-tooltip-list">
+          <div class="pinned-chip" [class.pinned-chip--open]="isPinnedChipListOpen('investorType')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('investorType', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('investorType')"
+              aria-haspopup="dialog"
+              aria-label="Show Investor Type selections">
+              <span class="pinned-chip-title">Investor Type</span>
+              <span class="pinned-chip-value">{{ getPinnedSummary('investorType') }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('investorType')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Investor Type</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('investorType')">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
 
-          <button type="button" class="pinned-chip" (click)="openFromPinned('productRegion')" aria-label="Open Product Region filter">
-            <span class="pinned-chip-title">Product Region</span>
-            <span class="pinned-chip-value">{{ getPinnedSummary('productRegion') }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Product Region</div>
-              <ul class="pinned-chip-tooltip-list">
+          <div class="pinned-chip" [class.pinned-chip--open]="isPinnedChipListOpen('productRegion')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('productRegion', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('productRegion')"
+              aria-haspopup="dialog"
+              aria-label="Show Product Region selections">
+              <span class="pinned-chip-title">Product Region</span>
+              <span class="pinned-chip-value">{{ getPinnedSummary('productRegion') }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('productRegion')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Product Region</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('productRegion')">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
 
-          <button type="button" class="pinned-chip" (click)="openFromPinned('productType')" aria-label="Open Product Type filter">
-            <span class="pinned-chip-title">Product Type</span>
-            <span class="pinned-chip-value">{{ getPinnedSummary('productType') }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Product Type</div>
-              <ul class="pinned-chip-tooltip-list">
+          <div class="pinned-chip" [class.pinned-chip--open]="isPinnedChipListOpen('productType')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('productType', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('productType')"
+              aria-haspopup="dialog"
+              aria-label="Show Product Type selections">
+              <span class="pinned-chip-title">Product Type</span>
+              <span class="pinned-chip-value">{{ getPinnedSummary('productType') }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('productType')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Product Type</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('productType')">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
 
-          <button type="button" class="pinned-chip" (click)="openFromPinned('productSubType')" aria-label="Open Product Sub-Type filter">
-            <span class="pinned-chip-title">Product Sub-Type</span>
-            <span class="pinned-chip-value">{{ getPinnedSummary('productSubType') }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Product Sub-Type</div>
-              <ul class="pinned-chip-tooltip-list">
+          <div class="pinned-chip" [class.pinned-chip--open]="isPinnedChipListOpen('productSubType')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('productSubType', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('productSubType')"
+              aria-haspopup="dialog"
+              aria-label="Show Product Sub-Type selections">
+              <span class="pinned-chip-title">Product Sub-Type</span>
+              <span class="pinned-chip-value">{{ getPinnedSummary('productSubType') }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('productSubType')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Product Sub-Type</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedHoverValues('productSubType')">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
           </ng-container>
 
-          <button type="button" class="pinned-chip" (click)="openFromPinned('timeHorizon')" aria-label="Scroll to Time Horizon">
-            <span class="pinned-chip-title">Time Horizon</span>
-            <span class="pinned-chip-value">{{ getPinnedTimeHorizonSummary() }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Time Horizon</div>
-              <ul class="pinned-chip-tooltip-list">
+          <div class="pinned-chip" [class.pinned-chip--open]="isPinnedChipListOpen('timeHorizon')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('timeHorizon', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('timeHorizon')"
+              aria-haspopup="dialog"
+              aria-label="Show Time Horizon selections">
+              <span class="pinned-chip-title">Time Horizon</span>
+              <span class="pinned-chip-value">{{ getPinnedTimeHorizonSummary() }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('timeHorizon')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Time Horizon</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedTimeHorizonHoverValues()">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
 
-          <button
-            type="button"
+          <div
             class="pinned-chip"
             *ngIf="minFlowValueOptions.length"
-            (click)="openFromPinned('valueRange')"
-            aria-label="Scroll to Value Range">
-            <span class="pinned-chip-title">Value Range</span>
-            <span class="pinned-chip-value">{{ getPinnedValueRangeSummary() }}</span>
-            <div class="pinned-chip-tooltip" role="tooltip">
-              <div class="pinned-chip-tooltip-title">Value Range</div>
-              <ul class="pinned-chip-tooltip-list">
+            [class.pinned-chip--open]="isPinnedChipListOpen('valueRange')">
+            <button
+              type="button"
+              class="pinned-chip-btn"
+              (click)="togglePinnedChipList('valueRange', $event)"
+              [attr.aria-expanded]="isPinnedChipListOpen('valueRange')"
+              aria-haspopup="dialog"
+              aria-label="Show Value Range selections">
+              <span class="pinned-chip-title">Value Range</span>
+              <span class="pinned-chip-value">{{ getPinnedValueRangeSummary() }}</span>
+            </button>
+            <div *ngIf="isPinnedChipListOpen('valueRange')" class="pinned-chip-panel" role="dialog" (click)="$event.stopPropagation()">
+              <div class="pinned-chip-panel-title">Value Range</div>
+              <ul class="pinned-chip-panel-list">
                 <li *ngFor="let item of getPinnedValueRangeHoverValues()">{{ item }}</li>
               </ul>
             </div>
-          </button>
+          </div>
         </div>
 
         <div class="action-buttons-container">

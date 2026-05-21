@@ -470,6 +470,14 @@
 }
 
 .pinned-chip {
+    position: relative;
+    display: inline-flex;
+    max-width: min(230px, 100%);
+    min-width: 0;
+    overflow: visible;
+}
+
+.pinned-chip-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -479,27 +487,24 @@
     background: rgba(0, 17, 63, 0.04);
     color: $primary-colors-midnight-blue;
     cursor: pointer;
-    max-width: min(230px, 100%);
+    max-width: 100%;
     min-width: 0;
-    position: relative;
-    overflow: visible;
+    font: inherit;
 
     &:hover {
         background: rgba(0, 17, 63, 0.08);
         border-color: rgba(0, 17, 63, 0.26);
     }
 
-    &:focus {
+    &:focus-visible {
         outline: 2px solid $primary-colors-midnight-blue;
         outline-offset: 2px;
     }
+}
 
-    &:hover .pinned-chip-tooltip,
-    &:focus-visible .pinned-chip-tooltip {
-        opacity: 1;
-        visibility: visible;
-        transform: translateX(-50%) translateY(0);
-    }
+.pinned-chip--open .pinned-chip-btn {
+    background: rgba(0, 17, 63, 0.08);
+    border-color: rgba(0, 17, 63, 0.26);
 }
 
 .pinned-chip-title {
@@ -533,11 +538,11 @@
     }
 }
 
-.pinned-chip-tooltip {
+.pinned-chip-panel {
     position: absolute;
     left: 50%;
     top: calc(100% + 8px);
-    transform: translateX(-50%) translateY(-4px);
+    transform: translateX(-50%);
     min-width: 220px;
     max-width: 320px;
     background: $primary-colors-midnight-blue;
@@ -548,20 +553,17 @@
     padding: 10px 12px;
     z-index: 1200;
     text-align: left;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
-.pinned-chip-tooltip-title {
+.pinned-chip-panel-title {
     font-size: 12px;
     line-height: 16px;
     font-weight: 600;
     margin-bottom: 6px;
 }
 
-.pinned-chip-tooltip-list {
+.pinned-chip-panel-list {
     margin: 0;
     padding-left: 16px;
     list-style: disc;
@@ -570,6 +572,7 @@
     gap: 4px;
     max-height: 180px;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .ai-confidence-container {

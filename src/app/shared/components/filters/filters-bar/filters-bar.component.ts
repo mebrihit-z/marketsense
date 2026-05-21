@@ -409,6 +409,16 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
 
   // Track which dropdown is currently open
   openDropdown: string | null = null;
+  /** Pinned footer chip whose selected-values panel is open (click toggled). */
+  openPinnedChipList:
+    | 'investorRegion'
+    | 'investorType'
+    | 'productRegion'
+    | 'productType'
+    | 'productSubType'
+    | 'timeHorizon'
+    | 'valueRange'
+    | null = null;
 
   // Track which tooltip is open
   openTooltip: 'aiConfidence' | 'timeHorizon' | 'minFlowValue' | 'investorGroup' | 'productGroup' | null = null;
@@ -1051,6 +1061,10 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
         this.openTooltip = null;
       }
     }
+
+    if (this.openPinnedChipList && !target.closest('.pinned-chip')) {
+      this.openPinnedChipList = null;
+    }
     
     // Close filter dropdown tooltips when clicking outside (handled by filter-dropdown component's own click handler)
   }
@@ -1327,6 +1341,27 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     return [`Minimum: ${low}`, `Maximum: ${high}`];
   }
 
+  isPinnedChipListOpen(
+    key: NonNullable<typeof this.openPinnedChipList>
+  ): boolean {
+    return this.openPinnedChipList === key;
+  }
+
+  /** Toggle the scrollable selected-values panel for a pinned chip. */
+  togglePinnedChipList(
+    key: NonNullable<typeof this.openPinnedChipList>,
+    event: Event
+  ): void {
+    event.stopPropagation();
+    this.openTooltip = null;
+    this.openFilterDropdownTooltip = null;
+    this.openPinnedChipList = this.openPinnedChipList === key ? null : key;
+  }
+
+  closePinnedChipList(): void {
+    this.openPinnedChipList = null;
+  }
+
   /** Opens a filter dropdown from its pinned chip, or scrolls to Time Horizon / Value Range for slider chips. */
   openFromPinned(
     key:
@@ -1338,6 +1373,7 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
       | 'timeHorizon'
       | 'valueRange'
   ): void {
+    this.closePinnedChipList();
     this.openTooltip = null;
     this.openFilterDropdownTooltip = null;
 
@@ -1488,5 +1524,6 @@ export class FiltersBarComponent implements OnInit, OnDestroy, OnChanges {
     this.stickyBarCollapsed = true;
     this.openDropdown = null;
     this.openTooltip = null;
+    this.closePinnedChipList();
   }
 }
