@@ -208,6 +208,18 @@ export class SavedViewsService {
     return this.normalizeText(lastLogin) ?? new Date().toISOString();
   }
 
+  /** VDI/Mongo may use camelCase, snake_case, or `{ $date }` for last login. */
+  private normalizeLastLoginFromPreference(pref: Record<string, unknown>): string | undefined {
+    const raw = pref['lastLogin'] ?? pref['last_login'] ?? pref['LastLogin'];
+    if (raw == null) return undefined;
+    if (typeof raw === 'string') return this.normalizeText(raw);
+    if (typeof raw === 'object' && raw !== null && '$date' in raw) {
+      const dateVal = (raw as { $date: string }).$date;
+      return this.normalizeText(dateVal != null ? String(dateVal) : undefined);
+    }
+    return undefined;
+  }
+
   private resolveUserId(userId?: string): string | null {
     if (!userId) return null;
     const normalized = String(userId).trim();
@@ -249,6 +261,7 @@ export class SavedViewsService {
       ...pref,
       _id: docId,
       userId: String(pref.userId).trim(),
+      lastLogin: this.normalizeLastLoginFromPreference(pref),
       savedViews: Array.isArray(pref.savedViews) ? pref.savedViews.map((v: SavedView) => this.normalizeSavedView(v)) : [],
       disclosureAcknowledged: this.coerceDisclosureAcknowledged(pref),
     };

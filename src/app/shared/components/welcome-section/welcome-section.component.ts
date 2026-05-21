@@ -47,8 +47,7 @@ export interface ViewingOption {
 })
 export default class WelcomeSectionComponent implements AfterViewInit, OnInit, OnDestroy {
   @Input() userName: string = '';
-  @Input() lastLogin: string = '';
-  /** Snapshot of the previously saved login time to show before we write today's value. */
+  /** Last login from backend user-preference; shown until today's visit is persisted. */
   private previousLastLoginForDisplay?: string;
 
   @Input() viewingFilter: string = 'High-confidence Equities';
@@ -59,20 +58,22 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return this.userProfileService.getGivenName() ?? this.userName;
   }
 
-  /**
-   * Raw last-login value from preference / profile (often ISO). Used for persistence, not UI.
-   */
-  private get rawLastLoginValue(): string {
-    if (this.previousLastLoginForDisplay) {
-      return this.previousLastLoginForDisplay;
+  /** Last login from backend only; empty when not available (no UI fallback). */
+  get displayLastLogin(): string {
+    const raw = this.previousLastLoginForDisplay ?? this.userProfileService.getLastLogin();
+    if (!raw?.trim()) {
+      return '';
     }
-    const fallbackLastLogin = this.lastLogin || this.getTodayDateLabel();
-    return this.userProfileService.getLastLogin() ?? fallbackLastLogin;
+    return this.formatLastLoginForDisplay(raw);
   }
 
-  /** Last login line in the welcome header — human-readable, same intent as filters-bar timestamp. */
-  get displayLastLogin(): string {
-    return this.formatLastLoginForDisplay(this.rawLastLoginValue);
+  /** Value sent on sync/save when backend has no prior lastLogin yet. */
+  private get lastLoginForPersistence(): string {
+    return (
+      this.previousLastLoginForDisplay ??
+      this.userProfileService.getLastLogin() ??
+      this.getTodayIsoTimestamp()
+    );
   }
 
   get savedViewsCount(): number {
@@ -274,6 +275,10 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
         }
         if (pref?.lastLogin) {
           this.previousLastLoginForDisplay = pref.lastLogin;
+          this.userProfileService.setLastLogin(pref.lastLogin);
+        } else {
+          this.previousLastLoginForDisplay = undefined;
+          this.userProfileService.setLastLogin(undefined);
         }
 
         // After showing the previous value in UI, record today's login for next visit.
@@ -293,7 +298,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     const currentUserId = this.resolvedUserId();
     const userName = this.displayName;
     const role = this.userProfileService.getRoleName();
-    const lastLogin = lastLoginOverride ?? this.rawLastLoginValue;
+    const lastLogin = lastLoginOverride ?? this.lastLoginForPersistence;
 
     this.savedViewsService
       .syncUserPreference({
@@ -309,27 +314,27 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     return new Date().toISOString();
   }
 
-  private getTodayDateLabel(): string {
-    return new Date().toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
-
   /**
    * Show ISO / backend timestamps as a local date + time; leave already-friendly strings unchanged.
+   * Date-only values must not be shown as midnight (12:00 AM).
    */
   private formatLastLoginForDisplay(value: string): string {
     const s = value?.trim() ?? '';
     if (!s) {
-      return this.getTodayDateLabel();
+      return '';
     }
     const parsed = Date.parse(s);
     if (Number.isNaN(parsed)) {
       return s;
     }
     const d = new Date(parsed);
+    if (!this.lastLoginValueHasExplicitTime(s)) {
+      return d.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
     return d.toLocaleString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -337,6 +342,30 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
       hour: 'numeric',
       minute: '2-digit',
     });
+  }
+
+  /** True when the stored value includes a real clock time (not date-only / midnight placeholder). */
+  private lastLoginValueHasExplicitTime(value: string): boolean {
+    const s = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return false;
+    }
+    if (/^\d{4}-\d{2}-\d{2}T00:00:00(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/i.test(s)) {
+      return false;
+    }
+    if (/T\d{2}:\d{2}/.test(s) && !/T00:00:00/.test(s)) {
+      return true;
+    }
+    if (/\d{1,2}:\d{2}/.test(s)) {
+      return true;
+    }
+    if (/\d{1,2}\s*(AM|PM)/i.test(s)) {
+      return true;
+    }
+    if (/^[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}$/.test(s)) {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -850,7 +879,7 @@ export default class WelcomeSectionComponent implements AfterViewInit, OnInit, O
     }
 
     this.savedViewsService
-      .saveView(updated, currentUserId, this.displayName, { role, lastLogin: this.rawLastLoginValue })
+      .saveView(updated, currentUserId, this.displayName, { role, lastLogin: this.lastLoginForPersistence })
       .subscribe({
         next: () => {
           const wasActive = !!option.isActive;

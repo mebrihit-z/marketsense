@@ -8,7 +8,7 @@
           <span class="welcome-name">{{ displayName }}</span>
         </h2>
       </div>
-      <div class="welcome-meta">
+      <div class="welcome-meta" *ngIf="displayLastLogin">
         <img src="assets/icons/clock-icon.svg" alt="" class="clock-icon" />
         <span class="last-login">Last login: {{ displayLastLogin }}</span>
       </div>
