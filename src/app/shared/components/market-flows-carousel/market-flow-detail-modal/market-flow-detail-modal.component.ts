@@ -80,6 +80,15 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   constructor(private readonly historicAnchor: AssetFlowHistoricAnchorService) {}
 
+  /** Product sub-type or product label used to scope chart/breakdown rows for the active card. */
+  private getCardAggregationKey(): string | null {
+    if (!this.card) return null;
+    if (this.card.aggregationLevel === 'product-type') {
+      return this.card.productType ?? null;
+    }
+    return this.card.productSubType ?? null;
+  }
+
   @Input() isVisible: boolean = false;
   /** When true, render only the content (no overlay) for inline use in carousel. */
   @Input() inline: boolean = false;
@@ -251,7 +260,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private headlineHorizonPctActive(): boolean {
     return (
       this.getDetailHorizonYearMonthWindow() != null &&
-      !!this.card?.productSubType &&
+      !!this.getCardAggregationKey() &&
       (this.rawAssetFlowsData?.length ?? 0) > 0
     );
   }
@@ -262,7 +271,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private getHeadlineHorizonPctFingerprint(): string {
     return JSON.stringify({
       id: this.card?.id,
+      aggregationLevel: this.card?.aggregationLevel,
       productSubType: this.card?.productSubType,
+      productType: this.card?.productType,
       dataType: this.card?.dataType,
       timeHorizonRange: this.timeHorizonRange,
       rawLen: this.rawAssetFlowsData?.length ?? 0,
@@ -293,9 +304,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    */
   private computeHeadlineHorizonEndpointPct(): number | null {
     const win = this.getDetailHorizonYearMonthWindow();
-    const sub = this.card?.productSubType;
-    if (!win || !sub) return null;
-    const filtered = this.applyChartDataFilters(sub);
+    const aggregationKey = this.getCardAggregationKey();
+    if (!win || !aggregationKey) return null;
+    const filtered = this.applyChartDataFilters(aggregationKey);
     if (!filtered.length) return null;
     const oldUsd = filtered
       .filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, win.start, win.start))
@@ -371,7 +382,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private getLineChartFingerprint(): string {
     return JSON.stringify({
       id: this.card?.id,
+      aggregationLevel: this.card?.aggregationLevel,
       productSubType: this.card?.productSubType,
+      productType: this.card?.productType,
       dataType: this.card?.dataType,
       timeHorizonRange: this.timeHorizonRange,
       rawLen: this.rawAssetFlowsData?.length ?? 0,
@@ -449,15 +462,15 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
         forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
       };
     }
-    const productSubType = this.card.productSubType;
-    if (!productSubType) {
+    const aggregationKey = this.getCardAggregationKey();
+    if (!aggregationKey) {
       return {
         data: this.getFallbackChartDataForLength(defaultLabels.length),
         labels: defaultLabels,
         forecastStartIndex: this.inferForecastStartIndexFromLabels(defaultLabels),
       };
     }
-    const filteredData = this.applyChartDataFilters(productSubType);
+    const filteredData = this.applyChartDataFilters(aggregationKey);
     const { dateMap, sortedDates } = detailModalUtil.aggregateByDate(filteredData);
     const { upperMap, lowerMap } = detailModalUtil.aggregateFcstBoundsByDate(filteredData);
     if (sortedDates.length === 0) {
@@ -521,7 +534,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     return JSON.stringify({
       id: this.card?.id,
       dataType: this.card?.dataType,
+      aggregationLevel: this.card?.aggregationLevel,
       productSubType: this.card?.productSubType,
+      productType: this.card?.productType,
       timeHorizonRange: this.timeHorizonRange,
       selectedInvestorRegions: this.selectedInvestorRegions,
       selectedInvestorTypes: this.selectedInvestorTypes,
@@ -586,9 +601,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {FlowBreakdownRow[]} Breakdown table rows with non-zero net flow
    */
   private buildBreakdownRows(kind: FlowBreakdownTab): FlowBreakdownRow[] {
-    if (!this.card?.productSubType) return [];
-    const productSubType = this.card.productSubType;
-    const filtered = this.applyChartDataFilters(productSubType);
+    const aggregationKey = this.getCardAggregationKey();
+    if (!aggregationKey) return [];
+    const filtered = this.applyChartDataFilters(aggregationKey);
     const groups = filtered.reduce((map, r) => {
       const key = this.dimensionKeyFromRow(r, kind);
       const bucket = map.get(key) ?? [];
@@ -596,7 +611,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       map.set(key, bucket);
       return map;
     }, new Map<string, AssetFlowRecord[]>());
-    const labels = this.getOrderedBreakdownLabels(productSubType, kind);
+    const labels = this.getOrderedBreakdownLabels(aggregationKey, kind);
     const horizonWin = this.getDetailHorizonYearMonthWindow();
     const totalOldAll = horizonWin
       ? filtered
@@ -688,27 +703,32 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
-   * @param {string} productSubType - Product sub-type to filter by
+   * @param {string} aggregationKey - Product sub-type or product label for the active card
    * @returns {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord[]} Filtered asset flow records
    */
-  private applyChartDataFilters(productSubType: string): AssetFlowRecord[] {
-    return this.applyChartDataFiltersWithBypasses(productSubType, {});
+  private applyChartDataFilters(aggregationKey: string): AssetFlowRecord[] {
+    return this.applyChartDataFiltersWithBypasses(aggregationKey, {});
   }
 
   /**
    * Same as {@link MarketFlowDetailModalComponent#applyChartDataFilters} but can omit investor-type or product-region filter so we can
    * list every distinct label while other dimensions stay applied.
-   * @param {string} productSubType - Product sub-type to filter by
+   * @param {string} aggregationKey - Product sub-type or product label to filter by
    * @param {{ bypassInvestorTypes?: boolean; bypassProductRegions?: boolean }} bypasses - Dimensions to skip filtering
    * @param {boolean} [bypasses.bypassInvestorTypes] - When true, skip investor-type filtering
    * @param {boolean} [bypasses.bypassProductRegions] - When true, skip product-region filtering
    * @returns {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord[]} Filtered asset flow records
    */
   private applyChartDataFiltersWithBypasses(
-    productSubType: string,
+    aggregationKey: string,
     bypasses: { bypassInvestorTypes?: boolean; bypassProductRegions?: boolean }
   ): AssetFlowRecord[] {
-    let data = this.rawAssetFlowsData.filter(r => r.Product_Sub_Type === productSubType);
+    const atProductLevel = this.card?.aggregationLevel === 'product-type';
+    let data = this.rawAssetFlowsData.filter(r =>
+      atProductLevel
+        ? r.Product_Type === aggregationKey
+        : r.Product_Sub_Type === aggregationKey
+    );
     const investorRegions = this.selectedInvestorRegions;
     if (investorRegions?.length) {
       data = data.filter(r => investorRegions.includes(r.Investor_Region));
@@ -883,8 +903,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {{ netUsd: number; inflowUsd: number; outflowUsd: number } | null} Totals in USD, or null when raw data cannot produce a breakdown for this card
    */
   private computeInflowOutflowNetFromRaw(): { netUsd: number; inflowUsd: number; outflowUsd: number } | null {
-    if (!this.card || !this.rawAssetFlowsData?.length || !this.card.productSubType) return null;
-    const filtered = this.applyChartDataFilters(this.card.productSubType);
+    const aggregationKey = this.getCardAggregationKey();
+    if (!this.card || !this.rawAssetFlowsData?.length || !aggregationKey) return null;
+    const filtered = this.applyChartDataFilters(aggregationKey);
     if (!filtered.length) return null;
     const totals = filtered.reduce(
       (acc, r) => {
@@ -945,8 +966,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {number | null} Aggregated N_Clients, or null when unavailable
    */
   private computeFilteredSampleSize(): number | null {
-    if (!this.card?.productSubType || !this.rawAssetFlowsData?.length) return null;
-    const filtered = this.applyChartDataFilters(this.card.productSubType);
+    if (!this.getCardAggregationKey() || !this.rawAssetFlowsData?.length) return null;
+    const filtered = this.applyChartDataFilters(this.getCardAggregationKey()!);
     if (!filtered.length) return null;
     const total = filtered.reduce((sum, row) => {
       const n = row.N_Clients ?? 0;
@@ -1234,7 +1255,8 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * @returns {void}
    */
   exportExpandedCardAsCsv(): void {
-    if (!this.card?.productSubType) return;
+    const aggregationKey = this.getCardAggregationKey();
+    if (!aggregationKey) return;
 
     const escapeCell = (v: string): string => {
       const s = String(v ?? '');
@@ -1242,7 +1264,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       return s;
     };
 
-    let sourceRows = this.applyChartDataFilters(this.card.productSubType);
+    let sourceRows = this.applyChartDataFilters(aggregationKey);
     sourceRows = sourceRows.filter((row) => (row.N_Clients ?? 0) > 3);
     if (sourceRows.length === 0) {
       return;

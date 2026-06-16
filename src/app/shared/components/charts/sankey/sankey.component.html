@@ -14,3 +14,9 @@
   </div>
 </div>
 
+<app-sankey-node-modal
+  [isVisible]="showNodeModal"
+  [nodeData]="selectedNodeData"
+  (close)="closeSankeyNodeModal()">
+</app-sankey-node-modal>
+

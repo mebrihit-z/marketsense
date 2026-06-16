@@ -1,6 +1,10 @@
 /* eslint-disable */
 import { Component, ElementRef, AfterViewInit, OnDestroy, Input, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  SankeyNodeModalComponent,
+  type SankeyNodeModalData,
+} from '../sankey-node-modal/sankey-node-modal.component';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import {
@@ -69,7 +73,7 @@ interface RegionalSankeyData {
 @Component({
   selector: 'app-sankey',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SankeyNodeModalComponent],
   templateUrl: './sankey.component.html',
   styleUrl: './sankey.component.scss',
   providers: []
@@ -136,6 +140,9 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   /** Layout weight for each leaf/sub link when {@link uniformLinkLayout} applies. */
   private static readonly UNIFORM_LAYOUT_LINK_WEIGHT = 1;
+
+  showNodeModal = false;
+  selectedNodeData: SankeyNodeModalData | null = null;
 
   /**
    * When `window.innerWidth` is below this, Reallocation Pool labels place the currency value on a second line.
@@ -2008,6 +2015,177 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         });
     };
 
+    const highlightSankeyNode = (event: MouseEvent, node: SankeyNodeExtra, rectEl: SVGRectElement) => {
+      const sel = d3.select(rectEl);
+      const displayStyle = getNodeDisplayStyle(node.name);
+      sel.attr('stroke-width', 3).raise();
+      if (displayStyle.fill) {
+        const c = d3.color(displayStyle.fill);
+        if (c) sel.attr('stroke', c.brighter(0.4).toString());
+      } else {
+        sel.classed('sankey-node-hovered', true);
+      }
+
+      const nodeLinks = graph.links.filter(
+        link =>
+          (link.source as SankeyNodeExtra) === node || (link.target as SankeyNodeExtra) === node
+      );
+      const isCapitalWithdrawnHovered = node.name.includes('Capital Out');
+
+      chartGroup
+        .selectAll('path')
+        .filter(function (link: unknown) {
+          return nodeLinks.includes(link as SankeyLinkExtra);
+        })
+        .attr('opacity', 0.8)
+        .attr('stroke', function (link: unknown) {
+          const le = link as SankeyLinkExtra;
+          const base = le.color || component.getCssVariable('--default-gray') || '#999';
+          if (!isCapitalWithdrawnHovered) return base;
+          const c = d3.color(base);
+          return c ? c.darker(0.9).toString() : base;
+        })
+        .attr('stroke-width', (link: unknown) => linkStrokePx(link as SankeyLinkExtra) + 1);
+
+      chartGroup
+        .selectAll('rect')
+        .filter(function () {
+          return this !== rectEl;
+        })
+        .attr('opacity', 0.3);
+
+      chartGroup
+        .selectAll('path')
+        .filter(function (link: unknown) {
+          return !nodeLinks.includes(link as SankeyLinkExtra);
+        })
+        .attr('opacity', 0.15);
+    };
+
+    const unhighlightSankeyNode = (node: SankeyNodeExtra, rectEl: SVGRectElement) => {
+      const sel = d3.select(rectEl);
+      const displayStyle = getNodeDisplayStyle(node.name);
+      sel.classed('sankey-node-hovered', false);
+      sel.attr('stroke-width', displayStyle.fill ? 1 : null);
+      if (displayStyle.stroke) sel.attr('stroke', displayStyle.stroke);
+      chartGroup.selectAll('rect').attr('opacity', 1);
+      chartGroup
+        .selectAll('path')
+        .attr('opacity', linkRestOpacity)
+        .attr('stroke-width', (link: unknown) => linkStrokePx(link as SankeyLinkExtra))
+        .attr('stroke', (link: unknown) => {
+          const le = link as SankeyLinkExtra;
+          return le.color || component.getCssVariable('--default-gray') || '#999';
+        });
+    };
+
+    const buildSankeyNodeModalData = (node: SankeyNodeExtra): SankeyNodeModalData => {
+      const hubFull = tripleHubTotalsFull.get(node.name);
+      const useHubFullTotals =
+        component.isReallocOrSuperTerminalHub(node.name) && hubFull != null;
+      const value = useHubFullTotals
+        ? Math.max(hubFull.incoming, hubFull.outgoing)
+        : nodeValues.get(node) || 0;
+      const incoming = useHubFullTotals ? hubFull.incoming : nodeIncoming.get(node) || 0;
+      const outgoing = useHubFullTotals ? hubFull.outgoing : nodeOutgoing.get(node) || 0;
+      const nodeX = node.x0 !== undefined ? node.x0 : (node.x1 || 0);
+      const refX = reallocationRefX(node.name);
+      const isLeftOfReallocation = refX !== null && nodeX < refX;
+      const isStructuralCapitalNode =
+        node.name.includes('Capital In') || node.name.includes('Capital Out');
+      const signMultiplier = isLeftOfReallocation && !isStructuralCapitalNode ? -1 : 1;
+      const signedNet = signMultiplier * (incoming - outgoing);
+
+      let leafItems: SankeyNodeModalData['leafItems'];
+      let leafItemsTotalCount: number | undefined;
+      let leafItemsRemaining: number | undefined;
+      let leafBreakdownTitle: string | undefined;
+
+      if (node.name.includes('(Start)') || node.name.includes('(End)')) {
+        const subassets: Array<{ name: string; value: number }> = [];
+        if (node.name.includes('(Start)')) {
+          graph.links.forEach(link => {
+            const linkSource = link.source as SankeyNodeExtra;
+            const linkTarget = link.target as SankeyNodeExtra;
+            if (linkSource === node && linkTarget.name?.includes('(Source)')) {
+              subassets.push({
+                name: linkTarget.name,
+                value: component.linkFlowForTotals(link as SankeyLinkExtra),
+              });
+            }
+          });
+        } else if (node.name.includes('(End)')) {
+          graph.links.forEach(link => {
+            const linkSource = link.source as SankeyNodeExtra;
+            const linkTarget = link.target as SankeyNodeExtra;
+            if (linkTarget === node && linkSource.name?.includes('(Destination)')) {
+              subassets.push({
+                name: linkSource.name,
+                value: component.linkFlowForTotals(link as SankeyLinkExtra),
+              });
+            }
+          });
+        }
+
+        const subassetMap = new Map<string, number>();
+        subassets.forEach(subasset => {
+          let cleanName = subasset.name;
+          cleanName = cleanName.replace(/^[^:]+: /, '');
+          cleanName = cleanName.replace(/\s*\(Source\)\s*$/, '');
+          cleanName = cleanName.replace(/\s*\(Destination\)\s*$/, '');
+          subassetMap.set(cleanName, (subassetMap.get(cleanName) ?? 0) + subasset.value);
+        });
+
+        const aggregatedSubassets = Array.from(subassetMap.entries())
+          .map(([name, subValue]) => ({ name, value: subValue }))
+          .sort((a, b) => b.value - a.value);
+
+        if (aggregatedSubassets.length > 0) {
+          const maxItemsToShow = 10;
+          const itemsToShow = aggregatedSubassets.slice(0, maxItemsToShow);
+          leafItemsRemaining =
+            aggregatedSubassets.length > maxItemsToShow
+              ? aggregatedSubassets.length - maxItemsToShow
+              : undefined;
+          leafBreakdownTitle = component.tooltipLeafBreakdownSectionTitle();
+          leafItems = itemsToShow.map(subasset => ({
+            name: component.formatNodeName(subasset.name),
+            value: formatFlowCurrencyUsd(signMultiplier * subasset.value),
+          }));
+          leafItemsTotalCount = aggregatedSubassets.length;
+        }
+      }
+
+      let nClientsOutgoing = 0;
+      graph.links.forEach(lk => {
+        if ((lk.source as SankeyNodeExtra) === node) {
+          const nc = (lk as SankeyLinkExtra).nClientsTotal;
+          if (typeof nc === 'number' && nc > 0) nClientsOutgoing += nc;
+        }
+      });
+
+      const timeInfo = component.formatTimeInfo();
+
+      return {
+        nodeName: node.name,
+        displayName: component.formatSankeyNodeDisplayName(node.name),
+        totalValue: formatFlowCurrencyUsd(signMultiplier * value),
+        incoming: formatFlowCurrencyUsd(signMultiplier * incoming),
+        outgoing: formatFlowCurrencyUsd(signMultiplier * outgoing),
+        netFlowUsd: signedNet,
+        valueColor: signedNet >= 0 ? 'green' : 'red',
+        timeInfo: timeInfo || undefined,
+        sampleSize: nClientsOutgoing > 0 ? nClientsOutgoing : undefined,
+        leafBreakdownTitle,
+        leafItems,
+        leafItemsTotalCount,
+        leafItemsRemaining,
+        timeHorizon: component.timeHorizon,
+        timeHorizonStart: component.timeHorizonStart,
+        timeHorizonEnd: component.timeHorizonEnd,
+      };
+    };
+
     // -----------------------------------------
     // 7. Draw Nodes
     // -----------------------------------------
@@ -2024,218 +2202,15 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
       .attr('fill', d => getNodeDisplayStyle(d.name).fill ?? null)
       .attr('stroke', d => getNodeDisplayStyle(d.name).stroke ?? null)
       .attr('stroke-width', d => (getNodeDisplayStyle(d.name).fill ? 1 : null))
-      .on('mouseover', function(event, d) {
-        const node = d as SankeyNodeExtra;
-        const hubFull = tripleHubTotalsFull.get(node.name);
-        const useHubFullTotals =
-          component.isReallocOrSuperTerminalHub(node.name) && hubFull != null;
-        const value = useHubFullTotals
-          ? Math.max(hubFull.incoming, hubFull.outgoing)
-          : nodeValues.get(node) || 0;
-        const incoming = useHubFullTotals ? hubFull.incoming : nodeIncoming.get(node) || 0;
-        const outgoing = useHubFullTotals ? hubFull.outgoing : nodeOutgoing.get(node) || 0;
-        const nodeX = node.x0 !== undefined ? node.x0 : (node.x1 || 0);
-        const refX = reallocationRefX(node.name);
-        const isLeftOfReallocation = refX !== null && nodeX < refX;
-        const isStructuralCapitalNode =
-          node.name.includes('Capital In') || node.name.includes('Capital Out');
-        const signMultiplier = isLeftOfReallocation && !isStructuralCapitalNode ? -1 : 1;
-        const formattedValue = formatFlowCurrencyUsd(signMultiplier * value);
-        const formattedIncoming = formatFlowCurrencyUsd(signMultiplier * incoming);
-        const formattedOutgoing = formatFlowCurrencyUsd(signMultiplier * outgoing);
-        
-         // Check if this is a parent node (Start/End) and collect subasset information
-         let subassetHtml = '';
-         if (node.name.includes('(Start)') || node.name.includes('(End)')) {
-           const subassets: Array<{ name: string; value: number; date?: string }> = [];
-           
-           // Find all connected subasset nodes (Source for Start nodes, Destination for End nodes)
-           if (node.name.includes('(Start)')) {
-             // For Start nodes, find all Source nodes connected via outgoing links
-             graph.links.forEach(link => {
-               const linkSource = link.source as SankeyNodeExtra;
-               const linkTarget = link.target as SankeyNodeExtra;
-               if (linkSource === node && linkTarget.name && linkTarget.name.includes('(Source)')) {
-                 const linkExtra = link as SankeyLinkExtra;
-                 subassets.push({
-                   name: linkTarget.name,
-                   value: component.linkFlowForTotals(linkExtra),
-                   date: linkExtra.date
-                 });
-               }
-             });
-           } else if (node.name.includes('(End)')) {
-             // For End nodes, find all Destination nodes connected via incoming links
-             graph.links.forEach(link => {
-               const linkSource = link.source as SankeyNodeExtra;
-               const linkTarget = link.target as SankeyNodeExtra;
-               if (linkTarget === node && linkSource.name && linkSource.name.includes('(Destination)')) {
-                 const linkExtra = link as SankeyLinkExtra;
-                 subassets.push({
-                   name: linkSource.name,
-                   value: component.linkFlowForTotals(linkExtra),
-                   date: linkExtra.date
-                 });
-               }
-             });
-           }
-           
-           // Group subassets by name and aggregate values and collect unique dates
-           const subassetMap = new Map<string, { value: number; dates: Set<string> }>();
-           subassets.forEach(subasset => {
-             // Clean up the subasset name - remove region prefix and (Source)/(Destination) suffix
-             let cleanName = subasset.name;
-             cleanName = cleanName.replace(/^[^:]+: /, ''); // Remove region prefix like "United States: "
-             cleanName = cleanName.replace(/\s*\(Source\)\s*$/, ''); // Remove (Source)
-             cleanName = cleanName.replace(/\s*\(Destination\)\s*$/, ''); // Remove (Destination)
-             
-             if (!subassetMap.has(cleanName)) {
-               subassetMap.set(cleanName, { value: 0, dates: new Set<string>() });
-             }
-             const entry = subassetMap.get(cleanName)!;
-             entry.value += subasset.value;
-             if (subasset.date) {
-               entry.dates.add(subasset.date);
-             }
-           });
-           
-           // Convert map to array and sort by value
-           const aggregatedSubassets = Array.from(subassetMap.entries()).map(([name, data]) => ({
-             name,
-             value: data.value,
-             dates: Array.from(data.dates).sort()
-           }));
-           
-           // Sort subassets by value (descending) and format them
-           if (aggregatedSubassets.length > 0) {
-             aggregatedSubassets.sort((a, b) => b.value - a.value);
-             const maxItemsToShow = 10;
-             const itemsToShow = aggregatedSubassets.slice(0, maxItemsToShow);
-             const remainingCount = aggregatedSubassets.length - maxItemsToShow;
-             
-             subassetHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(10, 10, 10, 0.12); font-size: 13px;">';
-             const leafSectionTitle = component.escapeTooltipHtml(component.tooltipLeafBreakdownSectionTitle());
-             subassetHtml += `<div style="font-weight: 600; margin-bottom: 4px; opacity: 0.9;">${leafSectionTitle} (<strong>${aggregatedSubassets.length}</strong>):</div>`;
-             subassetHtml += '<div style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">';
-             itemsToShow.forEach(subasset => {
-              const signedSubassetValue = signMultiplier * subasset.value;
-              const subassetLine = `${component.formatNodeName(subasset.name)}: <strong>${formatFlowCurrencyUsd(signedSubassetValue)}</strong>`;
-               subassetHtml += `<div style="margin-top: 3px; opacity: 0.85; white-space: normal; line-height: 1.4;">${subassetLine}</div>`;
-             });
-             if (remainingCount > 0) {
-               subassetHtml += `<div style="margin-top: 4px; font-style: italic; opacity: 0.7; font-size: 12px;">... and ${remainingCount} more</div>`;
-             }
-             subassetHtml += '</div></div>';
-           }
-         }
-        
-        const timeInfo = component.formatTimeInfo();
-        
-        let tooltipHtml = `
-          <div><strong>${component.formatNodeName(node.name)}</strong></div>
-          <div style="margin-top: 4px;">Total Value: <strong>${formattedValue}</strong></div>
-          <div style="margin-top: 2px; font-size: 13px; opacity: 0.9;">Incoming: <strong>${formattedIncoming}</strong></div>
-          <div style="font-size: 13px; opacity: 0.9;">Outgoing: <strong>${formattedOutgoing}</strong></div>
-        `;
-        let nClientsOutgoing = 0;
-        graph.links.forEach(lk => {
-          if ((lk.source as SankeyNodeExtra) === node) {
-            const nc = (lk as SankeyLinkExtra).nClientsTotal;
-            if (typeof nc === 'number' && nc > 0) nClientsOutgoing += nc;
-          }
-        });
-        
-        if (timeInfo) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Time: <strong>${timeInfo}</strong></div>`;
-        }
-        
-        tooltipHtml += subassetHtml;
-
-        if (nClientsOutgoing > 0) {
-          tooltipHtml += `<div style="margin-top: 4px; font-size: 13px; opacity: 0.9;">Sample Size: <strong>${nClientsOutgoing.toLocaleString('en-US')}</strong></div>`;
-        }
-
-        tooltip
-          .style('opacity', '1')
-          .style('display', 'block')
-          .html(tooltipHtml);
-        const hoveredNodeMidX = ((node.x0 ?? 0) + (node.x1 ?? 0)) / 2;
-        const isRightSideNodeByName =
-          node.name.includes('Super End') ||
-          node.name.includes('(End)') ||
-          node.name.includes('(Destination)');
-        const forceLeftOfCursor = isRightSideNodeByName || hoveredNodeMidX > width / 2;
-        component.positionSankeyTooltip(event, tooltip, forceLeftOfCursor);
-
-        // Highlight the hovered node (hover styles in SCSS; for nodes with custom fill use brighter stroke)
-        const sel = d3.select(this);
-        const displayStyle = getNodeDisplayStyle(node.name);
-        sel.attr('stroke-width', 3).raise();
-        if (displayStyle.fill) {
-          const c = d3.color(displayStyle.fill);
-          if (c) sel.attr('stroke', c.brighter(0.4).toString());
-        } else {
-          sel.classed('sankey-node-hovered', true);
-        }
-        
-        // Highlight connected links
-        const nodeLinks = graph.links.filter(link => 
-          (link.source as SankeyNodeExtra) === node || (link.target as SankeyNodeExtra) === node
-        );
-        const isCapitalWithdrawnHovered = node.name.includes('Capital Out');
-
-        chartGroup.selectAll('path')
-          .filter(function(link: any) {
-            return nodeLinks.includes(link as SankeyLinkExtra);
-          })
-          .attr('opacity', 0.8)
-          .attr('stroke', function(link: any) {
-            const le = link as SankeyLinkExtra;
-            const base = le.color || component.getCssVariable('--default-gray') || '#999';
-            if (!isCapitalWithdrawnHovered) return base;
-            const c = d3.color(base);
-            return c ? c.darker(0.9).toString() : base;
-          })
-          .attr('stroke-width', (link: any) => linkStrokePx(link as SankeyLinkExtra) + 1);
-        
-        // Dim other nodes and links
-        chartGroup.selectAll('rect')
-          .filter(function() { return this !== d3.select(event.currentTarget).node(); })
-          .attr('opacity', 0.3);
-        
-        chartGroup.selectAll('path')
-          .filter(function(link: any) {
-            return !nodeLinks.includes(link as SankeyLinkExtra);
-          })
-          .attr('opacity', 0.15);
+      .on('mouseover', function (event, d) {
+        highlightSankeyNode(event, d as SankeyNodeExtra, this as SVGRectElement);
       })
-      .on('mousemove', function(event, d) {
-        const hoveredNode = d as SankeyNodeExtra;
-        const hoveredNodeMidX = ((hoveredNode.x0 ?? 0) + (hoveredNode.x1 ?? 0)) / 2;
-        const isRightSideNodeByName =
-          hoveredNode.name.includes('Super End') ||
-          hoveredNode.name.includes('(End)') ||
-          hoveredNode.name.includes('(Destination)');
-        const forceLeftOfCursor = isRightSideNodeByName || hoveredNodeMidX > width / 2;
-        component.positionSankeyTooltip(event, tooltip, forceLeftOfCursor);
+      .on('mouseout', function (_event, d) {
+        unhighlightSankeyNode(d as SankeyNodeExtra, this as SVGRectElement);
       })
-      .on('mouseout', function(event, d) {
-        tooltip.style('opacity', '0').style('display', 'none');
-        const n = d as SankeyNodeExtra;
-        const sel = d3.select(this);
-        const displayStyle = getNodeDisplayStyle(n.name);
-        sel.classed('sankey-node-hovered', false);
-        sel.attr('stroke-width', displayStyle.fill ? 1 : null);
-        if (displayStyle.stroke) sel.attr('stroke', displayStyle.stroke);
-        chartGroup.selectAll('rect').attr('opacity', 1);
-        chartGroup
-          .selectAll('path')
-          .attr('opacity', linkRestOpacity)
-          .attr('stroke-width', (link: any) => linkStrokePx(link as SankeyLinkExtra))
-          .attr('stroke', (link: any) => {
-            const le = link as SankeyLinkExtra;
-            return le.color || component.getCssVariable('--default-gray') || '#999';
-          });
+      .on('click', function (event, d) {
+        event.stopPropagation();
+        component.openSankeyNodeModal(buildSankeyNodeModalData(d as SankeyNodeExtra));
       });
 
     // -----------------------------------------
@@ -2611,7 +2586,20 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
     this.cdr.markForCheck();
   }
 
+  openSankeyNodeModal(data: SankeyNodeModalData): void {
+    this.selectedNodeData = data;
+    this.showNodeModal = true;
+    this.cdr.markForCheck();
+  }
+
+  closeSankeyNodeModal(): void {
+    this.showNodeModal = false;
+    this.selectedNodeData = null;
+    this.cdr.markForCheck();
+  }
+
   ngOnDestroy(): void {
+    this.closeSankeyNodeModal();
     this.hostDestroyed = true;
     const q = SankeyComponent.renderQueue;
     const i = q.indexOf(this);

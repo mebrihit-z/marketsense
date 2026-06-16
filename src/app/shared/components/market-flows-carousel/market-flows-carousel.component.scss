@@ -51,6 +51,85 @@
   }
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+
+  @media (max-width: 1024px) {
+    width: 100%;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+}
+
+.card-level-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-level-label {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: $text-midnight-blue;
+  white-space: nowrap;
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+  }
+}
+
+.card-level-toggle {
+  display: flex;
+  border: 1px solid $primary-colors-midnight-blue;
+  background-color: $bg-white;
+  box-shadow: 0 2px 2px 0 $overlay-shadow-light;
+}
+
+.card-level-btn {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  color: $text-midnight-blue;
+  background-color: $bg-white;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+
+  &:hover:not(.active) {
+    background-color: $dropdown-hover-background;
+  }
+
+  &.active {
+    background-color: $primary-colors-midnight-blue;
+    color: $white;
+  }
+
+  @media (min-width: 1537px) and (max-width: 1920px) {
+    font-size: 16px;
+    padding: 8px 14px;
+  }
+  @media (min-width: 1921px) {
+    font-size: 18px;
+    padding: 10px 16px;
+  }
+}
+
 .title-section {
   display: flex;
   align-items: center;

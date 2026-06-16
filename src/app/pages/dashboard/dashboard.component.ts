@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
 import { FiltersBarComponent } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import type { FilterOptionTotals } from '../../shared/components/filters/filters-bar/filters-bar.component';
 import { FeaturedMarketFlowsCarouselComponent } from '../../shared/components/market-flows-carousel/market-flows-carousel.component';
-import { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
+import { MarketFlowCard, type MarketFlowCardLevel } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
 import { AssetFlowsComponent } from '../../shared/components/asset-flows/asset-flows.component';
 import { AssetAllocationComponent } from '../../shared/components/asset-allocation/asset-allocation.component';
 import HeaderComponent from '../../shared/components/header/header.component';
@@ -101,6 +101,8 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
   chartMinFlowLower = getMinFlowLowerBound(createDefaultMinFlowRange());
   chartMaxFlowUpper: number | null = getMaxFlowUpperBound(createDefaultMinFlowRange());
   pinnedCardIds: string[] = [];
+  /** Market flow cards grouped by sub-product (default) or product. */
+  marketFlowCardLevel: MarketFlowCardLevel = 'product-sub-type';
   isAssetAllocationPinned: boolean = false;
   isAssetFlowsPinned: boolean = false;
   forceCloseFiltersDropdown = 0;
@@ -355,17 +357,43 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
   }
 
   /**
-   * Generates the card IDs that would exist based on current selected product sub-types
-   * Used for cleaning up pinned card IDs when sub-types are deselected
+   * Generates the card IDs that would exist based on current selected product keys
+   * Used for cleaning up pinned card IDs when filters or card level change
    */
   private getValidCardIds(): string[] {
-    if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
+    const keys = this.getMarketFlowCardKeys();
+    if (!keys.length) {
       return [];
     }
 
-    return this.selectedProductSubTypes.map((subType) => {
-      return `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
-    });
+    return keys.map((key) => this.buildMarketFlowCardId(key));
+  }
+
+  private buildMarketFlowCardId(key: string): string {
+    const levelSuffix =
+      this.marketFlowCardLevel === 'product-type' ? 'product' : 'sub';
+    return `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${levelSuffix}-${key.replace(/\s/g, '-').replace(/\//g, '-')}`;
+  }
+
+  private getMarketFlowCardKeys(): string[] {
+    return this.marketFlowCardLevel === 'product-type'
+      ? this.selectedProductTypes
+      : this.selectedProductSubTypes;
+  }
+
+  private getMarketFlowAggregationField(
+    record: AssetFlowRecord
+  ): string {
+    return this.marketFlowCardLevel === 'product-type'
+      ? record.Product_Type
+      : record.Product_Sub_Type;
+  }
+
+  onMarketFlowCardLevelChange(level: unknown): void {
+    if (level !== 'product-sub-type' && level !== 'product-type') return;
+    if (this.marketFlowCardLevel === level) return;
+    this.marketFlowCardLevel = level;
+    this.cleanupPinnedCardIds();
   }
 
   onProductTypeChange(productTypes: string[]): void {
@@ -458,7 +486,8 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
    * Value-range applies to aggregated card net, not per-row (see {@link filteredMarketFlowCards}).
    */
   get filterBarScopedAssetFlowsData(): AssetFlowRecord[] {
-    if (!this.selectedInvestorRegions?.length || !this.selectedProductSubTypes?.length) {
+    const cardKeys = this.getMarketFlowCardKeys();
+    if (!this.selectedInvestorRegions?.length || !cardKeys.length) {
       return [];
     }
     if (!this.rawAssetFlowsData?.length) {
@@ -482,8 +511,8 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
       return [];
     }
 
-    // If no product sub-types selected, return empty array
-    if (!this.selectedProductSubTypes || this.selectedProductSubTypes.length === 0) {
+    const cardKeys = this.getMarketFlowCardKeys();
+    if (!cardKeys || cardKeys.length === 0) {
       return [];
     }
 
@@ -502,20 +531,15 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
     );
     filteredData = this.applyCurrentTimeWindowToRecords(filteredData);
 
-    // Aggregate by product sub-type (rows match filters bar + time window). Value-range filter applies
-    // to each card's aggregated net (|netFlowUsd|), not per raw row — matches Sankey edge totals.
-    // VALUE CALCULATION:
-    // 1. Filter records by: dimensions, time horizon (see applyFilterBarDimensions / applyCurrentTimeWindowToRecords)
-    // 2. For each Product_Sub_Type, sum Asset_Flow_Value (USD, same unit as stored)
-    // 3. Totals stay in USD; compact K/M/B/T is formatting-only
-    // 4. Result: Net flow = sum of all positive values - sum of all negative values (negative values are subtracted)
+    // Aggregate by product sub-type or product type (rows match filters bar + time window).
     const aggregatedData = new Map<
       string,
       { total: number; count: number; positiveSum: number; negativeSum: number; nClientsTotal: number }
     >();
 
     filteredData.forEach(record => {
-      const existing = aggregatedData.get(record.Product_Sub_Type) || {
+      const aggregationKey = this.getMarketFlowAggregationField(record);
+      const existing = aggregatedData.get(aggregationKey) || {
         total: 0,
         count: 0,
         positiveSum: 0,
@@ -526,23 +550,18 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
       const rowClients = record.N_Clients ?? 0;
       existing.nClientsTotal += rowClients;
 
-      // Handle positive and negative values explicitly
       if (valueUsd > 0) {
-        // Positive value: add to total
         existing.total += valueUsd;
         existing.positiveSum += valueUsd;
       } else if (valueUsd < 0) {
-        // Negative value: subtract from total (minus it)
-        existing.total += valueUsd; // Adding negative = subtracting
+        existing.total += valueUsd;
         existing.negativeSum += Math.abs(valueUsd);
       }
-      // If valueUsd is 0, we don't need to do anything
-      
+
       existing.count += 1;
-      aggregatedData.set(record.Product_Sub_Type, existing);
+      aggregatedData.set(aggregationKey, existing);
     });
 
-    // % change = ((New − Old) / |Old|) × 100 — Old = net flow at horizon start, New = net flow at horizon end
     const horizonWin = this.getCurrentAggregationWindowYearMonths();
     const netFlowAtHorizonStart = new Map<string, number>();
     const netFlowAtHorizonEnd = new Map<string, number>();
@@ -556,43 +575,34 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
         this.historicAnchor.getAnchorYearMonth()
       );
       const { start: startYm, end: endYm } = horizonWin;
-      const sumBySubType = (rows: AssetFlowRecord[], into: Map<string, number>): void => {
+      const sumByKey = (rows: AssetFlowRecord[], into: Map<string, number>): void => {
         for (const record of rows) {
           const v = record.Asset_Flow_Value;
-          into.set(record.Product_Sub_Type, (into.get(record.Product_Sub_Type) ?? 0) + v);
+          const key = this.getMarketFlowAggregationField(record);
+          into.set(key, (into.get(key) ?? 0) + v);
         }
       };
-      sumBySubType(
+      sumByKey(
         endpointBase.filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, startYm, startYm)),
         netFlowAtHorizonStart
       );
-      sumBySubType(
+      sumByKey(
         endpointBase.filter(r => assetFlowQuarterInTimeWindow(r.Asset_Flow_Date, endYm, endYm)),
         netFlowAtHorizonEnd
       );
     }
 
-    // Generate cards from aggregated data
-    // Include all selected product sub-types, even if they have no data (show as 0)
-    // First, find the maximum absolute total across all selected sub-types for normalization
-    const maxAbsTotalAcrossSubTypes = this.selectedProductSubTypes.reduce((max, subType) => {
-      const data = aggregatedData.get(subType);
-      if (!data) return max;
-      const absTotal = Math.abs(data.total);
-      return absTotal > max ? absTotal : max;
-    }, 0);
-
-    const cards = this.selectedProductSubTypes.map((subType) => {
-        const data = aggregatedData.get(subType) || {
+    const cards = cardKeys.map((key) => {
+        const data = aggregatedData.get(key) || {
           total: 0,
           count: 0,
           positiveSum: 0,
           negativeSum: 0,
           nClientsTotal: 0,
         };
-        const totalValue = data.total; // Net flow (sum of all positive and negative values)
-        const oldValue = netFlowAtHorizonStart.get(subType) ?? 0;
-        const newValue = netFlowAtHorizonEnd.get(subType) ?? 0;
+        const totalValue = data.total;
+        const oldValue = netFlowAtHorizonStart.get(key) ?? 0;
+        const newValue = netFlowAtHorizonEnd.get(key) ?? 0;
 
         const endpointPct =
           horizonWin != null ? horizonEndpointPercentChangeUsd(oldValue, newValue) : null;
@@ -618,18 +628,15 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
         const chartColor: 'red' | 'green' = isPositive ? 'green' : 'red';
         const borderColor = isPositive ? '#00bc7d' : '#fb2c36';
 
-        // Generate unique ID
-        const id = `${this.carouselDataType}-${this.carouselTimeHorizon.replace(/\s/g, '')}-${subType.replace(/\s/g, '-').replace(/\//g, '-')}`;
-
-        // Format value (compact $T/$B/$M/$K via shared util, same as Sankey/Treemap)
+        const id = this.buildMarketFlowCardId(key);
         const formattedCardValue = formatFlowCurrencyUsd(totalValue);
-
-        // Determine AI confidence based on data quality
         const aiConfidence: 'high' | 'medium' | 'low' = data.count > 10 ? 'high' : data.count > 5 ? 'medium' : 'low';
+        const levelLabel =
+          this.marketFlowCardLevel === 'product-type' ? 'product' : 'product sub-type';
 
         return {
           id,
-          title: subType,
+          title: key,
           value: formattedCardValue,
           netFlowUsd: totalValue,
           valueColor,
@@ -637,14 +644,16 @@ export default class DashboardComponent implements OnInit, OnDestroy, AfterViewI
           percentageColor,
           metricLabel: 'Net Flow',
           aiConfidence,
-          description: `${subType} showing ${isPositive ? 'positive' : 'negative'} market flow trends for ${this.carouselTimeHorizon}.`,
+          description: `${key} showing ${isPositive ? 'positive' : 'negative'} market flow trends for ${this.carouselTimeHorizon} at the ${levelLabel} level.`,
           chartColor,
           borderColor,
           timeHorizon: this.carouselTimeHorizon,
           timeHorizonStart: this.timeHorizonRange?.start,
           timeHorizonEnd: this.timeHorizonRange?.end,
           dataType: this.carouselDataType,
-          productSubType: subType,
+          aggregationLevel: this.marketFlowCardLevel,
+          productSubType: this.marketFlowCardLevel === 'product-sub-type' ? key : undefined,
+          productType: this.marketFlowCardLevel === 'product-type' ? key : undefined,
           nClientsTotal: data.nClientsTotal,
         };
       });

@@ -9,6 +9,8 @@ import {
   parseFlowDisplayValueToDollars,
 } from '../../../utils/flow-currency-format.util';
 
+export type MarketFlowCardLevel = 'product-sub-type' | 'product-type';
+
 export interface MarketFlowCard {
   id: string;
   title: string;
@@ -32,7 +34,10 @@ export interface MarketFlowCard {
   /** Slider range end; % uses net flow at this point vs. start. */
   timeHorizonEnd?: string;
   dataType: 'historical' | 'forecasted';
+  /** How this card was grouped — sub-product (default) or product. */
+  aggregationLevel?: MarketFlowCardLevel;
   productSubType?: string;
+  productType?: string;
   /** Sum of `N_Clients` over all rows aggregated into this card (filters + time window). */
   nClientsTotal?: number;
 }

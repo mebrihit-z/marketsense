@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy, HostListener, ElementRef, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MarketFlowCardComponent, type MarketFlowCard } from './market-flow-card/market-flow-card.component';
+import { MarketFlowCardComponent, type MarketFlowCard, type MarketFlowCardLevel } from './market-flow-card/market-flow-card.component';
 import AskMarketsenseModalComponent from '../ask-marketsense-modal/ask-marketsense-modal.component';
 import ExportModalComponent from './export-modal/export-modal.component';
 import MarketFlowDetailModalComponent from './market-flow-detail-modal/market-flow-detail-modal.component';
@@ -16,7 +16,7 @@ import { parseFlowDisplayValueToBillions } from '../../utils/flow-currency-forma
 import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
 
 // Re-export for convenience
-export type { MarketFlowCard } from './market-flow-card/market-flow-card.component';
+export type { MarketFlowCard, MarketFlowCardLevel } from './market-flow-card/market-flow-card.component';
 
 /**
  * @typedef {import('../../utils/asset-flows-to-sankey.util').DisclosureFooterData} DisclosureFooterData
@@ -60,6 +60,10 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
   @Output() pinCard = new EventEmitter<string>();
+  @Output() cardLevelChange = new EventEmitter<MarketFlowCardLevel>();
+
+  /** Local UI state for the View by toggle; parent is notified via cardLevelChange. */
+  selectedCardLevel: MarketFlowCardLevel = 'product-sub-type';
 
   /**
    * Footer metadata for Information & Disclosures modal.
@@ -851,6 +855,22 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
     this.sortDropdownOpen = false;
     // Reset to first slide when sort changes
     this.currentSlideIndex = 0;
+  }
+
+  /**
+   * @param {MarketFlowCardLevel} level - Product sub-type or product aggregation level
+   * @param {Event} [event] - Optional click event to stop propagation
+   * @returns {void}
+   */
+  selectCardLevel(level: MarketFlowCardLevel, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (this.selectedCardLevel === level) return;
+    this.selectedCardLevel = level;
+    this.selectedCardForDetail = null;
+    this.currentSlideIndex = 0;
+    this.cardLevelChange.emit(level);
   }
 
   /**

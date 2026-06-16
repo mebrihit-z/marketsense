@@ -1,0 +1,66 @@
+<div class="modal-overlay" (click)="onClose()" *ngIf="isVisible">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <strong class="modal-title">{{ nodeData?.displayName }}</strong>
+        <button type="button" class="detail-modal-header-btn" (click)="onClose()" aria-label="Close">
+          <img src="assets/icons/x-icon.svg" alt="" class="detail-modal-header-icon detail-modal-close-icon">
+        </button>
+      </div>
+
+      <div class="metrics-section" *ngIf="nodeData">
+        <div class="metric-row metric-row--primary">
+          <span class="metric-label">Total Value</span>
+          <span class="metric-value">{{ nodeData.totalValue }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Incoming</span>
+          <span class="metric-value">{{ nodeData.incoming }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Outgoing</span>
+          <span class="metric-value">{{ nodeData.outgoing }}</span>
+        </div>
+        <div class="metric-row" *ngIf="nodeData.timeInfo">
+          <span class="metric-label">Time</span>
+          <span class="metric-value">{{ nodeData.timeInfo }}</span>
+        </div>
+        <div class="metric-row" *ngIf="nodeData.sampleSize">
+          <span class="metric-label">Sample Size</span>
+          <span class="metric-value">{{ nodeData.sampleSize | number }}</span>
+        </div>
+      </div>
+
+      <div class="leaf-section" *ngIf="hasLeafBreakdown()">
+        <div class="divider"></div>
+        <p class="leaf-section-title">
+          {{ nodeData?.leafBreakdownTitle }}
+          (<strong>{{ nodeData?.leafItemsTotalCount }}</strong>):
+        </p>
+        <ul class="leaf-list">
+          <li *ngFor="let item of nodeData?.leafItems" class="leaf-item">
+            <span class="leaf-name">{{ item.name }}</span>
+            <span class="leaf-value">{{ item.value }}</span>
+          </li>
+        </ul>
+        <p *ngIf="nodeData?.leafItemsRemaining" class="leaf-more">
+          ... and {{ nodeData?.leafItemsRemaining }} more
+        </p>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="ask-ai-button" type="button" (click)="onAskAI($event)">
+        <img src="assets/icons/sparkle-icon.svg" alt="" class="ask-ai-icon">
+        <span class="ask-ai-text">Ask MarketSense AI</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<app-ask-marketsense-modal
+  [isVisible]="showAskMarketSenseModal"
+  [card]="getMarketFlowCard()"
+  (close)="onCloseAskMarketSenseModal()"
+  (sendMessage)="onSendMessage($event)">
+</app-ask-marketsense-modal>

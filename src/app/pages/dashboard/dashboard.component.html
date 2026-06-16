@@ -49,7 +49,8 @@
         [selectedInvestorTypes]="selectedInvestorTypes"
         [selectedProductRegions]="selectedProductRegions"
         [selectedProductTypes]="selectedProductTypes"
-        (pinCard)="onPinCard($event)">
+        (pinCard)="onPinCard($event)"
+        (cardLevelChange)="onMarketFlowCardLevelChange($event)">
       </app-featured-market-flows-carousel>
     </div>
     

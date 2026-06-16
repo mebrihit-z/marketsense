@@ -13,7 +13,31 @@
         <img src="assets/icons/info-icon.svg" alt="" width="22" height="22" aria-hidden="true" class="market-flows-info-btn__icon" />
       </button>
     </div>
-    <div class="sort-section">
+    <div class="header-controls">
+      <div class="card-level-section">
+        <span class="card-level-label">View by:</span>
+        <div class="card-level-toggle" role="group" aria-label="Market flow card aggregation level">
+          <button
+            type="button"
+            class="card-level-btn"
+            data-market-flow-action
+            [class.active]="selectedCardLevel === 'product-sub-type'"
+            [attr.aria-pressed]="selectedCardLevel === 'product-sub-type'"
+            (click)="selectCardLevel('product-sub-type', $event)">
+            Product Sub-Type
+          </button>
+          <button
+            type="button"
+            class="card-level-btn"
+            data-market-flow-action
+            [class.active]="selectedCardLevel === 'product-type'"
+            [attr.aria-pressed]="selectedCardLevel === 'product-type'"
+            (click)="selectCardLevel('product-type', $event)">
+            Product
+          </button>
+        </div>
+      </div>
+      <div class="sort-section">
       <span class="sort-label">Sort by:</span>
       <div class="sort-dropdown">
         <button 
@@ -39,6 +63,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <!-- Carousel: grid when no selection, two-column (detail left + stacked cards right) when a card is selected -->
