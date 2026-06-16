@@ -251,7 +251,7 @@
 
 <ng-template #flowBreakdownPanel>
   <div class="flow-breakdown-section">
-    <div class="flow-breakdown-tabs" role="tablist" aria-label="Flow breakdown">
+    <div class="flow-breakdown-tabs" [class.flow-breakdown-tabs--three]="isProductLevelCard()" role="tablist" aria-label="Flow breakdown">
       <button
         type="button"
         class="flow-breakdown-tab"
@@ -265,6 +265,21 @@
           </svg>
         </span>
         <span class="flow-breakdown-tab-label">Investor types ({{ getInvestorBreakdown().length }})</span>
+      </button>
+      <button
+        *ngIf="isProductLevelCard()"
+        type="button"
+        class="flow-breakdown-tab"
+        [class.active]="detailBreakdownTab === 'productSubType'"
+        (click)="setBreakdownTab('productSubType')"
+        role="tab"
+        [attr.aria-selected]="detailBreakdownTab === 'productSubType'">
+        <span class="flow-breakdown-tab-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 0L15 4.5V11.5L8 16L1 11.5V4.5L8 0ZM8 2.18L3 5.18V10.82L8 13.82L13 10.82V5.18L8 2.18ZM8 5.5C6.62 5.5 5.5 6.62 5.5 8C5.5 9.38 6.62 10.5 8 10.5C9.38 10.5 10.5 9.38 10.5 8C10.5 6.62 9.38 5.5 8 5.5Z" fill="#00113F"/>
+          </svg>
+        </span>
+        <span class="flow-breakdown-tab-label">Product sub-types ({{ getProductSubTypeBreakdown().length }})</span>
       </button>
       <button
         type="button"

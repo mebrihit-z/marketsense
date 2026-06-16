@@ -44,7 +44,7 @@ export interface FlowBreakdownRow {
   pctChange: number | null;
 }
 
-export type FlowBreakdownTab = 'investor' | 'product';
+export type FlowBreakdownTab = 'investor' | 'product' | 'productSubType';
 
 /**
  * @typedef {object} FlowBreakdownRow
@@ -54,7 +54,7 @@ export type FlowBreakdownTab = 'investor' | 'product';
  */
 
 /**
- * @typedef {'investor' | 'product'} FlowBreakdownTab
+ * @typedef {'investor' | 'product' | 'productSubType'} FlowBreakdownTab
  */
 
 /**
@@ -99,6 +99,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   @Input() selectedInvestorTypes: string[] = [];
   @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
+  @Input() selectedProductSubTypes: string[] = [];
   @Output() close = new EventEmitter<void>();
   /** Inline layout: parent should open a root-level export dialog (correct z-index vs sticky filters). */
   @Output() openExport = new EventEmitter<void>();
@@ -125,6 +126,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private breakdownFingerprint = '';
   private cachedInvestorBreakdown: FlowBreakdownRow[] = [];
   private cachedProductBreakdown: FlowBreakdownRow[] = [];
+  private cachedProductSubTypeBreakdown: FlowBreakdownRow[] = [];
 
   private lineChartMemoFp = '';
   private lineChartMemo: {
@@ -169,11 +171,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       changes['selectedInvestorRegions'] ||
       changes['selectedInvestorTypes'] ||
       changes['selectedProductRegions'] ||
-      changes['selectedProductTypes']
+      changes['selectedProductTypes'] ||
+      changes['selectedProductSubTypes']
     ) {
       this.breakdownFingerprint = '';
       this.lineChartMemoFp = '';
       this.headlineHorizonPctFp = '';
+    }
+    if (
+      changes['card'] &&
+      this.detailBreakdownTab === 'productSubType' &&
+      this.card?.aggregationLevel !== 'product-type'
+    ) {
+      this.detailBreakdownTab = 'investor';
     }
   }
 
@@ -542,6 +552,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
       selectedInvestorTypes: this.selectedInvestorTypes,
       selectedProductRegions: this.selectedProductRegions,
       selectedProductTypes: this.selectedProductTypes,
+      selectedProductSubTypes: this.selectedProductSubTypes,
     });
   }
 
@@ -552,6 +563,14 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     this.breakdownFingerprint = fp;
     this.cachedInvestorBreakdown = this.buildBreakdownRows('investor');
     this.cachedProductBreakdown = this.buildBreakdownRows('product');
+    this.cachedProductSubTypeBreakdown = this.isProductLevelCard()
+      ? this.buildBreakdownRows('productSubType')
+      : [];
+  }
+
+  /** @returns {boolean} True when the open card aggregates at product (not sub-type) level */
+  isProductLevelCard(): boolean {
+    return this.card?.aggregationLevel === 'product-type';
   }
 
   /**
@@ -562,6 +581,9 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   private dimensionKeyFromRow(r: AssetFlowRecord, kind: FlowBreakdownTab): string {
     if (kind === 'investor') {
       return (r.Plan_Type || r.Investor_Types || '').trim() || 'Other';
+    }
+    if (kind === 'productSubType') {
+      return (r.Product_Sub_Type || '').trim() || 'Other';
     }
     return (r.Product_Region || '').trim() || 'Other';
   }
@@ -579,6 +601,7 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const base = this.applyChartDataFiltersWithBypasses(productSubType, {
       bypassInvestorTypes: kind === 'investor',
       bypassProductRegions: kind === 'product',
+      bypassProductSubTypes: kind === 'productSubType',
     });
     const set = base.reduce((acc, r) => {
       acc.add(this.dimensionKeyFromRow(r, kind));
@@ -591,6 +614,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     }
     if (kind === 'product' && this.selectedProductRegions?.length) {
       const selected = new Set(this.selectedProductRegions);
+      return fromSubType.filter(l => selected.has(l));
+    }
+    if (kind === 'productSubType' && this.selectedProductSubTypes?.length) {
+      const selected = new Set(this.selectedProductSubTypes);
       return fromSubType.filter(l => selected.has(l));
     }
     return fromSubType;
@@ -666,12 +693,24 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
   }
 
   /**
+   * @returns {FlowBreakdownRow[]} Cached product-sub-type breakdown rows (product-level cards only)
+   */
+  getProductSubTypeBreakdown(): FlowBreakdownRow[] {
+    this.ensureBreakdownCache();
+    return this.cachedProductSubTypeBreakdown;
+  }
+
+  /**
    * @returns {FlowBreakdownRow[]} Rows for the currently selected breakdown tab
    */
   getActiveBreakdownRows(): FlowBreakdownRow[] {
-    return this.detailBreakdownTab === 'investor'
-      ? this.getInvestorBreakdown()
-      : this.getProductRegionBreakdown();
+    if (this.detailBreakdownTab === 'investor') {
+      return this.getInvestorBreakdown();
+    }
+    if (this.detailBreakdownTab === 'productSubType') {
+      return this.getProductSubTypeBreakdown();
+    }
+    return this.getProductRegionBreakdown();
   }
 
   /**
@@ -714,14 +753,19 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
    * Same as {@link MarketFlowDetailModalComponent#applyChartDataFilters} but can omit investor-type or product-region filter so we can
    * list every distinct label while other dimensions stay applied.
    * @param {string} aggregationKey - Product sub-type or product label to filter by
-   * @param {{ bypassInvestorTypes?: boolean; bypassProductRegions?: boolean }} bypasses - Dimensions to skip filtering
+   * @param {{ bypassInvestorTypes?: boolean; bypassProductRegions?: boolean; bypassProductSubTypes?: boolean }} bypasses - Dimensions to skip filtering
    * @param {boolean} [bypasses.bypassInvestorTypes] - When true, skip investor-type filtering
    * @param {boolean} [bypasses.bypassProductRegions] - When true, skip product-region filtering
+   * @param {boolean} [bypasses.bypassProductSubTypes] - When true, skip product-sub-type filtering
    * @returns {import("../../../utils/asset-flows-to-sankey.util").AssetFlowRecord[]} Filtered asset flow records
    */
   private applyChartDataFiltersWithBypasses(
     aggregationKey: string,
-    bypasses: { bypassInvestorTypes?: boolean; bypassProductRegions?: boolean }
+    bypasses: {
+      bypassInvestorTypes?: boolean;
+      bypassProductRegions?: boolean;
+      bypassProductSubTypes?: boolean;
+    }
   ): AssetFlowRecord[] {
     const atProductLevel = this.card?.aggregationLevel === 'product-type';
     let data = this.rawAssetFlowsData.filter(r =>
@@ -747,6 +791,10 @@ export default class MarketFlowDetailModalComponent implements OnChanges {
     const productTypes = this.selectedProductTypes;
     if (productTypes?.length) {
       data = data.filter(r => productTypes.includes(r.Product_Type));
+    }
+    const productSubTypes = this.selectedProductSubTypes;
+    if (!bypasses.bypassProductSubTypes && productSubTypes?.length) {
+      data = data.filter(r => productSubTypes.includes(r.Product_Sub_Type));
     }
     const dataType = this.card?.dataType ?? 'forecasted';
     data = filterAssetFlowsByDataTypeResolvingSpan(

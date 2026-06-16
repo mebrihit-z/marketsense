@@ -621,6 +621,18 @@
   border-bottom: none;
   border-radius: 2px 2px 0 0;
   overflow: hidden;
+
+  &--three .flow-breakdown-tab {
+    padding: 12px 6px;
+    font-size: 11px;
+
+    @media (min-width: 1537px) and (max-width: 1920px) {
+      font-size: 12px;
+    }
+    @media (min-width: 1921px) {
+      font-size: 14px;
+    }
+  }
 }
 
 .flow-breakdown-tab {

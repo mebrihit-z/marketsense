@@ -59,6 +59,7 @@ export class FeaturedMarketFlowsCarouselComponent implements OnInit, OnDestroy, 
   @Input() selectedInvestorTypes: string[] = [];
   @Input() selectedProductRegions: string[] = [];
   @Input() selectedProductTypes: string[] = [];
+  @Input() selectedProductSubTypes: string[] = [];
   @Output() pinCard = new EventEmitter<string>();
   @Output() cardLevelChange = new EventEmitter<MarketFlowCardLevel>();
 
