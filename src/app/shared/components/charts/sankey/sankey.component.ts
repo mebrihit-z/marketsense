@@ -22,6 +22,7 @@ import {
   type SankeyData,
 } from '../../../utils/sankey-data.utils';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
+import { inferSankeyNodeContextTypeLabel } from '../../../utils/ask-marketsense-context-type.util';
 import formatTimeHorizonSliderHandleDate from '../../../utils/time-horizon-slider-tooltip-date.util';
 import { AssetFlowHistoricAnchorService } from '../../../../core/services/asset-flow-historic-anchor.service';
 import {
@@ -2183,6 +2184,11 @@ export class SankeyComponent implements AfterViewInit, OnDestroy, OnChanges {
         timeHorizon: component.timeHorizon,
         timeHorizonStart: component.timeHorizonStart,
         timeHorizonEnd: component.timeHorizonEnd,
+        contextTypeLabel: inferSankeyNodeContextTypeLabel(node.name, {
+          dimension1Label: component.dimension1Label,
+          dimension2Label: component.dimension2Label,
+          dimension3Label: component.dimension3Label,
+        }),
       };
     };
 

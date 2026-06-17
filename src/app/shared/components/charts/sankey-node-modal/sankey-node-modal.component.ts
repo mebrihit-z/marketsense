@@ -28,6 +28,8 @@ export interface SankeyNodeModalData {
   timeHorizon?: string;
   timeHorizonStart?: string;
   timeHorizonEnd?: string;
+  /** Human-readable dimension label for Ask MarketSense context banner. */
+  contextTypeLabel?: string;
 }
 
 @Component({
@@ -97,6 +99,7 @@ export class SankeyNodeModalComponent implements OnChanges {
       timeHorizonEnd: this.nodeData.timeHorizonEnd,
       dataType: 'forecasted',
       nClientsTotal: this.nodeData.sampleSize,
+      contextTypeLabel: this.nodeData.contextTypeLabel,
     };
   }
 

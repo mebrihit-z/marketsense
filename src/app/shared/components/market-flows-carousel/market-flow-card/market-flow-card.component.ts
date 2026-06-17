@@ -36,6 +36,8 @@ export interface MarketFlowCard {
   dataType: 'historical' | 'forecasted';
   /** How this card was grouped — sub-product (default) or product. */
   aggregationLevel?: MarketFlowCardLevel;
+  /** Human-readable type for Ask MarketSense context banner (e.g. "Product Type"). */
+  contextTypeLabel?: string;
   productSubType?: string;
   productType?: string;
   /** Sum of `N_Clients` over all rows aggregated into this card (filters + time window). */

@@ -6,6 +6,7 @@ import TitleComponent from '../../title/title.component';
 import type { MarketFlowCard } from '../../market-flows-carousel/market-flow-card/market-flow-card.component';
 import { formatFlowCurrencyUsd } from '../../../utils/flow-currency-format.util';
 import { AskMarketsenseCardContextService } from '../../../../core/services/ask-marketsense-card-context.service';
+import { normalizeContextTypeLabel } from '../../../utils/ask-marketsense-context-type.util';
 
 export interface TreemapCellData {
   name: string;
@@ -88,8 +89,17 @@ export class TreemapCellModalComponent implements OnChanges {
       chartColor: this.getFlowType() === 'inflow' ? 'green' : this.getFlowType() === 'outflow' ? 'red' : 'green',
       borderColor: this.getFlowType() === 'inflow' ? '#10b981' : this.getFlowType() === 'outflow' ? '#ef4444' : '#9ca3af',
       timeHorizon: '+9 mo',
-      dataType: 'forecasted' as const
+      dataType: 'forecasted' as const,
+      contextTypeLabel: this.getContextTypeLabel(),
     };
+  }
+
+  private getContextTypeLabel(): string {
+    const fromDimension2 = this.cellData?.dimension2Name?.trim();
+    if (fromDimension2) {
+      return normalizeContextTypeLabel(fromDimension2);
+    }
+    return 'Product Type';
   }
 
   getFlowType(): 'inflow' | 'outflow' | 'neutral' {

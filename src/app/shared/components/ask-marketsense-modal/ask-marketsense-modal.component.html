@@ -267,12 +267,15 @@
           *ngIf="bannerCardTitle"
           class="card-context-banner"
           role="status"
-          [attr.aria-label]="'Context. You are asking about ' + bannerCardTitle + ' — product sub-type context.'">
+          [attr.aria-label]="bannerContextTypeLabel
+            ? ('Context. You are asking about ' + bannerCardTitle + ' — ' + bannerContextTypeLabel + ' context.')
+            : ('Context. You are asking about ' + bannerCardTitle + '.')">
           <span class="card-context-header">Context</span>
           <p class="card-context-line">
             <span>You're asking about </span>
             <strong class="card-context-name">{{ bannerCardTitle }}</strong>
-            <span>. What would you like to know about this product sub-type?</span>
+            <span *ngIf="bannerContextTypeLabel">. What would you like to know about this {{ bannerContextTypeLabel | lowercase }}?</span>
+            <span *ngIf="!bannerContextTypeLabel">. What would you like to know?</span>
           </p>
         </div>
       </ng-template>

@@ -57,6 +57,8 @@ interface AiChatFailureEnvelope {
 /** Optional UI/flow context (e.g. which market flow card the user asked from). */
 export interface AiChatCardContext {
   title: string;
+  /** Context dimension label (e.g. "Product Type", "Investor Region"). */
+  type?: string;
 }
 
 /** Request payload for AI chat (backend API shape) */

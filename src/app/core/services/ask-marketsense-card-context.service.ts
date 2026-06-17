@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { MarketFlowCard } from '../../shared/components/market-flows-carousel/market-flow-card/market-flow-card.component';
+import { resolveMarketFlowCardContextTypeLabel } from '../../shared/utils/ask-marketsense-context-type.util';
 
 /**
  * When Ask MarketSense opens from a market flow card, the active card is set here
@@ -38,6 +39,14 @@ export class AskMarketsenseCardContextService {
       return t.trim();
     }
     return null;
+  }
+
+  /**
+   * Human-readable context type for the modal banner (e.g. "Product Type", "Investor Region").
+   * @returns {string|null} Trimmed context type label, or `null` when none is set.
+   */
+  getActiveContextTypeLabel(): string | null {
+    return resolveMarketFlowCardContextTypeLabel(this.activeCard);
   }
 
   /**

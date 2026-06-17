@@ -6,6 +6,7 @@ import type { MarketFlowCard } from '../market-flows-carousel/market-flow-card/m
 import TitleComponent from '../title/title.component';
 import { AiChatService, type AiChatResponse, type AiChatCardContext } from '../../../core/services/ai-chat.service';
 import { AskMarketsenseCardContextService } from '../../../core/services/ask-marketsense-card-context.service';
+import { resolveMarketFlowCardContextTypeLabel } from '../../utils/ask-marketsense-context-type.util';
 import { loadImageFromDataUrl } from '../../utils/chart-dom-export.util';
 import {
   coerceVisualizationImageBase64Payload,
@@ -104,6 +105,15 @@ export default class AskMarketsenseModalComponent implements OnChanges {
       return fromInput.trim();
     }
     return this.askCardContext.getActiveTitleForBanner();
+  }
+
+  /** Banner copy: product type, investor region, etc. — from card or in-flight context service. */
+  get bannerContextTypeLabel(): string | null {
+    const fromInput = resolveMarketFlowCardContextTypeLabel(this.card);
+    if (fromInput) {
+      return fromInput;
+    }
+    return this.askCardContext.getActiveContextTypeLabel();
   }
 
   get askInputPlaceholder(): string {
@@ -313,15 +323,12 @@ export default class AskMarketsenseModalComponent implements OnChanges {
    * question so the API can attribute the request (same shape for first question and follow-ups).
    */
   private cardContextForApi(): AiChatCardContext | undefined {
-    const t = this.card?.title;
-    if (typeof t === 'string' && t.trim()) {
-      return { title: t.trim() };
+    const title = this.bannerCardTitle;
+    if (!title) {
+      return undefined;
     }
-    const fromService = this.askCardContext.getActiveTitleForBanner();
-    if (fromService) {
-      return { title: fromService };
-    }
-    return undefined;
+    const type = this.bannerContextTypeLabel ?? undefined;
+    return type ? { title, type } : { title };
   }
 
   /** Card id for the current open (input or {@link AskMarketsenseCardContextService}). */
